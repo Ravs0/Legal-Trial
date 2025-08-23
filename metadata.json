@@ -1,0 +1,6 @@
+{
+  "name": "TrialSim - Mock Trial Simulator",
+  "description": "A mock trial simulator where users can practice legal arguments with an AI judge. Select judge personalities, case categories, and receive performance feedback.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
