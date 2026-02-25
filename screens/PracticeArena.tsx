@@ -109,7 +109,7 @@ const PracticeArena: React.FC = () => {
     }
 
     if (!getApiConfig()) {
-      setGlobalError("Gemini API client is not initialized. Ensure API_KEY is set.");
+      setGlobalError("No AI API key found. Please add DEEPSEEK_API_KEY, KIMI_API_KEY, or GROQ_API_KEY in Vercel environment variables.");
       navigate(ROUTES.LANDING);
       return;
     }
@@ -189,7 +189,7 @@ const PracticeArena: React.FC = () => {
     const stream = await sendMessageToChatStream(chatInstance, textForAi);
     if (stream) {
       for await (const chunk of stream) {
-        const chunkText = chunk.text;
+        const chunkText = typeof chunk.text === 'function' ? chunk.text() : (chunk.text || '');
         aiResponseText += chunkText;
         setMessages(prev => prev.map(msg =>
           msg.id === messageId ? { ...msg, text: aiResponseText } : msg
