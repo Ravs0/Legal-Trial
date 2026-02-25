@@ -3,9 +3,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-  // loadEnv will check for .env files. But we also want to read from real process.env in Vercel
   const env = loadEnv(mode, process.cwd(), '');
-  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || env.API_KEY || env.GEMINI_API_KEY || '';
 
   return {
     server: {
@@ -14,8 +12,12 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(apiKey),
-      'process.env.GEMINI_API_KEY': JSON.stringify(apiKey)
+      'process.env.DEEPSEEK_NVIDIA_API_KEY': JSON.stringify(env.DEEPSEEK_NVIDIA_API_KEY || process.env.DEEPSEEK_NVIDIA_API_KEY || ''),
+      'process.env.DEEPSEEK_API_KEY': JSON.stringify(env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_CHAT_API_KEY || process.env.DEEPSEEK_API_KEY || ''),
+      'process.env.KIMI_API_KEY': JSON.stringify(env.KIMI_API_KEY || process.env.KIMI_API_KEY || ''),
+      'process.env.MINIMAX_API_KEY': JSON.stringify(env.MINIMAX_API_KEY || process.env.MINIMAX_API_KEY || ''),
+      'process.env.GROQ_API_KEY': JSON.stringify(env.GROQ_API_KEY || process.env.GROQ_API_KEY || ''),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
     },
     resolve: {
       alias: {

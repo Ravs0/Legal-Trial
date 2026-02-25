@@ -5,10 +5,10 @@ import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { TrialSimContext } from '../App';
 import { ChatMessage, SessionRecord, SessionSettings, PerformanceMetrics } from '../types';
-import { getAiClient, startJudgeChatSession, startOpposingCounselChatSession, sendMessageToChatStream, analyzeSessionPerformance } from '../services/geminiService';
+import { getApiConfig, startJudgeChatSession, startOpposingCounselChatSession, sendMessageToChatStream, analyzeSessionPerformance } from '../services/geminiService';
 import { ROUTES, SESSION_DURATIONS_MINUTES } from '../constants';
 import { useTimer } from '../hooks/useTimer';
-import { Chat, GenerateContentResponse } from '@google/genai';
+import { Chat } from '../types';
 import { CourtIcon } from '../components/icons/CourtIcon';
 import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
@@ -108,7 +108,7 @@ const PracticeArena: React.FC = () => {
       return;
     }
 
-    if (!getAiClient()) {
+    if (!getApiConfig()) {
       setGlobalError("Gemini API client is not initialized. Ensure API_KEY is set.");
       navigate(ROUTES.LANDING);
       return;
