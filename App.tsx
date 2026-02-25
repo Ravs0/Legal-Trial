@@ -11,7 +11,7 @@ import JudgesScreen from './screens/JudgesScreen';
 import OpposingCounselScreen from './screens/OpposingCounselScreen';
 import LandingScreen from './screens/LandingScreen';
 import DraftingStudioScreen from './screens/DraftingStudioScreen'; // Import the new screen
-import { ROUTES, MOCK_API_KEY } from './constants';
+import { ROUTES } from './constants';
 import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Chat } from './types';
@@ -31,51 +31,6 @@ const GlobalErrorDisplay: React.FC<{ message: string; onDismiss: () => void }> =
   </div>
 );
 
-const ApiKeyCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [apiKeyExists, setApiKeyExists] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const p = process.env;
-    const hasKey = Boolean(
-      (p.DEEPSEEK_API_KEY && p.DEEPSEEK_API_KEY.length > 5 && p.DEEPSEEK_API_KEY !== MOCK_API_KEY) ||
-      (p.DEEPSEEK_NVIDIA_API_KEY && p.DEEPSEEK_NVIDIA_API_KEY.length > 5) ||
-      (p.KIMI_API_KEY && p.KIMI_API_KEY.length > 5) ||
-      (p.MINIMAX_API_KEY && p.MINIMAX_API_KEY.length > 5) ||
-      (p.GROQ_API_KEY && p.GROQ_API_KEY.length > 5) ||
-      (p.GEMINI_API_KEY && p.GEMINI_API_KEY.length > 5 && p.GEMINI_API_KEY !== MOCK_API_KEY)
-    );
-
-    if (hasKey) {
-      setApiKeyExists(true);
-    } else {
-      setApiKeyExists(false);
-      setError("No valid AI API Key is configured. Please provide DeepSeek, Kimi, Groq, or Gemini keys in your environment variables. AI features may be disabled.");
-    }
-  }, []);
-
-  if (apiKeyExists === null) {
-    return <div className="flex justify-center items-center h-screen bg-brand-bg-primary"><LoadingSpinner text="Verifying API Key..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>;
-  }
-
-  return (
-    <>
-      {error && !apiKeyExists && (
-        <div className="fixed bottom-5 left-5 bg-yellow-500 text-yellow-900 p-4 rounded-md shadow-lg z-[100] max-w-md border border-yellow-600">
-          <h4 className="font-bold">API Key Configuration Notice</h4>
-          <p className="text-sm mt-1">{error}</p>
-          <button
-            onClick={() => setError(null)}
-            className="mt-2 text-sm font-semibold text-yellow-900 hover:text-yellow-700 underline"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-      {children}
-    </>
-  );
-};
 
 
 const ModeSpecificRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
@@ -127,25 +82,23 @@ function App() {
 
   return (
     <TrialSimContext.Provider value={contextValue}>
-      <ApiKeyCheck>
-        <HashRouter>
-          {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-75 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
-          {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
-          <Routes>
-            <Route path={ROUTES.LANDING} element={<LandingScreen />} />
-            <Route path="/" element={<Layout><Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace /></Layout>} />
-            <Route path={ROUTES.HOME} element={<Layout><ModeSpecificRoute element={<HomeScreen />} /></Layout>} />
-            <Route path={ROUTES.SETUP} element={<Layout><ModeSpecificRoute element={<SetupScreen />} /></Layout>} />
-            <Route path={ROUTES.PRACTICE} element={<ModeSpecificRoute element={<PracticeArena />} />} />
-            <Route path={ROUTES.ANALYSIS} element={<Layout><ModeSpecificRoute element={<PerformanceScreen />} /></Layout>} />
-            <Route path={ROUTES.LIBRARY} element={<Layout><ModeSpecificRoute element={<CaseLibraryScreen />} /></Layout>} />
-            <Route path={ROUTES.JUDGES} element={<Layout><ModeSpecificRoute element={<JudgesScreen />} /></Layout>} />
-            <Route path={ROUTES.OPPOSING_COUNSEL} element={<Layout><ModeSpecificRoute element={<OpposingCounselScreen />} /></Layout>} />
-            <Route path={ROUTES.DRAFTING_STUDIO} element={<Layout><ModeSpecificRoute element={<DraftingStudioScreen />} /></Layout>} />
-            <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
-          </Routes>
-        </HashRouter>
-      </ApiKeyCheck>
+      <HashRouter>
+        {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-75 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
+        {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
+        <Routes>
+          <Route path={ROUTES.LANDING} element={<LandingScreen />} />
+          <Route path="/" element={<Layout><Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace /></Layout>} />
+          <Route path={ROUTES.HOME} element={<Layout><ModeSpecificRoute element={<HomeScreen />} /></Layout>} />
+          <Route path={ROUTES.SETUP} element={<Layout><ModeSpecificRoute element={<SetupScreen />} /></Layout>} />
+          <Route path={ROUTES.PRACTICE} element={<ModeSpecificRoute element={<PracticeArena />} />} />
+          <Route path={ROUTES.ANALYSIS} element={<Layout><ModeSpecificRoute element={<PerformanceScreen />} /></Layout>} />
+          <Route path={ROUTES.LIBRARY} element={<Layout><ModeSpecificRoute element={<CaseLibraryScreen />} /></Layout>} />
+          <Route path={ROUTES.JUDGES} element={<Layout><ModeSpecificRoute element={<JudgesScreen />} /></Layout>} />
+          <Route path={ROUTES.OPPOSING_COUNSEL} element={<Layout><ModeSpecificRoute element={<OpposingCounselScreen />} /></Layout>} />
+          <Route path={ROUTES.DRAFTING_STUDIO} element={<Layout><ModeSpecificRoute element={<DraftingStudioScreen />} /></Layout>} />
+          <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
+        </Routes>
+      </HashRouter>
     </TrialSimContext.Provider>
   );
 }
