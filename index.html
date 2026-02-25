@@ -1,56 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrialSim - Mock Trial Simulator</title>
+  <title>TrialSim — AI-Powered Mock Trial Simulator</title>
+  <meta name="description"
+    content="Sharpen your legal argumentation and drafting skills with AI-driven mock trials against legendary judges and opposing counsel.">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            'brand-bg-primary': '#0D0D0D',      // Deep black (Base for neumorphism)
-            'brand-bg-secondary': '#1A1A1A',    // Slightly lighter black for subtle contrast (was #131313)
-            'brand-text-primary': '#E5E7EB',    // Tailwind gray-200 (Main light text)
-            'brand-text-secondary': '#9CA3AF',   // Tailwind gray-400 (Subtle text)
-            
-            'brand-accent': '#a32214',           // Deep Red (NEW ACCENT)
-            'brand-accent-hover': '#8a1c10',      // Darker Red (NEW ACCENT HOVER)
-            'brand-accent-text': tailwind.colors.white, // White text for on red buttons
-            
-            'brand-gradient-from': '#a32214', // Deep Red (Start of gradient)
-            'brand-gradient-mid': '#c02d1a',  // Brighter Red (Mid of gradient)
-            'brand-gradient-to': '#6b120a',   // Darker Red (End ofgradient - or to neutral-900 for fade to black)
+            'brand-bg-primary': '#080a10',
+            'brand-bg-secondary': '#0f1219',
+            'brand-bg-tertiary': '#161b27',
+            'brand-text-primary': '#e8eaf0',
+            'brand-text-secondary': '#8590a6',
 
-            'brand-border': 'rgba(50, 50, 50, 0.3)', 
-            'brand-border-light': 'rgba(60, 60, 60, 0.4)', 
-            
-            'brand-error': '#EF4444',           // Tailwind red-500 (Kept for distinct error states)
-            'brand-success': '#22C55E',         // Tailwind green-500 (Kept for success states)
+            'brand-accent': '#c9a84c',
+            'brand-accent-hover': '#dabb5e',
+            'brand-accent-text': '#080a10',
+            'brand-accent-muted': 'rgba(201,168,76,0.15)',
+
+            'brand-gradient-from': '#c9a84c',
+            'brand-gradient-mid': '#e0c668',
+            'brand-gradient-to': '#a08030',
+
+            'brand-border': 'rgba(201,168,76,0.12)',
+            'brand-border-light': 'rgba(201,168,76,0.2)',
+
+            'brand-error': '#ef5350',
+            'brand-success': '#4caf50',
+
+            'brand-navy': '#0d1525',
+            'brand-navy-light': '#172035',
           },
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            serif: ['Georgia', 'serif'],
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['Playfair Display', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
           },
           boxShadow: {
-            // Neumorphic shadows using CSS variables for consistency with dark background
-            'neumorphic-raised': '6px 6px 12px var(--neumorphic-shadow-dark-var), -6px -6px 12px var(--neumorphic-shadow-light-var)',
-            'neumorphic-pressed': 'inset 6px 6px 12px var(--neumorphic-shadow-dark-var), inset -6px -6px 12px var(--neumorphic-shadow-light-var)',
-            'neumorphic-flat': '3px 3px 6px var(--neumorphic-shadow-dark-var), -3px -3px 6px var(--neumorphic-shadow-light-var)',
-            'neumorphic-highlight': '2px 2px 5px var(--neumorphic-shadow-dark-var), -2px -2px 5px var(--neumorphic-shadow-light-var), inset 1px 1px 2px var(--neumorphic-shadow-light-var), inset -1px -1px 2px var(--neumorphic-shadow-dark-var)',
+            'glow-gold': '0 0 30px rgba(201,168,76,0.15), 0 0 60px rgba(201,168,76,0.05)',
+            'glow-gold-sm': '0 0 15px rgba(201,168,76,0.1)',
+            'card': '0 4px 24px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3)',
+            'card-hover': '0 8px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(201,168,76,0.08)',
+            'inner-subtle': 'inset 0 1px 2px rgba(0,0,0,0.3)',
+
           },
           keyframes: {
-            typing: {
-              '0%': { width: '0%' },
-              '100%': { width: '100%' },
-            },
-            blink: {
-              '50%': { borderColor: 'transparent' },
-            },
             fadeIn: {
               '0%': { opacity: '0' },
               '100%': { opacity: '1' },
+            },
+            fadeInUp: {
+              '0%': { opacity: '0', transform: 'translateY(24px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
             },
             slideInUp: {
               '0%': { transform: 'translateY(20px)', opacity: '0' },
@@ -61,111 +68,236 @@
               '100%': { transform: 'translateX(0)' },
             },
             'staggered-fade-in-item': {
-              '0%': { opacity: '0', transform: 'translateY(10px)' },
+              '0%': { opacity: '0', transform: 'translateY(16px)' },
               '100%': { opacity: '1', transform: 'translateY(0)' },
-            }
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-8px)' },
+            },
+            pulse_ring: {
+              '0%': { transform: 'scale(0.95)', opacity: '0.7' },
+              '50%': { transform: 'scale(1)', opacity: '1' },
+              '100%': { transform: 'scale(0.95)', opacity: '0.7' },
+            },
+            scaleSpin: {
+              '0%': { transform: 'rotate(0deg) scale(1)' },
+              '50%': { transform: 'rotate(180deg) scale(1.1)' },
+              '100%': { transform: 'rotate(360deg) scale(1)' },
+            },
           },
           animation: {
-            typing: 'typing 2s steps(40, end), blink .75s step-end infinite',
-            fadeIn: 'fadeIn 0.5s ease-out',
+            fadeIn: 'fadeIn 0.6s ease-out',
+            fadeInUp: 'fadeInUp 0.7s ease-out',
             slideInUp: 'slideInUp 0.5s ease-out',
             slideInLeft: 'slideInLeft 0.3s ease-out forwards',
-            'staggered-fade-in-item': 'staggered-fade-in-item 0.5s ease-out forwards',
+            'staggered-fade-in-item': 'staggered-fade-in-item 0.6s ease-out forwards',
+            shimmer: 'shimmer 2.5s linear infinite',
+            float: 'float 3s ease-in-out infinite',
+            pulse_ring: 'pulse_ring 2s ease-in-out infinite',
+            scaleSpin: 'scaleSpin 8s linear infinite',
+          },
+          backgroundImage: {
+            'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
           }
         }
       }
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Georgia&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <style>
-    html, body {
-      overflow-x: hidden; /* Prevent horizontal scrollbars */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
     }
+
+    html,
     body {
-      background-color: #0D0D0D; /* brand-bg-primary */
-      color: #E5E7EB; /* brand-text-primary */
-      font-family: 'Inter', sans-serif;
-      /* CSS variables for neumorphic shadows based on #0D0D0D background */
-      --neumorphic-shadow-light-var: rgba(35, 35, 35, 0.5); 
-      --neumorphic-shadow-dark-var: rgba(0, 0, 0, 0.7);      
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
     }
+
+    body {
+      background-color: #080a10;
+      color: #e8eaf0;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Premium scrollbar */
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
     }
+
     ::-webkit-scrollbar-track {
-      background: #1A1A1A; /* brand-bg-secondary */
+      background: transparent;
     }
+
     ::-webkit-scrollbar-thumb {
-      background: #4B5563; /* gray-600 */
-      border-radius: 4px;
+      background: rgba(201, 168, 76, 0.25);
+      border-radius: 10px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
-      background: #a32214; /* brand-accent (Deep Red) */
-    }
-    /* Styling for optgroup labels within SelectInput */
-    select option[value^="__optgroup__"] {
-        font-weight: bold;
-        color: #a32214; /* brand-accent (Deep Red) */
-        background-color: #101010; /* Slightly darker than brand-bg-primary for differentiation */
-        padding-top: 0.5rem;
-        padding-bottom: 0.25rem;
-        font-style: italic;
-    }
-    /* Styling for regular options */
-    select option:not([value^="__optgroup__"]) {
-      padding-left: 1rem; 
-       background-color: #1A1A1A; /* brand-bg-secondary */
-       color: #E5E7EB; /* brand-text-primary */
+      background: rgba(201, 168, 76, 0.5);
     }
 
-    .animation-delay-200 { animation-delay: 0.2s; }
-    .animation-delay-400 { animation-delay: 0.4s; }
-    .animation-delay-600 { animation-delay: 0.6s; }
-
-    /* For elements that need a neumorphic :active state specifically if Tailwind variants are tricky */
-    .neumorphic-interactive {
-      background-color: #0D0D0D; /* brand-bg-primary */
-      box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow); /* Tailwind's shadow setup */
-      transition: box-shadow 0.15s ease-in-out;
-    }
-    .neumorphic-interactive:active, .neumorphic-interactive-pressed {
-      box-shadow: inset 6px 6px 12px var(--neumorphic-shadow-dark-var), inset -6px -6px 12px var(--neumorphic-shadow-light-var), var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000) !important;
-    }
-    /* Utility for a top shadow, e.g., for fixed footers over scrollable content */
-    .shadow-top {
-      box-shadow: 0 -4px 6px -1px var(--neumorphic-shadow-dark-var), 0 -2px 4px -1px var(--neumorphic-shadow-dark-var);
-    }
-    /* Custom scrollbar for specific elements if needed */
     .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent; /* Or a very dark gray like #101010 */
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #4b5563; /* gray-600 */
-        border-radius: 3px;
-    }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #a32214; /* brand-accent */
+      width: 4px;
     }
 
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(201, 168, 76, 0.2);
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(201, 168, 76, 0.4);
+    }
+
+    /* Glass card */
+    .glass-card {
+      background: linear-gradient(135deg, rgba(15, 18, 25, 0.8), rgba(22, 27, 39, 0.6));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(201, 168, 76, 0.1);
+    }
+
+    /* Gold shimmer text effect */
+    .text-shimmer {
+      background: linear-gradient(90deg, #c9a84c, #e0c668, #c9a84c, #a08030, #c9a84c);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s linear infinite;
+    }
+
+    /* Mesh gradient background */
+    .mesh-bg {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 20%, rgba(201, 168, 76, 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 80% at 80% 80%, rgba(13, 21, 37, 0.6) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 50% 50%, rgba(201, 168, 76, 0.02) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Animation delays */
+    .animation-delay-100 {
+      animation-delay: 0.1s;
+    }
+
+    .animation-delay-200 {
+      animation-delay: 0.2s;
+    }
+
+    .animation-delay-300 {
+      animation-delay: 0.3s;
+    }
+
+    .animation-delay-400 {
+      animation-delay: 0.4s;
+    }
+
+    .animation-delay-500 {
+      animation-delay: 0.5s;
+    }
+
+    .animation-delay-600 {
+      animation-delay: 0.6s;
+    }
+
+    .animation-delay-700 {
+      animation-delay: 0.7s;
+    }
+
+    .animation-delay-800 {
+      animation-delay: 0.8s;
+    }
+
+    /* Select styling */
+    select option[value^="__optgroup__"] {
+      font-weight: bold;
+      color: #c9a84c;
+      background-color: #0f1219;
+      padding-top: 0.5rem;
+      padding-bottom: 0.25rem;
+      font-style: italic;
+    }
+
+    select option:not([value^="__optgroup__"]) {
+      padding-left: 1rem;
+      background-color: #0f1219;
+      color: #e8eaf0;
+    }
+
+    /* Shadow top for footers */
+    .shadow-top {
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Noise overlay for premium texture */
+    .noise-overlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0.015;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Focus ring */
+    .focus-ring:focus-visible {
+      outline: 2px solid rgba(201, 168, 76, 0.5);
+      outline-offset: 2px;
+    }
+
+    /* Gradient border effect */
+    .gradient-border {
+      position: relative;
+    }
+
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(201, 168, 76, 0.3), transparent 50%, rgba(201, 168, 76, 0.1));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
   </style>
-<script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.0.1",
-    "react/": "https://esm.sh/react@^19.1.0/",
-    "react": "https://esm.sh/react@^19.1.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.6.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.0/"
-  }
-}
-</script>
 </head>
+
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div class="mesh-bg"></div>
   <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

@@ -6,54 +6,58 @@ interface CardProps {
   className?: string;
   title?: string;
   titleClassName?: string;
-  actions?: React.ReactNode; 
-  icon?: React.ReactNode; 
+  actions?: React.ReactNode;
+  icon?: React.ReactNode;
   onClick?: () => void;
-  hoverEffect?: boolean; 
-  titleGradient?: boolean; 
+  hoverEffect?: boolean;
+  titleGradient?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ 
-  children, 
-  className = '', 
-  title, 
-  titleClassName = '', 
-  actions, 
-  icon, 
+export const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
+  title,
+  titleClassName = '',
+  actions,
+  icon,
   onClick,
   hoverEffect = false,
-  titleGradient = false, 
+  titleGradient = false,
 }) => {
 
-  const baseCardStyles = `rounded-xl bg-brand-bg-primary shadow-neumorphic-raised`; // Removed overflow-hidden
-  
-  const interactiveStyles = onClick ? 'cursor-pointer transition-all duration-200' : '';
-  const hoverStyles = hoverEffect && onClick 
-    ? 'hover:shadow-neumorphic-flat active:shadow-neumorphic-pressed' 
-    : (onClick ? 'active:shadow-neumorphic-pressed' : '');
+  const baseCardStyles = `rounded-2xl glass-card gradient-border shadow-card`;
 
-  // Determine if the card itself is intended to be a flex column container for its children area
+  const interactiveStyles = onClick ? 'cursor-pointer transition-all duration-300' : '';
+  const hoverStyles = hoverEffect && onClick
+    ? 'hover:-translate-y-1 hover:shadow-card-hover focus-ring group'
+    : (onClick ? 'focus-ring group' : '');
+
   const isFlexColCard = className.includes('flex-col');
 
 
   return (
-    <div 
-      className={`${baseCardStyles} ${interactiveStyles} ${hoverStyles} ${className} ${!className.includes('overflow-') ? 'overflow-hidden' : ''}`} // Conditionally add overflow-hidden
+    <div
+      className={`${baseCardStyles} ${interactiveStyles} ${hoverStyles} ${className} overflow-hidden`}
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyPress={(e) => { if (onClick && e.key === 'Enter') onClick(); }}
     >
-      {icon && ( 
-        <div className="w-full pt-5 pb-3 flex items-center justify-center flex-shrink-0"> {/* Added flex-shrink-0 */}
-           <div className="text-brand-accent w-16 h-16 sm:w-20 sm:h-20"> 
-            {icon}
-           </div>
+      {icon && (
+        <div className="w-full pt-6 pb-4 flex items-center justify-center flex-shrink-0">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-brand-navy border border-brand-accent/20 flex items-center justify-center shadow-inner-subtle group-hover:shadow-glow-gold-sm transition-shadow duration-300">
+            <div className="text-brand-accent drop-shadow-md">
+              {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10" })}
+            </div>
+          </div>
         </div>
       )}
 
       {(title || actions) && (
-        <div className={`p-4 sm:p-5 ${icon ? 'pt-3' : ''} flex justify-between items-center ${children ? 'border-b border-[var(--neumorphic-shadow-dark-var)] opacity-60' : ''} flex-shrink-0`}> {/* Added flex-shrink-0 */}
+        <div className={`p-5 sm:p-6 ${icon ? 'pt-4' : ''} flex justify-between items-center ${children ? 'border-b border-brand-accent/10' : ''} flex-shrink-0 bg-brand-bg-primary/30`}>
           {title && (
-            <h3 className={`text-lg sm:text-xl font-semibold 
-              ${titleGradient ? 'text-transparent bg-clip-text bg-gradient-to-r from-brand-gradient-from via-brand-gradient-mid to-brand-gradient-to' : 'text-brand-accent'}
+            <h3 className={`text-xl sm:text-2xl font-serif font-semibold tracking-tight
+              ${titleGradient ? 'text-shimmer drop-shadow-md' : 'text-brand-text-primary group-hover:text-brand-accent transition-colors'}
               ${titleClassName}`
             }>
               {title}
@@ -62,7 +66,7 @@ export const Card: React.FC<CardProps> = ({
           {actions && <div className="flex-shrink-0">{actions}</div>}
         </div>
       )}
-      <div className={`p-4 sm:p-5 ${isFlexColCard ? 'flex-grow flex flex-col' : ''}`}>
+      <div className={`p-5 sm:p-6 ${isFlexColCard ? 'flex-grow flex flex-col' : ''}`}>
         {children}
       </div>
     </div>

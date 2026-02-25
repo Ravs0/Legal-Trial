@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { JudgePersonality, OpposingCounselPersonality } from '../types';
 import { GavelIcon } from './icons/GavelIcon';
 import { UsersIcon } from './icons/UsersIcon';
-import { Button } from './Button'; 
+import { Button } from './Button';
 
 interface ProfileDetailModalProps {
   profile: JudgePersonality | OpposingCounselPersonality | null;
@@ -17,34 +17,45 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({ profile,
   const ProfileIcon = isAdvocate ? UsersIcon : GavelIcon;
 
   return (
-    // Modal itself is now neumorphic via Modal.tsx updates
-    <Modal isOpen={!!profile} onClose={onClose} title={profile.name} size="xl">
-      <div className="flex flex-col sm:flex-row items-center sm:items-start sm:space-x-6">
-        {/* Icon panel now neumorphic pressed, icon is red */}
-        <div className="flex-shrink-0 w-32 h-32 sm:w-40 sm:h-40 rounded-lg bg-brand-bg-primary shadow-neumorphic-pressed mb-4 sm:mb-0 flex items-center justify-center">
-          <ProfileIcon className="w-20 h-20 text-brand-accent opacity-90" /> 
+    <Modal isOpen={!!profile} onClose={onClose} title={isAdvocate ? "Counsel Dossier" : "Judicial Profile"} size="xl">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start sm:space-x-8">
+        <div className="flex-shrink-0 w-32 h-32 sm:w-40 sm:h-40 rounded-2xl bg-brand-navy border border-brand-accent/20 mb-6 sm:mb-0 flex items-center justify-center relative shadow-inner-subtle">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/10 to-transparent rounded-2xl mix-blend-overlay"></div>
+          <ProfileIcon className="w-16 h-16 sm:w-20 sm:h-20 text-brand-accent drop-shadow-lg z-10" />
         </div>
-        <div className="text-center sm:text-left flex-grow">
-          {/* Title is red */}
-          <h3 className="text-2xl font-bold text-brand-accent mb-1 font-serif">{profile.name}</h3> 
+
+        <div className="text-center sm:text-left flex-grow space-y-4">
+          <div>
+            <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary/70 block mb-1">
+              {isAdvocate ? "Opposing Counsel" : "The Bench"}
+            </span>
+            <h3 className="text-3xl font-bold text-brand-text-primary font-serif leading-tight">{profile.name}</h3>
+          </div>
+
           {isAdvocate && (
-            // Specialty text is lighter red for contrast
-            <p className="text-md font-semibold text-red-300 mb-3"> 
-              Specialty: {(profile as OpposingCounselPersonality).specialty}
-            </p>
+            <div className="inline-block px-3 py-1 bg-brand-accent/10 border border-brand-accent/30 rounded-md">
+              <span className="text-xs font-mono font-medium text-brand-accent uppercase tracking-wider">
+                {((profile as OpposingCounselPersonality).specialty)}
+              </span>
+            </div>
           )}
-          <p className="text-sm text-brand-text-secondary leading-relaxed whitespace-pre-line">
-            {profile.description}
-          </p>
+
+          <div className="w-full h-px bg-gradient-to-r from-brand-accent/40 to-transparent my-4"></div>
+
+          <div className="bg-brand-bg-primary/30 p-4 rounded-xl border border-brand-border-light font-light shadow-inner-subtle">
+            <p className="text-sm text-brand-text-secondary leading-relaxed whitespace-pre-line text-left">
+              {profile.description}
+            </p>
+          </div>
         </div>
       </div>
-      <div className="mt-6 pt-4 border-t border-[var(--neumorphic-shadow-dark-var)] opacity-60 flex justify-end">
-        {/* Button uses primary style (solid red background) */}
+      <div className="mt-8 pt-5 border-t border-brand-accent/10 flex justify-end">
         <Button
           onClick={onClose}
-          variant="primary" 
+          variant="outline"
+          className="px-8 border-brand-text-secondary/30 text-brand-text-secondary hover:text-brand-text-primary"
         >
-          Close
+          Close Dossier
         </Button>
       </div>
     </Modal>

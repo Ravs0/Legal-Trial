@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,6 +9,18 @@ interface ModalProps {
 }
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
+  // Prevent scrolling on body when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -20,33 +32,49 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   };
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 animate-fadeIn" 
-      onClick={onClose} 
+    <div
+      className="fixed inset-0 bg-brand-bg-primary/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6 animate-fadeIn"
+      onClick={onClose}
     >
       <div
-        // Modal background is now brand-bg-primary, with neumorphic raised shadow
-        className={`bg-brand-bg-primary rounded-lg shadow-neumorphic-raised w-full ${sizeClasses[size]} transform transition-all animate-slideInUp border border-[var(--neumorphic-shadow-light-var)] opacity-95`}
-        onClick={(e) => e.stopPropagation()} 
+        className={`relative bg-brand-navy border border-brand-accent/20 rounded-2xl shadow-card w-full ${sizeClasses[size]} transform transition-all animate-slideInUp max-h-full overflow-hidden flex flex-col`}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className={`p-5 sm:p-6 ${title ? 'border-b border-[var(--neumorphic-shadow-dark-var)] opacity-60' : ''} flex justify-between items-center`}>
-          {title && (
-            // Title color now uses new red brand-accent
-            <h3 className="text-xl font-semibold text-brand-accent">{title}</h3> 
-          )}
-          <button
-            onClick={onClose}
-            // Close button hover uses new red brand-accent
-            className={`p-1 rounded-full text-brand-text-secondary hover:bg-brand-bg-secondary hover:text-brand-accent transition-colors ${title ? '' : 'ml-auto'}`} 
-            aria-label="Close modal"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="p-5 sm:p-6">
-            {children}
+        {/* Decorative inner glow */}
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent pointer-events-none rounded-2xl z-0"></div>
+        <div className="absolute -top-10 -left-10 w-32 h-32 bg-brand-accent/10 rounded-full blur-[40px] pointer-events-none z-0"></div>
+
+        {title && (
+          <div className="p-5 sm:p-6 pb-4 border-b border-brand-accent/10 flex justify-between items-center relative z-10 bg-brand-navy/90 backdrop-blur-md">
+            <h3 className="text-xl sm:text-2xl font-semibold text-brand-text-primary font-serif tracking-tight pr-4">{title}</h3>
+            <button
+              onClick={onClose}
+              className="p-2 -mr-2 rounded-xl text-brand-text-secondary hover:bg-brand-accent/10 hover:text-brand-accent transition-colors flex-shrink-0"
+              aria-label="Close modal"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {!title && (
+          <div className="absolute top-4 right-4 z-20">
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-brand-text-secondary hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
+              aria-label="Close modal"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar relative z-10">
+          {children}
         </div>
       </div>
     </div>

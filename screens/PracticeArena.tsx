@@ -9,8 +9,9 @@ import { getAiClient, startJudgeChatSession, startOpposingCounselChatSession, se
 import { ROUTES, SESSION_DURATIONS_MINUTES } from '../constants';
 import { useTimer } from '../hooks/useTimer';
 import { Chat, GenerateContentResponse } from '@google/genai';
-import { CourtIcon } from '../components/icons/CourtIcon'; 
-import { BriefcaseIcon } from '../components/icons/BriefcaseIcon'; 
+import { CourtIcon } from '../components/icons/CourtIcon';
+import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
+import { GavelIcon } from '../components/icons/GavelIcon';
 
 const PracticeArena: React.FC = () => {
   const navigate = useNavigate();
@@ -18,12 +19,12 @@ const PracticeArena: React.FC = () => {
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error("TrialSimContext not found");
-  const { 
-    currentSessionSettings, setCurrentSessionSettings, 
+  const {
+    currentSessionSettings, setCurrentSessionSettings,
     activeChatJudge, setActiveChatJudge,
     activeChatOpposingCounsel, setActiveChatOpposingCounsel,
     setIsLoading: setGlobalLoading, setError: setGlobalError,
-    practiceMode 
+    practiceMode
   } = context;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -32,14 +33,14 @@ const PracticeArena: React.FC = () => {
   const [sessionEnded, setSessionEnded] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const currentSessionRecordRef = useRef<SessionRecord | null>(null);
-  
+
   const sessionDurationSeconds = currentSessionSettings ? SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType] * 60 : 900;
 
   const onTimerEnd = useCallback(async () => {
-    if (!sessionEnded) { 
-        await handleSessionEnd(true, true); 
+    if (!sessionEnded) {
+      await handleSessionEnd(true, true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionEnded]);
 
 
@@ -52,20 +53,20 @@ const PracticeArena: React.FC = () => {
 
   const handleSessionEnd = useCallback(async (navigateToAnalysis = true, triggerAnalysis = false) => {
     if (sessionEnded && navigateToAnalysis && currentSessionRecordRef.current?.performance && !triggerAnalysis) {
-        if(navigateToAnalysis && currentSessionRecordRef.current) {
-             navigate(ROUTES.ANALYSIS, { state: { sessionRecord: currentSessionRecordRef.current } });
-        }
-        return;
+      if (navigateToAnalysis && currentSessionRecordRef.current) {
+        navigate(ROUTES.ANALYSIS, { state: { sessionRecord: currentSessionRecordRef.current } });
+      }
+      return;
     }
-    
+
     setSessionEnded(true);
     setIsAiTyping(false);
     pauseTimer();
 
-    if (currentSessionRecordRef.current && currentSessionSettings) { 
+    if (currentSessionRecordRef.current && currentSessionSettings) {
       let finalRecord: SessionRecord = {
         ...currentSessionRecordRef.current,
-        transcript: messages, 
+        transcript: messages,
         endTime: new Date(),
         durationMinutes: SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType] - Math.floor(remainingSeconds / 60),
       };
@@ -78,31 +79,31 @@ const PracticeArena: React.FC = () => {
         } else {
           finalRecord.performance = {
             argumentStrength: 0, precedentUsage: 0, constitutionalBasis: 0, responseQuality: 0, overallScore: 0,
-            feedback: "Performance analysis could not be generated at this time.", 
+            feedback: "Performance analysis could not be generated at this time.",
             improvementAreas: ["Retry analysis later or review session manually."]
           };
           setGlobalError("Failed to generate performance analysis automatically.");
         }
         setGlobalLoading(false);
       }
-      
-      currentSessionRecordRef.current = finalRecord; 
-      
+
+      currentSessionRecordRef.current = finalRecord;
+
       if (navigateToAnalysis) {
-          navigate(ROUTES.ANALYSIS, { state: { sessionRecord: finalRecord } });
-          setCurrentSessionSettings(null); 
-          setActiveChatJudge(null); 
-          setActiveChatOpposingCounsel(null);
+        navigate(ROUTES.ANALYSIS, { state: { sessionRecord: finalRecord } });
+        setCurrentSessionSettings(null);
+        setActiveChatJudge(null);
+        setActiveChatOpposingCounsel(null);
       }
     } else if (navigateToAnalysis) {
-      navigate(ROUTES.HOME); 
+      navigate(ROUTES.HOME);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionEnded, messages, currentSessionSettings, remainingSeconds, navigate, setCurrentSessionSettings, setActiveChatJudge, setActiveChatOpposingCounsel, pauseTimer, setGlobalLoading, setGlobalError]);
 
 
   useEffect(() => {
-    if (!currentSessionSettings || !practiceMode) { 
+    if (!currentSessionSettings || !practiceMode) {
       navigate(practiceMode ? ROUTES.SETUP : ROUTES.LANDING);
       return;
     }
@@ -112,7 +113,7 @@ const PracticeArena: React.FC = () => {
       navigate(ROUTES.LANDING);
       return;
     }
-    
+
     setGlobalLoading(true);
     const settingsWithMode = { ...currentSessionSettings, practiceMode };
 
@@ -124,14 +125,14 @@ const PracticeArena: React.FC = () => {
       setActiveChatOpposingCounsel(ocChat);
 
       const initialMessagesList: ChatMessage[] = [];
-      
+
       initialMessagesList.push({
         id: `oc-init-${Date.now()}`,
         sender: 'opposingCounsel',
         text: `Advocate ${currentSessionSettings.opposingCounselPersonality.name} (${currentSessionSettings.opposingCounselPersonality.specialty}). I am prepared to rigorously examine your arguments, Counsel, under the scrutiny of ${currentSessionSettings.judgePersonality.name}. Expect no easy concessions.`,
         timestamp: new Date(),
       });
-      
+
       initialMessagesList.push({
         id: `judge-init-${Date.now()}`,
         sender: 'judge',
@@ -141,48 +142,48 @@ const PracticeArena: React.FC = () => {
       setMessages(initialMessagesList);
 
       currentSessionRecordRef.current = {
-        id: `session-${Date.now()}`, 
-        settings: settingsWithMode, 
-        transcript: initialMessagesList, 
+        id: `session-${Date.now()}`,
+        settings: settingsWithMode,
+        transcript: initialMessagesList,
         startTime: new Date(),
       };
-      
-      resetTimer(); 
-      startTimer(); 
+
+      resetTimer();
+      startTimer();
 
     } else {
       setGlobalError("Failed to initialize chat sessions with AI. Check console.");
       navigate(ROUTES.SETUP);
     }
     setGlobalLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isAiTyping]);
 
   const streamAiResponse = async (
-      chatInstance: Chat, 
-      textForAi: string, 
-      senderType: 'judge' | 'opposingCounsel',
-      currentMessageId?: string
-    ): Promise<string> => {
-    
+    chatInstance: Chat,
+    textForAi: string,
+    senderType: 'judge' | 'opposingCounsel',
+    currentMessageId?: string
+  ): Promise<string> => {
+
     let aiResponseText = '';
     const messageId = currentMessageId || `${senderType}-${Date.now()}`;
 
-    if (!currentMessageId) { 
-        const placeholderMessage: ChatMessage = {
-            id: messageId,
-            sender: senderType,
-            text: '...', 
-            timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, placeholderMessage]);
+    if (!currentMessageId) {
+      const placeholderMessage: ChatMessage = {
+        id: messageId,
+        sender: senderType,
+        text: '...',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, placeholderMessage]);
     }
 
     const stream = await sendMessageToChatStream(chatInstance, textForAi);
@@ -190,23 +191,23 @@ const PracticeArena: React.FC = () => {
       for await (const chunk of stream) {
         const chunkText = chunk.text;
         aiResponseText += chunkText;
-        setMessages(prev => prev.map(msg => 
+        setMessages(prev => prev.map(msg =>
           msg.id === messageId ? { ...msg, text: aiResponseText } : msg
         ));
       }
-       setMessages(prev => prev.map(msg => 
-          msg.id === messageId ? { ...msg, text: aiResponseText || "No substantive response received.", timestamp: new Date() } : msg
-        ));
+      setMessages(prev => prev.map(msg =>
+        msg.id === messageId ? { ...msg, text: aiResponseText || "No substantive response received.", timestamp: new Date() } : msg
+      ));
     } else {
       aiResponseText = "Error: No response stream from AI.";
-       setMessages(prev => prev.map(msg => 
-          msg.id === messageId ? { ...msg, text: aiResponseText, timestamp: new Date() } : msg
-        ));
+      setMessages(prev => prev.map(msg =>
+        msg.id === messageId ? { ...msg, text: aiResponseText, timestamp: new Date() } : msg
+      ));
     }
     if (currentSessionRecordRef.current) {
-      const currentTranscript = messages; 
-      currentSessionRecordRef.current.transcript = currentTranscript.map(msg => 
-          msg.id === messageId ? { ...msg, text: aiResponseText } : msg
+      const currentTranscript = messages;
+      currentSessionRecordRef.current.transcript = currentTranscript.map(msg =>
+        msg.id === messageId ? { ...msg, text: aiResponseText } : msg
       );
     }
     return aiResponseText;
@@ -223,11 +224,11 @@ const PracticeArena: React.FC = () => {
       text: userMessageText,
       timestamp: new Date(),
     };
-    
+
     setMessages(prevMessages => {
       const updated = [...prevMessages, userMessage];
       if (currentSessionRecordRef.current) {
-          currentSessionRecordRef.current.transcript = updated;
+        currentSessionRecordRef.current.transcript = updated;
       }
       return updated;
     });
@@ -238,15 +239,15 @@ const PracticeArena: React.FC = () => {
     try {
       setIsAiTyping('opposingCounsel');
       ocResponseText = await streamAiResponse(activeChatOpposingCounsel, userMessageText, 'opposingCounsel');
-      if (sessionEnded || !isTimerRunning) return; 
+      if (sessionEnded || !isTimerRunning) return;
 
       // Introduce a delay before the judge responds
       if (!sessionEnded && isTimerRunning) {
-        setIsAiTyping(false); // Briefly turn off typing indicator
-        await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5 second delay
+        setIsAiTyping(false);
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
-      
-      if (sessionEnded || !isTimerRunning) return; // Check again after delay
+
+      if (sessionEnded || !isTimerRunning) return;
 
       setIsAiTyping('judge');
       const contextForJudge = `Counsel (User) stated: "${userMessageText}"\n\nOpposing Counsel (${currentSessionSettings.opposingCounselPersonality.name} - ${currentSessionSettings.opposingCounselPersonality.specialty}) responded: "${ocResponseText}"\n\nYour Honor, your critical examination and questions?`;
@@ -257,14 +258,14 @@ const PracticeArena: React.FC = () => {
       const errorText = `An error occurred: ${error instanceof Error ? error.message : String(error)}. Please try again or end the session.`;
       const errorMessageContent: ChatMessage = {
         id: `error-${Date.now()}`,
-        sender: 'judge', 
+        sender: 'judge',
         text: errorText,
         timestamp: new Date(),
       };
       setMessages(prev => {
         const updated = [...prev, errorMessageContent];
         if (currentSessionRecordRef.current) {
-             currentSessionRecordRef.current.transcript = updated; 
+          currentSessionRecordRef.current.transcript = updated;
         }
         return updated;
       });
@@ -272,103 +273,127 @@ const PracticeArena: React.FC = () => {
     } finally {
       setIsAiTyping(false);
       if (currentSessionRecordRef.current) {
-        // Ensure the latest messages state is captured in the ref after all operations.
-        // This is tricky because setMessages is async. A more robust way might be to update ref.current.transcript directly
-        // whenever a message is finalized, rather than relying on the messages state variable here.
-        // For now, this is a best effort to capture it.
         setMessages(prevFinalMessages => {
-            if (currentSessionRecordRef.current) {
-                 currentSessionRecordRef.current.transcript = prevFinalMessages;
-            }
-            return prevFinalMessages;
+          if (currentSessionRecordRef.current) {
+            currentSessionRecordRef.current.transcript = prevFinalMessages;
+          }
+          return prevFinalMessages;
         });
       }
     }
   };
 
-
-  if (!currentSessionSettings || !practiceMode) { 
-    return <div className="flex justify-center items-center h-full bg-brand-bg-primary"><LoadingSpinner text="Loading session setup..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary"/></div>;
+  if (!currentSessionSettings || !practiceMode) {
+    return <div className="flex justify-center items-center h-full bg-brand-bg-primary"><LoadingSpinner text="Loading session setup..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>;
   }
-  
+
   const judgeId = currentSessionSettings.judgePersonality.id;
   const ocId = currentSessionSettings.opposingCounselPersonality.id;
 
   return (
-    <div className="flex flex-col h-screen bg-brand-bg-primary text-brand-text-primary overflow-hidden">
-      {/* Header updated with neumorphic flat shadow and red accents */}
-      <div className="p-4 bg-brand-bg-primary shadow-neumorphic-flat flex flex-col sm:flex-row justify-between items-center sticky top-0 z-10 border-b border-[var(--neumorphic-shadow-dark-var)] opacity-90">
-        <div className="mb-2 sm:mb-0 text-center sm:text-left">
-          <h2 className="text-lg sm:text-xl font-semibold text-brand-accent truncate max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
-          <p className="text-xs sm:text-sm text-brand-text-secondary">
-            Judge: {currentSessionSettings.judgePersonality.name} | OC: {currentSessionSettings.opposingCounselPersonality.name} ({currentSessionSettings.opposingCounselPersonality.specialty})
-          </p>
+    <div className="flex flex-col h-screen bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
+      <div className="absolute top-0 left-0 w-full h-[30vh] bg-gradient-to-b from-brand-navy/50 to-transparent pointer-events-none z-0"></div>
+
+      <div className="p-4 sm:p-6 glass-card rounded-none border-b border-brand-accent/20 flex flex-col sm:flex-row justify-between items-center sticky top-0 z-20 shadow-md">
+        <div className="mb-3 sm:mb-0 text-center sm:text-left flex-grow max-w-3xl">
+          <div className="flex items-center justify-center sm:justify-start space-x-3 mb-1">
+            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono border border-brand-accent/30 text-brand-accent bg-brand-accent/5 uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
+            <span className="text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-shimmer truncate font-serif" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start text-xs sm:text-sm text-brand-text-secondary mt-1">
+            <span className="flex items-center mr-4"><GavelIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.judgePersonality.name}</span>
+            <span className="flex items-center"><BriefcaseIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.opposingCounselPersonality.name}</span>
+          </div>
         </div>
-        <div className="text-center sm:text-right">
-          {/* Timer text color red */}
-          <p className="text-2xl sm:text-3xl font-mono text-brand-accent">{formattedTime}</p>
-          <p className="text-xs text-brand-text-secondary">{remainingSeconds <=0 ? "Session Ended" : (isTimerRunning ? "Time Remaining" : "Timer Paused")}</p>
+        <div className="text-center sm:text-right flex-shrink-0 bg-brand-navy/60 backdrop-blur-md px-5 py-3 rounded-2xl border border-brand-accent/20 shadow-inner-subtle">
+          <p className={`text-3xl sm:text-4xl font-mono tracking-tight drop-shadow-md ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : 'text-brand-accent'}`}>{formattedTime}</p>
+          <p className="text-[10px] uppercase font-mono tracking-widest mt-1 text-brand-text-secondary/80">{remainingSeconds <= 0 ? "Session Ended" : (isTimerRunning ? "Time Remaining" : "Timer Paused")}</p>
         </div>
       </div>
 
-      <div ref={chatContainerRef} className="flex-grow p-4 space-y-4 overflow-y-auto bg-brand-bg-primary custom-scrollbar">
-        {messages.map(msg => (
-          <ChatMessageComponent key={msg.id} message={msg} judgePersonalityId={judgeId} opposingCounselPersonalityId={ocId} practiceMode={practiceMode} />
-        ))}
-        {isAiTyping && (
-          <div className={`flex items-start mb-4`}> 
-             <div className={`flex-shrink-0 h-8 w-8 rounded-full ${isAiTyping === 'judge' ? 'bg-brand-bg-secondary' : 'bg-brand-bg-secondary'} flex items-center justify-center mx-2 border border-brand-border shadow-neumorphic-raised`}>
-                {isAiTyping === 'judge' && <CourtIcon className="h-5 w-5 text-brand-accent" />}
-                {isAiTyping === 'opposingCounsel' && <BriefcaseIcon className="h-5 w-5 text-brand-accent" />}
+      <div ref={chatContainerRef} className="flex-grow p-4 sm:p-6 space-y-2 overflow-y-auto custom-scrollbar relative z-10">
+        <div className="max-w-5xl mx-auto">
+          {messages.map(msg => (
+            <ChatMessageComponent key={msg.id} message={msg} judgePersonalityId={judgeId} opposingCounselPersonalityId={ocId} practiceMode={practiceMode} />
+          ))}
+          {isAiTyping && (
+            <div className="flex items-start mb-6 w-full animate-fadeInUp">
+              <div className={`flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-brand-navy border border-brand-accent/30 shadow-inner-subtle flex items-center justify-center mx-3 sm:mx-4`}>
+                {isAiTyping === 'judge' && <CourtIcon className="h-5 w-5 sm:h-6 sm:w-6 text-brand-accent" />}
+                {isAiTyping === 'opposingCounsel' && <BriefcaseIcon className="h-5 w-5 sm:h-6 sm:w-6 text-brand-accent" />}
+              </div>
+              <div className="bg-brand-navy/60 backdrop-blur-md text-brand-text-primary rounded-2xl rounded-bl-sm p-4 sm:p-5 border border-brand-accent/10 shadow-card flex items-center space-x-2">
+                <span className="text-sm font-light italic opacity-80">{isAiTyping === 'judge' ? "The Court is considering your argument" : "Opposing Counsel is formulating a response"}</span>
+                <span className="flex space-x-1">
+                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                </span>
+              </div>
             </div>
-            <div className={`bg-brand-bg-secondary text-brand-text-primary rounded-lg p-3 shadow-neumorphic-flat`}>
-              <p className="text-sm italic">{isAiTyping === 'judge' ? currentSessionSettings.judgePersonality.name : `${currentSessionSettings.opposingCounselPersonality.name} (${currentSessionSettings.opposingCounselPersonality.specialty})`} is typing<span className="animate-pulse">...</span></p>
+          )}
+          {sessionEnded && !isTimerRunning && (
+            <div className="text-center p-8 glass-card border-brand-accent/20 rounded-3xl my-8 mx-auto max-w-lg shadow-card">
+              <div className="w-16 h-16 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-brand-accent/30 shadow-glow-gold-sm">
+                <GavelIcon className="w-8 h-8 text-brand-accent" />
+              </div>
+              <p className="text-2xl font-serif font-semibold text-shimmer mb-6">Session Concluded</p>
+              <Button onClick={() => handleSessionEnd(true, !currentSessionRecordRef.current?.performance)} size="lg" variant="primary" className="shadow-glow-gold w-full text-lg">
+                {currentSessionRecordRef.current?.performance ? 'View Detailed Analysis' : 'Analyze Performance'}
+              </Button>
             </div>
-          </div>
-        )}
-        {sessionEnded && !isTimerRunning && ( 
-           <div className="text-center p-4 bg-brand-bg-primary rounded-lg my-4 shadow-neumorphic-raised">
-             <p className="text-xl font-semibold text-brand-accent">Session Ended</p>
-             <Button onClick={() => handleSessionEnd(true, !currentSessionRecordRef.current?.performance)} className="mt-3" variant="primary">
-                {currentSessionRecordRef.current?.performance ? 'View Performance Analysis' : 'Analyze & View Performance'}
-             </Button>
-           </div>
-        )}
+          )}
+        </div>
       </div>
 
       {!sessionEnded && (
-        // Footer with neumorphic textarea and buttons
-        <div className="p-4 bg-brand-bg-primary border-t border-[var(--neumorphic-shadow-dark-var)] opacity-95 sticky bottom-0 shadow-top">
-          <div className="flex items-stretch space-x-3">
-            <textarea
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              placeholder="Type your argument here... (Shift+Enter for new line)"
-              className="flex-grow p-3 bg-brand-bg-primary text-brand-text-primary rounded-md shadow-neumorphic-pressed focus:ring-2 focus:ring-brand-accent focus:outline-none resize-none min-h-[60px] max-h-[150px] placeholder-brand-text-secondary custom-scrollbar"
-              rows={3}
-              disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
-            />
-            {/* Send button is primary (solid red) */}
-            <Button onClick={handleSendMessage} disabled={!!isAiTyping || !userInput.trim() || sessionEnded || !isTimerRunning} className="h-auto px-6 py-3" variant="primary">
-              Send
-            </Button>
+        <div className="p-4 sm:p-6 bg-brand-bg-primary/80 backdrop-blur-lg border-t border-brand-accent/20 z-20 relative">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-end space-y-3 sm:space-y-0 sm:space-x-4">
+              <div className="relative flex-grow">
+                <textarea
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Address the Court... (Shift+Enter for new line)"
+                  className="w-full p-4 pl-5 pr-12 bg-brand-navy/50 backdrop-blur-sm text-brand-text-primary rounded-2xl border border-brand-accent/20 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent/50 focus:outline-none resize-none min-h-[70px] max-h-[180px] placeholder-brand-text-secondary/50 font-light text-base sm:text-lg shadow-inner-subtle custom-scrollbar transition-all duration-300 group"
+                  rows={2}
+                  disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
+                />
+                <div className="absolute top-2 right-2 p-1.5 hidden sm:block opacity-40">
+                  <span className="text-[10px] font-mono tracking-widest uppercase">Drafting</span>
+                </div>
+              </div>
+              <div className="flex flex-row sm:flex-col space-x-3 sm:space-x-0 sm:space-y-3">
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!!isAiTyping || !userInput.trim() || sessionEnded || !isTimerRunning}
+                  className="flex-grow sm:flex-grow-0 py-3.5 sm:py-4 px-8 text-lg font-medium shadow-glow-gold hover:-translate-y-0.5 rounded-xl sm:rounded-2xl"
+                  variant="primary"
+                >
+                  Send
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
+                  className="py-3 px-4 text-xs tracking-wider uppercase border-brand-error/50 text-brand-error hover:bg-brand-error/10 hover:text-brand-error focus:ring-brand-error rounded-xl sm:rounded-2xl flex-shrink-0"
+                  disabled={sessionEnded || !isTimerRunning}
+                >
+                  End Early
+                </Button>
+              </div>
+            </div>
+            <p className="text-center mt-3 text-[10px] font-mono text-brand-text-secondary/40 tracking-widest uppercase hidden sm:block">
+              Present your arguments clearly and concisely. The Court is listening.
+            </p>
           </div>
-           {/* End Session button is danger (solid darker red) */}
-          <Button 
-            variant="danger" 
-            size="sm" 
-            onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true);}} 
-            className="mt-3 w-full sm:w-auto"
-            disabled={sessionEnded || !isTimerRunning} 
-          >
-            End Session & Get Analysis
-          </Button>
         </div>
       )}
     </div>

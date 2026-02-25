@@ -2,9 +2,9 @@ import React from 'react';
 
 interface SelectInputProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
-  options: Array<{ value: string | number; label: string; disabled?: boolean }>; 
+  options: Array<{ value: string | number; label: string; disabled?: boolean }>;
   containerClassName?: string;
-  placeholder?: string; 
+  placeholder?: string;
 }
 
 export const SelectInput: React.FC<SelectInputProps> = ({
@@ -16,42 +16,49 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   placeholder,
   ...props
 }) => {
-  const baseInputStyle = `block w-full bg-brand-bg-primary rounded-lg shadow-neumorphic-pressed py-2.5 px-3 
-                          focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent 
-                          border-transparent text-brand-text-primary sm:text-sm`; // Focus ring now red
-  const labelColor = 'text-brand-text-secondary';
-  // Option and Optgroup styling is primarily handled by global CSS in index.html
+  const baseInputStyle = `block w-full bg-brand-navy/60 backdrop-blur-sm rounded-xl py-3 px-4 
+                          border border-brand-accent/20 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent 
+                          text-brand-text-primary text-sm sm:text-base hover:border-brand-accent/40 hover:bg-brand-navy/80 
+                          transition-colors duration-300 shadow-inner-subtle`;
+  const labelColor = 'text-brand-text-secondary font-medium tracking-wide text-xs uppercase mb-2 ml-1';
 
   return (
-    <div className={`mb-4 ${containerClassName}`}>
+    <div className={`mb-5 ${containerClassName}`}>
       {label && (
-        <label htmlFor={id || props.name} className={`block text-sm font-medium mb-1.5 ${labelColor}`}>
+        <label htmlFor={id || props.name} className={`block ${labelColor}`}>
           {label}
         </label>
       )}
-      <select
-        id={id || props.name}
-        className={`${baseInputStyle} ${className}`}
-        {...props}
-      >
-        {placeholder && <option value="" className="text-brand-text-secondary">{placeholder}</option>}
-        {options.map(option => {
-            // Optgroup-like options are styled globally via CSS for value^="__optgroup__"
+      <div className="relative">
+        <select
+          id={id || props.name}
+          className={`${baseInputStyle} appearance-none pr-10 cursor-pointer ${className}`}
+          {...props}
+        >
+          {placeholder && <option value="" className="text-brand-text-secondary bg-brand-navy">{placeholder}</option>}
+          {options.map(option => {
             if (typeof option.value === 'string' && option.value.startsWith('__optgroup__')) {
-                return ( 
-                    <option key={option.value} value={option.value} disabled className="optgroup-label">
-                        {option.label}
-                    </option>
-                );
-            }
-            // Regular options are styled globally via CSS
-            return ( 
-                <option key={option.value} value={option.value} disabled={option.disabled}>
-                    {option.label}
+              return (
+                <option key={option.value} value={option.value} disabled className="text-brand-accent font-semibold bg-brand-navy pb-1 pt-2">
+                  {option.label}
                 </option>
+              );
+            }
+            return (
+              <option key={option.value} value={option.value} disabled={option.disabled} className="bg-brand-navy text-brand-text-primary py-2">
+                {option.label}
+              </option>
             );
-        })}
-      </select>
+          })}
+        </select>
+
+        {/* Custom Dropdown Arrow */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-brand-accent/70">
+          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+          </svg>
+        </div>
+      </div>
     </div>
   );
 };

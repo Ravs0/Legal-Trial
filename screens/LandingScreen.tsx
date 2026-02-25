@@ -20,68 +20,79 @@ const LandingScreen: React.FC = () => {
     setPracticeMode(mode);
     setTimeout(() => {
       setIsLoading(false);
-      navigate(ROUTES.HOME); 
+      navigate(ROUTES.HOME);
     }, 100);
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-brand-bg-primary p-4 sm:p-8 overflow-hidden">
-      <div className="text-center mb-12 sm:mb-16 animate-fadeIn">
-        {/* Title gradient updated to new red-based gradient */}
-        <h1 className="text-5xl sm:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-gradient-from via-brand-gradient-mid to-brand-gradient-to mb-3 sm:mb-4 font-serif tracking-tight animate-fadeIn" style={{animationDelay: '0.1s'}}>{APP_NAME}</h1> 
-        <p className="text-xl sm:text-2xl text-brand-text-secondary max-w-3xl mx-auto animate-fadeIn" style={{animationDelay: '0.3s'}}>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-brand-bg-primary p-4 sm:p-8 overflow-hidden relative">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+        <div className="absolute top-[20%] left-[10%] w-[30rem] h-[30rem] bg-brand-accent/5 rounded-full blur-[120px] mix-blend-screen animate-pulse_ring"></div>
+        <div className="absolute bottom-[10%] right-[10%] w-[25rem] h-[25rem] bg-brand-navy-light/40 rounded-full blur-[100px] mix-blend-screen"></div>
+      </div>
+
+      <div className="z-10 text-center mb-16 sm:mb-20 animate-fadeInUp">
+        <div className="inline-block mb-4 px-4 py-1.5 rounded-full border border-brand-accent/20 bg-brand-accent/5 backdrop-blur-md">
+          <span className="text-xs font-mono text-brand-accent tracking-widest uppercase">The Pinnacle of Legal Simulation</span>
+        </div>
+        <h1 className="text-5xl sm:text-7xl font-bold text-shimmer mb-6 font-serif tracking-tight drop-shadow-lg">
+          {APP_NAME}
+        </h1>
+        <p className="text-xl sm:text-2xl text-brand-text-secondary max-w-3xl mx-auto font-light leading-relaxed">
           Hone your legal argumentation and drafting skills with AI-driven mock trials. Choose your arena.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 w-full max-w-sm md:max-w-2xl lg:max-w-3xl">
-        <div 
+      <div className="z-10 grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 w-full max-w-lg md:max-w-4xl px-4">
+        {/* Indian Legal Practice Card */}
+        <div
           onClick={() => handleModeSelection('indian')}
-          // Neumorphic card styling with hover/active states
-          className="bg-brand-bg-primary p-6 sm:p-10 rounded-3xl shadow-neumorphic-raised hover:shadow-neumorphic-flat active:shadow-neumorphic-pressed transition-all duration-200 ease-in-out cursor-pointer transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2 focus:ring-offset-brand-bg-primary animate-staggered-fade-in-item opacity-0 animation-delay-200"
+          className="glass-card gradient-border p-8 sm:p-12 rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-300 ease-out cursor-pointer transform hover:-translate-y-2 focus-ring group animate-staggered-fade-in-item opacity-0 animation-delay-200"
           role="button"
           tabIndex={0}
           onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('indian')}
         >
-          <div className="flex flex-col items-center text-center">
-            {/* Icon color is new red brand-accent */}
-            <GavelMinimalIcon className="h-12 w-12 sm:h-16 sm:w-16 text-brand-accent mb-5" /> 
-            {/* Title color is new red brand-accent */}
-            <h2 className="text-2xl sm:text-3xl font-semibold text-brand-accent mb-2 font-serif">Indian Legal Practice</h2> 
-            <p className="text-sm sm:text-base text-brand-text-secondary mb-6">
-              Engage with cases, judges, and advocates from the Indian legal system.
+          <div className="flex flex-col items-center text-center h-full">
+            <div className="w-20 h-20 rounded-2xl bg-brand-navy border border-brand-accent/20 flex items-center justify-center mb-6 shadow-inner-subtle group-hover:shadow-glow-gold-sm transition-shadow duration-300">
+              <GavelMinimalIcon className="h-10 w-10 text-brand-accent drop-shadow-md" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300 mb-4 font-serif">Indian Legal Practice</h2>
+            <p className="text-base sm:text-lg text-brand-text-secondary mb-8 font-light flex-grow">
+              Engage with cases, judges, and advocates from the Indian legal system. Master constitutional, criminal, and corporate law.
             </p>
-            {/* Button inherits new primary (red) style */}
-            <Button variant="primary" size="md" className="w-full sm:w-auto pointer-events-none" aria-hidden="true" tabIndex={-1}> 
+            <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-brand-accent/30 to-transparent mb-8"></div>
+            <Button variant="primary" size="lg" className="w-full pointer-events-none group-hover:shadow-glow-gold transition-all duration-300" aria-hidden="true" tabIndex={-1}>
               Enter Indian Arena
             </Button>
           </div>
         </div>
 
-        <div 
+        {/* International Law Practice Card */}
+        <div
           onClick={() => handleModeSelection('international')}
-          // Neumorphic card styling with hover/active states
-          className="bg-brand-bg-primary p-6 sm:p-10 rounded-3xl shadow-neumorphic-raised hover:shadow-neumorphic-flat active:shadow-neumorphic-pressed transition-all duration-200 ease-in-out cursor-pointer transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2 focus:ring-offset-brand-bg-primary animate-staggered-fade-in-item opacity-0 animation-delay-400"
+          className="glass-card gradient-border p-8 sm:p-12 rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-300 ease-out cursor-pointer transform hover:-translate-y-2 focus-ring group animate-staggered-fade-in-item opacity-0 animation-delay-400"
           role="button"
           tabIndex={0}
           onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('international')}
         >
-          <div className="flex flex-col items-center text-center">
-            {/* Icon color is new red brand-accent */}
-            <GlobeMinimalIcon className="h-12 w-12 sm:h-16 sm:w-16 text-brand-accent mb-5" /> 
-            {/* Title color is new red brand-accent */}
-            <h2 className="text-2xl sm:text-3xl font-semibold text-brand-accent mb-2 font-serif">International Law Practice</h2> 
-            <p className="text-sm sm:text-base text-brand-text-secondary mb-6">
-              Tackle scenarios in public international law, human rights, and arbitration.
+          <div className="flex flex-col items-center text-center h-full">
+            <div className="w-20 h-20 rounded-2xl bg-brand-navy border border-brand-accent/20 flex items-center justify-center mb-6 shadow-inner-subtle group-hover:shadow-glow-gold-sm transition-shadow duration-300">
+              <GlobeMinimalIcon className="h-10 w-10 text-brand-accent drop-shadow-md" />
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300 mb-4 font-serif">International Law Practice</h2>
+            <p className="text-base sm:text-lg text-brand-text-secondary mb-8 font-light flex-grow">
+              Tackle complex scenarios in public international law, human rights, and cross-border arbitration conventions.
             </p>
-             {/* Button inherits new primary (red) style */}
-            <Button variant="primary" size="md" className="w-full sm:w-auto pointer-events-none" aria-hidden="true" tabIndex={-1}>
+            <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-brand-accent/30 to-transparent mb-8"></div>
+            <Button variant="primary" size="lg" className="w-full pointer-events-none group-hover:shadow-glow-gold transition-all duration-300" aria-hidden="true" tabIndex={-1}>
               Enter International Arena
             </Button>
           </div>
         </div>
       </div>
-       <p className="text-xs sm:text-sm text-brand-text-secondary mt-16 sm:mt-20 text-center animate-fadeIn" style={{animationDelay: '0.8s'}}>
+
+      <p className="z-10 text-sm font-mono text-brand-text-secondary/60 mt-20 text-center animate-fadeIn tracking-widest uppercase" style={{ animationDelay: '0.8s' }}>
         Select a practice mode to begin your journey in legal mastery.
       </p>
     </div>

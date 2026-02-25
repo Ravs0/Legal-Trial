@@ -18,32 +18,26 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = `font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-bg-primary 
-                      disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 ease-in-out 
-                      flex items-center justify-center`;
+  const baseStyles = `font-medium rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-bg-primary 
+                      disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ease-out 
+                      flex items-center justify-center relative overflow-hidden group`;
 
-  // Neumorphic base styles for buttons that extrude (not primary/danger solid bg)
-  const neumorphicExtrudedBase = 'bg-brand-bg-primary shadow-neumorphic-raised active:shadow-neumorphic-pressed';
+  const glowBase = 'shadow-glow-gold-sm hover:shadow-glow-gold';
 
   let variantStylesConfig = {
-    // Primary: Solid red background for strong CTA, still with neumorphic active state for consistency
-    primary: `bg-brand-accent text-brand-accent-text hover:bg-brand-accent-hover focus:ring-brand-accent shadow-neumorphic-raised active:shadow-neumorphic-pressed active:bg-brand-accent-hover`, 
-    // Secondary: Neumorphic base, red text on hover
-    secondary: `${neumorphicExtrudedBase} text-brand-text-secondary hover:text-brand-accent focus:ring-brand-accent`,
-    // Danger: Distinct solid red, similar to primary but for error/destructive actions
-    danger: `bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-neumorphic-raised active:shadow-neumorphic-pressed active:bg-red-700`, 
-    // Outline: Neumorphic base, red border and text
-    outline: `${neumorphicExtrudedBase} text-brand-accent border border-brand-accent hover:border-brand-accent-hover hover:text-brand-accent-hover focus:ring-brand-accent`,
-    // Ghost: Transparent, red text on hover, subtle bg change
-    ghost: `bg-transparent text-brand-text-secondary hover:text-brand-accent focus:ring-brand-accent shadow-none hover:bg-brand-bg-secondary/50 active:bg-brand-bg-secondary`,
+    primary: `bg-brand-accent text-brand-accent-text hover:bg-brand-accent-hover focus:ring-brand-accent border border-brand-accent-hover/50 ${glowBase} hover:-translate-y-0.5`,
+    secondary: `bg-brand-navy/80 backdrop-blur-md text-brand-text-primary hover:text-brand-accent border border-brand-accent/20 hover:border-brand-accent/50 focus:ring-brand-accent hover:-translate-y-0.5`,
+    danger: `bg-brand-error text-white hover:bg-red-600 focus:ring-brand-error shadow-lg hover:shadow-xl hover:-translate-y-0.5 border border-red-400/50`,
+    outline: `bg-transparent text-brand-accent border border-brand-accent hover:bg-brand-accent/10 focus:ring-brand-accent hover:-translate-y-0.5`,
+    ghost: `bg-transparent text-brand-text-secondary hover:text-brand-text-primary focus:ring-brand-accent shadow-none hover:bg-white/5 active:bg-white/10`,
   };
-  
+
   const currentVariantStyle = variantStylesConfig[variant];
 
   const sizeStyles = {
-    sm: `px-3.5 py-2 text-sm ${iconOnly ? 'p-2' : ''}`,
-    md: `px-5 py-2.5 text-base ${iconOnly ? 'p-2.5' : ''}`,
-    lg: `px-7 py-3.5 text-lg ${iconOnly ? 'p-3' : ''}`,
+    sm: `px-4 py-2 text-sm ${iconOnly ? 'p-2' : ''}`,
+    md: `px-6 py-2.5 text-base ${iconOnly ? 'p-2.5' : ''}`,
+    lg: `px-8 py-3.5 text-lg ${iconOnly ? 'p-3' : ''}`,
   };
 
   const widthStyles = fullWidth ? 'w-full' : '';
@@ -54,13 +48,18 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={isLoading || props.disabled}
       {...props}
     >
+      {/* Button Shine Effect (for primary) */}
+      {variant === 'primary' && !props.disabled && !isLoading && (
+        <span className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[45deg] group-hover:animate-[shimmer_1.5s_infinite]"></span>
+      )}
+
       {isLoading && (
         <svg className={`animate-spin h-5 w-5 text-current ${children ? '-ml-1 mr-3' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       )}
-      {children}
+      <span className="relative z-10 flex items-center justify-center">{children}</span>
     </button>
   );
 };

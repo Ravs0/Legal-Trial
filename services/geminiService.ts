@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse, Part, GenerateContentParameters, Content } from "@google/genai";
-import { ChatMessage, PerformanceMetrics, SessionRecord, SessionSettings, PracticeMode, DraftingTask, DraftingSection } from '../types'; 
+import { ChatMessage, PerformanceMetrics, SessionRecord, SessionSettings, PracticeMode, DraftingTask, DraftingSection } from '../types';
 
 const API_KEY = process.env.API_KEY;
 let ai: GoogleGenAI | null = null;
@@ -14,7 +14,7 @@ if (API_KEY) {
 export const getAiClient = (): GoogleGenAI | null => ai;
 
 const createInitialChatHistory = (settings: SessionSettings, persona: 'judge' | 'opposingCounsel'): Content[] => {
-  const userRole = "user"; 
+  const userRole = "user";
   const modelRole = "model";
   const modeInfo = settings.practiceMode ? ` This is a ${settings.practiceMode} law context.` : '';
 
@@ -33,7 +33,7 @@ const createInitialChatHistory = (settings: SessionSettings, persona: 'judge' | 
 
 export const startJudgeChatSession = (settings: SessionSettings): Chat | null => {
   if (!ai) return null;
-  
+
   const caseContext = `
     **Case Information:**
     - Title: ${settings.caseDetail.title}
@@ -47,7 +47,7 @@ export const startJudgeChatSession = (settings: SessionSettings): Chat | null =>
     - Counsel (User): The user is presenting arguments.
     - Opposing Counsel: ${settings.opposingCounselPersonality.name} will present counter-arguments.
     - Your Task: Conduct a realistic mock trial. Adhere strictly to your defined judicial personality (see below). You will receive input combining user's arguments and opposing counsel's responses. Moderate, ask probing questions to both, and guide proceedings. Ensure legal reasoning and tone align with ${settings.practiceMode} standards.
-    - Application Aesthetic: The app has a professional, dark neumorphic theme with deep red (#a32214) and white accents. Your responses should be sophisticated and fit this aesthetic.
+    - Application Aesthetic: The app has a professional, premium Oxford Navy & Gold glassmorphic theme with sleek typography and subtle gold accents. Your responses should be sophisticated and fit this aesthetic.
   `;
 
   const chat: Chat = ai.chats.create({
@@ -62,7 +62,7 @@ export const startJudgeChatSession = (settings: SessionSettings): Chat | null =>
 
 export const startOpposingCounselChatSession = (settings: SessionSettings): Chat | null => {
   if (!ai) return null;
-  
+
   const caseContext = `
     **Case Information:**
     - Title: ${settings.caseDetail.title}
@@ -76,7 +76,7 @@ export const startOpposingCounselChatSession = (settings: SessionSettings): Chat
     - Counsel (User): The user is the counsel you are arguing against.
     - Presiding Judge: ${settings.judgePersonality.name}.
     - Your Task: Engage in a realistic mock trial. Adhere strictly to your defined opposing counsel personality (see below). Your primary goal is to effectively challenge the user's arguments within the ${settings.practiceMode} legal framework. The judge will moderate.
-    - Application Aesthetic: The app has a professional, dark neumorphic theme with deep red (#a32214) and white accents. Your responses should be sophisticated.
+    - Application Aesthetic: The app has a professional, premium Oxford Navy & Gold glassmorphic theme with sleek typography and subtle gold accents. Your responses should be sophisticated.
   `;
 
   const chat: Chat = ai.chats.create({
@@ -101,7 +101,7 @@ export const sendMessageToChatStream = async (
     return result;
   } catch (error) {
     console.error("Error sending message to chat (stream):", error);
-    throw error; 
+    throw error;
   }
 };
 
@@ -135,7 +135,7 @@ export const analyzeSessionPerformance = async (sessionRecord: SessionRecord): P
     - The JSON object MUST contain keys: "argumentStrength", "precedentUsage", "constitutionalBasis", "responseQuality", "overallScore" (all integers 1-10), "feedback" (string), "improvementAreas" (array of strings).
     - DO NOT include any text, greetings, or markdown formatting (like \`\`\`json) before or after the JSON object.
   `;
-  
+
   const prompt = `
     **Mock Trial Details for Analysis:**
     - Mode: ${sessionRecord.settings.practiceMode} law
@@ -143,7 +143,7 @@ export const analyzeSessionPerformance = async (sessionRecord: SessionRecord): P
     - User Role: User Counsel (to be evaluated)
     - AI Judge: ${sessionRecord.settings.judgePersonality.name}
     - AI Opposing Counsel: ${sessionRecord.settings.opposingCounselPersonality.name}
-    - Application Aesthetic Hint: User sees this analysis in a professional, dark neumorphic app with deep red (#a32214) and white accents. Your tone should be professional.
+    - Application Aesthetic Hint: User sees this analysis in a professional, Oxford Navy & Gold glassmorphic app. Your tone should be professional.
 
     **Transcript:**
     \`\`\`
@@ -169,42 +169,42 @@ export const analyzeSessionPerformance = async (sessionRecord: SessionRecord): P
     if (match && match[2]) {
       jsonStr = match[2].trim();
     }
-    
+
     let parsedData = JSON.parse(jsonStr);
 
     // Handle potential variations in key naming from LLM
     if (parsedData.legalBasis !== undefined && parsedData.constitutionalBasis === undefined) {
-        parsedData.constitutionalBasis = parsedData.legalBasis;
-        delete parsedData.legalBasis;
+      parsedData.constitutionalBasis = parsedData.legalBasis;
+      delete parsedData.legalBasis;
     }
-     if (parsedData.legalPrinciples !== undefined && parsedData.constitutionalBasis === undefined) {
-        parsedData.constitutionalBasis = parsedData.legalPrinciples;
-        delete parsedData.legalPrinciples;
+    if (parsedData.legalPrinciples !== undefined && parsedData.constitutionalBasis === undefined) {
+      parsedData.constitutionalBasis = parsedData.legalPrinciples;
+      delete parsedData.legalPrinciples;
     }
 
 
     const requiredKeys: Array<keyof PerformanceMetrics> = [
-        'argumentStrength', 'precedentUsage', 'constitutionalBasis', 
-        'responseQuality', 'overallScore', 'feedback', 'improvementAreas'
+      'argumentStrength', 'precedentUsage', 'constitutionalBasis',
+      'responseQuality', 'overallScore', 'feedback', 'improvementAreas'
     ];
     for (const key of requiredKeys) {
-        if (!(key in parsedData)) {
-            if (key === 'constitutionalBasis' && ('legalBasis' in parsedData || 'legalPrinciples' in parsedData)) continue; 
-            throw new Error(`Missing key ${key} in parsed performance metrics. Received: ${jsonStr}`);
-        }
+      if (!(key in parsedData)) {
+        if (key === 'constitutionalBasis' && ('legalBasis' in parsedData || 'legalPrinciples' in parsedData)) continue;
+        throw new Error(`Missing key ${key} in parsed performance metrics. Received: ${jsonStr}`);
+      }
     }
     return parsedData as PerformanceMetrics;
 
   } catch (error) {
     console.error("Error analyzing session performance:", error);
     return {
-        argumentStrength: 0,
-        precedentUsage: 0,
-        constitutionalBasis: 0,
-        responseQuality: 0,
-        overallScore: 0,
-        feedback: "Could not generate performance analysis due to an error. Please check the console for details. The AI may have returned an unexpected format or encountered a policy restriction.",
-        improvementAreas: ["Review API response or error logs.", "Ensure the transcript is not excessively long or contains unusual characters.", "If the error persists, try a different session or simplify the interaction."],
+      argumentStrength: 0,
+      precedentUsage: 0,
+      constitutionalBasis: 0,
+      responseQuality: 0,
+      overallScore: 0,
+      feedback: "Could not generate performance analysis due to an error. Please check the console for details. The AI may have returned an unexpected format or encountered a policy restriction.",
+      improvementAreas: ["Review API response or error logs.", "Ensure the transcript is not excessively long or contains unusual characters.", "If the error persists, try a different session or simplify the interaction."],
     };
   }
 };
@@ -221,7 +221,7 @@ export const generateDraftingFacts = async (
   if (!ai) return "Error: AI client not initialized. Cannot generate facts.";
 
   const relevantLawsText = Array.isArray(relevantLaws) ? relevantLaws.join(', ') : relevantLaws;
-  
+
   const systemInstruction = `
   **AI Role:** You are a Legal Scenario Architect. Your primary function is to generate factual scenarios for legal drafting exercises.
   **Task Definition:** Construct a concise and plausible set of facts suitable for drafting a legal document.
@@ -229,7 +229,7 @@ export const generateDraftingFacts = async (
     - Document Type User Will Draft: '${documentType}'
     - Governing Legal Context: ${practiceMode} law, specifically concerning ${relevantLawsText}.
     - User's Drafting Objective: "${objective}"
-    - Application Aesthetic: The app has a professional, dark neumorphic theme with deep red (#a32214) and white accents.
+    - Application Aesthetic: The app has a professional, premium Oxford Navy & Gold glassmorphic theme with sleek typography and subtle gold accents.
   **Fact Generation Process & Guidelines:**
     1.  **Relevance:** The facts you generate must directly lead to and necessitate the drafting of the specified '${documentType}' to achieve the given '${objective}'.
     2.  **Clarity & Sufficiency:** Facts should be clear, unambiguous, and provide enough specific detail for a user to begin drafting (e.g., names, dates, locations, key actions/events). Avoid excessive complexity or ambiguity. Typically 3-5 key factual points are sufficient.
@@ -256,8 +256,8 @@ export const generateDraftingFacts = async (
     const textResponse = response.text;
     if (textResponse && textResponse.trim() !== "" && !textResponse.trim().toLowerCase().startsWith("error:")) {
       // Basic check for some substance, like presence of a bullet or decent length
-      if (textResponse.includes("*") || textResponse.length > 40) { 
-         return textResponse.trim();
+      if (textResponse.includes("*") || textResponse.length > 40) {
+        return textResponse.trim();
       }
       // If response is very short and not an error, it might be a malformed success from AI
       return `Error: AI provided an unusual or insufficient response for facts: "${textResponse.trim()}". This may be due to the specificity of the request. Please try a different task or rephrase your objective.`;
@@ -277,14 +277,14 @@ export const generateDraftingFacts = async (
 export const generateDraftingGuidance = async (
   task: DraftingTask,
   userDraft: string,
-  generatedFacts: string, 
+  generatedFacts: string,
   practiceMode: PracticeMode,
-  selectedSectionName?: string | null 
+  selectedSectionName?: string | null
 ): Promise<string> => {
   if (!ai) return "Error: AI client not initialized. Cannot provide guidance.";
 
   const relevantLawsText = Array.isArray(task.relevantLaws) ? task.relevantLaws.join(', ') : task.relevantLaws;
-  
+
   let sectionFocusInstruction = "";
   if (selectedSectionName) {
     sectionFocusInstruction = `**Primary Focus Area (User Specified):** The user has specifically requested feedback on the **'${selectedSectionName}'** section of their draft.
@@ -305,7 +305,7 @@ export const generateDraftingGuidance = async (
       \`\`\`
       ${generatedFacts}
       \`\`\`
-    - Application Aesthetic: The app has a professional, dark neumorphic theme with deep red (#a32214) and white accents. Your feedback should be professional and clearly formatted.
+    - Application Aesthetic: The app has a professional, premium Oxford Navy & Gold glassmorphic theme with sleek typography and subtle gold accents. Your feedback should be professional and clearly formatted.
   ${sectionFocusInstruction}
 
   **Feedback Methodology & Structure (Your Thought Process):**
@@ -313,7 +313,7 @@ export const generateDraftingGuidance = async (
       - If the user's draft is effectively empty (e.g., placeholder text like "draft here", less than ~20 words, or clearly not a genuine attempt at drafting this specific document type), DO NOT critique the non-existent content.
       - Instead, provide **initial, actionable guidance** on how to BEGIN drafting this specific document ('${task.type}'). 
       - Suggest key sections, opening statements, or structural elements relevant to the objective ("${task.objective}") and the provided facts.
-      - ${selectedSectionName ? `If a section focus ('${selectedSectionName}') is given, tailor this initial guidance to that section first. Explain its purpose and what content it should generally include in relation to the objective and facts. Then briefly mention other key starting points for the document.` : `Suggest starting with the most crucial opening sections or elements for this document type (e.g., "For a ${task.type}, you typically start with the Court title and party descriptions. Then, articulate the core facts constituting your cause of action..."). Be specific.` }
+      - ${selectedSectionName ? `If a section focus ('${selectedSectionName}') is given, tailor this initial guidance to that section first. Explain its purpose and what content it should generally include in relation to the objective and facts. Then briefly mention other key starting points for the document.` : `Suggest starting with the most crucial opening sections or elements for this document type (e.g., "For a ${task.type}, you typically start with the Court title and party descriptions. Then, articulate the core facts constituting your cause of action..."). Be specific.`}
       - Your initial guidance should be concise (2-3 key points), encouraging, and provide a clear path forward.
   2.  **For Substantive Drafts (Main Feedback Flow):**
       - **Adherence to Facts:** Critically assess if the draft is consistent with and effectively utilizes ALL relevant aspects of the provided facts. Point out any deviations, omissions, or misinterpretations of the facts.
@@ -334,8 +334,8 @@ export const generateDraftingGuidance = async (
     - If the draft or task itself is problematic (e.g., appears to violate safety policies, is excessively long and unmanageable for feedback, or is too garbled to understand), you MUST return a polite error message. This message MUST start with "Error:", explaining the issue briefly. Example: "Error: The provided draft is too fragmented to provide meaningful feedback. Please try to structure it more clearly."
   `;
 
-  const draftContentForPrompt = userDraft.trim() === '' || userDraft.trim().length < 20 ? 
-    '(User has submitted a very short or empty draft. Please follow instructions for providing initial guidance on how to start this specific draft type based on the objective and facts.)' 
+  const draftContentForPrompt = userDraft.trim() === '' || userDraft.trim().length < 20 ?
+    '(User has submitted a very short or empty draft. Please follow instructions for providing initial guidance on how to start this specific draft type based on the objective and facts.)'
     : userDraft;
 
   const prompt = `
@@ -387,7 +387,7 @@ export const getFilingProcedureInfo = async (
     - Document Type: '${draftType}'
     - Relevant Legal Framework for this Document: ${relevantLawsText}
     - Practice Mode: ${practiceMode} Law
-    - Application Aesthetic: The app has a professional, dark neumorphic theme with deep red (#a32214) and white accents.
+    - Application Aesthetic: The app has a professional, premium Oxford Navy & Gold glassmorphic theme with sleek typography and subtle gold accents.
   **Information to Include in Your Explanation (Typical Steps):**
     1.  **Likely Court/Forum/Authority:** Identify where such a document is commonly filed (e.g., specific type of court - like District Court, High Court; tribunal; government office). Be as specific as appropriate for a general overview.
     2.  **Key Procedural Steps (General Sequence):** Outline the common sequence of actions. Examples:
@@ -407,7 +407,7 @@ export const getFilingProcedureInfo = async (
   **Error Handling Protocol:**
     - If the requested '${draftType}' has an extremely varied filing procedure depending on minute factual contexts not provided, or if it's too obscure for a general explanation, return a message like: "Error: Filing information for '${draftType}' is highly context-dependent and cannot be summarized generally. Please consult specific procedural codes or legal counsel."
   `;
-  
+
   const prompt = `Please explain the general filing procedure for a ${draftType} in ${practiceMode} law, considering the relevant laws: ${relevantLawsText}. Include the mandatory disclaimer.`;
 
   try {
@@ -419,14 +419,14 @@ export const getFilingProcedureInfo = async (
       },
     });
     const textResponse = response.text;
-     if (textResponse && textResponse.trim() !== "" && !textResponse.trim().toLowerCase().startsWith("error:")) {
+    if (textResponse && textResponse.trim() !== "" && !textResponse.trim().toLowerCase().startsWith("error:")) {
       return textResponse.trim();
     }
     return `Error: AI returned an empty or error-like response for filing information on '${draftType}': "${textResponse ? textResponse.trim() : 'Empty Response'}". This could be due to the specificity of the document type.`;
   } catch (error) {
     console.error("Error getting filing procedure information:", error);
     const errorMsg = error instanceof Error ? error.message : String(error);
-     if (errorMsg.includes("SAFETY") || errorMsg.toLowerCase().includes("blocked") || errorMsg.toLowerCase().includes("policy")) {
+    if (errorMsg.includes("SAFETY") || errorMsg.toLowerCase().includes("blocked") || errorMsg.toLowerCase().includes("policy")) {
       return `Error: Filing information generation for '${draftType}' was blocked due to safety or content policy. (Details: ${errorMsg})`;
     }
     return `Error: An internal error occurred while fetching filing procedure information for '${draftType}': ${errorMsg}. Please try again.`;
