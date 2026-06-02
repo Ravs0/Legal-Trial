@@ -11,40 +11,13 @@ function corsHeaders(origin) {
 function getModelConfig() {
     const e = process.env;
 
-    // 1) Native DeepSeek (cheap, fast, reliable)
+    // Strict DeepSeek-only configuration
     const dsNative = e.DEEPSEEK_API_KEY || e.DEEPSEEK_CHAT_API_KEY || e.DEEPSEEK_REASONER_API_KEY;
     if (dsNative) {
         return {
             url: "https://api.deepseek.com/v1/chat/completions",
             key: dsNative,
             model: "deepseek-chat",
-        };
-    }
-
-    // 2) Groq (fast inference)
-    if (e.GROQ_API_KEY) {
-        return {
-            url: "https://api.groq.com/openai/v1/chat/completions",
-            key: e.GROQ_API_KEY,
-            model: "llama-3.3-70b-versatile",
-        };
-    }
-
-    // 3) Kimi via NVIDIA
-    if (e.KIMI_API_KEY) {
-        return {
-            url: "https://integrate.api.nvidia.com/v1/chat/completions",
-            key: e.KIMI_API_KEY,
-            model: "moonshotai/kimi-k2.5",
-        };
-    }
-
-    // 4) Minimax via NVIDIA
-    if (e.MINIMAX_API_KEY) {
-        return {
-            url: "https://integrate.api.nvidia.com/v1/chat/completions",
-            key: e.MINIMAX_API_KEY,
-            model: "minimaxai/minimax-m2.1",
         };
     }
 
