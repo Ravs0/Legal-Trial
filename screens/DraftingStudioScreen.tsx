@@ -102,6 +102,104 @@ const DraftingStudioScreen: React.FC = () => {
   const [scoringResult, setScoringResult] = useState<ScoringResult | null>(null);
   const scoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Voice Recording state for STT
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    setAudioError(null);
+    audioChunksRef.current = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        await handleSTT(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      setAudioError('Microphone access is required for voice input.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const handleSTT = async (blob: Blob) => {
+    setIsLoadingAiInteraction(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        const res = await fetch('/api/voice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'stt',
+            audio: base64Audio,
+            language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
+          }),
+        });
+
+        if (!res.ok) throw new Error('STT call failed');
+        const data = await res.json();
+        if (data.status === 'success' && data.text) {
+          setUserDraft(prev => prev ? `${prev}\n${data.text}` : data.text);
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      console.error('Transcription error:', err);
+      setAudioError('Failed to transcribe voice.');
+    } finally {
+      setIsLoadingAiInteraction(false);
+    }
+  };
+
+  const handleSpeak = async (text: string) => {
+    try {
+      const cleanText = text.replace(/\*\*|_/g, ''); // Strip markdown chars
+      const response = await fetch('/api/voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'tts',
+          text: cleanText.slice(0, 800), // Cap length
+          language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
+          gender: 'female',
+        }),
+      });
+
+      if (!response.ok) throw new Error('TTS failed');
+      const data = await response.json();
+      if (data.status === 'success' && data.audio) {
+        const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
+        await audio.play();
+      }
+    } catch (err) {
+      console.error('Failed voice playback:', err);
+    }
+  };
+
+
   const isLoading = isFactGenerating || isLoadingAiInteraction;
 
   // Auto-save logic
@@ -756,8 +854,21 @@ Section 8.2 Limitation of Liability.
                                                 <span className="text-[10px] font-mono text-brand-text-secondary animate-pulse uppercase">Analysing your draft...</span>
                                             </div>
                                         ) : (
-                                            <div className="whitespace-pre-wrap font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                                {aiFeedback || "Submit your draft for AI review."}
+                                            <div>
+                                                <div className="whitespace-pre-wrap font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
+                                                    {aiFeedback || "Submit your draft for AI review."}
+                                                </div>
+                                                {aiFeedback && (
+                                                    <div className="mt-4 pt-2 border-t border-white/5">
+                                                        <button
+                                                            onClick={() => handleSpeak(aiFeedback)}
+                                                            className="px-2.5 py-1 text-[10px] border border-brand-accent/20 rounded bg-brand-navy/60 hover:bg-brand-accent/10 text-brand-accent transition-all cursor-pointer font-mono uppercase"
+                                                            title="Speak this feedback"
+                                                        >
+                                                            🔊 Read Aloud
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -771,6 +882,17 @@ Section 8.2 Limitation of Liability.
                                         </div>
                                         <div className="whitespace-pre-wrap font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
                                             {filingProcedure || "Filing info not requested yet."}
+                                            {filingProcedure && (
+                                                <div className="mt-4 pt-2 border-t border-white/5">
+                                                    <button
+                                                        onClick={() => handleSpeak(filingProcedure)}
+                                                        className="px-2.5 py-1 text-[10px] border border-brand-accent/20 rounded bg-brand-navy/60 hover:bg-brand-accent/10 text-brand-accent transition-all cursor-pointer font-mono uppercase"
+                                                        title="Speak this protocol"
+                                                    >
+                                                        🔊 Read Aloud
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -866,6 +988,24 @@ Section 8.2 Limitation of Liability.
                         </div>
 
                         <div className="flex items-center space-x-3 w-full sm:w-auto">
+                            <button
+                              type="button"
+                              onClick={isRecording ? stopRecording : startRecording}
+                              disabled={isLoading || stage === 'task_details_display'}
+                              className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
+                                ${isRecording
+                                  ? 'bg-brand-error/25 border-brand-error text-brand-error shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse'
+                                  : 'bg-brand-navy/60 border-brand-accent/25 text-brand-accent hover:bg-brand-accent/10 shadow-glow-gold-sm'
+                                }`}
+                              title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
+                            >
+                              {isRecording ? (
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                              ) : (
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                              )}
+                            </button>
+
                             <Button 
                                 onClick={() => {
                                     navigator.clipboard.writeText(userDraft);

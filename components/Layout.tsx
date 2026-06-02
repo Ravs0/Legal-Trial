@@ -152,6 +152,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="h-px bg-white/5 my-2 mx-2"></div>
             <NavItem to={ROUTES.SETUP} label="New Trial" icon={<PlusCircleIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
             <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting Studio" icon={<QuillIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
+            <NavItem 
+              to={ROUTES.COUNCIL} 
+              label="AI Council Chamber" 
+              icon={
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813zM18 10.5l-.562-3.563L14 6.5l3.438-.437L18 2.5l.438 3.563L22 6.5l-3.562.438L18 10.5z" />
+                </svg>
+              } 
+              isSidebarOpen={isSidebarOpen || isMobileOpen} 
+            />
             <div className="h-px bg-white/5 my-2 mx-2"></div>
             <NavItem to={ROUTES.LIBRARY} label="Case Library" icon={<DocumentTextIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
             <NavItem to={ROUTES.JUDGES} label="Judges Roster" icon={<GavelIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />

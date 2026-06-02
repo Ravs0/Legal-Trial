@@ -8,16 +8,17 @@ function corsHeaders(origin) {
     };
 }
 
-function getModelConfig() {
+function getModelConfig(modelName) {
     const e = process.env;
 
     // Strict DeepSeek-only configuration
     const dsNative = e.DEEPSEEK_API_KEY || e.DEEPSEEK_CHAT_API_KEY || e.DEEPSEEK_REASONER_API_KEY;
     if (dsNative) {
+        const isReasoner = modelName === "deepseek-reasoner" || modelName === "reasoner";
         return {
             url: "https://api.deepseek.com/v1/chat/completions",
             key: dsNative,
-            model: "deepseek-chat",
+            model: isReasoner ? "deepseek-reasoner" : "deepseek-chat",
         };
     }
 
@@ -37,10 +38,10 @@ export default async function handler(req, res) {
     }
     if (!body) return res.status(400).json({ error: "Empty body" });
 
-    const { messages, system } = body;
+    const { messages, system, model } = body;
     if (!Array.isArray(messages)) return res.status(400).json({ error: "'messages' array required" });
 
-    const config = getModelConfig();
+    const config = getModelConfig(model);
     if (!config) {
         return res.status(503).json({
             error: "No AI API key configured. Add DEEPSEEK_API_KEY or DEEPSEEK_CHAT_API_KEY in Vercel env vars.",
@@ -56,14 +57,15 @@ export default async function handler(req, res) {
         upstream = await fetch(config.url, {
             method: "POST",
             headers: {
+                "Access-Control-Allow-Origin": origin || "*",
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${config.key}`,
             },
             body: JSON.stringify({
                 model: config.model,
                 messages: allMessages,
-                temperature: 0.6,
-                max_tokens: 1000,
+                temperature: config.model === "deepseek-reasoner" ? undefined : 0.6,
+                max_tokens: config.model === "deepseek-reasoner" ? undefined : 1000,
             }),
         });
     } catch (err) {

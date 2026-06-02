@@ -41,6 +41,78 @@ const PracticeArena: React.FC = () => {
   const [objectionGrounds, setObjectionGrounds] = useState('relevance');
   const [objectionExplanation, setObjectionExplanation] = useState('');
 
+  // Voice recording states for STT
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    setAudioError(null);
+    audioChunksRef.current = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        await handleSTT(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      setAudioError('Microphone access is required for voice input.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const handleSTT = async (blob: Blob) => {
+    setIsAiTyping('judge');
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        const res = await fetch('/api/voice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'stt',
+            audio: base64Audio,
+            language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
+          }),
+        });
+
+        if (!res.ok) throw new Error('STT call failed');
+        const data = await res.json();
+        if (data.status === 'success' && data.text) {
+          setUserInput(prev => prev ? `${prev} ${data.text}` : data.text);
+        }
+      };
+      reader.readAsDataURL(blob);
+    } catch (err) {
+      console.error('Transcription error:', err);
+      setAudioError('Failed to transcribe voice.');
+    } finally {
+      setIsAiTyping(false);
+    }
+  };
+
   const sessionDurationSeconds = currentSessionSettings ? SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType] * 60 : 900;
 
   const onTimerEnd = useCallback(async () => {
@@ -551,24 +623,48 @@ const PracticeArena: React.FC = () => {
           {!sessionEnded && (
             <div className="p-4 sm:p-6 bg-brand-bg-primary/80 backdrop-blur-lg border-t border-brand-accent/20 z-20 relative flex-shrink-0">
               <div className="max-w-4xl mx-auto">
+                {audioError && (
+                  <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[11px] rounded-lg text-left animate-fadeIn">
+                    ⚠️ {audioError}
+                  </div>
+                )}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-end space-y-3 sm:space-y-0 sm:space-x-4">
-                  <div className="relative flex-grow">
-                    <textarea
-                      value={userInput}
-                      onChange={(e) => setUserInput(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      placeholder="Address the Court... (Shift+Enter for new line)"
-                      className="w-full p-4 pl-5 pr-12 bg-brand-navy/50 backdrop-blur-sm text-brand-text-primary rounded-2xl border border-brand-accent/20 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent/50 focus:outline-none resize-none min-h-[70px] max-h-[180px] placeholder-brand-text-secondary/50 font-light text-base sm:text-lg shadow-inner-subtle custom-scrollbar transition-all duration-300 group"
-                      rows={2}
+                  <div className="relative flex-grow flex items-end gap-3">
+                    <button
+                      type="button"
+                      onClick={isRecording ? stopRecording : startRecording}
                       disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
-                    />
-                    <div className="absolute top-2 right-2 p-1.5 hidden sm:block opacity-40">
-                      <span className="text-[10px] font-mono tracking-widest uppercase">Drafting</span>
+                      className={`w-12 h-12 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
+                        ${isRecording
+                          ? 'bg-brand-error/25 border-brand-error text-brand-error shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse'
+                          : 'bg-brand-navy/60 border-brand-accent/25 text-brand-accent hover:bg-brand-accent/10 shadow-glow-gold-sm'
+                        }`}
+                      title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
+                    >
+                      {isRecording ? (
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                      )}
+                    </button>
+                    <div className="relative flex-grow bg-transparent">
+                      <textarea
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        placeholder="Address the Court... (Shift+Enter for new line)"
+                        className="w-full p-4 pl-5 pr-12 bg-brand-navy/50 backdrop-blur-sm text-brand-text-primary rounded-2xl border border-brand-accent/20 focus:ring-2 focus:ring-brand-accent focus:border-brand-accent/50 focus:outline-none resize-none min-h-[70px] max-h-[180px] placeholder-brand-text-secondary/50 font-light text-base sm:text-lg shadow-inner-subtle custom-scrollbar transition-all duration-300 group"
+                        rows={2}
+                        disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
+                      />
+                      <div className="absolute top-2 right-2 p-1.5 hidden sm:block opacity-40">
+                        <span className="text-[10px] font-mono tracking-widest uppercase">Drafting</span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex flex-row w-full sm:w-auto sm:flex-col space-x-2.5 sm:space-x-0 sm:space-y-3 items-stretch justify-end">

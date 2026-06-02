@@ -71,6 +71,31 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
     return '';
   }
 
+  const handleSpeak = async (text: string) => {
+    try {
+      const cleanText = text.replace(/\*\*|_/g, ''); // Strip markdown chars
+      const response = await fetch('/api/voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'tts',
+          text: cleanText.slice(0, 800), // Cap length
+          language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
+          gender: 'female',
+        }),
+      });
+
+      if (!response.ok) throw new Error('TTS failed');
+      const data = await response.json();
+      if (data.status === 'success' && data.audio) {
+        const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
+        await audio.play();
+      }
+    } catch (err) {
+      console.error('Failed voice playback:', err);
+    }
+  };
+
 
   return (
     <div className={`flex flex-col ${alignment} mb-6 animate-fadeInUp w-full`}>
@@ -86,6 +111,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
             <span className={isUser ? 'text-brand-accent/80 font-semibold' : ''}>{getSenderName()}</span>
             {' ✦ '}
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {!isUser && (
+              <>
+                {' ✦ '}
+                <button
+                  onClick={() => handleSpeak(message.text)}
+                  className="text-brand-accent hover:text-brand-accent-hover transition-colors font-semibold"
+                  title="Speak this statement"
+                >
+                  🔊 Listen
+                </button>
+              </>
+            )}
           </p>
           <div className={`${bubbleColor} rounded-2xl ${isUser ? 'rounded-br-sm' : 'rounded-bl-sm'} p-4 sm:p-5 relative`}>
             {isJudge && <div className="absolute top-0 left-0 w-1/2 h-[1px] bg-gradient-to-r from-brand-accent/50 to-transparent"></div>}

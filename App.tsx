@@ -11,6 +11,7 @@ import JudgesScreen from './screens/JudgesScreen';
 import OpposingCounselScreen from './screens/OpposingCounselScreen';
 import LandingScreen from './screens/LandingScreen';
 import DraftingStudioScreen from './screens/DraftingStudioScreen'; // Import the new screen
+import CouncilChamberScreen from './screens/CouncilChamberScreen'; // Import the AI Council screen
 import { ROUTES } from './constants';
 import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -96,6 +97,7 @@ function App() {
           <Route path={ROUTES.JUDGES} element={<Layout><ModeSpecificRoute element={<JudgesScreen />} /></Layout>} />
           <Route path={ROUTES.OPPOSING_COUNSEL} element={<Layout><ModeSpecificRoute element={<OpposingCounselScreen />} /></Layout>} />
           <Route path={ROUTES.DRAFTING_STUDIO} element={<Layout><ModeSpecificRoute element={<DraftingStudioScreen />} /></Layout>} />
+          <Route path={ROUTES.COUNCIL} element={<Layout><ModeSpecificRoute element={<CouncilChamberScreen />} /></Layout>} />
           <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
         </Routes>
       </HashRouter>
