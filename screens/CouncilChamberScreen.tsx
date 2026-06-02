@@ -67,6 +67,454 @@ interface ChatBubble {
   trace?: { stage: string; content: string }[];
 }
 
+const DeliberationBlueprint: React.FC<{
+  activeTab: ChamberMode;
+  isProcessing: boolean;
+  oracleStage: string;
+  oracleTrace: { stage: string; content: string }[];
+  selectedPersona: Persona;
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
+  setSelectedPersona: (p: Persona) => void;
+}> = ({
+  activeTab,
+  isProcessing,
+  oracleStage,
+  oracleTrace,
+  selectedPersona,
+  selectedModel,
+  setSelectedModel,
+  setSelectedPersona,
+}) => {
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
+  const styleBlock = (
+    <style>{`
+      @keyframes dashoffset-flow {
+        to {
+          stroke-dashoffset: -20;
+        }
+      }
+      @keyframes pulse-glow-gold {
+        0%, 100% {
+          filter: drop-shadow(0 0 2px rgba(201, 168, 76, 0.4)) drop-shadow(0 0 4px rgba(201, 168, 76, 0.2));
+          stroke-opacity: 0.6;
+        }
+        50% {
+          filter: drop-shadow(0 0 8px rgba(201, 168, 76, 0.9)) drop-shadow(0 0 16px rgba(201, 168, 76, 0.5));
+          stroke-opacity: 1;
+        }
+      }
+      @keyframes pulse-glow-blue {
+        0%, 100% {
+          filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.4)) drop-shadow(0 0 4px rgba(56, 189, 248, 0.2));
+          stroke-opacity: 0.6;
+        }
+        50% {
+          filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.9)) drop-shadow(0 0 16px rgba(56, 189, 248, 0.5));
+          stroke-opacity: 1;
+        }
+      }
+      @keyframes pulse-glow-red {
+        0%, 100% {
+          filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4)) drop-shadow(0 0 4px rgba(239, 68, 68, 0.2));
+          stroke-opacity: 0.6;
+        }
+        50% {
+          filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9)) drop-shadow(0 0 16px rgba(239, 68, 68, 0.5));
+          stroke-opacity: 1;
+        }
+      }
+      @keyframes node-float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-4px); }
+      }
+      @keyframes hub-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .dash-flow-gold {
+        stroke: #c9a84c;
+        stroke-dasharray: 6, 6;
+        animation: dashoffset-flow 1.2s linear infinite;
+      }
+      .dash-flow-blue {
+        stroke: #38bdf8;
+        stroke-dasharray: 6, 6;
+        animation: dashoffset-flow 1.2s linear infinite;
+      }
+      .pulse-gold {
+        animation: pulse-glow-gold 2s infinite ease-in-out;
+      }
+      .pulse-blue {
+        animation: pulse-glow-blue 2s infinite ease-in-out;
+      }
+      .pulse-red {
+        animation: pulse-glow-red 2s infinite ease-in-out;
+      }
+      .spin-hub {
+        animation: hub-spin 20s linear infinite;
+        transform-origin: center;
+      }
+      .float-1 { animation: node-float 4s ease-in-out infinite; }
+      .float-2 { animation: node-float 4.5s ease-in-out infinite 0.7s; }
+      .float-3 { animation: node-float 5s ease-in-out infinite 1.4s; }
+    `}</style>
+  );
+
+  if (activeTab === ChamberMode.DIRECT) {
+    const isReasoner = selectedModel === 'reasoner';
+    return (
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+        <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[160px]">
+          {styleBlock}
+          
+          <g stroke="#ffffff" strokeOpacity="0.02" strokeWidth="1">
+            <line x1="0" y1="50" x2="400" y2="50" />
+            <line x1="0" y1="100" x2="400" y2="100" />
+            <line x1="0" y1="150" x2="400" y2="150" />
+            <line x1="100" y1="0" x2="100" y2="200" />
+            <line x1="200" y1="0" x2="200" y2="200" />
+            <line x1="300" y1="0" x2="300" y2="200" />
+          </g>
+
+          <path
+            d="M 100 100 Q 200 40 300 100"
+            fill="none"
+            stroke="#c9a84c"
+            strokeOpacity={isProcessing ? "0.8" : "0.2"}
+            strokeWidth="2"
+          />
+          <path
+            d="M 300 100 Q 200 160 100 100"
+            fill="none"
+            stroke="#38bdf8"
+            strokeOpacity={isProcessing ? "0.8" : "0.2"}
+            strokeWidth="2"
+          />
+
+          {isProcessing && (
+            <>
+              <path
+                d="M 100 100 Q 200 40 300 100"
+                fill="none"
+                className="dash-flow-gold"
+                strokeWidth="2"
+              />
+              <path
+                d="M 300 100 Q 200 160 100 100"
+                fill="none"
+                className="dash-flow-blue"
+                strokeWidth="2"
+              />
+              <circle r="4" fill="#c9a84c">
+                <animateMotion dur="2s" repeatCount="indefinite" path="M 100 100 Q 200 40 300 100" />
+              </circle>
+              <circle r="4" fill="#38bdf8">
+                <animateMotion dur="2s" repeatCount="indefinite" path="M 300 100 Q 200 160 100 100" />
+              </circle>
+            </>
+          )}
+
+          <g 
+            className="cursor-pointer float-1" 
+            onMouseEnter={() => setHoveredNode('user')}
+            onMouseLeave={() => setHoveredNode(null)}
+          >
+            <circle cx="100" cy="100" r="28" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
+            <circle cx="100" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
+            <text x="100" y="104" textAnchor="middle" fill="#ffffff" fontSize="18">⚖️</text>
+            <text x="100" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">COUNSEL</text>
+          </g>
+
+          <g 
+            className="cursor-pointer float-2" 
+            onClick={() => setSelectedModel(isReasoner ? 'deepseek-chat' : 'reasoner')}
+            onMouseEnter={() => setHoveredNode('model')}
+            onMouseLeave={() => setHoveredNode(null)}
+          >
+            <circle cx="300" cy="100" r="38" fill="none" stroke="#38bdf8" strokeOpacity="0.1" strokeWidth="1" strokeDasharray="4,2" className="spin-hub" />
+            <circle cx="300" cy="100" r="28" fill="#0d1b2a" stroke={isReasoner ? "#c9a84c" : "#38bdf8"} strokeWidth="2.5" className={isProcessing ? "pulse-gold" : "pulse-blue"} />
+            <circle cx="300" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
+            <text x="300" y="105" textAnchor="middle" fill="#ffffff" fontSize="18">{isReasoner ? "🔮" : "🧠"}</text>
+            <text x="300" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">
+              {isReasoner ? "DEEPSEEK V4 PRO" : "DEEPSEEK V4"}
+            </text>
+            <text x="300" y="160" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">
+              (CLICK TOGGLE)
+            </text>
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
+  if (activeTab === ChamberMode.ORACLE) {
+    const activeStageIndex = oracleTrace.length;
+    const nodes = [
+      { id: 1, name: 'Framing', cx: 80, cy: 55, icon: '🔍' },
+      { id: 2, name: 'Proposal', cx: 200, cy: 55, icon: '💡' },
+      { id: 3, name: 'Critique', cx: 320, cy: 55, icon: '⚡' },
+      { id: 4, name: 'Refinement', cx: 320, cy: 145, icon: '🛡️' },
+      { id: 5, name: 'Reconcile', cx: 200, cy: 145, icon: '🏛️' },
+      { id: 6, name: 'Polish', cx: 80, cy: 145, icon: '✨' },
+    ];
+
+    return (
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+        <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[170px]">
+          {styleBlock}
+          
+          <circle cx="200" cy="100" r="50" fill="none" stroke="#c9a84c" strokeOpacity="0.03" strokeWidth="1" strokeDasharray="8,8" className="spin-hub" />
+
+          {nodes.map((n, i) => {
+            const nextNode = nodes[(i + 1) % nodes.length];
+            const isCompleted = i < activeStageIndex;
+            const isFlowing = isProcessing && i <= activeStageIndex;
+            
+            return (
+              <g key={`path-${n.id}`}>
+                <line
+                  x1={n.cx}
+                  y1={n.cy}
+                  x2={nextNode.cx}
+                  y2={nextNode.cy}
+                  stroke={isCompleted ? "#c9a84c" : "#1b263b"}
+                  strokeWidth="2"
+                  strokeOpacity={isCompleted ? "0.8" : "0.25"}
+                />
+                {isFlowing && (
+                  <line
+                    x1={n.cx}
+                    y1={n.cy}
+                    x2={nextNode.cx}
+                    y2={nextNode.cy}
+                    className="dash-flow-gold"
+                    strokeWidth="2"
+                  />
+                )}
+              </g>
+            );
+          })}
+
+          {nodes.map((n, i) => {
+            const isCompleted = i < activeStageIndex;
+            const isActive = isProcessing && i === activeStageIndex;
+            const isPending = i > activeStageIndex;
+
+            return (
+              <g
+                key={`node-${n.id}`}
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredNode(`stage-${n.id}`)}
+                onMouseLeave={() => setHoveredNode(null)}
+              >
+                <circle
+                  cx={n.cx}
+                  cy={n.cy}
+                  r="18"
+                  fill={isCompleted ? "#c9a84c" : "#0d1b2a"}
+                  fillOpacity={isCompleted ? "0.15" : "0.9"}
+                  stroke={isActive ? "#amber-400" : isCompleted ? "#c9a84c" : "#1b263b"}
+                  strokeWidth={isActive ? "2.5" : "1.5"}
+                  className={isActive ? "pulse-gold" : ""}
+                />
+                
+                {isCompleted ? (
+                  <text x={n.cx} y={n.cy + 4} textAnchor="middle" fill="#c9a84c" fontSize="10" fontWeight="bold">✓</text>
+                ) : (
+                  <text x={n.cx} y={n.cy + 4} textAnchor="middle" fill={isPending ? "#555" : "#ffffff"} fontSize="10">{n.icon}</text>
+                )}
+
+                <text
+                  x={n.cx}
+                  y={n.cy + 28}
+                  textAnchor="middle"
+                  fill={isActive ? "#c9a84c" : isCompleted ? "#ffffff" : "#666"}
+                  fontSize="7"
+                  fontWeight={isActive ? "bold" : "normal"}
+                  fontFamily="monospace"
+                  className={isActive ? "animate-pulse" : ""}
+                >
+                  {n.name.toUpperCase()}
+                </text>
+              </g>
+            );
+          })}
+
+          <g transform="translate(200, 100)" className={isProcessing ? "spin-hub" : ""}>
+            <circle cx="0" cy="0" r="12" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
+            <text x="0" y="3" textAnchor="middle" fill="#c9a84c" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="8">⚙️</text>
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
+  if (activeTab === ChamberMode.COUNCIL) {
+    const center = { x: 200, y: 110 };
+    const jurists = [
+      { id: 'leibowitz', name: 'Leibowitz', cx: 200, cy: 40, avatar: '⚖️', index: 0 },
+      { id: 'richelieu', name: 'Richelieu', cx: 280, cy: 88, avatar: '🏰', index: 1 },
+      { id: 'jethmalani', name: 'Jethmalani', cx: 250, cy: 165, avatar: '🎙️', index: 2 },
+      { id: 'nariman', name: 'Nariman', cx: 150, cy: 165, avatar: '🏛️', index: 3 },
+      { id: 'parfit', name: 'Parfit', cx: 120, cy: 88, avatar: '🧠', index: 4 },
+    ];
+
+    return (
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+        <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[180px]">
+          {styleBlock}
+          
+          {jurists.map((j) => {
+            const isSelected = selectedPersona.id === j.id;
+            
+            return (
+              <g key={`radial-${j.id}`}>
+                <line
+                  x1={center.x}
+                  y1={center.y}
+                  x2={j.cx}
+                  y2={j.cy}
+                  stroke={isSelected ? "#c9a84c" : "#1b263b"}
+                  strokeWidth={isSelected ? "3" : "1.5"}
+                  strokeOpacity={isSelected ? "0.9" : "0.2"}
+                />
+                
+                {isSelected && (
+                  <>
+                    <line
+                      x1={center.x}
+                      y1={center.y}
+                      x2={j.cx}
+                      y2={j.cy}
+                      className="dash-flow-gold"
+                      strokeWidth="2"
+                    />
+                    <circle r="4" fill="#c9a84c">
+                      <animateMotion 
+                        dur="1.5s" 
+                        repeatCount="indefinite" 
+                        path={`M ${center.x} ${center.y} L ${j.cx} ${j.cy}`} 
+                      />
+                    </circle>
+                  </>
+                )}
+              </g>
+            );
+          })}
+
+          <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
+            <circle cx="0" cy="0" r="20" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
+            <circle cx="0" cy="0" r="15" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
+            <text x="0" y="4" textAnchor="middle" fill="#c9a84c" fontSize="11">🏛️</text>
+          </g>
+
+          {jurists.map((j) => {
+            const isSelected = selectedPersona.id === j.id;
+            const personaRef = PERSONAS[j.index];
+
+            return (
+              <g
+                key={`jurist-${j.id}`}
+                className="cursor-pointer float-2"
+                onClick={() => setSelectedPersona(personaRef)}
+                onMouseEnter={() => setHoveredNode(j.id)}
+                onMouseLeave={() => setHoveredNode(null)}
+              >
+                <circle
+                  cx={j.cx}
+                  cy={j.cy}
+                  r="18"
+                  fill={isSelected ? "#c9a84c" : "#0d1b2a"}
+                  fillOpacity={isSelected ? "0.15" : "0.9"}
+                  stroke={isSelected ? "#c9a84c" : "#1b263b"}
+                  strokeWidth={isSelected ? "2.5" : "1.5"}
+                  className={isSelected ? "pulse-gold" : ""}
+                />
+                
+                <text x={j.cx} y={j.cy + 4} textAnchor="middle" fill="#ffffff" fontSize="13">{j.avatar}</text>
+                
+                <text
+                  x={j.cx}
+                  y={j.cy + 27}
+                  textAnchor="middle"
+                  fill={isSelected ? "#c9a84c" : "#777"}
+                  fontSize="7"
+                  fontWeight={isSelected ? "bold" : "normal"}
+                  fontFamily="monospace"
+                >
+                  {j.name.toUpperCase()}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    );
+  }
+
+  if (activeTab === ChamberMode.SYNTHESIS) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+        <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[180px]">
+          {styleBlock}
+
+          <path d="M 200 45 L 85 120 L 315 120 Z" fill="none" stroke="#1b263b" strokeWidth="1.2" />
+          <path d="M 85 120 L 200 175 L 315 120" fill="none" stroke="#1b263b" strokeWidth="1.2" />
+          
+          <line x1="200" y1="45" x2="200" y2="175" stroke="#38bdf8" strokeWidth="1.2" strokeOpacity="0.25" />
+          <line x1="85" y1="120" x2="200" y2="175" stroke="#c9a84c" strokeWidth="1.5" strokeOpacity="0.3" />
+          <line x1="315" y1="120" x2="200" y2="175" stroke="#ef4444" strokeWidth="1.5" strokeOpacity="0.3" />
+
+          {isProcessing && (
+            <>
+              <circle r="3.5" fill="#c9a84c">
+                <animateMotion dur="2s" repeatCount="indefinite" path="M 85 120 L 200 175" />
+              </circle>
+              <circle r="3.5" fill="#ef4444">
+                <animateMotion dur="1.8s" repeatCount="indefinite" path="M 315 120 L 200 175" />
+              </circle>
+              <circle r="4" fill="#38bdf8">
+                <animateMotion dur="2.2s" repeatCount="indefinite" path="M 200 45 L 200 175" />
+              </circle>
+            </>
+          )}
+
+          <g className="float-1">
+            <circle cx="200" cy="45" r="15" fill="#0d1b2a" stroke="#38bdf8" strokeWidth="1.2" className="pulse-blue" />
+            <text x="200" y="48" textAnchor="middle" fill="#ffffff" fontSize="9">📋</text>
+            <text x="200" y="24" textAnchor="middle" fill="#38bdf8" fontSize="7" fontWeight="bold" fontFamily="monospace">CASE PREMISE</text>
+          </g>
+
+          <g className="float-2">
+            <circle cx="85" cy="120" r="18" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="1.5" className="pulse-gold" />
+            <text x="85" y="123" textAnchor="middle" fill="#ffffff" fontSize="10">👥</text>
+            <text x="85" y="93" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">24 STAKEHOLDERS</text>
+          </g>
+
+          <g className="float-3">
+            <circle cx="315" cy="120" r="18" fill="#0d1b2a" stroke="#ef4444" strokeWidth="1.5" className="pulse-red" />
+            <text x="315" y="123" textAnchor="middle" fill="#ffffff" fontSize="10">⚔️</text>
+            <text x="315" y="93" textAnchor="middle" fill="#ef4444" fontSize="7" fontWeight="bold" fontFamily="monospace">PROSECUTION stress</text>
+          </g>
+
+          <g className="float-1">
+            <circle cx="200" cy="175" r="22" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
+            {isProcessing && (
+              <circle cx="200" cy="175" r="25" fill="none" stroke="#c9a84c" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" className="spin-hub" />
+            )}
+            <text x="200" y="179" textAnchor="middle" fill="#ffffff" fontSize="12">🛡️</text>
+            <text x="200" y="207" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">SYNTHESIS CORE</text>
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 export const CouncilChamberScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   if (!context) throw new Error('TrialSimContext not found');
@@ -703,49 +1151,45 @@ export const CouncilChamberScreen: React.FC = () => {
       {/* ========================================================================= */}
       {/* LAPTOP HIGH-FIDELITY WAR ROOM DASHBOARD (Large Screens >= 1024px)          */}
       {/* ========================================================================= */}
-      <div className="hidden lg:grid grid-cols-12 gap-8 h-[calc(100vh-140px)] w-full overflow-hidden text-left">
+      <div className="hidden lg:grid grid-cols-12 gap-6 h-[calc(100vh-140px)] w-full overflow-hidden text-left">
         
-        {/* Columns 1-4: Strategic Chambers & Setup (Sidebar) */}
-        <div className="col-span-4 flex flex-col gap-6 max-h-full overflow-y-auto custom-scrollbar pr-1">
-          <Card className="p-6 border border-brand-accent/25 bg-brand-navy/35 backdrop-blur-xl rounded-2xl flex flex-col gap-4.5 shadow-glow-gold-sm relative overflow-hidden group">
-            {/* Visual background highlight accent */}
-            <div className="absolute -top-16 -right-16 w-32 h-32 bg-brand-accent/5 rounded-full blur-3xl group-hover:bg-brand-accent/10 transition-all duration-700"></div>
+        {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
+        <div className="col-span-3 flex flex-col gap-5 max-h-full overflow-y-auto custom-scrollbar pr-1">
+          <Card className="p-5 border border-brand-accent/20 bg-brand-navy/35 backdrop-blur-xl rounded-2xl flex flex-col gap-4 shadow-glow-gold-sm relative overflow-hidden group">
+            <div className="absolute -top-16 -right-16 w-28 h-28 bg-brand-accent/5 rounded-full blur-3xl group-hover:bg-brand-accent/10 transition-all duration-700"></div>
             
-            <div className="space-y-1">
-              <h3 className="text-xl font-serif font-bold text-shimmer flex items-center gap-2">
-                <CourtIcon className="h-5 w-5 text-brand-accent" /> Deliberation Chambers
+            <div className="space-y-0.5">
+              <h3 className="text-base font-serif font-bold text-shimmer flex items-center gap-1.5">
+                <CourtIcon className="h-4.5 w-4.5 text-brand-accent" /> Protocols
               </h3>
-              <p className="text-[11px] text-brand-text-secondary font-light">Select the strategic legal thinking protocol.</p>
+              <p className="text-[10px] text-brand-text-secondary font-light">Select deliberation protocol.</p>
             </div>
 
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2">
               {[
-                { value: ChamberMode.DIRECT, title: 'Direct Consult Suite', badge: 'V4 / V4 Pro', desc: 'Secure direct proxy to primary models.', icon: '🌐' },
-                { value: ChamberMode.ORACLE, title: 'Deliberation Oracle', badge: '6-Stage', desc: 'Sequential deconstruction, proposal, & critique.', icon: '🔮' },
-                { value: ChamberMode.COUNCIL, title: 'Persona Council', badge: '5 Minds', desc: 'Consult customized expert jurists.', icon: '🏛️' },
-                { value: ChamberMode.SYNTHESIS, title: 'Adversarial Synthesis', badge: '7-Phase', desc: 'Shatter disputes and build unbreakable strategy.', icon: '⚔️' },
+                { value: ChamberMode.DIRECT, title: 'Direct Consult', badge: 'V4', icon: '🌐' },
+                { value: ChamberMode.ORACLE, title: 'Deliberation Oracle', badge: '6-Stage', icon: '🔮' },
+                { value: ChamberMode.COUNCIL, title: 'Persona Council', badge: '5 Minds', icon: '🏛️' },
+                { value: ChamberMode.SYNTHESIS, title: 'Adversarial Synthesis', badge: '7-Phase', icon: '⚔️' },
               ].map((m) => {
                 const isActive = activeTab === m.value;
                 return (
                   <button
                     key={m.value}
                     onClick={() => setActiveTab(m.value)}
-                    className={`w-full p-4 rounded-xl border text-left transition-all flex items-start gap-3.5 relative overflow-hidden group/btn
+                    className={`w-full p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 relative overflow-hidden group/btn
                       ${isActive 
-                        ? 'bg-brand-accent/10 border-brand-accent text-brand-accent shadow-[0_0_15px_rgba(201,168,76,0.12)] scale-[1.01]' 
-                        : 'bg-brand-navy/40 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/30 hover:bg-brand-accent/5 hover:text-brand-text-primary'
+                        ? 'bg-brand-accent/10 border-brand-accent text-brand-accent shadow-[0_0_10px_rgba(201,168,76,0.1)] scale-[1.01]' 
+                        : 'bg-brand-navy/40 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/20 hover:bg-brand-accent/5 hover:text-brand-text-primary'
                       }`}
                   >
-                    <span className="text-2xl mt-0.5">{m.icon}</span>
-                    <div className="space-y-0.5 flex-grow pr-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold font-serif">{m.title}</span>
-                        <span className={`text-[8px] font-mono px-1.5 py-0.5 border rounded uppercase
-                          ${isActive ? 'border-brand-accent/35 bg-brand-navy text-brand-accent' : 'border-white/10 bg-white/5'}`}>
-                          {m.badge}
-                        </span>
-                      </div>
-                      <p className="text-[10px] opacity-75 font-light leading-relaxed">{m.desc}</p>
+                    <span className="text-xl">{m.icon}</span>
+                    <div className="flex-grow flex items-center justify-between">
+                      <span className="text-xs font-bold font-serif">{m.title}</span>
+                      <span className={`text-[8px] font-mono px-1.5 py-0.5 border rounded uppercase
+                        ${isActive ? 'border-brand-accent/35 bg-brand-navy text-brand-accent' : 'border-white/10 bg-white/5'}`}>
+                        {m.badge}
+                      </span>
                     </div>
                   </button>
                 );
@@ -753,45 +1197,45 @@ export const CouncilChamberScreen: React.FC = () => {
             </div>
           </Card>
 
-          {/* Dynamic Selection Details (Desktop) */}
+          {/* Dynamic Selection Details (Desktop Sidebar) */}
           {activeTab === ChamberMode.DIRECT && (
-            <Card className="p-6 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-4 animate-fadeIn">
-              <h4 className="text-xs font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1.5">Direct Model Config</h4>
+            <Card className="p-5 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-3.5 animate-fadeIn">
+              <h4 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1">Config</h4>
               <SelectInput
                 label="Selected Model"
                 options={[
-                  { value: 'deepseek-chat', label: 'DeepSeek V4 (Fast & High Analytical)' },
-                  { value: 'reasoner', label: 'DeepSeek V4 Pro (Deep-Thinking Logic)' },
+                  { value: 'deepseek-chat', label: 'DeepSeek V4 (Fast)' },
+                  { value: 'reasoner', label: 'DeepSeek V4 Pro (Deep)' },
                 ]}
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
               />
-              <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed">
-                DeepSeek V4 provides immediate answers suitable for basic brief structuring and clause edits. V4 Pro performs exhaustive deep-thinking deconstruction before compiling responses.
+              <p className="text-[9px] text-brand-text-secondary font-light leading-relaxed">
+                V4 Pro performs multi-stage deep thinking. Click the DeepSeek node on the map to toggle directly.
               </p>
             </Card>
           )}
 
           {activeTab === ChamberMode.COUNCIL && (
-            <Card className="p-6 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-4 animate-fadeIn">
-              <h4 className="text-xs font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1.5">Select Jurist Minds</h4>
-              <div className="flex flex-col gap-2.5">
+            <Card className="p-5 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-3 animate-fadeIn">
+              <h4 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1">Expert Advisor Minds</h4>
+              <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-0.5">
                 {PERSONAS.map((p) => {
                   const isSelected = selectedPersona.id === p.id;
                   return (
                     <button
                       key={p.id}
                       onClick={() => setSelectedPersona(p)}
-                      className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3
+                      className={`p-2.5 rounded-xl border text-left transition-all flex items-start gap-2.5
                         ${isSelected
-                          ? 'bg-brand-accent/10 border-brand-accent/50 text-brand-text-primary shadow-glow-gold-sm scale-[1.02]'
-                          : 'bg-brand-navy/60 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/25'
+                          ? 'bg-brand-accent/10 border-brand-accent/50 text-brand-text-primary shadow-glow-gold-sm scale-[1.01]'
+                          : 'bg-brand-navy/60 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/20'
                         }`}
                     >
-                      <span className="text-xl flex-shrink-0 mt-0.5">{p.avatar}</span>
-                      <div className="space-y-0.5">
-                        <h5 className="text-[11px] font-bold font-serif">{p.name}</h5>
-                        <p className="text-[9px] text-brand-text-secondary font-light leading-normal">{p.role}</p>
+                      <span className="text-lg flex-shrink-0">{p.avatar}</span>
+                      <div className="space-y-0.5 min-w-0">
+                        <h5 className="text-[10px] font-bold font-serif truncate">{p.name}</h5>
+                        <p className="text-[8px] text-brand-text-secondary font-light truncate">{p.role}</p>
                       </div>
                     </button>
                   );
@@ -799,266 +1243,123 @@ export const CouncilChamberScreen: React.FC = () => {
               </div>
             </Card>
           )}
-
-          {activeTab === ChamberMode.ORACLE && (
-            <Card className="p-6 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-3 animate-fadeIn">
-              <h4 className="text-xs font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1.5">Deliberation Phase Network</h4>
-              <div className="space-y-3.5 text-left text-[10px] text-brand-text-secondary font-light">
-                <div className="flex items-start gap-2">
-                  <span className="w-4.5 h-4.5 rounded-full bg-brand-accent/10 border border-brand-accent/30 text-brand-accent flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">1</span>
-                  <div>
-                    <p className="font-bold text-brand-text-primary">Framing & Deconstruction</p>
-                    <p className="text-[9px] opacity-75 mt-0.5">Extract core issues, statutory constraints, and unstated assumptions.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-4.5 h-4.5 rounded-full bg-brand-accent/10 border border-brand-accent/30 text-brand-accent flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">2</span>
-                  <div>
-                    <p className="font-bold text-brand-text-primary">Strategy Proposals</p>
-                    <p className="text-[9px] opacity-75 mt-0.5">Formulate high-stakes, realistic litigation strategies.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-4.5 h-4.5 rounded-full bg-brand-accent/10 border border-brand-accent/30 text-brand-accent flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">3</span>
-                  <div>
-                    <p className="font-bold text-brand-text-primary">Adversarial Critique (V4 Pro)</p>
-                    <p className="text-[9px] opacity-75 mt-0.5">Detect vulnerabilities and logical flaws in proposals.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-4.5 h-4.5 rounded-full bg-brand-accent/10 border border-brand-accent/30 text-brand-accent flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">4</span>
-                  <div>
-                    <p className="font-bold text-brand-text-primary">Defensive Refinement</p>
-                    <p className="text-[9px] opacity-75 mt-0.5">Reinforce gaps, compile safeguards, and dismiss counterclaims.</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {activeTab === ChamberMode.SYNTHESIS && (
-            <Card className="p-6 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-2.5 animate-fadeIn">
-              <h4 className="text-xs font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1.5">Adversarial Stress Test</h4>
-              <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed">
-                A 3-phase high-stakes stressful compilation mapping 24 stakeholder forces, simulating opposing arguments with V4 Pro, and outputting an unbreakable motion defense brief.
-              </p>
-            </Card>
-          )}
         </div>
 
-        {/* Columns 5-12: Interactive Workbench (Chat Feed & Input) */}
-        <div className="col-span-8 flex flex-col bg-brand-navy/15 border border-brand-accent/10 backdrop-blur-md rounded-2xl overflow-hidden relative shadow-inner-subtle h-full">
+        {/* Columns 4-8: Interactive Workbench (Chat Feed & Input) */}
+        <div className="col-span-5 flex flex-col bg-brand-navy/15 border border-brand-accent/10 backdrop-blur-md rounded-2xl overflow-hidden relative shadow-inner-subtle h-full">
           
-          {/* Chat Feed (Desktop) */}
-          <div className="flex-grow p-6 overflow-y-auto space-y-6 custom-scrollbar text-left relative z-10">
+          {/* Chat Feed */}
+          <div className="flex-grow p-5 overflow-y-auto space-y-5 custom-scrollbar text-left relative z-10">
             
-            {/* Workbench Welcome Banner (Desktop) */}
             {activeHistory.length <= 1 && (
-              <div className="p-8 border border-brand-accent/15 bg-brand-navy/30 backdrop-blur-lg rounded-3xl flex flex-col md:flex-row items-center gap-6 shadow-glow-gold-sm text-left transition-all duration-300 animate-fadeIn my-4">
-                <div className="w-16 h-16 rounded-full border border-brand-accent/20 bg-brand-navy/60 flex items-center justify-center flex-shrink-0 text-brand-accent shadow-[0_0_15px_rgba(201,168,76,0.15)]">
+              <div className="p-6 border border-brand-accent/15 bg-brand-navy/30 backdrop-blur-lg rounded-2xl flex flex-col items-center gap-4 shadow-glow-gold-sm text-center transition-all duration-300 animate-fadeIn my-2">
+                <div className="w-12 h-12 rounded-full border border-brand-accent/20 bg-brand-navy/60 flex items-center justify-center flex-shrink-0 text-brand-accent shadow-[0_0_10px_rgba(201,168,76,0.1)]">
                   {activeTab === ChamberMode.DIRECT ? (
-                    <svg className="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                     </svg>
                   ) : activeTab === ChamberMode.ORACLE ? (
-                    <svg className="w-8 h-8 animate-spin-slow" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
-                      <circle cx={12} cy={12} r={9} strokeDasharray="4 4" />
+                    <svg className="w-6 h-6 animate-spin-slow" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <circle cx={12} cy={12} r={9} strokeDasharray="3 3" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813z" />
                     </svg>
                   ) : activeTab === ChamberMode.COUNCIL ? (
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m.001-.03c0-.225.012-.447.038-.667A11.944 11.944 0 0112 15c2.17 0 4.207.576 5.963 1.584A6.06 6.06 0 0118 18.722zm-12-1.002a9.094 9.094 0 00-3.741-.479 3 3 0 004.682-2.72m-.94 3.198l-.001.031c0 .225.012.447.037.666A11.944 11.944 0 0012 3c2.17 0 4.207.576 5.963 1.584A6.06 6.06 0 0018 5.278m0 0a9.094 9.094 0 013.741.479 3 3 0 01-4.682 2.72m.94-3.198l.001-.031c0-.225-.012-.447-.037-.666A11.944 11.944 0 0112 3c-2.17 0-4.207.576-5.963 1.584A6.06 6.06 0 016 5.278" />
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m.001-.03c0-.225.012-.447.038-.667A11.944 11.944 0 0112 15c2.17 0 4.207.576 5.963 1.584A6.06 6.06 0 0118 18.722zm-12-1.002a9.094 9.094 0 00-3.741-.479 3 3 0 004.682-2.72m-.94 3.198l-.001.031c0 .225.012.447.037.666A11.944 11.944 0 0012 3c2.17 0 4.207.576 5.963 1.584A6.06 6.06 0 0018 5.278" />
                     </svg>
                   ) : (
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285zM12 5.25a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 20.25a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                     </svg>
                   )}
                 </div>
                 <div className="space-y-1 bg-transparent">
-                  <h4 className="text-base font-serif font-bold text-shimmer">
-                    {activeTab === ChamberMode.DIRECT ? 'Direct Consult Suite' : activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation Chamber' : activeTab === ChamberMode.COUNCIL ? 'Council of Historical Jurists' : '7-Phase Adversarial Synthesis'}
+                  <h4 className="text-sm font-serif font-bold text-shimmer">
+                    {activeTab === ChamberMode.DIRECT ? 'Direct Consult Suite' : activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
                   </h4>
-                  <p className="text-[11px] text-brand-text-secondary font-light leading-relaxed max-w-xl">
+                  <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed max-w-sm">
                     {activeTab === ChamberMode.DIRECT 
-                      ? 'Secure direct connection with the latest DeepSeek V4 models. Optimized for quick query responses, direct clarifications, and brief drafting assists.'
+                      ? 'Secure proxy to DeepSeek V4. Type a legal query directly below.'
                       : activeTab === ChamberMode.ORACLE 
-                        ? 'Deliberate strategic defense using the multi-agent deliberation framework. Resolves unstated facts, produces detailed trial strategies, and stress-tests legal positions sequentially.'
+                        ? '6-Stage sequential reasoning deconstructing issues, strategies, flaws, and safeguards.'
                         : activeTab === ChamberMode.COUNCIL
-                          ? `Initiate consultations with customized advisors. Select Leibowitz for trial tactics, Richelieu for leverage mappings, Nariman for constitutional advice, or Parfit for ethical analysis.`
-                          : 'Mobilize the 7-Phase adversarial synthesis framework. Deconstructs commercial or IBC disputes, simulates prosecution rebuttals, and synthesizes an unbreakable motion strategy.'}
+                          ? `Consult historical minds. Tapping nodes on the Deliberation Map selects them.`
+                          : 'Deconstruct premises, simulate prosecution, and synthesize unbreakable motion briefs.'}
                   </p>
-                  {activeTab === ChamberMode.COUNCIL && (
-                    <div className="pt-1.5 flex items-center gap-1.5 text-[9px] font-mono text-brand-accent uppercase">
-                      <span>Active Persona:</span>
-                      <span className="font-bold border border-brand-accent/20 px-2 py-0.5 rounded bg-brand-navy">{selectedPersona.name} ({selectedPersona.role})</span>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
 
             {activeHistory.map((item) => (
               <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
-                <div className="flex items-center space-x-2 mb-1.5">
+                <div className="flex items-center space-x-1.5 mb-1">
                   {item.meta && (
-                    <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent bg-brand-accent/5 px-2 py-0.5 border border-brand-accent/20 rounded">
+                    <span className="text-[8px] font-mono uppercase tracking-widest text-brand-accent bg-brand-accent/5 px-1.5 py-0.5 border border-brand-accent/15 rounded">
                       {item.meta}
                     </span>
                   )}
-                  <span className="text-[9px] text-brand-text-secondary/50 font-mono">
+                  <span className="text-[8px] text-brand-text-secondary/40 font-mono">
                     {item.sender === 'user' ? 'Counsel' : 'Chamber'}
                   </span>
                 </div>
 
                 <div
-                  className={`max-w-[85%] p-4 rounded-2xl text-[13px] leading-relaxed border transition-all duration-300
+                  className={`max-w-[90%] p-3.5 rounded-xl text-[12px] leading-relaxed border transition-all duration-300
                     ${item.sender === 'user'
                       ? 'bg-brand-accent/15 border-brand-accent/30 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
-                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-xs'
+                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[11px]'
                         : 'bg-brand-navy/70 border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
                   <p className="whitespace-pre-wrap font-light">{item.text}</p>
-                  
-                  {/* Embedded trace if Oracle has run */}
-                  {item.trace && item.trace.length > 0 && (
-                    <details className="mt-4 pt-3 border-t border-white/10 text-xs font-light text-brand-text-secondary/80">
-                      <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wider text-brand-accent hover:text-brand-accent-hover focus:outline-none">
-                        ▶ View Deliberative Trace Logs
-                      </summary>
-                      <div className="mt-3 space-y-4 font-sans text-xs">
-                        {item.trace.map((tr, index) => (
-                          <div key={index} className="space-y-1.5 p-3 bg-brand-bg-primary/50 border border-white/5 rounded-xl text-left">
-                            <h6 className="font-mono text-[10px] font-bold text-brand-accent uppercase tracking-wider border-b border-brand-accent/10 pb-1 flex items-center justify-between">
-                              <span>Stage {index + 1}: {tr.stage}</span>
-                              <span className="text-[8px] text-brand-text-secondary/50 font-normal">COMPLETED</span>
-                            </h6>
-                            <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap">{tr.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  )}
                 </div>
 
                 {item.sender === 'assistant' && item.text && (
-                  <div className="flex space-x-2 mt-2 pl-2">
+                  <div className="flex space-x-2 mt-1.5 pl-1">
                     <button
                       onClick={() => handleSpeak(item.text)}
-                      className="p-2 border border-brand-accent/20 rounded-lg bg-brand-navy/40 hover:bg-brand-accent/10 text-xs transition-all shadow-glow-gold-sm text-brand-accent font-mono uppercase tracking-wide cursor-pointer"
-                      title="Read aloud using Sarvam bulbul:v1"
+                      className="px-2 py-1 border border-brand-accent/20 rounded bg-brand-navy/40 hover:bg-brand-accent/10 text-[9px] transition-all text-brand-accent font-mono uppercase tracking-wide cursor-pointer"
                     >
-                      🔊 Speak Advice
+                      🔊 Speak
                     </button>
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(item.text);
-                      }}
-                      className="p-2 border border-white/10 rounded-lg bg-brand-navy/40 hover:bg-white/5 text-xs text-brand-text-secondary hover:text-brand-text-primary transition-all font-mono uppercase tracking-wide cursor-pointer"
-                      title="Copy response to clipboard"
+                      onClick={() => navigator.clipboard.writeText(item.text)}
+                      className="px-2 py-1 border border-white/10 rounded bg-brand-navy/40 hover:bg-white/5 text-[9px] text-brand-text-secondary hover:text-brand-text-primary transition-all font-mono uppercase tracking-wide cursor-pointer"
                     >
-                      📋 Copy Strategy
+                      📋 Copy
                     </button>
                   </div>
                 )}
               </div>
             ))}
 
-            {/* Active Deliberation Progress Stage Indicator */}
-            {isProcessing && oracleStage && (
-              <div className="flex flex-col gap-3 items-start animate-fadeIn max-w-md w-full my-4">
-                <div className="w-full p-5 rounded-2xl bg-brand-navy/80 border border-brand-accent/25 backdrop-blur-xl shadow-glow-gold-sm space-y-4">
-                  <div className="flex items-center justify-between border-b border-brand-accent/15 pb-2.5">
-                    <div className="flex items-center space-x-2.5">
-                      <LoadingSpinner size="sm" spinnerColor="text-brand-accent animate-spin" />
-                      <span className="text-[10px] font-mono tracking-widest text-brand-accent uppercase font-bold">{oracleStage}</span>
-                    </div>
-                    <button 
-                      onClick={handleCancel}
-                      className="text-[9px] font-mono uppercase px-2.5 py-1 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25 transition-all cursor-pointer font-bold"
-                    >
-                      ✕ Abort Deliberation
-                    </button>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {((activeTab === ChamberMode.ORACLE ? [
-                      'Framing & Deconstruction',
-                      'Strategy Proposal',
-                      'Adversarial Critique',
-                      'Defensive Refinement',
-                      'Jurisprudential Reconciliation',
-                      'Final Memo Polish'
-                    ] : activeTab === ChamberMode.SYNTHESIS ? [
-                      'Systemic Matrix',
-                      'Adversarial Stress Test',
-                      'Adversarial Synthesis'
-                    ] : ['Processing Consultation'])).map((stg, idx) => {
-                      const isCompleted = idx < oracleTrace.length;
-                      const isActive = idx === oracleTrace.length;
-                      return (
-                        <div key={idx} className="flex items-center justify-between text-[10px] font-mono">
-                          <div className="flex items-center space-x-2.5">
-                            <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border text-[8px] font-bold
-                              ${isCompleted 
-                                ? 'bg-brand-accent/20 border-brand-accent text-brand-accent' 
-                                : isActive 
-                                  ? 'bg-amber-500/10 border-amber-500 text-amber-400 animate-pulse' 
-                                  : 'bg-brand-navy border-brand-accent/10 text-brand-text-secondary/30'
-                              }`}
-                            >
-                              {isCompleted ? '✓' : idx + 1}
-                            </span>
-                            <span className={isCompleted ? 'text-brand-text-secondary/70 line-through font-light' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/40 font-light'}>
-                              {stg}
-                            </span>
-                          </div>
-                          <span className={`text-[9px] uppercase tracking-wider
-                            ${isCompleted 
-                              ? 'text-brand-accent/85 font-bold' 
-                              : isActive 
-                                ? 'text-amber-400 animate-pulse font-bold' 
-                                : 'text-brand-text-secondary/20 font-light'
-                            }`}
-                          >
-                            {isCompleted ? 'Done' : isActive ? 'Active' : 'Pending'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div ref={chatEndRef} />
           </div>
 
-          {/* Bottom Input Composer (Desktop) */}
-          <div className="p-4 border-t border-brand-accent/15 bg-brand-bg-secondary/80 backdrop-blur-xl relative z-20">
+          {/* Bottom Input Composer */}
+          <div className="p-3 border-t border-brand-accent/15 bg-brand-bg-secondary/80 backdrop-blur-xl relative z-20">
             {audioError && (
-              <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[11px] rounded-lg text-left animate-fadeIn">
+              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-lg text-left animate-fadeIn">
                 ⚠️ {audioError}
               </div>
             )}
 
-            <form onSubmit={handleSend} className="flex gap-3">
+            <form onSubmit={handleSend} className="flex gap-2">
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`w-12 h-12 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none
+                className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none
                   ${isRecording
-                    ? 'bg-brand-error/25 border-brand-error text-brand-error shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-pulse'
+                    ? 'bg-brand-error/25 border-brand-error text-brand-error shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse'
                     : 'bg-brand-navy/60 border-brand-accent/25 text-brand-accent hover:bg-brand-accent/10 shadow-glow-gold-sm'
                   }`}
-                title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
+                title={isRecording ? 'Stop Recording' : 'Speak'}
               >
                 {isRecording ? (
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
                 )}
               </button>
 
@@ -1069,21 +1370,21 @@ export const CouncilChamberScreen: React.FC = () => {
                 disabled={isProcessing}
                 placeholder={
                   activeTab === ChamberMode.ORACLE
-                    ? 'Ask Oracle a high-stakes legal question...'
+                    ? 'Ask Oracle a question...'
                     : activeTab === ChamberMode.COUNCIL
-                      ? `Consult ${selectedPersona.name}...`
+                      ? `Consult ${selectedPersona.name.split(' ')[0]}...`
                       : activeTab === ChamberMode.SYNTHESIS
-                        ? 'Enter a litigation premise to shatter and synthesize...'
-                        : 'Consult the Legal Council V4...'
+                        ? 'Enter dispute premise...'
+                        : 'Consult V4...'
                 }
-                className="flex-grow p-3 bg-brand-navy/40 border border-brand-accent/10 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-[13px] text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                className="flex-grow p-2.5 bg-brand-navy/40 border border-brand-accent/10 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-[12px] text-brand-text-primary placeholder-brand-text-secondary/35 font-light"
               />
 
               {isProcessing ? (
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-6 border border-brand-error/40 rounded-xl bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-xs font-mono uppercase tracking-wider flex-shrink-0 transition-all font-semibold"
+                  className="px-4 border border-brand-error/40 rounded-xl bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[10px] font-mono uppercase tracking-wider flex-shrink-0 transition-all font-semibold"
                 >
                   ✕ Cancel
                 </button>
@@ -1092,13 +1393,124 @@ export const CouncilChamberScreen: React.FC = () => {
                   type="submit"
                   variant="primary"
                   disabled={!inputVal.trim()}
-                  className="px-6 font-mono text-[11px] uppercase tracking-widest shadow-glow-gold-sm flex-shrink-0"
+                  className="px-4 font-mono text-[10px] uppercase tracking-wider shadow-glow-gold-sm flex-shrink-0"
                 >
                   Consult
                 </Button>
               )}
             </form>
           </div>
+        </div>
+
+        {/* Columns 9-12: Real-time Deliberation Blueprint & Trace Console (Right Panel) */}
+        <div className="col-span-4 flex flex-col gap-5 max-h-full overflow-hidden h-full">
+          <Card className="p-4.5 border border-brand-accent/25 bg-brand-navy/35 backdrop-blur-xl rounded-2xl flex flex-col h-full overflow-hidden shadow-glow-gold-sm">
+            <div className="space-y-1 border-b border-brand-accent/15 pb-3">
+              <h3 className="text-sm font-serif font-bold text-shimmer flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4 animate-spin-slow text-brand-accent" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
+                  </svg>
+                  Holographic Deliberation Blueprint
+                </span>
+                <span className="text-[8px] font-mono border border-brand-accent/30 text-brand-accent px-1.5 py-0.5 rounded bg-brand-navy/80 uppercase">
+                  {isProcessing ? 'Active' : 'Standby'}
+                </span>
+              </h3>
+              <p className="text-[9px] text-brand-text-secondary font-light">Interactive process map. Hover and click nodes to interact.</p>
+            </div>
+
+            {/* Render the interactive SVG Blueprint Map */}
+            <div className="py-2.5">
+              <DeliberationBlueprint
+                activeTab={activeTab}
+                isProcessing={isProcessing}
+                oracleStage={oracleStage}
+                oracleTrace={oracleTrace}
+                selectedPersona={selectedPersona}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                setSelectedPersona={setSelectedPersona}
+              />
+            </div>
+
+            {/* Scrollable Trace Logs or System Status Archive */}
+            <div className="flex-grow flex flex-col min-h-0 border-t border-brand-accent/10 pt-3">
+              <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80 block mb-2">
+                {isProcessing ? `Live Trace: ${oracleStage}` : 'Process Log Archive'}
+              </span>
+
+              <div className="flex-grow overflow-y-auto custom-scrollbar space-y-3 pr-0.5 text-left">
+                {isProcessing && oracleStage && (
+                  <div className="p-3.5 rounded-xl border border-brand-accent/25 bg-brand-navy/55 backdrop-blur-xl space-y-3 animate-fadeIn">
+                    <div className="flex items-center space-x-2">
+                      <LoadingSpinner size="sm" spinnerColor="text-brand-accent animate-spin" />
+                      <span className="text-[9px] font-mono tracking-widest text-brand-accent uppercase font-bold">{oracleStage}</span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {((activeTab === ChamberMode.ORACLE ? [
+                        'Framing & Deconstruction',
+                        'Strategy Proposal',
+                        'Adversarial Critique',
+                        'Defensive Refinement',
+                        'Jurisprudential Reconciliation',
+                        'Final Polish'
+                      ] : activeTab === ChamberMode.SYNTHESIS ? [
+                        'Systemic Matrix',
+                        'Adversarial Stress Test',
+                        'Adversarial Synthesis'
+                      ] : ['Processing Consultation'])).map((stg, idx) => {
+                        const isCompleted = idx < oracleTrace.length;
+                        const isActive = idx === oracleTrace.length;
+                        return (
+                          <div key={idx} className="flex items-center justify-between text-[9px] font-mono">
+                            <div className="flex items-center space-x-2">
+                              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border text-[7px] font-bold
+                                ${isCompleted 
+                                  ? 'bg-brand-accent/20 border-brand-accent text-brand-accent' 
+                                  : isActive 
+                                    ? 'bg-amber-500/10 border-amber-500 text-amber-400 animate-pulse' 
+                                    : 'bg-brand-navy border-brand-accent/5 text-brand-text-secondary/20'
+                                }`}
+                              >
+                                {isCompleted ? '✓' : idx + 1}
+                              </span>
+                              <span className={isCompleted ? 'text-brand-text-secondary/50 line-through' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/30'}>
+                                {stg}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {oracleTrace.length > 0 ? (
+                  <div className="space-y-3">
+                    {oracleTrace.map((tr, index) => (
+                      <div key={index} className="space-y-1 p-3 bg-brand-navy/60 border border-brand-accent/10 rounded-xl animate-fadeIn">
+                        <h6 className="font-mono text-[9px] font-bold text-brand-accent uppercase tracking-wider border-b border-brand-accent/5 pb-0.5 flex items-center justify-between">
+                          <span>Stage {index + 1}: {tr.stage}</span>
+                          <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">✓ READY</span>
+                        </h6>
+                        <p className="leading-relaxed font-light text-brand-text-secondary text-[10px] whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{tr.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : !isProcessing ? (
+                  <div className="p-4 border border-white/5 bg-brand-navy/20 rounded-xl space-y-2 text-center text-brand-text-secondary font-light">
+                    <span className="text-2xl animate-pulse">⚡</span>
+                    <h5 className="text-xs font-serif font-bold text-brand-text-primary">Cognitive Engines Standby</h5>
+                    <p className="text-[9px] leading-relaxed max-w-[200px] mx-auto text-brand-text-secondary/70">
+                      Submit a litigation premise or legal query in the consult workbench to activate the animated reasoning pipeline.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </Card>
         </div>
 
       </div>
