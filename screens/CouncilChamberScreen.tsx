@@ -85,6 +85,14 @@ export const CouncilChamberScreen: React.FC = () => {
   const [audioError, setAudioError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
+
+  const handleCancel = () => {
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+      activeAbortControllerRef.current = null;
+    }
+  };
 
   const [chatHistories, setChatHistories] = useState<{ [key: string]: ChatBubble[] }>({
     direct: [{ id: 'init-d', sender: 'assistant', text: 'AI Direct Consultation mode ready. Type your legal query below.' }],
@@ -98,6 +106,12 @@ export const CouncilChamberScreen: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistories, isProcessing, oracleStage]);
+
+  useEffect(() => {
+    return () => {
+      activeAbortControllerRef.current?.abort();
+    };
+  }, []);
 
   const activeHistory = chatHistories[activeTab] || [];
 
@@ -193,7 +207,7 @@ export const CouncilChamberScreen: React.FC = () => {
     }
   };
 
-  const callChatAPI = async (prompt: string, system: string = '', model: string = 'deepseek-chat'): Promise<string> => {
+  const callChatAPI = async (prompt: string, system: string = '', model: string = 'deepseek-chat', signal?: AbortSignal): Promise<string> => {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -202,6 +216,7 @@ export const CouncilChamberScreen: React.FC = () => {
         system: system,
         model: model,
       }),
+      signal: signal,
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
@@ -235,44 +250,97 @@ export const CouncilChamberScreen: React.FC = () => {
     setIsProcessing(true);
     setOracleTrace([]);
 
+    const bubbleId = `assistant-${Date.now()}-${Math.random()}`;
+    const provisionalBubble: ChatBubble = {
+      id: bubbleId,
+      sender: 'assistant',
+      text: activeTab === ChamberMode.DIRECT 
+        ? 'Consulting DeepSeek V4...' 
+        : activeTab === ChamberMode.COUNCIL 
+          ? `Consulting ${selectedPersona.name}...` 
+          : 'Deliberation initiated. Mobilizing the Oracle reasoning engines...',
+      meta: activeTab === ChamberMode.DIRECT
+        ? (selectedModel === 'reasoner' ? 'DeepSeek V4 Pro' : 'DeepSeek V4')
+        : activeTab === ChamberMode.COUNCIL
+          ? selectedPersona.name
+          : activeTab === ChamberMode.ORACLE
+            ? 'Oracle deliberated consensus'
+            : 'Synthesized Adversarial Memo',
+      trace: []
+    };
+    
+    setChatHistories(prev => ({
+      ...prev,
+      [activeTab]: [...(prev[activeTab] || []), provisionalBubble]
+    }));
+
+    const controller = new AbortController();
+    activeAbortControllerRef.current = controller;
+    const signal = controller.signal;
+
+    const updateProvisionalBubble = (bubbleText: string, bubbleTrace?: { stage: string; content: string }[], bubbleMeta?: string) => {
+      setChatHistories(prev => {
+        const history = prev[activeTab] || [];
+        return {
+          ...prev,
+          [activeTab]: history.map(bubble => {
+            if (bubble.id === bubbleId) {
+              return { 
+                ...bubble, 
+                text: bubbleText, 
+                trace: bubbleTrace || bubble.trace,
+                meta: bubbleMeta || bubble.meta
+              };
+            }
+            return bubble;
+          })
+        };
+      });
+    };
+
     try {
       if (activeTab === ChamberMode.DIRECT) {
         setOracleStage('Consulting model...');
-        const response = await callChatAPI(text, 'Provide direct, highly precise, and simplified legal advice.', selectedModel);
-        appendBubble(ChamberMode.DIRECT, 'assistant', response, selectedModel === 'reasoner' ? 'DeepSeek Reasoner' : 'DeepSeek V3');
+        const response = await callChatAPI(text, 'Provide direct, highly precise, and simplified legal advice.', selectedModel, signal);
+        updateProvisionalBubble(response, undefined, selectedModel === 'reasoner' ? 'DeepSeek V4 Pro' : 'DeepSeek V4');
 
       } else if (activeTab === ChamberMode.ORACLE) {
         setOracleStage('Phase 1: Framing & Deconstruction...');
-        const s1 = await callChatAPI(`Deconstruct the following legal inquiry in 4 bullets specifying core legal issues, unstated assumptions, critical constraints, and success criteria:\n\nInquiry: ${text}`, 'Surgical legal deconstruction analyst mode.', 'deepseek-chat');
+        const s1 = await callChatAPI(`Deconstruct the following legal inquiry in 4 bullets specifying core legal issues, unstated assumptions, critical constraints, and success criteria:\n\nInquiry: ${text}`, 'Surgical legal deconstruction analyst mode.', 'deepseek-chat', signal);
         const trace = [{ stage: 'Framing & Deconstruction', content: s1 }];
         setOracleTrace([...trace]);
+        updateProvisionalBubble('Analyzing inquiry context and deconstructing key legal variables...', [...trace]);
 
         setOracleStage('Phase 2: Generating Strategy Proposals...');
-        const s2 = await callChatAPI(`Facts and framing:\n${s1}\n\nClient inquiry: ${text}\n\nFormulate your absolute best legal strategy in under 180 words.`, 'Analytical strategic lawyer.', 'deepseek-chat');
+        const s2 = await callChatAPI(`Facts and framing:\n${s1}\n\nClient inquiry: ${text}\n\nFormulate your absolute best legal strategy in under 180 words.`, 'Analytical strategic lawyer.', 'deepseek-chat', signal);
         trace.push({ stage: 'Strategy Proposal', content: s2 });
         setOracleTrace([...trace]);
+        updateProvisionalBubble('Drafting strategic litigation and advisory proposals...', [...trace]);
 
         setOracleStage('Phase 3: Adversarial Critique...');
-        const s3 = await callChatAPI(`Expert Proposal:\n${s2}\n\nClient inquiry: ${text}\n\nIdentify two fatal vulnerabilities and one key logical flaw in this proposal.`, 'Ruthless prosecuting attorney.', 'reasoner');
+        const s3 = await callChatAPI(`Expert Proposal:\n${s2}\n\nClient inquiry: ${text}\n\nIdentify two fatal vulnerabilities and one key logical flaw in this proposal.`, 'Ruthless prosecuting attorney.', 'reasoner', signal);
         trace.push({ stage: 'Adversarial Critique', content: s3 });
         setOracleTrace([...trace]);
+        updateProvisionalBubble('Stress-testing proposals via ruthless adversarial prosecution...', [...trace]);
 
         setOracleStage('Phase 4: Defensive Refinements...');
-        const s4 = await callChatAPI(`Original Proposal:\n${s2}\n\nCritiques and flaws:\n${s3}\n\nRevise the strategy to reinforce the logical gaps, add procedural safeguards, and make it defensible under court review.`, 'Expert defense strategist.', 'deepseek-chat');
+        const s4 = await callChatAPI(`Original Proposal:\n${s2}\n\nCritiques and flaws:\n${s3}\n\nRevise the strategy to reinforce the logical gaps, add procedural safeguards, and make it defensible under court review.`, 'Expert defense strategist.', 'deepseek-chat', signal);
         trace.push({ stage: 'Defensive Refinement', content: s4 });
         setOracleTrace([...trace]);
+        updateProvisionalBubble('Formulating robust defensive refinements and safeguards...', [...trace]);
 
         setOracleStage('Phase 5: Jurisprudential Reconciliation...');
-        const s5 = await callChatAPI(`Refined Position:\n${s4}\n\nSynthesize the defensive strategy into a final action protocol, detailing client risks and procedural timelines.`, 'Supreme court legal architect.', 'reasoner');
+        const s5 = await callChatAPI(`Refined Position:\n${s4}\n\nSynthesize the defensive strategy into a final action protocol, detailing client risks and procedural timelines.`, 'Supreme court legal architect.', 'reasoner', signal);
         trace.push({ stage: 'Jurisprudential Reconciliation', content: s5 });
         setOracleTrace([...trace]);
+        updateProvisionalBubble('Performing global jurisprudential reconciliation and risk audits...', [...trace]);
 
         setOracleStage('Phase 6: Final Editorial Polish...');
-        const polished = await callChatAPI(`Raw synthetic advice:\n${s5}\n\nProduce the final, client-ready advisory memo. Clean out all meta-commentary, introductory summaries, and stages. Respond only with the polished legal memo itself.`, 'Master copy-editor and senior jurist.', 'deepseek-chat');
+        const polished = await callChatAPI(`Raw synthetic advice:\n${s5}\n\nProduce the final, client-ready advisory memo. Clean out all meta-commentary, introductory summaries, and stages. Respond only with the polished legal memo itself.`, 'Master copy-editor and senior jurist.', 'deepseek-chat', signal);
         trace.push({ stage: 'Final Memo Polish', content: polished });
         setOracleTrace([...trace]);
-
-        appendBubble(ChamberMode.ORACLE, 'assistant', polished, 'Oracle deliberated consensus', trace);
+        
+        updateProvisionalBubble(polished, [...trace], 'Oracle deliberated consensus');
 
       } else if (activeTab === ChamberMode.COUNCIL) {
         setOracleStage(`Consulting ${selectedPersona.name}...`);
@@ -281,32 +349,63 @@ export const CouncilChamberScreen: React.FC = () => {
           .map((msg) => `${msg.sender.toUpperCase()}: ${msg.text}`)
           .join('\n');
         const prompt = historyContext ? `${historyContext}\nUSER: ${text}` : text;
-        const response = await callChatAPI(prompt, `${selectedPersona.systemPrompt}\n\nFocus strictly on Indian law frameworks, procedural safeguards, and client interests. Keep the tone characteristic of your persona.`, 'deepseek-chat');
-        appendBubble(ChamberMode.COUNCIL, 'assistant', response, selectedPersona.name);
+        const response = await callChatAPI(prompt, `${selectedPersona.systemPrompt}\n\nFocus strictly on Indian law frameworks, procedural safeguards, and client interests. Keep the tone characteristic of your persona.`, 'deepseek-chat', signal);
+        updateProvisionalBubble(response, undefined, selectedPersona.name);
 
       } else if (activeTab === ChamberMode.SYNTHESIS) {
         setOracleStage('Phase 1: Mobilizing 24 expert legal personas...');
-        const deconstruct = await callChatAPI(`Map the 24 conflicting interests and legal forces in play for this dispute:\n\nDispute facts: ${text}`, 'Comprehensive systemic legal auditor.', 'deepseek-chat');
+        const deconstruct = await callChatAPI(`Map the 24 conflicting interests and legal forces in play for this dispute:\n\nDispute facts: ${text}`, 'Comprehensive systemic legal auditor.', 'deepseek-chat', signal);
         const trace = [{ stage: 'Systemic Matrix', content: deconstruct }];
         setOracleTrace([...trace]);
+        updateProvisionalBubble('Mapping conflicting systemic forces and stakeholder interest matrices...', [...trace]);
 
         setOracleStage('Phase 2: Stress-testing adversarial arguments...');
-        const stressTest = await callChatAPI(`Matrix of interests:\n${deconstruct}\n\nClient premise: ${text}\n\nGenerate the absolute most damaging counter-argument that opposing counsel could raise to destroy this case.`, 'Adversarial prosecuting general.', 'reasoner');
+        const stressTest = await callChatAPI(`Matrix of interests:\n${deconstruct}\n\nClient premise: ${text}\n\nGenerate the absolute most damaging counter-argument that opposing counsel could raise to destroy this case.`, 'Adversarial prosecuting general.', 'reasoner', signal);
         trace.push({ stage: 'Adversarial Stress Test', content: stressTest });
         setOracleTrace([...trace]);
+        updateProvisionalBubble('Simulating high-stakes opposition rebuttals and counterclaims...', [...trace]);
 
         setOracleStage('Phase 3: Synthesizing unbreakable court strategy...');
-        const synthesis = await callChatAPI(`Client premise: ${text}\n\nAdversarial counter-arguments:\n${stressTest}\n\nFormulate a unified, unbreakable litigation strategy and motion draft plan to inoculate the client against these specific attacks.`, 'Senior advocate and strategic synthesis master.', 'reasoner');
+        const synthesis = await callChatAPI(`Client premise: ${text}\n\nAdversarial counter-arguments:\n${stressTest}\n\nFormulate a unified, unbreakable litigation strategy and motion draft plan to inoculate the client against these specific attacks.`, 'Senior advocate and strategic synthesis master.', 'reasoner', signal);
         trace.push({ stage: 'Adversarial Synthesis', content: synthesis });
         setOracleTrace([...trace]);
-
-        appendBubble(ChamberMode.SYNTHESIS, 'assistant', synthesis, 'Synthesized Adversarial Memo', trace);
+        
+        updateProvisionalBubble(synthesis, [...trace], 'Synthesized Adversarial Memo');
       }
     } catch (err: any) {
-      appendBubble(activeTab, 'system', `Error: ${err.message || err}`);
+      if (err.name === 'AbortError') {
+        updateProvisionalBubble('❌ Deliberation cancelled by user.');
+        setChatHistories(prev => {
+          const history = prev[activeTab] || [];
+          return {
+            ...prev,
+            [activeTab]: history.map(bubble => {
+              if (bubble.id === bubbleId) {
+                return { ...bubble, sender: 'system' as const };
+              }
+              return bubble;
+            })
+          };
+        });
+      } else {
+        updateProvisionalBubble(`⚠️ Error: ${err.message || err}`);
+        setChatHistories(prev => {
+          const history = prev[activeTab] || [];
+          return {
+            ...prev,
+            [activeTab]: history.map(bubble => {
+              if (bubble.id === bubbleId) {
+                return { ...bubble, sender: 'system' as const };
+              }
+              return bubble;
+            })
+          };
+        });
+      }
     } finally {
       setIsProcessing(false);
       setOracleStage('');
+      activeAbortControllerRef.current = null;
     }
   };
 
@@ -331,7 +430,7 @@ export const CouncilChamberScreen: React.FC = () => {
                 }`}
             >
               <span>🌐 Direct Consult</span>
-              <span className="text-[9px] px-1.5 py-0.5 border border-brand-accent/30 rounded bg-brand-navy/80">V3 / Reasoner</span>
+              <span className="text-[9px] px-1.5 py-0.5 border border-brand-accent/30 rounded bg-brand-navy/80">V4 / V4 Pro</span>
             </button>
 
             <button
@@ -379,14 +478,14 @@ export const CouncilChamberScreen: React.FC = () => {
             <SelectInput
               label="Selected Model"
               options={[
-                { value: 'deepseek-chat', label: 'DeepSeek V3 (Fast General)' },
-                { value: 'reasoner', label: 'DeepSeek Reasoner (O1-style Deep Think)' },
+                { value: 'deepseek-chat', label: 'DeepSeek V4 (Fast General)' },
+                { value: 'reasoner', label: 'DeepSeek V4 Pro (Deep Thinking)' },
               ]}
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
             />
             <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed">
-              V3 is fast and highly analytical. Reasoner performs comprehensive O1-style step-by-step logical planning before responding.
+              V4 is fast and highly analytical. V4 Pro performs comprehensive deep-thinking step-by-step logical planning before responding.
             </p>
           </Card>
         )}
@@ -515,10 +614,67 @@ export const CouncilChamberScreen: React.FC = () => {
 
           {/* Active Deliberation Progress Stage Indicator */}
           {isProcessing && oracleStage && (
-            <div className="flex flex-col items-start animate-pulse">
-              <div className="flex items-center space-x-2.5 bg-brand-navy/60 border border-brand-accent/20 p-4 rounded-2xl rounded-tl-none max-w-sm">
-                <LoadingSpinner size="sm" spinnerColor="text-brand-accent animate-spin" />
-                <span className="text-xs font-mono tracking-wider text-brand-accent uppercase">{oracleStage}</span>
+            <div className="flex flex-col gap-3 items-start animate-fadeIn max-w-md w-full my-4">
+              <div className="w-full p-5 rounded-2xl bg-brand-navy/80 border border-brand-accent/25 backdrop-blur-xl shadow-glow-gold-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-brand-accent/15 pb-2.5">
+                  <div className="flex items-center space-x-2.5">
+                    <LoadingSpinner size="sm" spinnerColor="text-brand-accent animate-spin" />
+                    <span className="text-[10px] font-mono tracking-widest text-brand-accent uppercase font-bold">{oracleStage}</span>
+                  </div>
+                  <button 
+                    onClick={handleCancel}
+                    className="text-[9px] font-mono uppercase px-2.5 py-1 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25 transition-all cursor-pointer font-bold"
+                  >
+                    ✕ Abort
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  {((activeTab === ChamberMode.ORACLE ? [
+                    'Framing & Deconstruction',
+                    'Strategy Proposal',
+                    'Adversarial Critique',
+                    'Defensive Refinement',
+                    'Jurisprudential Reconciliation',
+                    'Final Memo Polish'
+                  ] : activeTab === ChamberMode.SYNTHESIS ? [
+                    'Systemic Matrix',
+                    'Adversarial Stress Test',
+                    'Adversarial Synthesis'
+                  ] : ['Processing Consultation'])).map((stg, idx) => {
+                    const isCompleted = idx < oracleTrace.length;
+                    const isActive = idx === oracleTrace.length;
+                    return (
+                      <div key={idx} className="flex items-center justify-between text-[10px] font-mono">
+                        <div className="flex items-center space-x-2.5">
+                          <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border text-[8px] font-bold
+                            ${isCompleted 
+                              ? 'bg-brand-accent/20 border-brand-accent text-brand-accent' 
+                              : isActive 
+                                ? 'bg-amber-500/10 border-amber-500 text-amber-400 animate-pulse' 
+                                : 'bg-brand-navy border-brand-accent/10 text-brand-text-secondary/30'
+                            }`}
+                          >
+                            {isCompleted ? '✓' : idx + 1}
+                          </span>
+                          <span className={isCompleted ? 'text-brand-text-secondary/70 line-through font-light' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/40 font-light'}>
+                            {stg}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] uppercase tracking-wider
+                          ${isCompleted 
+                            ? 'text-brand-accent/85 font-bold' 
+                            : isActive 
+                              ? 'text-amber-400 animate-pulse font-bold' 
+                              : 'text-brand-text-secondary/20 font-light'
+                          }`}
+                        >
+                          {isCompleted ? 'Done' : isActive ? 'Active' : 'Pending'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -564,19 +720,29 @@ export const CouncilChamberScreen: React.FC = () => {
                     ? `Consult ${selectedPersona.name}...`
                     : activeTab === ChamberMode.SYNTHESIS
                       ? 'Enter a litigation premise to shatter and synthesize...'
-                      : 'Consult the Legal Council V3...'
+                      : 'Consult the Legal Council V4...'
               }
               className="flex-grow p-3 bg-brand-navy/40 border border-brand-accent/10 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-[13px] text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
             />
 
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={!inputVal.trim() || isProcessing}
-              className="px-6 font-mono text-[11px] uppercase tracking-widest shadow-glow-gold-sm flex-shrink-0"
-            >
-              Consult
-            </Button>
+            {isProcessing ? (
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-6 border border-brand-error/40 rounded-xl bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-xs font-mono uppercase tracking-wider flex-shrink-0 transition-all font-semibold"
+              >
+                ✕ Cancel
+              </button>
+            ) : (
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!inputVal.trim()}
+                className="px-6 font-mono text-[11px] uppercase tracking-widest shadow-glow-gold-sm flex-shrink-0"
+              >
+                Consult
+              </Button>
+            )}
           </form>
         </div>
       </div>

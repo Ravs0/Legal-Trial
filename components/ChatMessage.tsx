@@ -98,16 +98,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
 
 
   return (
-    <div className={`flex flex-col ${alignment} mb-6 animate-fadeInUp w-full`}>
+    <div className={`flex flex-col ${alignment} mb-4 sm:mb-6 animate-fadeInUp w-full`}>
       <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end max-w-full sm:max-w-[85%] lg:max-w-[75%]`}>
-        <div className={`flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center mx-3 sm:mx-4 ${avatarBgColor}`}>
-          {isUser && <UserIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
-          {isJudge && <CourtIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
-          {isOpposingCounsel && <BriefcaseIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
+        <div className={`flex-shrink-0 h-8 w-8 sm:h-12 sm:w-12 rounded-full flex items-center justify-center mx-2.5 sm:mx-4 ${avatarBgColor}`}>
+          {isUser && <UserIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
+          {isJudge && <CourtIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
+          {isOpposingCounsel && <BriefcaseIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
         </div>
 
-        <div className="flex flex-col max-w-[calc(100%-4rem)] sm:max-w-[calc(100%-5rem)]">
-          <p className={`text-[10px] sm:text-xs font-mono uppercase tracking-widest text-brand-text-secondary/80 mb-1.5 ${isUser ? 'mr-1 text-right' : 'ml-1 text-left'}`}>
+        <div className="flex flex-col max-w-[calc(100%-3rem)] sm:max-w-[calc(100%-5rem)]">
+          <p className={`text-[9px] sm:text-xs font-mono uppercase tracking-widest text-brand-text-secondary/80 mb-1 ${isUser ? 'mr-1 text-right' : 'ml-1 text-left'}`}>
             <span className={isUser ? 'text-brand-accent/80 font-semibold' : ''}>{getSenderName()}</span>
             {' ✦ '}
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

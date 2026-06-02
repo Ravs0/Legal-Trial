@@ -14,7 +14,7 @@ function getModelConfig(modelName) {
     const dsNative = e.DEEPSEEK_API_KEY || e.DEEPSEEK_CHAT_API_KEY || e.DEEPSEEK_REASONER_API_KEY;
 
     if (dsNative) {
-        const isReasoner = modelName === "deepseek-reasoner" || modelName === "reasoner" || modelName === "deepseek-reasoner-native";
+        const isReasoner = modelName === "deepseek-reasoner" || modelName === "reasoner" || modelName === "deepseek-v4-pro" || modelName === "v4-pro" || modelName === "deepseek-reasoner-native";
         return {
             url: "https://api.deepseek.com/v1/chat/completions",
             key: dsNative,

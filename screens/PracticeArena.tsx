@@ -547,11 +547,11 @@ const PracticeArena: React.FC = () => {
   const ocId = currentSessionSettings.opposingCounselPersonality.id;
 
   return (
-    <div className="flex flex-col h-screen bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
+    <div className="flex flex-col h-[100dvh] bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
       <div className="absolute top-0 left-0 w-full h-[30vh] bg-gradient-to-b from-brand-navy/50 to-transparent pointer-events-none z-0"></div>
 
       <div className="p-4 sm:p-6 glass-card rounded-none border-b border-brand-accent/20 flex flex-row justify-between items-center sticky top-0 z-20 shadow-md flex-shrink-0">
-        <div className="text-left flex-grow max-w-3xl">
+        <div className="text-left flex-grow max-w-3xl mr-2">
           <div className="flex items-center space-x-3 mb-1">
             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono border border-brand-accent/30 text-brand-accent bg-brand-accent/5 uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
             <span className="text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
@@ -563,18 +563,31 @@ const PracticeArena: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-3 flex-shrink-0">
+        <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+          {/* End Early for Mobile */}
+          {!sessionEnded && isTimerRunning && (
+            <button 
+              onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
+              className="lg:hidden p-2 rounded-xl border border-brand-error/40 bg-brand-error/5 text-brand-error hover:bg-brand-error/20 transition-all flex items-center justify-center flex-shrink-0 font-bold"
+              title="End Trial Early"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+
           {/* Bench Companion Toggle for Mobile */}
           <button 
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="lg:hidden p-2.5 rounded-xl border border-brand-accent/30 bg-brand-navy/40 text-brand-accent hover:bg-brand-accent/10 transition-all flex items-center justify-center animate-pulse"
+            className="lg:hidden p-2 rounded-xl border border-brand-accent/30 bg-brand-navy/40 text-brand-accent hover:bg-brand-accent/10 transition-all flex items-center justify-center animate-pulse"
             title="Open Bench Companion"
           >
             <CourtIcon className="h-5 w-5" />
           </button>
           
-          <div className="text-right bg-brand-navy/60 backdrop-blur-md px-4 py-2 sm:px-5 sm:py-3 rounded-2xl border border-brand-accent/20 shadow-inner-subtle">
-            <p className={`text-2xl sm:text-4xl font-mono tracking-tight drop-shadow-md ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : 'text-brand-accent'}`}>{formattedTime}</p>
+          <div className="text-right bg-brand-navy/60 backdrop-blur-md px-3.5 py-1.5 sm:px-5 sm:py-3 rounded-2xl border border-brand-accent/20 shadow-inner-subtle">
+            <p className={`text-xl sm:text-4xl font-mono tracking-tight drop-shadow-md ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : 'text-brand-accent'}`}>{formattedTime}</p>
             <p className="text-[8px] sm:text-[10px] uppercase font-mono tracking-widest mt-0.5 sm:mt-1 text-brand-text-secondary/80">{remainingSeconds <= 0 ? "Session Ended" : (isTimerRunning ? "Time Remaining" : "Timer Paused")}</p>
           </div>
         </div>
@@ -618,17 +631,90 @@ const PracticeArena: React.FC = () => {
               )}
             </div>
           </div>
-
           {/* User Input Area */}
           {!sessionEnded && (
-            <div className="p-4 sm:p-6 bg-brand-bg-primary/80 backdrop-blur-lg border-t border-brand-accent/20 z-20 relative flex-shrink-0">
+            <div className="p-3 sm:p-6 bg-brand-bg-primary/80 backdrop-blur-lg border-t border-brand-accent/20 z-20 relative flex-shrink-0">
               <div className="max-w-4xl mx-auto">
                 {audioError && (
                   <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[11px] rounded-lg text-left animate-fadeIn">
                     ⚠️ {audioError}
                   </div>
                 )}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-end space-y-3 sm:space-y-0 sm:space-x-4">
+
+                {/* Mobile Viewport Composer (Sleek Messaging Bar) */}
+                <div className="flex sm:hidden flex-col w-full">
+                  {(() => {
+                    const lastMessage = messages[messages.length - 1];
+                    const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
+                    return canObject ? (
+                      <div className="flex justify-center mb-2 animate-fadeInUp">
+                        <button
+                          type="button"
+                          onClick={() => setIsMobileDrawerOpen(true)}
+                          className="px-4 py-1.5 rounded-full border border-brand-accent/40 bg-brand-accent/15 backdrop-blur-md text-brand-accent text-[10px] font-bold font-mono uppercase tracking-widest hover:bg-brand-accent/35 transition-all shadow-[0_0_10px_rgba(201,168,76,0.25)] flex items-center gap-1 animate-pulse"
+                        >
+                          <span>⚖️ Objection Grounds Available</span>
+                          <span className="text-[9px] bg-brand-accent text-brand-navy px-1 rounded font-mono font-bold ml-1">View</span>
+                        </button>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  <div className="flex items-center gap-2.5 w-full">
+                    {/* Compact Microphone Record Icon */}
+                    <button
+                      type="button"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
+                      className={`w-10 h-10 flex-shrink-0 rounded-full border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
+                        ${isRecording
+                          ? 'bg-brand-error/25 border-brand-error text-brand-error animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.3)]'
+                          : 'bg-brand-navy/60 border-brand-accent/25 text-brand-accent hover:bg-brand-accent/10 shadow-glow-gold-sm'
+                        }`}
+                      title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
+                    >
+                      {isRecording ? (
+                        <span className="w-2.5 h-2.5 bg-brand-error rounded-sm animate-ping"></span>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                      )}
+                    </button>
+
+                    {/* Unified Composer Container */}
+                    <div className="relative flex-grow flex items-center bg-brand-navy/55 backdrop-blur-md rounded-2xl border border-brand-accent/20 focus-within:ring-1 focus-within:ring-brand-accent transition-all duration-300">
+                      <textarea
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        placeholder="Address the Court..."
+                        className="w-full pl-4 pr-10 py-2.5 bg-transparent text-brand-text-primary outline-none resize-none min-h-[42px] max-h-[120px] placeholder-brand-text-secondary/30 font-light text-xs sm:text-sm custom-scrollbar"
+                        rows={1}
+                        disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
+                      />
+                      
+                      {/* Nested Send Icon Button */}
+                      <button
+                        type="button"
+                        onClick={handleSendMessage}
+                        disabled={!!isAiTyping || !userInput.trim() || sessionEnded || !isTimerRunning}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-xl bg-brand-accent disabled:bg-brand-navy/30 text-brand-navy disabled:text-brand-text-secondary/30 transition-all flex items-center justify-center shadow-glow-gold-sm"
+                        title="Send message"
+                      >
+                        <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop Viewport Composer (Full Panel Layout) */}
+                <div className="hidden sm:flex flex-col sm:flex-row items-stretch sm:items-end space-y-3 sm:space-y-0 sm:space-x-4">
                   <div className="relative flex-grow flex items-end gap-3">
                     <button
                       type="button"
