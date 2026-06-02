@@ -47,6 +47,16 @@ const CaseLibraryScreen: React.FC = () => {
 
   const [selectedCaseForPractice, setSelectedCaseForPractice] = useState<CaseDetail | null>(null);
 
+  // Custom case state variables
+  const [customTitle, setCustomTitle] = useState('');
+  const [customBriefFacts, setCustomBriefFacts] = useState('');
+  const [customRelevantLaws, setCustomRelevantLaws] = useState('');
+  const [customLegalIssues, setCustomLegalIssues] = useState('');
+  const [customDifficulty, setCustomDifficulty] = useState<CaseDifficulty>(CaseDifficulty.INTERMEDIATE);
+  const [customCategoryId, setCustomCategoryId] = useState<string>('');
+  const [fileUploadError, setFileUploadError] = useState<string | null>(null);
+  const [fileUploadSuccess, setFileUploadSuccess] = useState<string | null>(null);
+
   const [currentJudges, setCurrentJudges] = useState<JudgePersonality[]>(practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES);
   const [currentOCs, setCurrentOCs] = useState<OpposingCounselPersonality[]>(practiceMode === 'international' ? INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES : OPPOSING_COUNSEL_PERSONALITIES);
 
@@ -60,7 +70,91 @@ const CaseLibraryScreen: React.FC = () => {
     setCurrentOCs(ocs);
     setSelectedJudge(judges[0] || null);
     setSelectedOpposingCounsel(ocs[0] || null);
+
+    const categories = practiceMode === 'international' ? INTERNATIONAL_CASE_CATEGORIES : CASE_CATEGORIES;
+    if (categories.length > 0) {
+      setCustomCategoryId(categories[0].id);
+    }
+    setFileUploadError(null);
+    setFileUploadSuccess(null);
   }, [practiceMode]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileUploadError(null);
+    setFileUploadSuccess(null);
+
+    const reader = new FileReader();
+
+    if (file.name.endsWith('.json')) {
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target?.result as string);
+          
+          if (!parsed.briefFacts) {
+            setFileUploadError("JSON file must contain at least 'briefFacts' field.");
+            return;
+          }
+
+          setCustomTitle(parsed.title || file.name.replace('.json', ''));
+          setCustomBriefFacts(parsed.briefFacts || '');
+          setCustomRelevantLaws(parsed.relevantArticlesSections || parsed.relevantLaws || '');
+          setCustomLegalIssues(
+            Array.isArray(parsed.legalIssues) 
+              ? parsed.legalIssues.join(', ') 
+              : (parsed.legalIssues || '')
+          );
+          if (parsed.difficulty && Object.values(CaseDifficulty).includes(parsed.difficulty)) {
+            setCustomDifficulty(parsed.difficulty);
+          }
+          if (parsed.categoryId) {
+            setCustomCategoryId(parsed.categoryId);
+          }
+
+          setFileUploadSuccess(`Successfully imported JSON: ${file.name}`);
+        } catch (err) {
+          setFileUploadError("Failed to parse JSON file.");
+        }
+      };
+      reader.readAsText(file);
+    } else if (file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        setCustomBriefFacts(text);
+        setCustomTitle(file.name.replace(/\.(txt|md)$/, ''));
+        setFileUploadSuccess(`Successfully imported text: ${file.name}`);
+      };
+      reader.readAsText(file);
+    } else {
+      setFileUploadError("Unsupported file type. Please upload a .txt, .md, or .json file.");
+    }
+  };
+
+  const handleLaunchCustomCase = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customBriefFacts.trim()) {
+      alert("Please provide at least the Brief Facts for your custom case.");
+      return;
+    }
+
+    const categories = practiceMode === 'international' ? INTERNATIONAL_CASE_CATEGORIES : CASE_CATEGORIES;
+    const finalCategoryId = customCategoryId || categories[0]?.id || '';
+
+    const customCaseDetail: CaseDetail = {
+      id: `custom-case-${Date.now()}`,
+      title: customTitle.trim() || "Bespoke Simulated Case",
+      categoryId: finalCategoryId as any,
+      briefFacts: customBriefFacts.trim(),
+      legalIssues: customLegalIssues.split(',').map(x => x.trim()).filter(Boolean),
+      relevantArticlesSections: customRelevantLaws.trim() || "Applicable legal principles.",
+      precedentCases: "Custom user-supplied context.",
+      difficulty: customDifficulty,
+    };
+
+    handlePracticeCase(customCaseDetail);
+  };
 
 
   if (!practiceMode) {
@@ -123,6 +217,137 @@ const CaseLibraryScreen: React.FC = () => {
         <p className="text-brand-text-secondary font-light max-w-2xl mx-auto leading-relaxed">
           An exclusive archive of procedural and substantive legal scenarios. Review the docket and select a matter to commence practice.
         </p>
+      </div>
+
+      {/* Custom Case Simulator Section */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <Card className="p-6 sm:p-8 bg-brand-navy/30 backdrop-blur-xl border border-brand-accent/20 rounded-3xl relative overflow-hidden shadow-glow-gold-sm">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-brand-accent/5 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-accent/20 pb-4 mb-6 gap-4">
+            <div className="space-y-1 text-left">
+              <h3 className="text-xl sm:text-2xl font-serif font-bold text-shimmer flex items-center">
+                <svg className="w-6 h-6 mr-2.5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Bespoke Custom Case Simulator
+              </h3>
+              <p className="text-xs text-brand-text-secondary font-light">
+                Upload legal briefs, copy-paste custom facts, and configure your own mock trial simulation instantly.
+              </p>
+            </div>
+            
+            <div className="flex-shrink-0">
+              <label className="inline-flex items-center px-4 py-2 border border-brand-accent/30 rounded-xl bg-brand-navy/60 text-xs font-mono text-brand-accent hover:bg-brand-accent/10 cursor-pointer transition-all shadow-glow-gold-sm">
+                <span>📁 Import .txt, .md, .json</span>
+                <input 
+                  type="file" 
+                  accept=".txt,.md,.json" 
+                  onChange={handleFileUpload} 
+                  className="hidden" 
+                />
+              </label>
+            </div>
+          </div>
+
+          {fileUploadError && (
+            <div className="p-3 mb-5 bg-brand-error/15 border border-brand-error/30 text-brand-error rounded-xl text-xs text-left animate-fadeIn">
+              ⚠️ {fileUploadError}
+            </div>
+          )}
+
+          {fileUploadSuccess && (
+            <div className="p-3 mb-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs text-left animate-fadeIn">
+              ✓ {fileUploadSuccess}
+            </div>
+          )}
+
+          <form onSubmit={handleLaunchCustomCase} className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono text-brand-accent uppercase tracking-wider">Case Title</label>
+                <input
+                  type="text"
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  placeholder="e.g. State of Karnataka v. Ramesh Kumar"
+                  className="w-full p-3.5 bg-brand-navy/50 border border-brand-accent/20 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-mono text-brand-accent uppercase tracking-wider">Docket Category</label>
+                  <select
+                    value={customCategoryId}
+                    onChange={(e) => setCustomCategoryId(e.target.value)}
+                    className="w-full p-3.5 bg-brand-navy/60 border border-brand-accent/20 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-xs text-brand-text-primary font-mono"
+                  >
+                    {activeCaseCategories.map(cat => (
+                      <option key={cat.id} value={cat.id} className="bg-brand-navy text-brand-text-primary">{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-mono text-brand-accent uppercase tracking-wider">Simulation Complexity</label>
+                  <select
+                    value={customDifficulty}
+                    onChange={(e) => setCustomDifficulty(e.target.value as CaseDifficulty)}
+                    className="w-full p-3.5 bg-brand-navy/60 border border-brand-accent/20 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-xs text-brand-text-primary font-mono"
+                  >
+                    <option value={CaseDifficulty.BEGINNER} className="bg-brand-navy text-brand-text-primary">Beginner</option>
+                    <option value={CaseDifficulty.INTERMEDIATE} className="bg-brand-navy text-brand-text-primary">Intermediate</option>
+                    <option value={CaseDifficulty.ADVANCED} className="bg-brand-navy text-brand-text-primary">Advanced</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono text-brand-accent uppercase tracking-wider">Rules of Law / Relevant Statutes</label>
+                <input
+                  type="text"
+                  value={customRelevantLaws}
+                  onChange={(e) => setCustomRelevantLaws(e.target.value)}
+                  placeholder="e.g. Section 138 of NI Act; Article 14 of Constitution"
+                  className="w-full p-3.5 bg-brand-navy/50 border border-brand-accent/20 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono text-brand-accent uppercase tracking-wider">Key Legal Issues (comma-separated)</label>
+                <input
+                  type="text"
+                  value={customLegalIssues}
+                  onChange={(e) => setCustomLegalIssues(e.target.value)}
+                  placeholder="e.g. Burden of proof, validity of notice, signature dispute"
+                  className="w-full p-3.5 bg-brand-navy/50 border border-brand-accent/20 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col h-full space-y-4">
+              <div className="space-y-1.5 flex-grow flex flex-col">
+                <label className="block text-xs font-mono text-brand-accent uppercase tracking-wider">Brief Facts of the Case</label>
+                <textarea
+                  value={customBriefFacts}
+                  onChange={(e) => setCustomBriefFacts(e.target.value)}
+                  placeholder="Paste or write the absolute facts of your custom dispute here..."
+                  className="w-full flex-grow p-4 bg-brand-navy/50 border border-brand-accent/20 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light resize-none min-h-[160px] custom-scrollbar"
+                  required
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={!customBriefFacts.trim()}
+                  className="w-full py-4 text-xs tracking-widest font-mono uppercase bg-brand-accent hover:bg-brand-accent-hover text-brand-navy font-bold shadow-glow-gold rounded-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Configure Custom Simulation
+                </button>
+              </div>
+            </div>
+          </form>
+        </Card>
       </div>
 
       <div className="space-y-16 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
