@@ -268,7 +268,7 @@ const PracticeArena: React.FC = () => {
     const stream = await sendMessageToChatStream(chatInstance, textForAi);
     if (stream) {
       for await (const chunk of stream) {
-        const chunkText = typeof chunk.text === 'function' ? chunk.text() : (chunk.text || '');
+        const chunkText = chunk.text || '';
         aiResponseText += chunkText;
         setMessages(prev => prev.map(msg =>
           msg.id === messageId ? { ...msg, text: aiResponseText } : msg

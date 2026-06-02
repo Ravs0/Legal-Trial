@@ -155,10 +155,12 @@ export const generateDraftingGuidance = async (
   task: DraftingTask,
   userDraft: string,
   _generatedFacts: string,
-  practiceMode: PracticeMode
+  practiceMode: PracticeMode,
+  sectionName?: string
 ): Promise<string> => {
   const system = `You are an Expert Legal Drafting Mentor in ${practiceMode} law. Give specific, constructive feedback.`;
-  return callApi([{ role: 'user', content: `Review this ${task.type} draft:\n\n${userDraft}` }], system);
+  const sectionPrompt = sectionName ? ` Specifically focus on the "${sectionName}" section of the document.` : '';
+  return callApi([{ role: 'user', content: `Review this ${task.type} draft:${sectionPrompt}\n\n${userDraft}` }], system);
 };
 
 export const getFilingProcedureInfo = async (
