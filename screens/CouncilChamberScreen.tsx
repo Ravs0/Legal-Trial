@@ -97,41 +97,27 @@ const DeliberationBlueprint: React.FC<{
       }
       @keyframes pulse-glow-gold {
         0%, 100% {
-          filter: drop-shadow(0 0 2px rgba(201, 168, 76, 0.4)) drop-shadow(0 0 4px rgba(201, 168, 76, 0.2));
           stroke-opacity: 0.6;
         }
         50% {
-          filter: drop-shadow(0 0 8px rgba(201, 168, 76, 0.9)) drop-shadow(0 0 16px rgba(201, 168, 76, 0.5));
           stroke-opacity: 1;
         }
       }
       @keyframes pulse-glow-blue {
         0%, 100% {
-          filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.4)) drop-shadow(0 0 4px rgba(56, 189, 248, 0.2));
           stroke-opacity: 0.6;
         }
         50% {
-          filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.9)) drop-shadow(0 0 16px rgba(56, 189, 248, 0.5));
           stroke-opacity: 1;
         }
       }
       @keyframes pulse-glow-red {
         0%, 100% {
-          filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4)) drop-shadow(0 0 4px rgba(239, 68, 68, 0.2));
           stroke-opacity: 0.6;
         }
         50% {
-          filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9)) drop-shadow(0 0 16px rgba(239, 68, 68, 0.5));
           stroke-opacity: 1;
         }
-      }
-      @keyframes node-float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-4px); }
-      }
-      @keyframes hub-spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
       }
       .dash-flow-gold {
         stroke: #c9a84c;
@@ -153,12 +139,11 @@ const DeliberationBlueprint: React.FC<{
         animation: pulse-glow-red 2s infinite ease-in-out;
       }
       .spin-hub {
-        animation: hub-spin 20s linear infinite;
         transform-origin: center;
       }
-      .float-1 { animation: node-float 4s ease-in-out infinite; }
-      .float-2 { animation: node-float 4.5s ease-in-out infinite 0.7s; }
-      .float-3 { animation: node-float 5s ease-in-out infinite 1.4s; }
+      .float-1 { }
+      .float-2 { }
+      .float-3 { }
     `}</style>
   );
 
@@ -864,40 +849,52 @@ export const CouncilChamberScreen: React.FC = () => {
       {/* ========================================================================= */}
       {/* MOBILE APP-STYLE LAYOUT (Phones & Tablets < 1024px)                        */}
       {/* ========================================================================= */}
-      <div className="lg:hidden flex flex-col h-[calc(100dvh-5.5rem)] overflow-hidden text-left relative">
+      <div className="lg:hidden flex flex-col h-[calc(100dvh-130px)] overflow-hidden text-left relative">
         
-        {/* Dynamic Mode Dropdown Header */}
-        <div className="w-full flex items-center justify-between p-4 border border-brand-accent/25 bg-brand-navy/60 backdrop-blur-xl rounded-2xl mb-4 shadow-glow-gold-sm">
-          <div className="space-y-0.5">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80">Select Protocol</span>
-            <div className="relative flex items-center gap-1">
-              <select 
-                value={activeTab} 
-                onChange={(e) => setActiveTab(e.target.value as ChamberMode)}
-                className="bg-transparent text-sm font-serif font-bold text-brand-text-primary outline-none cursor-pointer pr-4 appearance-none"
-              >
-                <option value="direct" className="bg-brand-bg-primary text-brand-text-primary">🌐 Direct Consult</option>
-                <option value="oracle" className="bg-brand-bg-primary text-brand-text-primary">🔮 Deliberation (Oracle)</option>
-                <option value="council" className="bg-brand-bg-primary text-brand-text-primary">🏛️ Persona Council</option>
-                <option value="synthesis" className="bg-brand-bg-primary text-brand-text-primary">⚔️ Adversarial Synthesis</option>
-              </select>
-              <span className="text-brand-accent text-[9px] pointer-events-none">▼</span>
-            </div>
+        {/* Dynamic Mode Tab Bar Selector */}
+        <div className="w-full flex flex-col gap-3 p-3.5 border border-brand-accent/20 bg-brand-navy/60 rounded-2xl mb-4 shadow-glow-gold-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80">Select Deliberation Protocol</span>
+            {activeTab === ChamberMode.DIRECT && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80">Model:</span>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="p-1 rounded bg-brand-navy text-[9px] font-mono text-brand-accent border border-brand-accent/15 outline-none cursor-pointer"
+                >
+                  <option value="deepseek-chat" className="bg-brand-bg-primary">V4</option>
+                  <option value="reasoner" className="bg-brand-bg-primary">V4 Pro</option>
+                </select>
+              </div>
+            )}
           </div>
-
-          {activeTab === ChamberMode.DIRECT && (
-            <div className="space-y-0.5 text-right">
-              <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80 block">Model</span>
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="p-1 rounded-lg border border-brand-accent/20 bg-brand-navy text-[10px] font-mono text-brand-accent outline-none cursor-pointer"
-              >
-                <option value="deepseek-chat" className="bg-brand-bg-primary">V4</option>
-                <option value="reasoner" className="bg-brand-bg-primary">V4 Pro</option>
-              </select>
-            </div>
-          )}
+          
+          <div className="flex gap-2 overflow-x-auto pb-1.5 custom-scrollbar scroll-smooth w-full select-none items-center">
+            {[
+              { value: ChamberMode.DIRECT, title: 'Direct Consult', icon: '🌐' },
+              { value: ChamberMode.ORACLE, title: 'Oracle', icon: '🔮' },
+              { value: ChamberMode.COUNCIL, title: 'Council', icon: '🏛️' },
+              { value: ChamberMode.SYNTHESIS, title: 'Synthesis', icon: '⚔️' },
+            ].map((m) => {
+              const isActive = activeTab === m.value;
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setActiveTab(m.value)}
+                  className={`flex-shrink-0 px-3 py-2 rounded-xl border text-[11px] font-medium font-serif flex items-center gap-1.5 transition-all
+                    ${isActive 
+                      ? 'bg-brand-accent/10 border-brand-accent text-brand-accent shadow-[0_0_8px_rgba(201,168,76,0.15)] scale-[1.02]' 
+                      : 'bg-brand-navy/40 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/20 hover:text-brand-text-primary'
+                    }`}
+                >
+                  <span>{m.icon}</span>
+                  <span>{m.title}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Mobile Horizontal Carousel for Persona Council */}
@@ -1154,8 +1151,8 @@ export const CouncilChamberScreen: React.FC = () => {
       <div className="hidden lg:grid grid-cols-12 gap-6 h-[calc(100vh-140px)] w-full overflow-hidden text-left">
         
         {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
-        <div className="col-span-3 flex flex-col gap-5 max-h-full overflow-y-auto custom-scrollbar pr-1">
-          <Card className="p-5 border border-brand-accent/20 bg-brand-navy/35 backdrop-blur-xl rounded-2xl flex flex-col gap-4 shadow-glow-gold-sm relative overflow-hidden group">
+        <div className="col-span-3 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
+          <Card className="p-5 border border-brand-accent/20 bg-brand-navy/35 rounded-2xl flex flex-col gap-4 shadow-glow-gold-sm relative overflow-hidden group">
             <div className="absolute -top-16 -right-16 w-28 h-28 bg-brand-accent/5 rounded-full blur-3xl group-hover:bg-brand-accent/10 transition-all duration-700"></div>
             
             <div className="space-y-0.5">
@@ -1246,7 +1243,7 @@ export const CouncilChamberScreen: React.FC = () => {
         </div>
 
         {/* Columns 4-8: Interactive Workbench (Chat Feed & Input) */}
-        <div className="col-span-5 flex flex-col bg-brand-navy/15 border border-brand-accent/10 backdrop-blur-md rounded-2xl overflow-hidden relative shadow-inner-subtle h-full">
+        <div className="col-span-6 flex flex-col bg-brand-navy/15 border border-brand-accent/10 rounded-2xl overflow-hidden relative shadow-inner-subtle h-full min-h-0">
           
           {/* Chat Feed */}
           <div className="flex-grow p-5 overflow-y-auto space-y-5 custom-scrollbar text-left relative z-10">
@@ -1363,10 +1360,17 @@ export const CouncilChamberScreen: React.FC = () => {
                 )}
               </button>
 
-              <input
-                type="text"
+              <textarea
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (inputVal.trim() && !isProcessing) {
+                      handleSend(e as unknown as React.FormEvent);
+                    }
+                  }
+                }}
                 disabled={isProcessing}
                 placeholder={
                   activeTab === ChamberMode.ORACLE
@@ -1377,7 +1381,8 @@ export const CouncilChamberScreen: React.FC = () => {
                         ? 'Enter dispute premise...'
                         : 'Consult V4...'
                 }
-                className="flex-grow p-2.5 bg-brand-navy/40 border border-brand-accent/10 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-[12px] text-brand-text-primary placeholder-brand-text-secondary/35 font-light"
+                className="flex-grow p-2.5 bg-brand-navy/40 border border-brand-accent/10 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-[12px] text-brand-text-primary placeholder-brand-text-secondary/35 font-light resize-none min-h-[42px] max-h-[140px] custom-scrollbar"
+                rows={1}
               />
 
               {isProcessing ? (
@@ -1403,8 +1408,8 @@ export const CouncilChamberScreen: React.FC = () => {
         </div>
 
         {/* Columns 9-12: Real-time Deliberation Blueprint & Trace Console (Right Panel) */}
-        <div className="col-span-4 flex flex-col gap-5 max-h-full overflow-hidden h-full">
-          <Card className="p-4.5 border border-brand-accent/25 bg-brand-navy/35 backdrop-blur-xl rounded-2xl flex flex-col h-full overflow-hidden shadow-glow-gold-sm">
+        <div className="col-span-3 flex flex-col gap-5 h-full overflow-hidden min-h-0">
+          <Card className="p-4.5 border border-brand-accent/25 bg-brand-navy/35 rounded-2xl flex flex-col h-full overflow-hidden shadow-glow-gold-sm">
             <div className="space-y-1 border-b border-brand-accent/15 pb-3">
               <h3 className="text-sm font-serif font-bold text-shimmer flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
