@@ -33,23 +33,19 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
 
   return (
     <div
-      className="fixed inset-0 bg-brand-bg-primary/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6 animate-fadeIn"
+      className="fixed inset-0 bg-brand-bg-primary/95 flex items-center justify-center z-50 p-4 sm:p-6 animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className={`relative bg-brand-navy border border-brand-accent/20 rounded-2xl shadow-card w-full ${sizeClasses[size]} transform transition-all animate-slideInUp max-h-full overflow-hidden flex flex-col`}
+        className={`relative bg-brand-bg-primary border border-brand-text-primary/30 rounded-none w-full ${sizeClasses[size]} transform transition-all animate-slideInUp max-h-full overflow-hidden flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Decorative inner glow */}
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent pointer-events-none rounded-2xl z-0"></div>
-        <div className="absolute -top-10 -left-10 w-32 h-32 bg-brand-accent/10 rounded-full blur-[40px] pointer-events-none z-0"></div>
-
         {title && (
-          <div className="p-5 sm:p-6 pb-4 border-b border-brand-accent/10 flex justify-between items-center relative z-10 bg-brand-navy/90 backdrop-blur-md">
+          <div className="p-5 sm:p-6 pb-4 border-b border-brand-text-primary/30 flex justify-between items-center relative z-10 bg-brand-bg-primary">
             <h3 className="text-xl sm:text-2xl font-semibold text-brand-text-primary font-serif tracking-tight pr-4">{title}</h3>
             <button
               onClick={onClose}
-              className="p-2 -mr-2 rounded-xl text-brand-text-secondary hover:bg-brand-accent/10 hover:text-brand-accent transition-colors flex-shrink-0"
+              className="p-2 -mr-2 rounded-none text-brand-text-secondary hover:bg-brand-text-primary/10 hover:text-brand-text-primary transition-colors flex-shrink-0"
               aria-label="Close modal"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -63,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
           <div className="absolute top-4 right-4 z-20">
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-brand-text-secondary hover:bg-brand-accent/10 hover:text-brand-accent transition-colors"
+              className="p-2 rounded-none text-brand-text-secondary hover:bg-brand-text-primary/10 hover:text-brand-text-primary transition-colors"
               aria-label="Close modal"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">

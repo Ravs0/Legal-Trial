@@ -1,4 +1,3 @@
-
 import React, { useState, useContext, useEffect, ChangeEvent } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Button } from '../components/Button';
@@ -136,22 +135,19 @@ const SetupScreen: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto animate-fadeIn relative z-10">
-      <div className="absolute top-[-10%] right-[-5%] w-[30rem] h-[30rem] bg-brand-accent/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
-
       <div className="text-center mb-12">
         <div className="inline-flex items-center justify-center space-x-2 mb-4">
-          <div className="h-px w-8 bg-brand-accent/50"></div>
-          <span className="text-xs font-mono text-brand-accent tracking-widest uppercase">Configuration</span>
-          <div className="h-px w-8 bg-brand-accent/50"></div>
+          <div className="h-px w-8 bg-brand-text-primary/30"></div>
+          <span className="text-xs font-mono text-brand-text-primary tracking-widest uppercase">Configuration</span>
+          <div className="h-px w-8 bg-brand-text-primary/30"></div>
         </div>
-        <h2 className="text-4xl md:text-5xl font-bold text-shimmer font-serif tracking-tight drop-shadow-md">
+        <h2 className="text-4xl md:text-5xl font-bold text-brand-text-primary font-serif tracking-tight">
           Setup New {modeDisplay} Practice Session
         </h2>
       </div>
 
       <div className="grid md:grid-cols-3 gap-x-8 gap-y-8">
         <Card className="flex flex-col md:col-span-1 space-y-6 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-b from-brand-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
           <div className="relative z-10 space-y-5">
             <SelectInput
               label="Case Category"
@@ -169,7 +165,7 @@ const SetupScreen: React.FC = () => {
               disabled={!selectedCategoryId || availableCases.length === 0}
               placeholder={availableCases.length === 0 ? "No cases in category" : "Select a case"}
             />
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-brand-accent/20 to-transparent my-2"></div>
+            <div className="h-px w-full bg-brand-text-primary/30 my-2"></div>
             <SelectInput
               label="Judge Personality"
               options={judgeOptions}
@@ -186,7 +182,7 @@ const SetupScreen: React.FC = () => {
               placeholder={currentOCs.length === 0 ? "No OCs for mode" : "Select Opposing Counsel"}
               disabled={currentOCs.length === 0}
             />
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-brand-accent/20 to-transparent my-2"></div>
+            <div className="h-px w-full bg-brand-text-primary/30 my-2"></div>
             <SelectInput
               label="Session Type"
               options={sessionTypeOptions}
@@ -206,16 +202,16 @@ const SetupScreen: React.FC = () => {
 
         <div className="md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-8">
           {selectedCaseDetails && (
-            <Card className="flex flex-col h-full bg-brand-navy/30 hover:bg-brand-navy/40 transition-colors">
-              <div className="flex items-center mb-4 pb-4 border-b border-brand-accent/10">
-                <div className="w-12 h-12 rounded-lg bg-brand-navy border border-brand-accent/20 flex items-center justify-center mr-4 shadow-inner-subtle">
+            <Card className="flex flex-col h-full bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
+              <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
+                <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
                   <DocumentTextIcon className="h-6 w-6 text-brand-accent" />
                 </div>
                 <h4 className="font-semibold text-brand-text-primary text-xl font-serif">Selected Case</h4>
               </div>
               <p className="font-semibold text-brand-text-primary text-lg mb-2">{selectedCaseDetails.title}</p>
-              <div className="inline-block px-2.5 py-1 rounded-full bg-brand-accent/10 border border-brand-accent/20 self-start mb-4">
-                <span className="text-xs font-mono text-brand-accent uppercase tracking-wider">{selectedCaseDetails.difficulty}</span>
+              <div className="inline-block px-2.5 py-1 rounded-none border border-brand-text-primary/30 bg-brand-bg-secondary self-start mb-4">
+                <span className="text-xs font-mono text-brand-text-primary uppercase tracking-wider">{selectedCaseDetails.difficulty}</span>
               </div>
               <p className="text-brand-text-secondary text-sm mb-6 flex-grow leading-relaxed font-light">{selectedCaseDetails.briefFacts}</p>
 
@@ -230,15 +226,15 @@ const SetupScreen: React.FC = () => {
               </ul>
 
               <h5 className="font-medium text-brand-text-primary mb-2 text-sm uppercase tracking-wider font-mono">{practiceMode === 'indian' ? "Articles/Sections" : "Instruments/Principles"}</h5>
-              <p className="text-brand-text-secondary text-sm font-light p-3 rounded-lg bg-brand-bg-primary/50 border border-brand-border-light">{selectedCaseDetails.relevantArticlesSections}</p>
+              <p className="text-brand-text-secondary text-sm font-light p-3 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30">{selectedCaseDetails.relevantArticlesSections}</p>
             </Card>
           )}
 
           <div className="space-y-8 flex flex-col h-full">
             {selectedJudgeDetails && (
-              <Card className="flex flex-col flex-1 bg-brand-navy/30 hover:bg-brand-navy/40 transition-colors">
-                <div className="flex items-center mb-4 pb-4 border-b border-brand-accent/10">
-                  <div className="w-12 h-12 rounded-lg bg-brand-navy border border-brand-accent/20 flex items-center justify-center mr-4 shadow-inner-subtle">
+              <Card className="flex flex-col flex-1 bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
+                <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
+                  <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
                     <GavelIcon className="h-6 w-6 text-brand-accent" />
                   </div>
                   <h4 className="font-semibold text-brand-text-primary text-xl font-serif">The Bench</h4>
@@ -248,9 +244,9 @@ const SetupScreen: React.FC = () => {
               </Card>
             )}
             {selectedOpposingCounselDetails && (
-              <Card className="flex flex-col flex-1 bg-brand-navy/30 hover:bg-brand-navy/40 transition-colors">
-                <div className="flex items-center mb-4 pb-4 border-b border-brand-accent/10">
-                  <div className="w-12 h-12 rounded-lg bg-brand-navy border border-brand-accent/20 flex items-center justify-center mr-4 shadow-inner-subtle">
+              <Card className="flex flex-col flex-1 bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
+                <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
+                  <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
                     <BriefcaseIcon className="h-6 w-6 text-brand-accent" />
                   </div>
                   <h4 className="font-semibold text-brand-text-primary text-xl font-serif">Opposing Counsel</h4>
@@ -262,16 +258,14 @@ const SetupScreen: React.FC = () => {
             )}
           </div>
           {(!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails) && !currentCases.length && (
-            <Card className="md:col-span-2 lg:col-span-1 flex items-center justify-center p-12 text-center border-dashed border-2 border-brand-accent/20 bg-brand-bg-primary/20">
+            <Card className="md:col-span-2 lg:col-span-1 flex items-center justify-center p-12 text-center border-dashed border border-brand-text-primary/30 bg-brand-bg-secondary">
               <p className="text-brand-text-secondary max-w-sm">Please make your selections from the panel. If dropdowns are empty, no data is configured for <span className="font-semibold text-brand-accent">{modeDisplay}</span> mode.</p>
             </Card>
           )}
         </div>
       </div>
 
-      <div className="mt-12 pt-8 border-t border-brand-accent/10 relative">
-        <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-brand-accent/30 to-transparent"></div>
-
+      <div className="mt-12 pt-8 border-t border-brand-text-primary/30 relative">
         {selectedCaseDetails && selectedJudgeDetails && selectedOpposingCounselDetails ? (
           <div className="max-w-xl mx-auto">
             <Button
@@ -280,7 +274,7 @@ const SetupScreen: React.FC = () => {
               size="lg"
               variant="primary"
               disabled={!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails}
-              className="py-4 text-xl shadow-glow-gold hover:-translate-y-1 transition-all duration-300"
+              className="py-4 text-xl"
             >
               <span>Enter the Arena</span>
             </Button>

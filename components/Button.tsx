@@ -18,18 +18,16 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = `font-medium rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-brand-bg-primary 
+  const baseStyles = `font-medium rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent 
                       disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ease-out 
                       flex items-center justify-center relative overflow-hidden group`;
 
-  const glowBase = 'shadow-glow-gold-sm hover:shadow-glow-gold';
-
   let variantStylesConfig = {
-    primary: `bg-brand-accent text-brand-accent-text hover:bg-brand-accent-hover focus:ring-brand-accent border border-brand-accent-hover/50 ${glowBase} hover:-translate-y-0.5`,
-    secondary: `bg-brand-navy/80 backdrop-blur-md text-brand-text-primary hover:text-brand-accent border border-brand-accent/20 hover:border-brand-accent/50 focus:ring-brand-accent hover:-translate-y-0.5`,
-    danger: `bg-brand-error text-white hover:bg-red-600 focus:ring-brand-error shadow-lg hover:shadow-xl hover:-translate-y-0.5 border border-red-400/50`,
-    outline: `bg-transparent text-brand-accent border border-brand-accent hover:bg-brand-accent/10 focus:ring-brand-accent hover:-translate-y-0.5`,
-    ghost: `bg-transparent text-brand-text-secondary hover:text-brand-text-primary focus:ring-brand-accent shadow-none hover:bg-white/5 active:bg-white/10`,
+    primary: `bg-brand-accent text-brand-accent-text hover:bg-brand-accent-hover focus:ring-brand-accent border border-brand-accent/55`,
+    secondary: `bg-brand-bg-secondary text-brand-text-primary hover:text-brand-text-primary border border-brand-text-primary/30 hover:border-brand-text-primary focus:ring-brand-accent`,
+    danger: `bg-brand-error text-white hover:bg-red-600 focus:ring-brand-error border border-brand-error`,
+    outline: `bg-transparent text-brand-accent border border-brand-accent hover:bg-brand-accent/10 focus:ring-brand-accent`,
+    ghost: `bg-transparent text-brand-text-secondary hover:text-brand-text-primary focus:ring-brand-accent hover:bg-white/5 active:bg-white/10`,
   };
 
   const currentVariantStyle = variantStylesConfig[variant];

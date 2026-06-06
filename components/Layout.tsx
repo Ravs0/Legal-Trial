@@ -28,7 +28,7 @@ const NavItem: React.FC<{
   const getIsActive = ({ isActive }: { isActive: boolean }): boolean => isActive;
 
   const navLinkClass = (isActive: boolean): string =>
-    `flex items-center px-4 py-3 rounded-lg text-[13px] font-medium transition-all group relative overflow-hidden
+    `flex items-center px-4 py-3 rounded-none text-[13px] font-medium transition-all group relative overflow-hidden
      ${isActive
       ? 'bg-brand-accent/10 text-brand-accent border border-brand-accent/20'
       : 'text-brand-text-secondary border border-transparent hover:bg-white/5 hover:text-brand-text-primary'
@@ -41,7 +41,7 @@ const NavItem: React.FC<{
       {icon && <span className={`h-4 w-4 flex-shrink-0 transition-opacity ${manualIsActive ? 'text-brand-accent opacity-100' : 'opacity-70 group-hover:opacity-100'} ${isSidebarOpen ? 'mr-3' : 'mx-auto'}`}>{icon}</span>}
       {isSidebarOpen && <span className="truncate tracking-wide">{label}</span>}
       {!isSidebarOpen && (
-        <span className="absolute left-full ml-4 px-2 py-1 text-[11px] font-medium text-brand-bg-primary bg-brand-accent rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none md:block hidden">
+        <span className="absolute left-full ml-4 px-2 py-1 text-[11px] font-medium text-brand-bg-primary bg-brand-accent rounded-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none md:block hidden">
           {label}
         </span>
       )}
@@ -140,7 +140,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <button
               onClick={() => isMobileOpen ? toggleMobileSidebar() : toggleDesktopSidebar()}
-              className={`p-1.5 rounded-md hover:bg-white/5 text-brand-text-secondary hover:text-brand-text-primary transition-colors ${!isSidebarOpen && !isMobileOpen ? 'mx-auto' : ''}`}
+              className={`p-1.5 rounded-none hover:bg-white/5 text-brand-text-secondary hover:text-brand-text-primary transition-colors ${!isSidebarOpen && !isMobileOpen ? 'mx-auto' : ''}`}
             >
               {isMobileOpen ? <XMarkIcon className="h-5 w-5" /> : (isSidebarOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />)}
             </button>

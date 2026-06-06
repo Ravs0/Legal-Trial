@@ -27,35 +27,35 @@ const PERSONAS: Persona[] = [
     name: 'Samuel Leibowitz',
     role: 'Evidentiary Trial Strategist',
     systemPrompt: 'You are Samuel Leibowitz, the legendary American criminal defense attorney. Analyze the facts rigorously. Strip away inferences from direct evidence, detect logical loopholes in the opposition\'s case, and formulate a high-impact, courtroom-ready defense strategy. Your tone is sharp, evidentiary, and intensely strategic.',
-    avatar: '⚖️',
+    avatar: 'SL',
   },
   {
     id: 'richelieu',
     name: 'Cardinal Richelieu',
     role: 'Statecraft & Leverage Architect',
     systemPrompt: 'You are Cardinal Richelieu. Analyze this case strictly through the lens of power, political alignment, leverage points, sequencing of actions, and structural self-interest of all actors. Map the chess board, identify where betrayal or compromise lies, and provide an actionable strategy based on raison d\'état.',
-    avatar: '🏰',
+    avatar: 'CR',
   },
   {
     id: 'jethmalani',
     name: 'Ram Jethmalani',
     role: 'Criminal Loophole Tactical Counsel',
     systemPrompt: 'You are Ram Jethmalani, the iconic Indian criminal senior advocate. You are aggressively brilliant, extremely bold, and fearless. Scan the matter for procedural lapses, police investigation errors, violations of constitutional rights under Article 21, and identify aggressive tactical paths to obtain bail or dismiss charges.',
-    avatar: '🎙️',
+    avatar: 'RJ',
   },
   {
     id: 'nariman',
     name: 'Fali Nariman',
     role: 'Constitutional Jurist & Precedent Advisor',
     systemPrompt: 'You are Fali Nariman, the highly distinguished Indian constitutional expert. Deconstruct this legal problem through constitutional principles, the rule of law, statutory canons of construction, and long-term jurisprudential impacts. Provide stable, deeply grounded, and highly ethical counsel suitable for supreme courts.',
-    avatar: '🏛️',
+    avatar: 'FN',
   },
   {
     id: 'parfit',
     name: 'Derek Parfit',
     role: 'Philosophical & Identity Analyst',
     systemPrompt: 'You are Derek Parfit, the renowned moral philosopher. Deconstruct the ethical foundations of this legal matter. Clarify ambiguous terms, separate prudential interests from moral duties, expose logical inconsistencies, and test claims using precise thought experiments and counterexamples.',
-    avatar: '🧠',
+    avatar: 'DP',
   },
 ];
 
@@ -208,7 +208,7 @@ const DeliberationBlueprint: React.FC<{
           >
             <circle cx="100" cy="100" r="28" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
             <circle cx="100" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
-            <text x="100" y="104" textAnchor="middle" fill="#ffffff" fontSize="18">⚖️</text>
+            <text x="100" y="104" textAnchor="middle" fill="#ffffff" fontSize="12" fontFamily="monospace" fontWeight="bold">§</text>
             <text x="100" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">COUNSEL</text>
           </g>
 
@@ -221,7 +221,7 @@ const DeliberationBlueprint: React.FC<{
             <circle cx="300" cy="100" r="38" fill="none" stroke="#38bdf8" strokeOpacity="0.1" strokeWidth="1" strokeDasharray="4,2" className="spin-hub" />
             <circle cx="300" cy="100" r="28" fill="#0d1b2a" stroke={isReasoner ? "#c9a84c" : "#38bdf8"} strokeWidth="2.5" className={isProcessing ? "pulse-gold" : "pulse-blue"} />
             <circle cx="300" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
-            <text x="300" y="105" textAnchor="middle" fill="#ffffff" fontSize="18">{isReasoner ? "🔮" : "🧠"}</text>
+            <text x="300" y="103.5" textAnchor="middle" fill="#ffffff" fontSize="9" fontFamily="monospace" fontWeight="bold">{isReasoner ? "PRO" : "V4"}</text>
             <text x="300" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">
               {isReasoner ? "DEEPSEEK V4 PRO" : "DEEPSEEK V4"}
             </text>
@@ -237,12 +237,12 @@ const DeliberationBlueprint: React.FC<{
   if (activeTab === ChamberMode.ORACLE) {
     const activeStageIndex = oracleTrace.length;
     const nodes = [
-      { id: 1, name: 'Framing', cx: 80, cy: 55, icon: '🔍' },
-      { id: 2, name: 'Proposal', cx: 200, cy: 55, icon: '💡' },
-      { id: 3, name: 'Critique', cx: 320, cy: 55, icon: '' },
-      { id: 4, name: 'Refinement', cx: 320, cy: 145, icon: '🛡️' },
-      { id: 5, name: 'Reconcile', cx: 200, cy: 145, icon: '[ C ]' },
-      { id: 6, name: 'Polish', cx: 80, cy: 145, icon: '✨' },
+      { id: 1, name: 'Framing', cx: 80, cy: 55, icon: 'Ⅰ' },
+      { id: 2, name: 'Proposal', cx: 200, cy: 55, icon: 'Ⅱ' },
+      { id: 3, name: 'Critique', cx: 320, cy: 55, icon: 'Ⅲ' },
+      { id: 4, name: 'Refinement', cx: 320, cy: 145, icon: 'Ⅳ' },
+      { id: 5, name: 'Reconcile', cx: 200, cy: 145, icon: 'Ⅴ' },
+      { id: 6, name: 'Polish', cx: 80, cy: 145, icon: 'Ⅵ' },
     ];
 
     return (
@@ -306,9 +306,9 @@ const DeliberationBlueprint: React.FC<{
                 />
                 
                 {isCompleted ? (
-                  <text x={n.cx} y={n.cy + 4} textAnchor="middle" fill="#c9a84c" fontSize="10" fontWeight="bold">✓</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#c9a84c" fontSize="9" fontFamily="monospace" fontWeight="bold">✓</text>
                 ) : (
-                  <text x={n.cx} y={n.cy + 4} textAnchor="middle" fill={isPending ? "#555" : "#ffffff"} fontSize="10">{n.icon}</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill={isPending ? "#555" : "#ffffff"} fontSize="9" fontFamily="serif" fontWeight="bold">{n.icon}</text>
                 )}
 
                 <text
@@ -319,7 +319,6 @@ const DeliberationBlueprint: React.FC<{
                   fontSize="7"
                   fontWeight={isActive ? "bold" : "normal"}
                   fontFamily="monospace"
-                  className={isActive ? "" : ""}
                 >
                   {n.name.toUpperCase()}
                 </text>
@@ -329,7 +328,7 @@ const DeliberationBlueprint: React.FC<{
 
           <g transform="translate(200, 100)" className={isProcessing ? "spin-hub" : ""}>
             <circle cx="0" cy="0" r="12" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
-            <text x="0" y="3" textAnchor="middle" fill="#c9a84c" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="8">⚙️</text>
+            <text x="0" y="3.5" textAnchor="middle" fill="#c9a84c" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="9" fontFamily="mono" fontWeight="bold">Ω</text>
           </g>
         </svg>
       </div>
@@ -339,11 +338,11 @@ const DeliberationBlueprint: React.FC<{
   if (activeTab === ChamberMode.COUNCIL) {
     const center = { x: 200, y: 110 };
     const jurists = [
-      { id: 'leibowitz', name: 'Leibowitz', cx: 200, cy: 40, avatar: '⚖️', index: 0 },
-      { id: 'richelieu', name: 'Richelieu', cx: 280, cy: 88, avatar: '🏰', index: 1 },
-      { id: 'jethmalani', name: 'Jethmalani', cx: 250, cy: 165, avatar: '🎙️', index: 2 },
-      { id: 'nariman', name: 'Nariman', cx: 150, cy: 165, avatar: '🏛️', index: 3 },
-      { id: 'parfit', name: 'Parfit', cx: 120, cy: 88, avatar: '🧠', index: 4 },
+      { id: 'leibowitz', name: 'Leibowitz', cx: 200, cy: 40, avatar: 'SL', index: 0 },
+      { id: 'richelieu', name: 'Richelieu', cx: 280, cy: 88, avatar: 'CR', index: 1 },
+      { id: 'jethmalani', name: 'Jethmalani', cx: 250, cy: 165, avatar: 'RJ', index: 2 },
+      { id: 'nariman', name: 'Nariman', cx: 150, cy: 165, avatar: 'FN', index: 3 },
+      { id: 'parfit', name: 'Parfit', cx: 120, cy: 88, avatar: 'DP', index: 4 },
     ];
 
     return (
@@ -378,7 +377,7 @@ const DeliberationBlueprint: React.FC<{
                     />
                     <circle r="4" fill="#c9a84c">
                       <animateMotion 
-                        dur="1.5s" 
+                         dur="1.5s" 
                         repeatCount="indefinite" 
                         path={`M ${center.x} ${center.y} L ${j.cx} ${j.cy}`} 
                       />
@@ -392,7 +391,7 @@ const DeliberationBlueprint: React.FC<{
           <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
             <circle cx="0" cy="0" r="20" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
             <circle cx="0" cy="0" r="15" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
-            <text x="0" y="4" textAnchor="middle" fill="#c9a84c" fontSize="11">🏛️</text>
+            <text x="0" y="3.5" textAnchor="middle" fill="#c9a84c" fontSize="10" fontFamily="mono" fontWeight="bold">§</text>
           </g>
 
           {jurists.map((j) => {
@@ -418,7 +417,7 @@ const DeliberationBlueprint: React.FC<{
                   className={isSelected ? "pulse-gold" : ""}
                 />
                 
-                <text x={j.cx} y={j.cy + 4} textAnchor="middle" fill="#ffffff" fontSize="13">{j.avatar}</text>
+                <text x={j.cx} y={j.cy + 3.5} textAnchor="middle" fill={isSelected ? "#c9a84c" : "#ffffff"} fontSize="9" fontFamily="mono" fontWeight="bold">{j.avatar}</text>
                 
                 <text
                   x={j.cx}
@@ -468,19 +467,19 @@ const DeliberationBlueprint: React.FC<{
 
           <g className="float-1">
             <circle cx="200" cy="45" r="15" fill="#0d1b2a" stroke="#38bdf8" strokeWidth="1.2" className="pulse-blue" />
-            <text x="200" y="48" textAnchor="middle" fill="#ffffff" fontSize="9">📋</text>
+            <text x="200" y="48.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">CP</text>
             <text x="200" y="24" textAnchor="middle" fill="#38bdf8" fontSize="7" fontWeight="bold" fontFamily="monospace">CASE PREMISE</text>
           </g>
 
           <g className="float-2">
             <circle cx="85" cy="120" r="18" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="1.5" className="pulse-gold" />
-            <text x="85" y="123" textAnchor="middle" fill="#ffffff" fontSize="10">👥</text>
+            <text x="85" y="123.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">SH</text>
             <text x="85" y="93" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">24 STAKEHOLDERS</text>
           </g>
 
           <g className="float-3">
             <circle cx="315" cy="120" r="18" fill="#0d1b2a" stroke="#ef4444" strokeWidth="1.5" className="pulse-red" />
-            <text x="315" y="123" textAnchor="middle" fill="#ffffff" fontSize="10">⚔️</text>
+            <text x="315" y="123.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">VS</text>
             <text x="315" y="93" textAnchor="middle" fill="#ef4444" fontSize="7" fontWeight="bold" fontFamily="monospace">PROSECUTION stress</text>
           </g>
 
@@ -489,7 +488,7 @@ const DeliberationBlueprint: React.FC<{
             {isProcessing && (
               <circle cx="200" cy="175" r="25" fill="none" stroke="#c9a84c" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" className="spin-hub" />
             )}
-            <text x="200" y="179" textAnchor="middle" fill="#ffffff" fontSize="12">🛡️</text>
+            <text x="200" y="179.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">SC</text>
             <text x="200" y="207" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">SYNTHESIS CORE</text>
           </g>
         </svg>
@@ -901,28 +900,28 @@ export const CouncilChamberScreen: React.FC = () => {
         {activeTab === ChamberMode.COUNCIL && (
           <div className="w-full flex flex-col gap-1.5 mb-4 ">
             <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold block ml-1">Consult Jurist</span>
-            <div className="grid grid-cols-4 gap-2 overflow-y-auto max-h-[160px] pr-1 custom-scrollbar w-full select-none items-start">
+            <div className="grid grid-cols-5 gap-2 select-none items-start w-full">
               {PERSONAS.map((p) => {
                 const isSelected = selectedPersona.id === p.id;
                 return (
                   <button
                     key={p.id}
                     onClick={() => setSelectedPersona(p)}
-                    className="flex flex-col items-center gap-1 focus:outline-none "
+                    className="flex flex-col items-center gap-1 focus:outline-none min-w-0"
                   >
-                    <div className={`w-12 h-12 rounded-none flex items-center justify-center text-xl  border  relative
+                    <div className={`w-11 h-11 rounded-none flex items-center justify-center text-xs font-mono font-bold border relative
                       ${isSelected 
-                        ? 'bg-brand-accent/15 border-brand-accent scale-105' 
-                        : 'bg-brand-bg-primary border-brand-text-primary/30 hover:border-brand-text-primary/30'
+                        ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent' 
+                        : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary/80'
                       }`}
                     >
                       {p.avatar}
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[8px] font-bold">✓</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[7px] font-bold">✓</span>
                       )}
                     </div>
-                    <span className={`text-[9px] tracking-wide font-mono transition-colors text-center break-words
-                      ${isSelected ? 'text-brand-text-primary font-semibold font-bold' : 'text-brand-text-secondary/60'}`}
+                    <span className={`text-[8px] tracking-wide font-mono transition-colors text-center truncate w-full
+                      ${isSelected ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/60'}`}
                     >
                       {p.name.split(' ')[0]}
                     </span>
@@ -1150,11 +1149,9 @@ export const CouncilChamberScreen: React.FC = () => {
       {/* ========================================================================= */}
       <div className="hidden lg:grid grid-cols-12 gap-6 h-[calc(100vh-140px)] w-full overflow-hidden text-left">
         
-        {/* Columns 1-2: Strategic Chambers & Setup (Sidebar) */}
-        <div className="col-span-3 xl:col-span-2 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
-          <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-4  relative overflow-hidden group">
-            <div className="absolute -top-16 -right-16 w-28 h-28 bg-brand-accent/5 rounded-none blur-3xl group-hover:bg-brand-text-primary text-brand-bg-primary  "></div>
-            
+        {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
+        <div className="col-span-3 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
+          <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-4 relative overflow-hidden group">
             <div className="space-y-0.5">
               <h3 className="text-base font-serif font-bold text-shimmer flex items-center gap-1.5">
                 <CourtIcon className="h-4.5 w-4.5 text-brand-text-primary font-semibold" /> Protocols
@@ -1174,17 +1171,17 @@ export const CouncilChamberScreen: React.FC = () => {
                   <button
                     key={m.value}
                     onClick={() => setActiveTab(m.value)}
-                    className={`w-full p-3.5 rounded-none border text-left  flex items-center gap-3 relative overflow-hidden group/btn
+                    className={`w-full p-3.5 rounded-none border text-left flex items-center gap-3 relative overflow-hidden group/btn transition-all
                       ${isActive 
-                        ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent text-brand-text-primary font-semibold scale-[1.01]' 
+                        ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-semibold scale-[1.01]' 
                         : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:bg-brand-accent/5 hover:text-brand-text-primary'
                       }`}
                   >
-                    <span className="text-xl">{m.icon}</span>
-                    <div className="flex-grow flex items-center justify-between">
-                      <span className="text-xs font-bold font-serif">{m.title}</span>
-                      <span className={`text-[8px] font-mono px-1.5 py-0.5 border rounded uppercase
-                        ${isActive ? 'border-brand-accent/35 bg-brand-navy text-brand-text-primary font-semibold' : 'border-white/10 bg-white/5'}`}>
+                    <span className="font-mono text-xs font-semibold flex-shrink-0 whitespace-nowrap">{m.icon}</span>
+                    <div className="flex-grow flex items-center justify-between min-w-0 gap-2">
+                      <span className="text-xs font-bold font-serif truncate whitespace-nowrap">{m.title}</span>
+                      <span className={`text-[8px] font-mono px-1.5 py-0.5 border rounded uppercase flex-shrink-0
+                        ${isActive ? 'border-brand-accent/35 bg-brand-bg-primary text-brand-text-primary' : 'border-white/10 bg-white/5'}`}>
                         {m.badge}
                       </span>
                     </div>
@@ -1196,8 +1193,8 @@ export const CouncilChamberScreen: React.FC = () => {
 
           {/* Dynamic Selection Details (Desktop Sidebar) */}
           {activeTab === ChamberMode.DIRECT && (
-            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none flex flex-col gap-3.5 ">
-              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary font-semibold uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Config</h4>
+            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-3.5 ">
+              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Config</h4>
               <SelectInput
                 label="Selected Model"
                 options={[
@@ -1214,25 +1211,31 @@ export const CouncilChamberScreen: React.FC = () => {
           )}
 
           {activeTab === ChamberMode.COUNCIL && (
-            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none flex flex-col gap-3 ">
-              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary font-semibold uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Expert Advisor Minds</h4>
-              <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-0.5">
+            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-3 ">
+              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Expert Advisor Minds</h4>
+              <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto custom-scrollbar pr-0.5">
                 {PERSONAS.map((p) => {
                   const isSelected = selectedPersona.id === p.id;
                   return (
                     <button
                       key={p.id}
                       onClick={() => setSelectedPersona(p)}
-                      className={`p-2.5 rounded-none border text-left  flex items-start gap-2.5
+                      className={`p-2.5 rounded-none border text-left flex items-center gap-2.5 transition-all min-w-0
                         ${isSelected
-                          ? 'bg-brand-text-primary text-brand-bg-primary border-brand-text-primary/300 text-brand-text-primary  scale-[1.01]'
-                          : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30'
+                          ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent scale-[1.01]'
+                          : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:bg-brand-accent/5 hover:text-brand-text-primary'
                         }`}
                     >
-                      <span className="text-lg flex-shrink-0">{p.avatar}</span>
-                      <div className="space-y-0.5 min-w-0">
-                        <h5 className="text-[10px] font-bold font-serif truncate">{p.name}</h5>
-                        <p className="text-[8px] text-brand-text-secondary font-light truncate">{p.role}</p>
+                      <span className={`w-7 h-7 flex-shrink-0 flex items-center justify-center border font-mono text-xs font-bold transition-all
+                        ${isSelected 
+                          ? 'border-brand-bg-primary/20 bg-brand-bg-primary text-brand-text-primary' 
+                          : 'border-brand-text-primary/20 bg-brand-bg-secondary text-brand-text-primary'}`}
+                      >
+                        {p.avatar}
+                      </span>
+                      <div className="space-y-0.5 min-w-0 flex-grow">
+                        <h5 className="text-[11px] font-bold font-serif truncate">{p.name}</h5>
+                        <p className={`text-[9px] font-light truncate ${isSelected ? 'text-brand-bg-primary/70' : 'text-brand-text-secondary/70'}`}>{p.role}</p>
                       </div>
                     </button>
                   );
@@ -1242,8 +1245,8 @@ export const CouncilChamberScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Columns 3-9: Interactive Workbench (Chat Feed & Input) */}
-        <div className="col-span-6 xl:col-span-7 flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle h-full min-h-0">
+        {/* Columns 4-9: Interactive Workbench (Chat Feed & Input) */}
+        <div className="col-span-6 flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle h-full min-h-0">
           
           {/* Chat Feed */}
           <div className="flex-grow p-5 overflow-y-auto space-y-5 custom-scrollbar text-left relative z-10">

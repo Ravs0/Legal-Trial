@@ -58,13 +58,11 @@ const PerformanceScreen: React.FC = () => {
         <span className="text-sm font-medium text-brand-text-secondary group-hover:text-brand-text-primary transition-colors">{label}</span>
         <span className="text-sm font-mono tracking-wider font-semibold text-brand-accent">{score} <span className="opacity-50 font-normal">/ {outOf}</span></span>
       </div>
-      <div className="w-full bg-brand-navy rounded-full h-2.5 shadow-inner-subtle overflow-hidden border border-brand-accent/10">
+      <div className="w-full bg-brand-bg-secondary h-2.5 overflow-hidden border border-brand-text-primary/30">
         <div
-          className="bg-gradient-to-r from-brand-gradient-from to-brand-gradient-mid h-full rounded-full transition-all duration-1000 ease-out relative"
+          className="bg-brand-accent h-full transition-all duration-1000 ease-out relative"
           style={{ width: `${(score / outOf) * 100}%` }}
-        >
-          <div className="absolute inset-0 bg-white/20 w-full animate-shimmer" style={{ backgroundSize: '200% 100%' }}></div>
-        </div>
+        />
       </div>
     </div>
   );
@@ -86,15 +84,13 @@ const PerformanceScreen: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn pb-12 relative z-10">
-      <div className="absolute top-[-5%] left-[-5%] w-[40rem] h-[40rem] bg-brand-accent/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
-
       <div className="text-center mb-10 pt-4">
         <div className="inline-flex items-center justify-center space-x-2 mb-4 opacity-80">
-          <div className="h-px w-8 bg-brand-accent/50"></div>
-          <span className="text-xs font-mono text-brand-accent tracking-widest uppercase">Post-Session Review</span>
-          <div className="h-px w-8 bg-brand-accent/50"></div>
+          <div className="h-px w-8 bg-brand-text-primary/30"></div>
+          <span className="text-xs font-mono text-brand-text-primary tracking-widest uppercase">Post-Session Review</span>
+          <div className="h-px w-8 bg-brand-text-primary/30"></div>
         </div>
-        <h2 className="text-4xl sm:text-5xl font-bold text-shimmer font-serif tracking-tight drop-shadow-md mb-2">
+        <h2 className="text-4xl sm:text-5xl font-bold text-brand-text-primary font-serif tracking-tight mb-2">
           Performance Analysis
         </h2>
         <p className="text-brand-text-secondary font-light max-w-2xl mx-auto">
@@ -105,32 +101,31 @@ const PerformanceScreen: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-8">
           <Card className="p-0 overflow-hidden group">
-            <div className="bg-brand-navy/80 p-6 border-b border-brand-accent/10 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-transform group-hover:scale-150 duration-700"></div>
+            <div className="bg-brand-bg-secondary p-6 border-b border-brand-text-primary/30 relative overflow-hidden">
               <h3 className="text-xl font-serif font-semibold text-brand-text-primary relative z-10">Session Details</h3>
             </div>
-            <div className="p-6 bg-brand-bg-primary/40 space-y-4 text-sm">
+            <div className="p-6 bg-brand-bg-primary space-y-4 text-sm">
               <div>
                 <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Mode</span>
                 <span className="font-semibold text-brand-text-primary">{sessionRecord.settings.practiceMode.charAt(0).toUpperCase() + sessionRecord.settings.practiceMode.slice(1)}</span>
               </div>
-              <div className="h-px w-full bg-gradient-to-r from-brand-accent/10 to-transparent"></div>
+              <div className="h-px w-full bg-brand-text-primary/30"></div>
               <div>
                 <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Case</span>
                 <span className="font-semibold text-brand-accent/90">{sessionRecord.settings.caseDetail.title}</span>
               </div>
-              <div className="h-px w-full bg-gradient-to-r from-brand-accent/10 to-transparent"></div>
+              <div className="h-px w-full bg-brand-text-primary/30"></div>
               <div>
                 <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">The Bench</span>
                 <span className="text-brand-text-primary font-medium">{sessionRecord.settings.judgePersonality.name}</span>
               </div>
-              <div className="h-px w-full bg-gradient-to-r from-brand-accent/10 to-transparent"></div>
+              <div className="h-px w-full bg-brand-text-primary/30"></div>
               <div>
                 <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Opposing Counsel</span>
                 <span className="text-brand-text-primary font-medium">{sessionRecord.settings.opposingCounselPersonality.name}</span>
                 <span className="block text-xs text-brand-text-secondary mt-0.5">{sessionRecord.settings.opposingCounselPersonality.specialty}</span>
               </div>
-              <div className="h-px w-full bg-gradient-to-r from-brand-accent/10 to-transparent"></div>
+              <div className="h-px w-full bg-brand-text-primary/30"></div>
               <div>
                 <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Timestamp</span>
                 <span className="text-brand-text-secondary font-mono text-xs">{new Date(sessionRecord.startTime).toLocaleDateString()}
@@ -146,19 +141,16 @@ const PerformanceScreen: React.FC = () => {
               {renderScoreBar("Legal Basis", performanceMetrics.constitutionalBasis)}
               {renderScoreBar("Response Quality", performanceMetrics.responseQuality)}
             </div>
-            <div className="mt-8 pt-6 border-t border-brand-accent/20 relative">
-              <div className="absolute top-[-1px] left-1/2 -translate-x-1/2 w-12 h-[2px] bg-brand-accent/50 rounded-full"></div>
+            <div className="mt-8 pt-6 border-t border-brand-text-primary/30 relative">
               <div className="flex justify-between items-end mb-3">
                 <span className="text-sm font-medium text-brand-text-primary font-serif italic text-lg opacity-90">Overall Verdict</span>
-                <span className="text-3xl font-mono font-bold text-shimmer drop-shadow-md">{performanceMetrics.overallScore} <span className="text-lg opacity-50 font-normal">/ 10</span></span>
+                <span className="text-3xl font-mono font-bold text-brand-text-primary">{performanceMetrics.overallScore} <span className="text-lg opacity-50 font-normal">/ 10</span></span>
               </div>
-              <div className="w-full bg-brand-navy rounded-full h-4 shadow-inner-subtle overflow-hidden border border-brand-accent/20">
+              <div className="w-full bg-brand-bg-secondary h-4 overflow-hidden border border-brand-text-primary/30">
                 <div
-                  className="bg-brand-accent h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(201,168,76,0.5)] relative"
+                  className="bg-brand-accent h-full transition-all duration-1000 ease-out relative"
                   style={{ width: `${(performanceMetrics.overallScore / 10) * 100}%` }}
-                >
-                  <div className="absolute inset-0 bg-white/30 w-full animate-shimmer" style={{ backgroundSize: '200% 100%' }}></div>
-                </div>
+                />
               </div>
             </div>
           </Card>
@@ -170,17 +162,17 @@ const PerformanceScreen: React.FC = () => {
               <p className="first-letter:text-4xl first-letter:font-serif first-letter:text-brand-accent first-letter:mr-1 first-letter:float-left">{performanceMetrics.feedback || "No specific feedback available from the bench."}</p>
             </div>
 
-            <div className="mt-10 pt-8 border-t border-brand-accent/10">
+            <div className="mt-10 pt-8 border-t border-brand-text-primary/30">
               <h4 className="text-sm font-mono uppercase tracking-widest text-brand-accent mb-6 flex items-center">
-                <span className="w-6 h-px bg-brand-accent/50 mr-3"></span>
+                <span className="w-6 h-px bg-brand-text-primary/30 mr-3"></span>
                 Areas for Improvement
               </h4>
 
               {performanceMetrics.improvementAreas && performanceMetrics.improvementAreas.length > 0 && !performanceMetrics.improvementAreas[0].toLowerCase().includes("error") ? (
                 <ul className="space-y-4">
                   {performanceMetrics.improvementAreas.map((area, index) => (
-                    <li key={index} className="flex items-start p-4 bg-brand-navy/30 backdrop-blur-sm rounded-xl border border-brand-accent/5 shadow-sm hover:border-brand-accent/20 transition-colors group">
-                      <div className="mt-0.5 mr-4 bg-brand-accent/10 rounded-full p-1 group-hover:bg-brand-accent/20 transition-colors">
+                    <li key={index} className="flex items-start p-4 bg-brand-bg-secondary rounded-none border border-brand-text-primary/30 transition-colors group">
+                      <div className="mt-0.5 mr-4 bg-brand-bg-primary rounded-none p-1 group-hover:bg-brand-bg-secondary transition-colors">
                         <CheckCircleIcon className="h-5 w-5 text-brand-accent" />
                       </div>
                       <span className="text-brand-text-primary/90 font-light leading-relaxed">{area}</span>
@@ -188,7 +180,7 @@ const PerformanceScreen: React.FC = () => {
                   ))}
                 </ul>
               ) : (
-                <p className="text-brand-text-secondary font-light italic px-4 py-3 bg-brand-navy/30 rounded-lg border border-brand-border-light">{performanceMetrics.improvementAreas[0] || "No specific improvement areas identified by the bench."}</p>
+                <p className="text-brand-text-secondary font-light italic px-4 py-3 bg-brand-bg-secondary rounded-none border border-brand-text-primary/30">{performanceMetrics.improvementAreas[0] || "No specific improvement areas identified by the bench."}</p>
               )}
             </div>
           </Card>
@@ -196,11 +188,11 @@ const PerformanceScreen: React.FC = () => {
       </div>
 
       <Card className="mt-10 p-0 overflow-hidden">
-        <div className="p-6 border-b border-brand-accent/10 bg-brand-navy/40 flex justify-between items-center">
+        <div className="p-6 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex justify-between items-center">
           <h3 className="text-xl font-serif font-semibold text-brand-text-primary">Official Transcript</h3>
-          <span className="text-xs font-mono text-brand-text-secondary uppercase tracking-widest bg-brand-bg-primary/50 px-3 py-1 rounded-full border border-brand-border-light">Record</span>
+          <span className="text-xs font-mono text-brand-text-secondary uppercase tracking-widest bg-brand-bg-primary/50 px-3 py-1 rounded-none border border-brand-text-primary/30">Record</span>
         </div>
-        <div className="max-h-[600px] overflow-y-auto p-6 bg-brand-bg-primary/30 space-y-6 custom-scrollbar">
+        <div className="max-h-[600px] overflow-y-auto p-6 bg-brand-bg-primary space-y-6 custom-scrollbar">
           {sessionRecord.transcript.map(msg => {
             let senderName = 'You (Counsel)';
             let isUser = msg.sender === 'user';
@@ -217,11 +209,11 @@ const PerformanceScreen: React.FC = () => {
                 <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary mb-1.5 opacity-70">
                   {senderName}
                 </span>
-                <div className={`p-4 rounded-2xl max-w-[85%] sm:max-w-[75%] font-light leading-relaxed text-sm sm:text-base border ${isUser
-                    ? 'bg-brand-accent/10 border-brand-accent/30 text-brand-text-primary rounded-tr-sm shadow-glow-gold-sm'
+                <div className={`p-4 rounded-none max-w-[85%] sm:max-w-[75%] font-light leading-relaxed text-sm sm:text-base border ${isUser
+                    ? 'bg-brand-bg-secondary border-brand-accent text-brand-text-primary'
                     : (msg.sender === 'judge'
-                      ? 'bg-brand-bg-tertiary/60 border-brand-border-light text-brand-text-primary rounded-tl-sm'
-                      : 'bg-brand-navy/60 border-brand-border-light text-brand-text-primary rounded-tl-sm'
+                      ? 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary'
+                      : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary'
                     )
                   }`}>
                   <span className="whitespace-pre-wrap break-words">{msg.text}</span>
@@ -232,8 +224,8 @@ const PerformanceScreen: React.FC = () => {
         </div>
       </Card>
 
-      <div className="mt-12 mb-8 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 border-t border-brand-accent/10 pt-10">
-        <Button onClick={() => navigate(ROUTES.SETUP)} variant="primary" size="lg" className="w-full sm:w-auto px-10 shadow-glow-gold hover:-translate-y-1">Return to Arena</Button>
+      <div className="mt-12 mb-8 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 border-t border-brand-text-primary/30 pt-10">
+        <Button onClick={() => navigate(ROUTES.SETUP)} variant="primary" size="lg" className="w-full sm:w-auto px-10">Return to Arena</Button>
         <Button onClick={() => navigate(ROUTES.HOME)} variant="outline" size="lg" className="w-full sm:w-auto px-10">Back to Quarters</Button>
       </div>
     </div>

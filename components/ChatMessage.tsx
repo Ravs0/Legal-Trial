@@ -21,17 +21,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
   const alignment = isUser ? 'items-end' : 'items-start';
 
   // Luxury Dark Mode Styles
-  let bubbleColor = 'bg-brand-navy/60 backdrop-blur-md text-brand-text-primary border border-brand-accent/20 shadow-card';
+  let bubbleColor = 'bg-brand-bg-primary text-brand-text-primary border border-brand-text-primary/30';
   let avatarIconColor = 'text-brand-accent';
-  let avatarBgColor = 'bg-brand-navy border border-brand-accent/30 shadow-inner-subtle';
+  let avatarBgColor = 'bg-brand-bg-secondary border border-brand-text-primary/30';
 
   if (isUser) {
-    bubbleColor = 'bg-brand-accent text-brand-accent-text shadow-glow-gold-sm border border-brand-accent-hover/50';
+    bubbleColor = 'bg-brand-accent text-brand-accent-text border border-brand-accent/55';
     avatarIconColor = 'text-brand-accent-text';
-    avatarBgColor = 'bg-brand-accent shadow-glow-gold border-transparent';
+    avatarBgColor = 'bg-brand-accent border-transparent';
   } else if (isJudge) {
-    bubbleColor = 'bg-brand-bg-tertiary/80 backdrop-blur-md text-brand-text-primary border border-brand-accent/30 shadow-card';
-    avatarBgColor = 'bg-brand-navy border border-brand-accent/40 shadow-[0_0_15px_rgba(201,168,76,0.2)]';
+    bubbleColor = 'bg-brand-bg-secondary text-brand-text-primary border border-brand-text-primary/30';
+    avatarBgColor = 'bg-brand-bg-secondary border border-brand-text-primary/30';
   }
 
   const textAlign = isUser ? 'text-right' : 'text-left';
@@ -100,7 +100,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
   return (
     <div className={`flex flex-col ${alignment} mb-4 sm:mb-6 animate-fadeInUp w-full`}>
       <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end max-w-full sm:max-w-[85%] lg:max-w-[75%]`}>
-        <div className={`flex-shrink-0 h-8 w-8 sm:h-12 sm:w-12 rounded-full flex items-center justify-center mx-2.5 sm:mx-4 ${avatarBgColor}`}>
+        <div className={`flex-shrink-0 h-8 w-8 sm:h-12 sm:w-12 rounded-none flex items-center justify-center mx-2.5 sm:mx-4 ${avatarBgColor}`}>
           {isUser && <UserIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
           {isJudge && <CourtIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
           {isOpposingCounsel && <BriefcaseIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
@@ -119,13 +119,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
                   className="text-brand-accent hover:text-brand-accent-hover transition-colors font-semibold"
                   title="Speak this statement"
                 >
-                  🔊 Listen
+                  [ Listen ]
                 </button>
               </>
             )}
           </p>
-          <div className={`${bubbleColor} rounded-2xl ${isUser ? 'rounded-br-sm' : 'rounded-bl-sm'} p-4 sm:p-5 relative`}>
-            {isJudge && <div className="absolute top-0 left-0 w-1/2 h-[1px] bg-gradient-to-r from-brand-accent/50 to-transparent"></div>}
+          <div className={`${bubbleColor} rounded-none p-4 sm:p-5 relative`}>
             <div className={`text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${textAlign} font-light`}>
               {formatText(message.text)}
             </div>

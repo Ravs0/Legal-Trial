@@ -16,10 +16,10 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   placeholder,
   ...props
 }) => {
-  const baseInputStyle = `block w-full bg-brand-navy/60 backdrop-blur-sm rounded-xl py-3 px-4 
-                          border border-brand-accent/20 focus:outline-none focus:ring-2 focus:ring-brand-accent focus:border-transparent 
-                          text-brand-text-primary text-sm sm:text-base hover:border-brand-accent/40 hover:bg-brand-navy/80 
-                          transition-colors duration-300 shadow-inner-subtle`;
+  const baseInputStyle = `block w-full bg-brand-bg-primary rounded-none py-3 px-4 
+                          border border-brand-text-primary/30 focus:outline-none focus:ring-1 focus:ring-brand-accent 
+                          text-brand-text-primary text-sm sm:text-base hover:border-brand-text-primary/60
+                          transition-colors duration-300`;
   const labelColor = 'text-brand-text-secondary font-medium tracking-wide text-xs uppercase mb-2 ml-1';
 
   return (

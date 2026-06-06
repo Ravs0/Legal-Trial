@@ -25,11 +25,11 @@ export const Card: React.FC<CardProps> = ({
   titleGradient = false,
 }) => {
 
-  const baseCardStyles = `rounded-2xl glass-card gradient-border shadow-card`;
+  const baseCardStyles = `rounded-none bg-brand-bg-primary border border-brand-text-primary/30`;
 
   const interactiveStyles = onClick ? 'cursor-pointer transition-all duration-300' : '';
   const hoverStyles = hoverEffect && onClick
-    ? 'hover:-translate-y-1 hover:shadow-card-hover focus-ring group'
+    ? 'hover:bg-brand-accent/5 focus-ring group'
     : (onClick ? 'focus-ring group' : '');
 
   const isFlexColCard = className.includes('flex-col');
@@ -45,8 +45,8 @@ export const Card: React.FC<CardProps> = ({
     >
       {icon && (
         <div className="w-full pt-6 pb-4 flex items-center justify-center flex-shrink-0">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-brand-navy border border-brand-accent/20 flex items-center justify-center shadow-inner-subtle group-hover:shadow-glow-gold-sm transition-shadow duration-300">
-            <div className="text-brand-accent drop-shadow-md">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center transition-colors">
+            <div className="text-brand-accent">
               {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10" })}
             </div>
           </div>

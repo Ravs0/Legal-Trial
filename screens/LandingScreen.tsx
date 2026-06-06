@@ -26,17 +26,11 @@ const LandingScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-brand-bg-primary p-4 sm:p-8 overflow-hidden relative">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[20%] left-[10%] w-[30rem] h-[30rem] bg-brand-accent/5 rounded-full blur-[120px] mix-blend-screen animate-pulse_ring"></div>
-        <div className="absolute bottom-[10%] right-[10%] w-[25rem] h-[25rem] bg-brand-navy-light/40 rounded-full blur-[100px] mix-blend-screen"></div>
-      </div>
-
       <div className="z-10 text-center mb-16 sm:mb-20 animate-fadeInUp">
-        <div className="inline-block mb-4 px-4 py-1.5 rounded-full border border-brand-accent/20 bg-brand-accent/5 backdrop-blur-md">
-          <span className="text-xs font-mono text-brand-accent tracking-widest uppercase">The Pinnacle of Legal Simulation</span>
+        <div className="inline-block mb-4 px-4 py-1.5 rounded-none border border-brand-text-primary/30 bg-brand-bg-secondary">
+          <span className="text-xs font-mono text-brand-text-primary tracking-widest uppercase">The Pinnacle of Legal Simulation</span>
         </div>
-        <h1 className="text-5xl sm:text-7xl font-bold text-shimmer mb-6 font-serif tracking-tight drop-shadow-lg">
+        <h1 className="text-5xl sm:text-7xl font-bold text-brand-text-primary mb-6 font-serif tracking-tight">
           {APP_NAME}
         </h1>
         <p className="text-xl sm:text-2xl text-brand-text-secondary max-w-3xl mx-auto font-light leading-relaxed">
@@ -48,21 +42,21 @@ const LandingScreen: React.FC = () => {
         {/* Indian Legal Practice Card */}
         <div
           onClick={() => handleModeSelection('indian')}
-          className="glass-card gradient-border p-8 sm:p-12 rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-300 ease-out cursor-pointer transform hover:-translate-y-2 focus-ring group animate-staggered-fade-in-item opacity-0 animation-delay-200"
+          className="bg-brand-bg-primary border border-brand-text-primary/30 p-8 sm:p-12 rounded-none transition-all duration-300 ease-out cursor-pointer focus-ring group animate-staggered-fade-in-item opacity-0 animation-delay-200"
           role="button"
           tabIndex={0}
           onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('indian')}
         >
           <div className="flex flex-col items-center text-center h-full">
-            <div className="w-20 h-20 rounded-2xl bg-brand-navy border border-brand-accent/20 flex items-center justify-center mb-6 shadow-inner-subtle group-hover:shadow-glow-gold-sm transition-shadow duration-300">
-              <GavelMinimalIcon className="h-10 w-10 text-brand-accent drop-shadow-md" />
+            <div className="w-20 h-20 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mb-6">
+              <GavelMinimalIcon className="h-10 w-10 text-brand-accent" />
             </div>
             <h2 className="text-2xl sm:text-3xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300 mb-4 font-serif">Indian Legal Practice</h2>
             <p className="text-base sm:text-lg text-brand-text-secondary mb-8 font-light flex-grow">
               Engage with cases, judges, and advocates from the Indian legal system. Master constitutional, criminal, and corporate law.
             </p>
-            <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-brand-accent/30 to-transparent mb-8"></div>
-            <Button variant="primary" size="lg" className="w-full pointer-events-none group-hover:shadow-glow-gold transition-all duration-300" aria-hidden="true" tabIndex={-1}>
+            <div className="w-full h-[1px] bg-brand-text-primary/30 mb-8"></div>
+            <Button variant="primary" size="lg" className="w-full pointer-events-none transition-all duration-300" aria-hidden="true" tabIndex={-1}>
               Enter Indian Arena
             </Button>
           </div>
@@ -71,21 +65,21 @@ const LandingScreen: React.FC = () => {
         {/* International Law Practice Card */}
         <div
           onClick={() => handleModeSelection('international')}
-          className="glass-card gradient-border p-8 sm:p-12 rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-300 ease-out cursor-pointer transform hover:-translate-y-2 focus-ring group animate-staggered-fade-in-item opacity-0 animation-delay-400"
+          className="bg-brand-bg-primary border border-brand-text-primary/30 p-8 sm:p-12 rounded-none transition-all duration-300 ease-out cursor-pointer focus-ring group animate-staggered-fade-in-item opacity-0 animation-delay-400"
           role="button"
           tabIndex={0}
           onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('international')}
         >
           <div className="flex flex-col items-center text-center h-full">
-            <div className="w-20 h-20 rounded-2xl bg-brand-navy border border-brand-accent/20 flex items-center justify-center mb-6 shadow-inner-subtle group-hover:shadow-glow-gold-sm transition-shadow duration-300">
-              <GlobeMinimalIcon className="h-10 w-10 text-brand-accent drop-shadow-md" />
+            <div className="w-20 h-20 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mb-6">
+              <GlobeMinimalIcon className="h-10 w-10 text-brand-accent" />
             </div>
             <h2 className="text-2xl sm:text-3xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300 mb-4 font-serif">International Law Practice</h2>
             <p className="text-base sm:text-lg text-brand-text-secondary mb-8 font-light flex-grow">
               Tackle complex scenarios in public international law, human rights, and cross-border arbitration conventions.
             </p>
-            <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-brand-accent/30 to-transparent mb-8"></div>
-            <Button variant="primary" size="lg" className="w-full pointer-events-none group-hover:shadow-glow-gold transition-all duration-300" aria-hidden="true" tabIndex={-1}>
+            <div className="w-full h-[1px] bg-brand-text-primary/30 mb-8"></div>
+            <Button variant="primary" size="lg" className="w-full pointer-events-none transition-all duration-300" aria-hidden="true" tabIndex={-1}>
               Enter International Arena
             </Button>
           </div>

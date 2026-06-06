@@ -1,4 +1,3 @@
-
 import React, { useState, useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card } from '../components/Card';
@@ -25,11 +24,11 @@ const AdvocatesScreen: React.FC = () => {
 
   return (
     <div className="space-y-10 animate-fadeIn">
-      <Card className="bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to border-brand-border shadow-2xl text-center"> {/* Emerald Blue Gradient */}
+      <Card className="bg-brand-bg-primary border border-brand-text-primary/30 text-center">
         <div className="py-8">
-          <UsersIcon className="h-16 w-16 text-brand-accent-text mx-auto mb-4 opacity-80" /> {/* White icon on gradient */}
-          <h1 className="text-4xl font-bold text-brand-accent-text mb-2 font-serif">Meet the Advocates: <span className="italic">{screenTitle}</span></h1>
-          <p className="text-neutral-100 max-w-xl mx-auto"> {/* Lighter text on gradient */}
+          <UsersIcon className="h-16 w-16 text-brand-accent mx-auto mb-4 opacity-80" />
+          <h1 className="text-4xl font-bold text-brand-text-primary mb-2 font-serif">Meet the Advocates: <span className="italic">{screenTitle}</span></h1>
+          <p className="text-brand-text-secondary max-w-xl mx-auto">
             Prepare to face formidable AI Opposing Counsel. Each advocate brings specialized expertise and a distinct argumentative style relevant to the {practiceMode.toLowerCase()} context.
           </p>
         </div>
@@ -39,7 +38,7 @@ const AdvocatesScreen: React.FC = () => {
         {advocatesToDisplay.map((advocate: OpposingCounselPersonality) => (
           <Card 
             key={advocate.id}
-            className="flex flex-col bg-brand-bg-secondary border-brand-border shadow-lg"
+            className="flex flex-col bg-brand-bg-primary border border-brand-text-primary/30"
             icon={<UsersIcon className="w-full h-full" />} 
             onClick={() => setSelectedProfile(advocate)}
             hoverEffect={true}
@@ -47,7 +46,7 @@ const AdvocatesScreen: React.FC = () => {
             titleClassName="text-brand-accent" 
           >
             <div className="p-5 pt-0"> 
-              <p className="text-sm font-medium text-teal-300 mb-2"> {/* Lighter teal for specialty */}
+              <p className="text-sm font-medium text-brand-accent mb-2">
                 {advocate.specialty}
               </p>
               <p className="text-sm text-brand-text-secondary leading-relaxed line-clamp-6 flex-grow">
