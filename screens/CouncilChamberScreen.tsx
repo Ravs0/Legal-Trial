@@ -150,7 +150,7 @@ const DeliberationBlueprint: React.FC<{
   if (activeTab === ChamberMode.DIRECT) {
     const isReasoner = selectedModel === 'reasoner';
     return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
         <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[160px]">
           {styleBlock}
           
@@ -239,14 +239,14 @@ const DeliberationBlueprint: React.FC<{
     const nodes = [
       { id: 1, name: 'Framing', cx: 80, cy: 55, icon: '🔍' },
       { id: 2, name: 'Proposal', cx: 200, cy: 55, icon: '💡' },
-      { id: 3, name: 'Critique', cx: 320, cy: 55, icon: '⚡' },
+      { id: 3, name: 'Critique', cx: 320, cy: 55, icon: '' },
       { id: 4, name: 'Refinement', cx: 320, cy: 145, icon: '🛡️' },
-      { id: 5, name: 'Reconcile', cx: 200, cy: 145, icon: '🏛️' },
+      { id: 5, name: 'Reconcile', cx: 200, cy: 145, icon: '[ C ]' },
       { id: 6, name: 'Polish', cx: 80, cy: 145, icon: '✨' },
     ];
 
     return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
         <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[170px]">
           {styleBlock}
           
@@ -319,7 +319,7 @@ const DeliberationBlueprint: React.FC<{
                   fontSize="7"
                   fontWeight={isActive ? "bold" : "normal"}
                   fontFamily="monospace"
-                  className={isActive ? "animate-pulse" : ""}
+                  className={isActive ? "" : ""}
                 >
                   {n.name.toUpperCase()}
                 </text>
@@ -347,7 +347,7 @@ const DeliberationBlueprint: React.FC<{
     ];
 
     return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
         <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[180px]">
           {styleBlock}
           
@@ -441,7 +441,7 @@ const DeliberationBlueprint: React.FC<{
 
   if (activeTab === ChamberMode.SYNTHESIS) {
     return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-navy/35 border border-brand-accent/15 rounded-2xl animate-fadeIn">
+      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
         <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[180px]">
           {styleBlock}
 
@@ -844,7 +844,7 @@ export const CouncilChamberScreen: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden animate-fadeIn">
+    <div className="w-full h-full flex flex-col overflow-hidden ">
       
       {/* ========================================================================= */}
       {/* MOBILE APP-STYLE LAYOUT (Phones & Tablets < 1024px)                        */}
@@ -852,16 +852,16 @@ export const CouncilChamberScreen: React.FC = () => {
       <div className="lg:hidden flex flex-col h-[calc(100dvh-130px)] overflow-hidden text-left relative">
         
         {/* Dynamic Mode Tab Bar Selector */}
-        <div className="w-full flex flex-col gap-3 p-3.5 border border-brand-accent/20 bg-brand-navy/60 rounded-2xl mb-4 shadow-glow-gold-sm">
+        <div className="w-full flex flex-col gap-3 p-3.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-4 ">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80">Select Deliberation Protocol</span>
+            <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold">Select Deliberation Protocol</span>
             {activeTab === ChamberMode.DIRECT && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80">Model:</span>
+                <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold">Model:</span>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
-                  className="p-1 rounded bg-brand-navy text-[9px] font-mono text-brand-accent border border-brand-accent/15 outline-none cursor-pointer"
+                  className="p-1 rounded bg-brand-navy text-[9px] font-mono text-brand-text-primary font-semibold border border-brand-text-primary/30 outline-none cursor-pointer"
                 >
                   <option value="deepseek-chat" className="bg-brand-bg-primary">V4</option>
                   <option value="reasoner" className="bg-brand-bg-primary">V4 Pro</option>
@@ -870,12 +870,12 @@ export const CouncilChamberScreen: React.FC = () => {
             )}
           </div>
           
-          <div className="flex gap-2 overflow-x-auto pb-1.5 custom-scrollbar scroll-smooth w-full select-none items-center">
+          <div className="grid grid-cols-2 gap-2 w-full select-none">
             {[
-              { value: ChamberMode.DIRECT, title: 'Direct Consult', icon: '🌐' },
-              { value: ChamberMode.ORACLE, title: 'Oracle', icon: '🔮' },
-              { value: ChamberMode.COUNCIL, title: 'Council', icon: '🏛️' },
-              { value: ChamberMode.SYNTHESIS, title: 'Synthesis', icon: '⚔️' },
+              { value: ChamberMode.DIRECT, title: 'Direct Consult', icon: '[ D ]' },
+              { value: ChamberMode.ORACLE, title: 'Oracle', icon: '[ O ]' },
+              { value: ChamberMode.COUNCIL, title: 'Council', icon: '[ C ]' },
+              { value: ChamberMode.SYNTHESIS, title: 'Synthesis', icon: '[ S ]' },
             ].map((m) => {
               const isActive = activeTab === m.value;
               return (
@@ -883,10 +883,10 @@ export const CouncilChamberScreen: React.FC = () => {
                   key={m.value}
                   type="button"
                   onClick={() => setActiveTab(m.value)}
-                  className={`flex-shrink-0 px-3 py-2 rounded-xl border text-[11px] font-medium font-serif flex items-center gap-1.5 transition-all
+                  className={`px-2 py-2.5 rounded-none border text-[11px] font-medium font-serif flex items-center justify-center gap-1.5 
                     ${isActive 
-                      ? 'bg-brand-accent/10 border-brand-accent text-brand-accent shadow-[0_0_8px_rgba(201,168,76,0.15)] scale-[1.02]' 
-                      : 'bg-brand-navy/40 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/20 hover:text-brand-text-primary'
+                      ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent text-brand-text-primary font-semibold scale-[1.02]' 
+                      : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
                     }`}
                 >
                   <span>{m.icon}</span>
@@ -897,32 +897,32 @@ export const CouncilChamberScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Horizontal Carousel for Persona Council */}
+        {/* Mobile Vertical Scroll for Persona Council */}
         {activeTab === ChamberMode.COUNCIL && (
-          <div className="w-full flex flex-col gap-1.5 mb-4 animate-fadeIn">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80 block ml-1">Consult Jurist</span>
-            <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar scroll-smooth w-full select-none items-center">
+          <div className="w-full flex flex-col gap-1.5 mb-4 ">
+            <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold block ml-1">Consult Jurist</span>
+            <div className="grid grid-cols-4 gap-2 overflow-y-auto max-h-[160px] pr-1 custom-scrollbar w-full select-none items-start">
               {PERSONAS.map((p) => {
                 const isSelected = selectedPersona.id === p.id;
                 return (
                   <button
                     key={p.id}
                     onClick={() => setSelectedPersona(p)}
-                    className="flex-shrink-0 flex flex-col items-center gap-1 focus:outline-none transition-all"
+                    className="flex flex-col items-center gap-1 focus:outline-none "
                   >
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all border duration-300 relative
+                    <div className={`w-12 h-12 rounded-none flex items-center justify-center text-xl  border  relative
                       ${isSelected 
-                        ? 'bg-brand-accent/15 border-brand-accent shadow-[0_0_10px_rgba(201,168,76,0.3)] scale-105' 
-                        : 'bg-brand-navy/60 border-brand-accent/10 hover:border-brand-accent/20'
+                        ? 'bg-brand-accent/15 border-brand-accent scale-105' 
+                        : 'bg-brand-bg-primary border-brand-text-primary/30 hover:border-brand-text-primary/30'
                       }`}
                     >
                       {p.avatar}
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-brand-accent text-brand-navy rounded-full border border-brand-navy flex items-center justify-center text-[8px] font-bold">✓</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[8px] font-bold">✓</span>
                       )}
                     </div>
-                    <span className={`text-[9px] tracking-wide font-mono transition-colors
-                      ${isSelected ? 'text-brand-accent font-bold' : 'text-brand-text-secondary/60'}`}
+                    <span className={`text-[9px] tracking-wide font-mono transition-colors text-center break-words
+                      ${isSelected ? 'text-brand-text-primary font-semibold font-bold' : 'text-brand-text-secondary/60'}`}
                     >
                       {p.name.split(' ')[0]}
                     </span>
@@ -934,13 +934,13 @@ export const CouncilChamberScreen: React.FC = () => {
         )}
 
         {/* Chat Workspace (Mobile) */}
-        <div className="flex-grow flex flex-col bg-brand-navy/15 border border-brand-accent/10 backdrop-blur-md rounded-2xl overflow-hidden relative shadow-inner-subtle">
+        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle max-h-[50vh]">
           {/* Chat Feed (Mobile) */}
           <div className="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar text-left relative z-10">
             {activeHistory.length <= 1 && (
-              <div className="p-5 border border-brand-accent/15 bg-brand-navy/35 backdrop-blur-lg rounded-2xl space-y-2 text-left mb-2 animate-fadeIn">
+              <div className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none space-y-2 text-left mb-2 ">
                 <h4 className="text-sm font-serif font-bold text-shimmer flex items-center gap-2">
-                  <span>⚖️</span>
+                  <span className="font-serif font-bold border-r pr-2 mr-2">[ CHAMBER ]</span>
                   <span>
                     {activeTab === ChamberMode.DIRECT ? 'Direct Consult Suite' : activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
                   </span>
@@ -958,10 +958,10 @@ export const CouncilChamberScreen: React.FC = () => {
             )}
 
             {activeHistory.map((item) => (
-              <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
+              <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
                 <div className="flex items-center space-x-1.5 mb-1 text-[8px] font-mono">
                   {item.meta && (
-                    <span className="text-brand-accent bg-brand-accent/5 px-1.5 py-0.5 border border-brand-accent/20 rounded">
+                    <span className="text-brand-text-primary font-semibold bg-brand-accent/5 px-1.5 py-0.5 border border-brand-text-primary/30 rounded">
                       {item.meta}
                     </span>
                   )}
@@ -971,25 +971,25 @@ export const CouncilChamberScreen: React.FC = () => {
                 </div>
 
                 <div
-                  className={`max-w-[90%] p-3.5 rounded-xl text-[12px] leading-relaxed border transition-all duration-300
+                  className={`max-w-[90%] p-3.5 rounded-none text-[12px] leading-relaxed border  
                     ${item.sender === 'user'
-                      ? 'bg-brand-accent/15 border-brand-accent/30 text-brand-text-primary rounded-tr-none'
+                      ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
                         ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[11px]'
-                        : 'bg-brand-navy/70 border-white/5 text-brand-text-primary rounded-tl-none'
+                        : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
                   <p className="whitespace-pre-wrap font-light">{item.text}</p>
                   
                   {item.trace && item.trace.length > 0 && (
                     <details className="mt-3 pt-2.5 border-t border-white/10 text-[11px] font-light text-brand-text-secondary/80">
-                      <summary className="cursor-pointer text-[9px] font-mono uppercase tracking-wider text-brand-accent hover:text-brand-accent-hover focus:outline-none">
+                      <summary className="cursor-pointer text-[9px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
                         ▶ View Trace Logs ({item.trace.length})
                       </summary>
                       <div className="mt-2.5 space-y-3 font-sans text-[11px]">
                         {item.trace.map((tr, index) => (
-                          <div key={index} className="space-y-1 p-2 bg-brand-bg-primary/50 border border-white/5 rounded-lg text-left">
-                            <h6 className="font-mono text-[9px] font-bold text-brand-accent uppercase tracking-wider border-b border-brand-accent/5 pb-0.5">
+                          <div key={index} className="space-y-1 p-2 bg-brand-bg-primary/50 border border-white/5 rounded-none text-left">
+                            <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
                             <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap">{tr.content}</p>
@@ -1004,15 +1004,15 @@ export const CouncilChamberScreen: React.FC = () => {
                   <div className="flex space-x-2 mt-1.5 pl-1.5">
                     <button
                       onClick={() => handleSpeak(item.text)}
-                      className="px-2 py-1 border border-brand-accent/20 rounded bg-brand-navy/40 hover:bg-brand-accent/10 text-[10px] font-mono uppercase tracking-wide text-brand-accent transition-all cursor-pointer"
+                      className="px-2 py-1 border border-brand-text-primary/30 rounded bg-brand-bg-primary hover:bg-brand-text-primary text-brand-bg-primary text-[10px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold  cursor-pointer"
                     >
-                      🔊 Speak
+                      Speak
                     </button>
                     <button
                       onClick={() => navigator.clipboard.writeText(item.text)}
-                      className="px-2 py-1 border border-white/10 rounded bg-brand-navy/40 hover:bg-white/5 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary transition-all cursor-pointer"
+                      className="px-2 py-1 border border-white/10 rounded bg-brand-bg-primary hover:bg-white/5 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary  cursor-pointer"
                     >
-                      📋 Copy
+                      Copy
                     </button>
                   </div>
                 )}
@@ -1020,16 +1020,16 @@ export const CouncilChamberScreen: React.FC = () => {
             ))}
 
             {isProcessing && oracleStage && (
-              <div className="flex flex-col gap-3 items-start animate-fadeIn max-w-sm w-full my-2">
-                <div className="w-full p-4 rounded-xl bg-brand-navy border border-brand-accent/25 backdrop-blur-xl shadow-glow-gold-sm space-y-3 text-left">
-                  <div className="flex items-center justify-between border-b border-brand-accent/15 pb-2">
+              <div className="flex flex-col gap-3 items-start  max-w-sm w-full my-2">
+                <div className="w-full p-4 rounded-none bg-brand-navy border border-brand-text-primary/30   space-y-3 text-left">
+                  <div className="flex items-center justify-between border-b border-brand-text-primary/30 pb-2">
                     <div className="flex items-center space-x-2">
-                      <LoadingSpinner size="sm" spinnerColor="text-brand-accent animate-spin" />
-                      <span className="text-[9px] font-mono tracking-widest text-brand-accent uppercase font-bold">{oracleStage}</span>
+                      <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold " />
+                      <span className="text-[9px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
                     </div>
                     <button 
                       onClick={handleCancel}
-                      className="text-[8px] font-mono uppercase px-2 py-0.5 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25 transition-all cursor-pointer font-bold"
+                      className="text-[8px] font-mono uppercase px-2 py-0.5 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25  cursor-pointer font-bold"
                     >
                       ✕ Abort
                     </button>
@@ -1053,8 +1053,8 @@ export const CouncilChamberScreen: React.FC = () => {
                       return (
                         <div key={idx} className="flex items-center justify-between text-[9px] font-mono">
                           <div className="flex items-center space-x-2">
-                            <span className={`w-3 h-3 rounded-full flex items-center justify-center border text-[7px] font-bold
-                              ${isCompleted ? 'bg-brand-accent/20 border-brand-accent text-brand-accent' : isActive ? 'bg-amber-500/10 border-amber-500 text-amber-400 animate-pulse' : 'bg-brand-navy border-brand-accent/5 text-brand-text-secondary/20'}`}
+                            <span className={`w-3 h-3 rounded-none flex items-center justify-center border text-[7px] font-bold
+                              ${isCompleted ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' : isActive ? 'bg-amber-500/10 border-amber-500 text-amber-400 ' : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'}`}
                             >
                               {isCompleted ? '✓' : idx + 1}
                             </span>
@@ -1074,9 +1074,9 @@ export const CouncilChamberScreen: React.FC = () => {
           </div>
 
           {/* Bottom Input Composer (Mobile) */}
-          <div className="p-3 border-t border-brand-accent/15 bg-brand-bg-secondary/90 backdrop-blur-xl relative z-20">
+          <div className="p-3 border-t border-brand-text-primary/30 bg-brand-bg-secondary/90  relative z-20">
             {audioError && (
-              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-lg animate-fadeIn text-left">
+              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-none  text-left">
                 ⚠️ {audioError}
               </div>
             )}
@@ -1085,21 +1085,21 @@ export const CouncilChamberScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`w-10 h-10 flex-shrink-0 rounded-full border flex items-center justify-center transition-all focus:outline-none
+                className={`w-10 h-10 flex-shrink-0 rounded-none border flex items-center justify-center  focus:outline-none
                   ${isRecording
-                    ? 'bg-brand-error/20 border-brand-error text-brand-error animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.25)]'
-                    : 'bg-brand-navy/60 border-brand-accent/20 text-brand-accent hover:bg-brand-accent/10 shadow-glow-gold-sm'
+                    ? 'bg-brand-error/20 border-brand-error text-brand-error'
+                    : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
                   }`}
                 title={isRecording ? 'Stop Recording' : 'Record voice'}
               >
                 {isRecording ? (
-                  <span className="w-2.5 h-2.5 bg-brand-error rounded-sm animate-ping"></span>
+                  <span className="w-2.5 h-2.5 bg-brand-error rounded-sm "></span>
                 ) : (
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
                 )}
               </button>
 
-              <div className="relative flex-grow flex items-center bg-brand-navy/55 backdrop-blur-md rounded-2xl border border-brand-accent/20 focus-within:ring-1 focus-within:ring-brand-accent transition-all duration-300">
+              <div className="relative flex-grow flex items-center bg-brand-bg-primary  rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent  ">
                 <input
                   type="text"
                   value={inputVal}
@@ -1121,7 +1121,7 @@ export const CouncilChamberScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-xl border border-brand-error/30 bg-brand-error/15 text-brand-error transition-all flex items-center justify-center font-bold"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-none border border-brand-error/30 bg-brand-error/15 text-brand-error  flex items-center justify-center font-bold"
                     title="Abort consult"
                   >
                     ✕
@@ -1130,7 +1130,7 @@ export const CouncilChamberScreen: React.FC = () => {
                   <button
                     type="submit"
                     disabled={!inputVal.trim()}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-xl bg-brand-accent disabled:bg-brand-navy/30 text-brand-navy disabled:text-brand-text-secondary/30 transition-all flex items-center justify-center shadow-glow-gold-sm"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-none bg-brand-accent disabled:bg-brand-bg-primary text-brand-navy disabled:text-brand-text-secondary/30  flex items-center justify-center "
                     title="Consult"
                   >
                     <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
@@ -1150,41 +1150,41 @@ export const CouncilChamberScreen: React.FC = () => {
       {/* ========================================================================= */}
       <div className="hidden lg:grid grid-cols-12 gap-6 h-[calc(100vh-140px)] w-full overflow-hidden text-left">
         
-        {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
-        <div className="col-span-3 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
-          <Card className="p-5 border border-brand-accent/20 bg-brand-navy/35 rounded-2xl flex flex-col gap-4 shadow-glow-gold-sm relative overflow-hidden group">
-            <div className="absolute -top-16 -right-16 w-28 h-28 bg-brand-accent/5 rounded-full blur-3xl group-hover:bg-brand-accent/10 transition-all duration-700"></div>
+        {/* Columns 1-2: Strategic Chambers & Setup (Sidebar) */}
+        <div className="col-span-3 xl:col-span-2 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
+          <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-4  relative overflow-hidden group">
+            <div className="absolute -top-16 -right-16 w-28 h-28 bg-brand-accent/5 rounded-none blur-3xl group-hover:bg-brand-text-primary text-brand-bg-primary  "></div>
             
             <div className="space-y-0.5">
               <h3 className="text-base font-serif font-bold text-shimmer flex items-center gap-1.5">
-                <CourtIcon className="h-4.5 w-4.5 text-brand-accent" /> Protocols
+                <CourtIcon className="h-4.5 w-4.5 text-brand-text-primary font-semibold" /> Protocols
               </h3>
               <p className="text-[10px] text-brand-text-secondary font-light">Select deliberation protocol.</p>
             </div>
 
             <div className="flex flex-col gap-2">
               {[
-                { value: ChamberMode.DIRECT, title: 'Direct Consult', badge: 'V4', icon: '🌐' },
-                { value: ChamberMode.ORACLE, title: 'Deliberation Oracle', badge: '6-Stage', icon: '🔮' },
-                { value: ChamberMode.COUNCIL, title: 'Persona Council', badge: '5 Minds', icon: '🏛️' },
-                { value: ChamberMode.SYNTHESIS, title: 'Adversarial Synthesis', badge: '7-Phase', icon: '⚔️' },
+                { value: ChamberMode.DIRECT, title: 'Direct', badge: 'V4', icon: '[ D ]' },
+                { value: ChamberMode.ORACLE, title: 'Oracle', badge: '6-Stg', icon: '[ O ]' },
+                { value: ChamberMode.COUNCIL, title: 'Council', badge: 'Minds', icon: '[ C ]' },
+                { value: ChamberMode.SYNTHESIS, title: 'Synthesis', badge: '7-Phs', icon: '[ S ]' },
               ].map((m) => {
                 const isActive = activeTab === m.value;
                 return (
                   <button
                     key={m.value}
                     onClick={() => setActiveTab(m.value)}
-                    className={`w-full p-3.5 rounded-xl border text-left transition-all flex items-center gap-3 relative overflow-hidden group/btn
+                    className={`w-full p-3.5 rounded-none border text-left  flex items-center gap-3 relative overflow-hidden group/btn
                       ${isActive 
-                        ? 'bg-brand-accent/10 border-brand-accent text-brand-accent shadow-[0_0_10px_rgba(201,168,76,0.1)] scale-[1.01]' 
-                        : 'bg-brand-navy/40 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/20 hover:bg-brand-accent/5 hover:text-brand-text-primary'
+                        ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent text-brand-text-primary font-semibold scale-[1.01]' 
+                        : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:bg-brand-accent/5 hover:text-brand-text-primary'
                       }`}
                   >
                     <span className="text-xl">{m.icon}</span>
                     <div className="flex-grow flex items-center justify-between">
                       <span className="text-xs font-bold font-serif">{m.title}</span>
                       <span className={`text-[8px] font-mono px-1.5 py-0.5 border rounded uppercase
-                        ${isActive ? 'border-brand-accent/35 bg-brand-navy text-brand-accent' : 'border-white/10 bg-white/5'}`}>
+                        ${isActive ? 'border-brand-accent/35 bg-brand-navy text-brand-text-primary font-semibold' : 'border-white/10 bg-white/5'}`}>
                         {m.badge}
                       </span>
                     </div>
@@ -1196,8 +1196,8 @@ export const CouncilChamberScreen: React.FC = () => {
 
           {/* Dynamic Selection Details (Desktop Sidebar) */}
           {activeTab === ChamberMode.DIRECT && (
-            <Card className="p-5 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-3.5 animate-fadeIn">
-              <h4 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1">Config</h4>
+            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none flex flex-col gap-3.5 ">
+              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary font-semibold uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Config</h4>
               <SelectInput
                 label="Selected Model"
                 options={[
@@ -1214,8 +1214,8 @@ export const CouncilChamberScreen: React.FC = () => {
           )}
 
           {activeTab === ChamberMode.COUNCIL && (
-            <Card className="p-5 border border-brand-accent/15 bg-brand-navy/20 backdrop-blur-md rounded-2xl flex flex-col gap-3 animate-fadeIn">
-              <h4 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest border-b border-brand-accent/10 pb-1">Expert Advisor Minds</h4>
+            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none flex flex-col gap-3 ">
+              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary font-semibold uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Expert Advisor Minds</h4>
               <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-0.5">
                 {PERSONAS.map((p) => {
                   const isSelected = selectedPersona.id === p.id;
@@ -1223,10 +1223,10 @@ export const CouncilChamberScreen: React.FC = () => {
                     <button
                       key={p.id}
                       onClick={() => setSelectedPersona(p)}
-                      className={`p-2.5 rounded-xl border text-left transition-all flex items-start gap-2.5
+                      className={`p-2.5 rounded-none border text-left  flex items-start gap-2.5
                         ${isSelected
-                          ? 'bg-brand-accent/10 border-brand-accent/50 text-brand-text-primary shadow-glow-gold-sm scale-[1.01]'
-                          : 'bg-brand-navy/60 border-brand-accent/5 text-brand-text-secondary hover:border-brand-accent/20'
+                          ? 'bg-brand-text-primary text-brand-bg-primary border-brand-text-primary/300 text-brand-text-primary  scale-[1.01]'
+                          : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30'
                         }`}
                     >
                       <span className="text-lg flex-shrink-0">{p.avatar}</span>
@@ -1242,21 +1242,21 @@ export const CouncilChamberScreen: React.FC = () => {
           )}
         </div>
 
-        {/* Columns 4-8: Interactive Workbench (Chat Feed & Input) */}
-        <div className="col-span-6 flex flex-col bg-brand-navy/15 border border-brand-accent/10 rounded-2xl overflow-hidden relative shadow-inner-subtle h-full min-h-0">
+        {/* Columns 3-9: Interactive Workbench (Chat Feed & Input) */}
+        <div className="col-span-6 xl:col-span-7 flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle h-full min-h-0">
           
           {/* Chat Feed */}
           <div className="flex-grow p-5 overflow-y-auto space-y-5 custom-scrollbar text-left relative z-10">
             
             {activeHistory.length <= 1 && (
-              <div className="p-6 border border-brand-accent/15 bg-brand-navy/30 backdrop-blur-lg rounded-2xl flex flex-col items-center gap-4 shadow-glow-gold-sm text-center transition-all duration-300 animate-fadeIn my-2">
-                <div className="w-12 h-12 rounded-full border border-brand-accent/20 bg-brand-navy/60 flex items-center justify-center flex-shrink-0 text-brand-accent shadow-[0_0_10px_rgba(201,168,76,0.1)]">
+              <div className="p-6 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none flex flex-col items-center gap-4  text-center    my-2">
+                <div className="w-12 h-12 rounded-none border border-brand-text-primary/30 bg-brand-bg-primary flex items-center justify-center flex-shrink-0 text-brand-text-primary font-semibold">
                   {activeTab === ChamberMode.DIRECT ? (
-                    <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 " fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                     </svg>
                   ) : activeTab === ChamberMode.ORACLE ? (
-                    <svg className="w-6 h-6 animate-spin-slow" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 " fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                       <circle cx={12} cy={12} r={9} strokeDasharray="3 3" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813z" />
                     </svg>
@@ -1288,10 +1288,10 @@ export const CouncilChamberScreen: React.FC = () => {
             )}
 
             {activeHistory.map((item) => (
-              <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} animate-fadeIn`}>
+              <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
                 <div className="flex items-center space-x-1.5 mb-1">
                   {item.meta && (
-                    <span className="text-[8px] font-mono uppercase tracking-widest text-brand-accent bg-brand-accent/5 px-1.5 py-0.5 border border-brand-accent/15 rounded">
+                    <span className="text-xs font-serif font-bold text-brand-text-primary font-semibold bg-brand-accent/5 px-1.5 py-0.5 border border-brand-text-primary/30 rounded">
                       {item.meta}
                     </span>
                   )}
@@ -1301,12 +1301,12 @@ export const CouncilChamberScreen: React.FC = () => {
                 </div>
 
                 <div
-                  className={`max-w-[90%] p-3.5 rounded-xl text-[12px] leading-relaxed border transition-all duration-300
+                  className={`max-w-[90%] p-3.5 rounded-none text-[12px] leading-relaxed border  
                     ${item.sender === 'user'
-                      ? 'bg-brand-accent/15 border-brand-accent/30 text-brand-text-primary rounded-tr-none'
+                      ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
                         ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[11px]'
-                        : 'bg-brand-navy/70 border-white/5 text-brand-text-primary rounded-tl-none'
+                        : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
                   <p className="whitespace-pre-wrap font-light">{item.text}</p>
@@ -1316,15 +1316,15 @@ export const CouncilChamberScreen: React.FC = () => {
                   <div className="flex space-x-2 mt-1.5 pl-1">
                     <button
                       onClick={() => handleSpeak(item.text)}
-                      className="px-2 py-1 border border-brand-accent/20 rounded bg-brand-navy/40 hover:bg-brand-accent/10 text-[9px] transition-all text-brand-accent font-mono uppercase tracking-wide cursor-pointer"
+                      className="px-2 py-1 border border-brand-text-primary/30 rounded bg-brand-bg-primary hover:bg-brand-text-primary text-brand-bg-primary text-[9px]  text-brand-text-primary font-semibold font-mono uppercase tracking-wide cursor-pointer"
                     >
-                      🔊 Speak
+                      Speak
                     </button>
                     <button
                       onClick={() => navigator.clipboard.writeText(item.text)}
-                      className="px-2 py-1 border border-white/10 rounded bg-brand-navy/40 hover:bg-white/5 text-[9px] text-brand-text-secondary hover:text-brand-text-primary transition-all font-mono uppercase tracking-wide cursor-pointer"
+                      className="px-2 py-1 border border-white/10 rounded bg-brand-bg-primary hover:bg-white/5 text-[9px] text-brand-text-secondary hover:text-brand-text-primary  font-mono uppercase tracking-wide cursor-pointer"
                     >
-                      📋 Copy
+                      Copy
                     </button>
                   </div>
                 )}
@@ -1335,9 +1335,9 @@ export const CouncilChamberScreen: React.FC = () => {
           </div>
 
           {/* Bottom Input Composer */}
-          <div className="p-3 border-t border-brand-accent/15 bg-brand-bg-secondary/80 backdrop-blur-xl relative z-20">
+          <div className="p-3 border-t border-brand-text-primary/30 bg-brand-bg-secondary/80  relative z-20">
             {audioError && (
-              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-lg text-left animate-fadeIn">
+              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-none text-left ">
                 ⚠️ {audioError}
               </div>
             )}
@@ -1346,10 +1346,10 @@ export const CouncilChamberScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none
+                className={`w-10 h-10 flex-shrink-0 rounded-none border flex items-center justify-center  focus:outline-none
                   ${isRecording
-                    ? 'bg-brand-error/25 border-brand-error text-brand-error shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse'
-                    : 'bg-brand-navy/60 border-brand-accent/25 text-brand-accent hover:bg-brand-accent/10 shadow-glow-gold-sm'
+                    ? 'bg-brand-error/25 border-brand-error text-brand-error '
+                    : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
                   }`}
                 title={isRecording ? 'Stop Recording' : 'Speak'}
               >
@@ -1381,7 +1381,7 @@ export const CouncilChamberScreen: React.FC = () => {
                         ? 'Enter dispute premise...'
                         : 'Consult V4...'
                 }
-                className="flex-grow p-2.5 bg-brand-navy/40 border border-brand-accent/10 rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-[12px] text-brand-text-primary placeholder-brand-text-secondary/35 font-light resize-none min-h-[42px] max-h-[140px] custom-scrollbar"
+                className="flex-grow p-2.5 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none focus:ring-1 focus:ring-brand-accent focus:outline-none text-[12px] text-brand-text-primary placeholder-brand-text-secondary/35 font-light resize-none min-h-[42px] max-h-[140px] custom-scrollbar"
                 rows={1}
               />
 
@@ -1389,7 +1389,7 @@ export const CouncilChamberScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 border border-brand-error/40 rounded-xl bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[10px] font-mono uppercase tracking-wider flex-shrink-0 transition-all font-semibold"
+                  className="px-4 border border-brand-error/40 rounded-none bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[10px] font-mono uppercase tracking-wider flex-shrink-0  font-semibold"
                 >
                   ✕ Cancel
                 </button>
@@ -1398,7 +1398,7 @@ export const CouncilChamberScreen: React.FC = () => {
                   type="submit"
                   variant="primary"
                   disabled={!inputVal.trim()}
-                  className="px-4 font-mono text-[10px] uppercase tracking-wider shadow-glow-gold-sm flex-shrink-0"
+                  className="px-4 font-mono text-[10px] uppercase tracking-wider  flex-shrink-0"
                 >
                   Consult
                 </Button>
@@ -1409,16 +1409,16 @@ export const CouncilChamberScreen: React.FC = () => {
 
         {/* Columns 9-12: Real-time Deliberation Blueprint & Trace Console (Right Panel) */}
         <div className="col-span-3 flex flex-col gap-5 h-full overflow-hidden min-h-0">
-          <Card className="p-4.5 border border-brand-accent/25 bg-brand-navy/35 rounded-2xl flex flex-col h-full overflow-hidden shadow-glow-gold-sm">
-            <div className="space-y-1 border-b border-brand-accent/15 pb-3">
+          <Card className="p-4.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col h-full overflow-hidden ">
+            <div className="space-y-1 border-b border-brand-text-primary/30 pb-3">
               <h3 className="text-sm font-serif font-bold text-shimmer flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
-                  <svg className="w-4 h-4 animate-spin-slow text-brand-accent" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <svg className="w-4 h-4  text-brand-text-primary font-semibold" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
                   </svg>
                   Holographic Deliberation Blueprint
                 </span>
-                <span className="text-[8px] font-mono border border-brand-accent/30 text-brand-accent px-1.5 py-0.5 rounded bg-brand-navy/80 uppercase">
+                <span className="text-[8px] font-mono border border-brand-text-primary/30 text-brand-text-primary font-semibold px-1.5 py-0.5 rounded bg-brand-navy/80 uppercase">
                   {isProcessing ? 'Active' : 'Standby'}
                 </span>
               </h3>
@@ -1440,17 +1440,17 @@ export const CouncilChamberScreen: React.FC = () => {
             </div>
 
             {/* Scrollable Trace Logs or System Status Archive */}
-            <div className="flex-grow flex flex-col min-h-0 border-t border-brand-accent/10 pt-3">
-              <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent/80 block mb-2">
+            <div className="flex-grow flex flex-col min-h-0 border-t border-brand-text-primary/30 pt-3">
+              <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold block mb-2">
                 {isProcessing ? `Live Trace: ${oracleStage}` : 'Process Log Archive'}
               </span>
 
               <div className="flex-grow overflow-y-auto custom-scrollbar space-y-3 pr-0.5 text-left">
                 {isProcessing && oracleStage && (
-                  <div className="p-3.5 rounded-xl border border-brand-accent/25 bg-brand-navy/55 backdrop-blur-xl space-y-3 animate-fadeIn">
+                  <div className="p-3.5 rounded-none border border-brand-text-primary/30 bg-brand-bg-primary  space-y-3 ">
                     <div className="flex items-center space-x-2">
-                      <LoadingSpinner size="sm" spinnerColor="text-brand-accent animate-spin" />
-                      <span className="text-[9px] font-mono tracking-widest text-brand-accent uppercase font-bold">{oracleStage}</span>
+                      <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold " />
+                      <span className="text-[9px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
                     </div>
 
                     <div className="space-y-1.5">
@@ -1471,12 +1471,12 @@ export const CouncilChamberScreen: React.FC = () => {
                         return (
                           <div key={idx} className="flex items-center justify-between text-[9px] font-mono">
                             <div className="flex items-center space-x-2">
-                              <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border text-[7px] font-bold
+                              <span className={`w-3.5 h-3.5 rounded-none flex items-center justify-center border text-[7px] font-bold
                                 ${isCompleted 
-                                  ? 'bg-brand-accent/20 border-brand-accent text-brand-accent' 
+                                  ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' 
                                   : isActive 
-                                    ? 'bg-amber-500/10 border-amber-500 text-amber-400 animate-pulse' 
-                                    : 'bg-brand-navy border-brand-accent/5 text-brand-text-secondary/20'
+                                    ? 'bg-amber-500/10 border-amber-500 text-amber-400 ' 
+                                    : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'
                                 }`}
                               >
                                 {isCompleted ? '✓' : idx + 1}
@@ -1495,8 +1495,8 @@ export const CouncilChamberScreen: React.FC = () => {
                 {oracleTrace.length > 0 ? (
                   <div className="space-y-3">
                     {oracleTrace.map((tr, index) => (
-                      <div key={index} className="space-y-1 p-3 bg-brand-navy/60 border border-brand-accent/10 rounded-xl animate-fadeIn">
-                        <h6 className="font-mono text-[9px] font-bold text-brand-accent uppercase tracking-wider border-b border-brand-accent/5 pb-0.5 flex items-center justify-between">
+                      <div key={index} className="space-y-1 p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
+                        <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5 flex items-center justify-between">
                           <span>Stage {index + 1}: {tr.stage}</span>
                           <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">✓ READY</span>
                         </h6>
@@ -1505,8 +1505,8 @@ export const CouncilChamberScreen: React.FC = () => {
                     ))}
                   </div>
                 ) : !isProcessing ? (
-                  <div className="p-4 border border-white/5 bg-brand-navy/20 rounded-xl space-y-2 text-center text-brand-text-secondary font-light">
-                    <span className="text-2xl animate-pulse">⚡</span>
+                  <div className="p-4 border border-white/5 bg-brand-bg-primary rounded-none space-y-2 text-center text-brand-text-secondary font-light">
+                    <span className="text-2xl "></span>
                     <h5 className="text-xs font-serif font-bold text-brand-text-primary">Cognitive Engines Standby</h5>
                     <p className="text-[9px] leading-relaxed max-w-[200px] mx-auto text-brand-text-secondary/70">
                       Submit a litigation premise or legal query in the consult workbench to activate the animated reasoning pipeline.
