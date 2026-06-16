@@ -37,6 +37,39 @@ const GlobalErrorDisplay: React.FC<{ message: string; onDismiss: () => void }> =
 
 
 
+class ErrorBoundary extends React.Component<{ children: React.ReactNode; fallbackMessage?: string }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: React.ReactNode; fallbackMessage?: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('ErrorBoundary caught:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh] p-8">
+          <div className="max-w-md text-center space-y-4">
+            <div className="w-16 h-16 border border-red-300 flex items-center justify-center mx-auto text-red-500 text-2xl font-bold">!</div>
+            <h2 className="text-xl font-serif font-semibold text-brand-text-primary">Something went wrong</h2>
+            <p className="text-sm text-brand-text-secondary">{this.state.error?.message || this.props.fallbackMessage || 'An unexpected error occurred.'}</p>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.hash = '#/home'; }}
+              className="px-6 py-2 text-sm border border-brand-accent text-brand-accent hover:bg-brand-accent/10 transition-colors"
+            >
+              Return to Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const ModeSpecificRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const context = useContext(TrialSimContext);
   const mode = context?.practiceMode || (localStorage.getItem('practiceMode') as PracticeMode | null);
@@ -104,7 +137,7 @@ function App() {
           <Route path={ROUTES.LIBRARY} element={<Layout><ModeSpecificRoute element={<CaseLibraryScreen />} /></Layout>} />
           <Route path={ROUTES.JUDGES} element={<Layout><ModeSpecificRoute element={<JudgesScreen />} /></Layout>} />
           <Route path={ROUTES.OPPOSING_COUNSEL} element={<Layout><ModeSpecificRoute element={<OpposingCounselScreen />} /></Layout>} />
-          <Route path={ROUTES.DRAFTING_STUDIO} element={<Layout><ModeSpecificRoute element={<DraftingStudioScreen />} /></Layout>} />
+          <Route path={ROUTES.DRAFTING_STUDIO} element={<Layout><ErrorBoundary fallbackMessage="Drafting Studio encountered an error."><ModeSpecificRoute element={<DraftingStudioScreen />} /></ErrorBoundary></Layout>} />
           <Route path={ROUTES.COUNCIL} element={<Layout><ModeSpecificRoute element={<CouncilChamberScreen />} /></Layout>} />
           <Route path={ROUTES.SENTIENT_SUBJECTS} element={<Layout><ModeSpecificRoute element={<SentientSubjectsScreen />} /></Layout>} />
           <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />

@@ -35,17 +35,17 @@ export const SelectInput: React.FC<SelectInputProps> = ({
           className={`${baseInputStyle} appearance-none pr-10 cursor-pointer ${className}`}
           {...props}
         >
-          {placeholder && <option value="" className="text-brand-text-secondary bg-brand-navy">{placeholder}</option>}
+          {placeholder && <option value="" className="text-brand-text-secondary bg-brand-bg-primary">{placeholder}</option>}
           {options.map(option => {
             if (typeof option.value === 'string' && option.value.startsWith('__optgroup__')) {
               return (
-                <option key={option.value} value={option.value} disabled className="text-brand-accent font-semibold bg-brand-navy pb-1 pt-2">
+                <option key={option.value} value={option.value} disabled className="text-brand-accent font-semibold bg-brand-bg-primary pb-1 pt-2">
                   {option.label}
                 </option>
               );
             }
             return (
-              <option key={option.value} value={option.value} disabled={option.disabled} className="bg-brand-navy text-brand-text-primary py-2">
+              <option key={option.value} value={option.value} disabled={option.disabled} className="bg-brand-bg-primary text-brand-text-primary py-2">
                 {option.label}
               </option>
             );

@@ -20,7 +20,7 @@ const ScoreGauge: React.FC<{ score: number; tier: ScoringResult['verdictTier'] }
   return (
     <div className="relative flex items-center justify-center w-28 h-28 mx-auto">
       <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(42,37,32,0.08)" strokeWidth="6" />
         <circle
           cx="50" cy="50" r="42"
           fill="none"
