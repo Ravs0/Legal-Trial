@@ -504,6 +504,40 @@ export const CouncilChamberScreen: React.FC = () => {
   if (!context) throw new Error('TrialSimContext not found');
   const { practiceMode } = context;
 
+  const formatText = (text: string): React.ReactNode => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return lines.map((line, lineIdx) => {
+      const isBullet = line.trim().startsWith('* ') || line.trim().startsWith('- ');
+      const displayLine = isBullet ? line.trim().substring(2) : line;
+      const parts = displayLine.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
+      const lineContent = parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={index} className="text-brand-accent font-semibold">{part.slice(2, -2)}</strong>;
+        }
+        if ((part.startsWith('*') && part.endsWith('*')) || (part.startsWith('_') && part.endsWith('_'))) {
+          return <em key={index} className="font-serif italic opacity-95">{part.slice(1, -1)}</em>;
+        }
+        return part;
+      });
+
+      if (isBullet) {
+        return (
+          <div key={lineIdx} className="flex items-start my-1 pl-2">
+            <span className="text-brand-accent mr-2 flex-shrink-0">•</span>
+            <span>{lineContent}</span>
+          </div>
+        );
+      }
+
+      return (
+        <div key={lineIdx} className="min-h-[1.2em]">
+          {lineContent}
+        </div>
+      );
+    });
+  };
+
   const [activeTab, setActiveTab] = useState<ChamberMode>(ChamberMode.DIRECT);
   const [selectedPersona, setSelectedPersona] = useState<Persona>(PERSONAS[0]);
   const [selectedModel, setSelectedModel] = useState<string>('deepseek-chat');
@@ -978,7 +1012,7 @@ export const CouncilChamberScreen: React.FC = () => {
                         : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
-                  <p className="whitespace-pre-wrap font-light">{item.text}</p>
+                  <div className="font-light text-brand-text-primary space-y-1.5">{formatText(item.text)}</div>
                   
                   {item.trace && item.trace.length > 0 && (
                     <details className="mt-3 pt-2.5 border-t border-white/10 text-[11px] font-light text-brand-text-secondary/80">
@@ -1312,7 +1346,7 @@ export const CouncilChamberScreen: React.FC = () => {
                         : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
-                  <p className="whitespace-pre-wrap font-light">{item.text}</p>
+                  <div className="font-light text-brand-text-primary space-y-1.5">{formatText(item.text)}</div>
                 </div>
 
                 {item.sender === 'assistant' && item.text && (
