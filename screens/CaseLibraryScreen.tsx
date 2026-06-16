@@ -43,6 +43,7 @@ const CaseLibraryScreen: React.FC = () => {
   const { setCurrentSessionSettings, setIsLoading: setGlobalLoading, practiceMode } = context;
 
   const [selectedCaseForPractice, setSelectedCaseForPractice] = useState<CaseDetail | null>(null);
+  const [isCustomSimExpanded, setIsCustomSimExpanded] = useState(false);
 
   // Custom case state variables
   const [customTitle, setCustomTitle] = useState('');
@@ -216,131 +217,157 @@ const CaseLibraryScreen: React.FC = () => {
 
       {/* Custom Case Simulator Section */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        <Card className="p-6 sm:p-8 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none relative overflow-hidden">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-text-primary/30 pb-4 mb-6 gap-4">
-            <div className="space-y-1 text-left">
-              <h3 className="text-xl sm:text-2xl font-serif font-bold text-brand-text-primary flex items-center">
-                <svg className="w-6 h-6 mr-2.5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                Bespoke Custom Case Simulator
+        <button 
+          onClick={() => setIsCustomSimExpanded(!isCustomSimExpanded)}
+          className="w-full text-left p-4.5 bg-brand-bg-secondary border border-brand-text-primary/30 hover:bg-brand-bg-secondary/80 flex items-center justify-between transition-all group focus-ring"
+        >
+          <div className="flex items-center space-x-3.5">
+            <div className="w-9 h-9 bg-brand-bg-primary border border-brand-text-primary/20 flex items-center justify-center text-brand-accent group-hover:border-brand-accent transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-serif font-bold text-brand-text-primary uppercase tracking-wide group-hover:text-brand-accent transition-colors">
+                [ Configure Bespoke Custom Trial ]
               </h3>
-              <p className="text-xs text-brand-text-secondary font-light">
-                Upload legal briefs, copy-paste custom facts, and configure your own mock trial simulation instantly.
+              <p className="text-[10px] text-brand-text-secondary/70 font-light mt-0.5">
+                Upload legal briefs or paste custom dispute facts.
               </p>
             </div>
-            
-            <div className="flex-shrink-0">
-              <label className="inline-flex items-center px-4 py-2 border border-brand-text-primary/30 rounded-none bg-brand-bg-secondary text-xs font-mono text-brand-text-primary hover:bg-brand-bg-primary cursor-pointer transition-all">
-                <span>[ Import .txt, .md, .json ]</span>
-                <input 
-                  type="file" 
-                  accept=".txt,.md,.json" 
-                  onChange={handleFileUpload} 
-                  className="hidden" 
-                />
-              </label>
-            </div>
           </div>
+          <span className="text-xs font-mono text-brand-accent font-semibold">
+            {isCustomSimExpanded ? "[ Collapse ▲ ]" : "[ Expand ▼ ]"}
+          </span>
+        </button>
 
-          {fileUploadError && (
-            <div className="p-3 mb-5 bg-brand-error/15 border border-brand-error/30 text-brand-error rounded-none text-xs text-left animate-fadeIn">
-              [ Error ] {fileUploadError}
-            </div>
-          )}
-
-          {fileUploadSuccess && (
-            <div className="p-3 mb-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-none text-xs text-left animate-fadeIn">
-              [ Success ] {fileUploadSuccess}
-            </div>
-          )}
-
-          <form onSubmit={handleLaunchCustomCase} className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Case Title</label>
-                <input
-                  type="text"
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="e.g. State of Karnataka v. Ramesh Kumar"
-                  className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Docket Category</label>
-                  <select
-                    value={customCategoryId}
-                    onChange={(e) => setCustomCategoryId(e.target.value)}
-                    className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
-                  >
-                    {activeCaseCategories.map(cat => (
-                      <option key={cat.id} value={cat.id} className="bg-brand-bg-secondary text-brand-text-primary">{cat.name}</option>
-                    ))}
-                  </select>
+        {isCustomSimExpanded && (
+          <div className="mt-4 animate-fadeIn">
+            <Card className="p-6 sm:p-8 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none relative overflow-hidden">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-text-primary/30 pb-4 mb-6 gap-4">
+                <div className="space-y-1 text-left">
+                  <h3 className="text-xl sm:text-2xl font-serif font-bold text-brand-text-primary flex items-center">
+                    <svg className="w-6 h-6 mr-2.5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Bespoke Custom Case Simulator
+                  </h3>
+                  <p className="text-xs text-brand-text-secondary font-light">
+                    Upload legal briefs, copy-paste custom facts, and configure your own mock trial simulation instantly.
+                  </p>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Simulation Complexity</label>
-                  <select
-                    value={customDifficulty}
-                    onChange={(e) => setCustomDifficulty(e.target.value as CaseDifficulty)}
-                    className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
-                  >
-                    <option value={CaseDifficulty.BEGINNER} className="bg-brand-bg-secondary text-brand-text-primary">Beginner</option>
-                    <option value={CaseDifficulty.INTERMEDIATE} className="bg-brand-bg-secondary text-brand-text-primary">Intermediate</option>
-                    <option value={CaseDifficulty.ADVANCED} className="bg-brand-bg-secondary text-brand-text-primary">Advanced</option>
-                  </select>
+                
+                <div className="flex-shrink-0">
+                  <label className="inline-flex items-center px-4 py-2 border border-brand-text-primary/30 rounded-none bg-brand-bg-secondary text-xs font-mono text-brand-text-primary hover:bg-brand-bg-primary cursor-pointer transition-all">
+                    <span>[ Import .txt, .md, .json ]</span>
+                    <input 
+                      type="file" 
+                      accept=".txt,.md,.json" 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                    />
+                  </label>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Rules of Law / Relevant Statutes</label>
-                <input
-                  type="text"
-                  value={customRelevantLaws}
-                  onChange={(e) => setCustomRelevantLaws(e.target.value)}
-                  placeholder="e.g. Section 138 of NI Act; Article 14 of Constitution"
-                  className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
-                />
-              </div>
+              {fileUploadError && (
+                <div className="p-3 mb-5 bg-brand-error/15 border border-brand-error/30 text-brand-error rounded-none text-xs text-left animate-fadeIn">
+                  [ Error ] {fileUploadError}
+                </div>
+              )}
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Key Legal Issues (comma-separated)</label>
-                <input
-                  type="text"
-                  value={customLegalIssues}
-                  onChange={(e) => setCustomLegalIssues(e.target.value)}
-                  placeholder="e.g. Burden of proof, validity of notice, signature dispute"
-                  className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
-                />
-              </div>
-            </div>
+              {fileUploadSuccess && (
+                <div className="p-3 mb-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-none text-xs text-left animate-fadeIn">
+                  [ Success ] {fileUploadSuccess}
+                </div>
+              )}
 
-            <div className="flex flex-col h-full space-y-4">
-              <div className="space-y-1.5 flex-grow flex flex-col">
-                <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Brief Facts of the Case</label>
-                <textarea
-                  value={customBriefFacts}
-                  onChange={(e) => setCustomBriefFacts(e.target.value)}
-                  placeholder="Paste or write the absolute facts of your custom dispute here..."
-                  className="w-full flex-grow p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light resize-none min-h-[160px] custom-scrollbar"
-                  required
-                />
-              </div>
+              <form onSubmit={handleLaunchCustomCase} className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Case Title</label>
+                    <input
+                      type="text"
+                      value={customTitle}
+                      onChange={(e) => setCustomTitle(e.target.value)}
+                      placeholder="e.g. State of Karnataka v. Ramesh Kumar"
+                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                    />
+                  </div>
 
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={!customBriefFacts.trim()}
-                  className="w-full py-4 text-xs tracking-widest font-mono uppercase bg-brand-accent hover:bg-brand-accent-hover text-brand-navy font-bold rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Configure Custom Simulation
-                </button>
-              </div>
-            </div>
-          </form>
-        </Card>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Docket Category</label>
+                      <select
+                        value={customCategoryId}
+                        onChange={(e) => setCustomCategoryId(e.target.value)}
+                        className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
+                      >
+                        {activeCaseCategories.map(cat => (
+                          <option key={cat.id} value={cat.id} className="bg-brand-bg-secondary text-brand-text-primary">{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Simulation Complexity</label>
+                      <select
+                        value={customDifficulty}
+                        onChange={(e) => setCustomDifficulty(e.target.value as CaseDifficulty)}
+                        className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
+                      >
+                        <option value={CaseDifficulty.BEGINNER} className="bg-brand-bg-secondary text-brand-text-primary">Beginner</option>
+                        <option value={CaseDifficulty.INTERMEDIATE} className="bg-brand-bg-secondary text-brand-text-primary">Intermediate</option>
+                        <option value={CaseDifficulty.ADVANCED} className="bg-brand-bg-secondary text-brand-text-primary">Advanced</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Rules of Law / Relevant Statutes</label>
+                    <input
+                      type="text"
+                      value={customRelevantLaws}
+                      onChange={(e) => setCustomRelevantLaws(e.target.value)}
+                      placeholder="e.g. Section 138 of NI Act; Article 14 of Constitution"
+                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Key Legal Issues (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={customLegalIssues}
+                      onChange={(e) => setCustomLegalIssues(e.target.value)}
+                      placeholder="e.g. Burden of proof, validity of notice, signature dispute"
+                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col h-full space-y-4">
+                  <div className="space-y-1.5 flex-grow flex flex-col">
+                    <label className="block text-xs font-mono text-brand-text-primary uppercase tracking-wider">Brief Facts of the Case</label>
+                    <textarea
+                      value={customBriefFacts}
+                      onChange={(e) => setCustomBriefFacts(e.target.value)}
+                      placeholder="Paste or write the absolute facts of your custom dispute here..."
+                      className="w-full flex-grow p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light resize-none min-h-[160px] custom-scrollbar"
+                      required
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={!customBriefFacts.trim()}
+                      className="w-full py-4 text-xs tracking-widest font-mono uppercase bg-brand-accent hover:bg-brand-accent-hover text-brand-navy font-bold rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Configure Custom Simulation
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </Card>
+          </div>
+        )}
       </div>
 
       <div className="space-y-16 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">

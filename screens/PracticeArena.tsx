@@ -40,6 +40,7 @@ const PracticeArena: React.FC = () => {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [objectionGrounds, setObjectionGrounds] = useState('relevance');
   const [objectionExplanation, setObjectionExplanation] = useState('');
+  const [isInlineObjectionActive, setIsInlineObjectionActive] = useState(false);
 
   // Voice recording states for STT
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -315,6 +316,7 @@ const PracticeArena: React.FC = () => {
 
     // Clear state early for clean UI
     setIsObjectionOpen(false);
+    setIsInlineObjectionActive(false);
     setObjectionExplanation('');
 
     // Find the last opposing counsel statement to send to the Judge
@@ -645,19 +647,58 @@ const PracticeArena: React.FC = () => {
                   {(() => {
                     const lastMessage = messages[messages.length - 1];
                     const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
-                    return canObject ? (
+                    return canObject && !isInlineObjectionActive ? (
                       <div className="flex justify-center mb-2 animate-fadeInUp">
                         <button
                           type="button"
-                          onClick={() => setIsMobileDrawerOpen(true)}
+                          onClick={() => setIsInlineObjectionActive(true)}
                           className="px-4 py-1.5 rounded-none border border-brand-accent bg-brand-bg-secondary text-brand-accent text-[10px] font-bold font-mono uppercase tracking-widest hover:bg-brand-accent hover:text-brand-navy transition-all flex items-center gap-1"
                         >
-                          <span>[ Objection Grounds Available ]</span>
-                          <span className="text-[9px] bg-brand-accent text-brand-navy px-1 rounded-none font-mono font-bold ml-1">View</span>
+                          <span>[ Raise Objection ]</span>
+                          <span className="text-[9px] bg-brand-accent text-brand-navy px-1 rounded-none font-mono font-bold ml-1">Object!</span>
                         </button>
                       </div>
                     ) : null;
                   })()}
+
+                  {isInlineObjectionActive && (
+                    <div className="flex flex-col space-y-2 p-2 bg-brand-bg-secondary border border-brand-accent/30 rounded-none mb-2.5 text-left animate-fadeIn">
+                      <div className="flex items-center justify-between border-b border-brand-text-primary/10 pb-1">
+                        <span className="text-[9px] font-mono font-bold text-brand-accent uppercase tracking-wider">Objection Grounds</span>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setIsInlineObjectionActive(false);
+                            setObjectionExplanation('');
+                          }}
+                          className="text-[9px] font-mono text-brand-text-secondary hover:text-brand-accent uppercase"
+                        >
+                          [ Cancel ]
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 select-none">
+                        {[
+                          { value: 'relevance', label: 'Relevance' },
+                          { value: 'facts', label: 'Facts' },
+                          { value: 'law', label: 'Law' },
+                          { value: 'speculation', label: 'Speculation' },
+                        ].map(g => (
+                          <button
+                            key={g.value}
+                            type="button"
+                            onClick={() => setObjectionGrounds(g.value)}
+                            className={`p-1.5 rounded-none border text-[10px] font-mono transition-all text-center
+                              ${objectionGrounds === g.value
+                                ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-bold'
+                                : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary'
+                              }`}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center gap-2.5 w-full">
                     {/* Compact Microphone Record Icon */}
@@ -682,15 +723,15 @@ const PracticeArena: React.FC = () => {
                     {/* Unified Composer Container */}
                     <div className="relative flex-grow flex items-center bg-brand-bg-secondary rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent transition-all">
                       <textarea
-                        value={userInput}
-                        onChange={(e) => setUserInput(e.target.value)}
+                        value={isInlineObjectionActive ? objectionExplanation : userInput}
+                        onChange={(e) => isInlineObjectionActive ? setObjectionExplanation(e.target.value) : setUserInput(e.target.value)}
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            handleSendMessage();
+                            isInlineObjectionActive ? handleObjectionSubmit() : handleSendMessage();
                           }
                         }}
-                        placeholder="Address the Court..."
+                        placeholder={isInlineObjectionActive ? "Explain objection basis..." : "Address the Court..."}
                         className="w-full pl-4 pr-10 py-2.5 bg-transparent text-brand-text-primary outline-none resize-none min-h-[42px] max-h-[120px] placeholder-brand-text-secondary/30 font-light text-xs sm:text-sm custom-scrollbar"
                         rows={1}
                         disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
@@ -699,10 +740,10 @@ const PracticeArena: React.FC = () => {
                       {/* Nested Send Icon Button */}
                       <button
                         type="button"
-                        onClick={handleSendMessage}
-                        disabled={!!isAiTyping || !userInput.trim() || sessionEnded || !isTimerRunning}
+                        onClick={isInlineObjectionActive ? handleObjectionSubmit : handleSendMessage}
+                        disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
                         className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-none bg-brand-accent disabled:bg-brand-bg-secondary text-brand-navy disabled:text-brand-text-secondary/30 transition-all flex items-center justify-center"
-                        title="Send message"
+                        title={isInlineObjectionActive ? "Submit Objection" : "Send message"}
                       >
                         <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
@@ -712,7 +753,52 @@ const PracticeArena: React.FC = () => {
                   </div>
                 </div>
 
+
                 {/* Desktop Viewport Composer (Full Panel Layout) */}
+                {isInlineObjectionActive && (
+                  <div className="hidden sm:flex flex-col space-y-3 p-4.5 bg-brand-bg-secondary border border-brand-accent/30 rounded-none mb-4 text-left animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-brand-text-primary/10 pb-2">
+                      <span className="text-xs font-mono font-bold text-brand-accent tracking-wider uppercase flex items-center">
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                        Drafting Formal Objection
+                      </span>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setIsInlineObjectionActive(false);
+                          setObjectionExplanation('');
+                        }}
+                        className="text-[10px] font-mono uppercase text-brand-text-secondary hover:text-brand-accent transition-colors"
+                      >
+                        [ Cancel ]
+                      </button>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2.5 select-none">
+                      {[
+                        { value: 'relevance', label: 'Relevance', desc: 'Irrelevant arguments' },
+                        { value: 'facts', label: 'Facts', desc: 'Mischaracterizing facts' },
+                        { value: 'law', label: 'Law', desc: 'Misapplying precedent' },
+                        { value: 'speculation', label: 'Speculation', desc: 'Speculative assertions' },
+                      ].map(g => (
+                        <button
+                          key={g.value}
+                          type="button"
+                          onClick={() => setObjectionGrounds(g.value)}
+                          className={`px-3.5 py-2 rounded-none border text-xs font-mono transition-all text-left flex flex-col min-w-[130px]
+                            ${objectionGrounds === g.value
+                              ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-bold shadow-glow-gold-sm'
+                              : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
+                            }`}
+                        >
+                          <span className="font-bold">{g.label}</span>
+                          <span className="text-[8px] opacity-75 truncate mt-0.5">{g.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="hidden sm:flex flex-col sm:flex-row items-stretch sm:items-end space-y-3 sm:space-y-0 sm:space-x-4">
                   <div className="relative flex-grow flex items-end gap-3">
                     <button
@@ -734,39 +820,39 @@ const PracticeArena: React.FC = () => {
                     </button>
                     <div className="relative flex-grow bg-transparent">
                       <textarea
-                        value={userInput}
-                        onChange={(e) => setUserInput(e.target.value)}
+                        value={isInlineObjectionActive ? objectionExplanation : userInput}
+                        onChange={(e) => isInlineObjectionActive ? setObjectionExplanation(e.target.value) : setUserInput(e.target.value)}
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            handleSendMessage();
+                            isInlineObjectionActive ? handleObjectionSubmit() : handleSendMessage();
                           }
                         }}
-                        placeholder="Address the Court... (Shift+Enter for new line)"
+                        placeholder={isInlineObjectionActive ? "Explain objection basis... (e.g. Opposing Counsel's assertion has no basis in the evidence record)" : "Address the Court... (Shift+Enter for new line)"}
                         className="w-full p-4 pl-5 pr-12 bg-brand-bg-secondary text-brand-text-primary rounded-none border border-brand-text-primary/30 focus:ring-1 focus:ring-brand-accent focus:outline-none resize-none min-h-[70px] max-h-[180px] placeholder-brand-text-secondary/50 font-light text-base sm:text-lg custom-scrollbar transition-all group"
                         rows={2}
                         disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
                       />
                       <div className="absolute top-2 right-2 p-1.5 hidden sm:block opacity-40">
-                        <span className="text-[10px] font-mono tracking-widest uppercase">Drafting</span>
+                        <span className="text-[10px] font-mono tracking-widest uppercase">{isInlineObjectionActive ? "Objection" : "Drafting"}</span>
                       </div>
                     </div>
                   </div>
                   <div className="flex flex-row w-full sm:w-auto sm:flex-col space-x-2.5 sm:space-x-0 sm:space-y-3 items-stretch justify-end">
                     <button
-                      onClick={handleSendMessage}
-                      disabled={!!isAiTyping || !userInput.trim() || sessionEnded || !isTimerRunning}
+                      onClick={isInlineObjectionActive ? handleObjectionSubmit : handleSendMessage}
+                      disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
                       className="flex-grow sm:flex-grow-0 py-3.5 sm:py-4 px-6 sm:px-8 text-base sm:text-lg font-semibold bg-brand-accent hover:bg-brand-accent-hover text-brand-navy disabled:bg-brand-bg-secondary disabled:text-brand-text-secondary/50 rounded-none border border-brand-accent transition-all flex items-center justify-center font-bold"
                     >
-                      Send
+                      {isInlineObjectionActive ? "Object" : "Send"}
                     </button>
                     {(() => {
                       const lastMessage = messages[messages.length - 1];
                       const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
-                      return canObject ? (
+                      return canObject && !isInlineObjectionActive ? (
                         <button
                           onClick={() => {
-                            setIsMobileDrawerOpen(true);
+                            setIsInlineObjectionActive(true);
                           }}
                           className="flex-grow sm:flex-grow-0 py-3.5 px-4 text-xs tracking-wider uppercase border border-brand-accent/50 text-brand-accent bg-transparent hover:bg-brand-accent/10 focus:ring-brand-accent rounded-none font-bold transition-all"
                         >
