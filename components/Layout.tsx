@@ -18,7 +18,7 @@ interface LayoutProps {
 
 // ─── Section Header (only shows when sidebar is open) ─────────────────────────
 const SectionLabel: React.FC<{ label: string; isOpen: boolean }> = ({ label, isOpen }) => {
-  if (!isOpen) return <div className="h-px bg-white/5 my-2 mx-2" />;
+  if (!isOpen) return <div className="h-px bg-brand-text-primary/8 my-2 mx-2" />;
   return (
     <div className="px-4 pt-4 pb-1.5">
       <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-brand-accent/70 font-semibold">{label}</span>
@@ -42,7 +42,7 @@ const NavItem: React.FC<{
     `flex items-center px-3 py-2.5 rounded-none text-[12px] font-medium transition-all group relative overflow-hidden
      ${isActive
       ? 'bg-brand-accent/10 text-brand-accent border-l-2 border-l-brand-accent border-y border-r border-y-brand-accent/20 border-r-brand-accent/20'
-      : 'text-brand-text-secondary border border-transparent hover:bg-white/5 hover:text-brand-text-primary'
+      : 'text-brand-text-secondary border border-transparent hover:bg-brand-text-primary/5 hover:text-brand-text-primary'
     }`;
 
   const manualIsActive = location.pathname === to || (!end && location.pathname.startsWith(to) && to !== ROUTES.HOME) || (end && location.pathname === to && to === ROUTES.HOME);
@@ -139,7 +139,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Mobile Top Bar */}
       {showSidebar && (
-        <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-brand-bg-primary/95 backdrop-blur-xl border-b border-white/5 z-40 flex items-center justify-between px-4">
+        <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-brand-bg-primary/95 backdrop-blur-xl border-b border-brand-text-primary/8 z-40 flex items-center justify-between px-4">
           <Link to={ROUTES.HOME} className="flex items-center space-x-2">
             <CourtIcon className="h-5 w-5 text-brand-accent" />
             <h1 className="text-[17px] font-semibold text-brand-text-primary">{APP_NAME}</h1>
@@ -153,7 +153,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Overlay for mobile sidebar */}
       {showSidebar && isMobileOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/60 z-40"
+          className="md:hidden fixed inset-0 bg-black/30 z-40"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -161,20 +161,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Sidebar */}
       {showSidebar && (
         <aside
-          className={`fixed inset-y-0 left-0 z-50 bg-brand-bg-secondary border-r border-white/5 flex flex-col transition-all duration-300 ease-in-out
+          className={`fixed inset-y-0 left-0 z-50 bg-brand-bg-secondary border-r border-brand-text-primary/8 flex flex-col transition-all duration-300 ease-in-out
             ${isSidebarOpen ? 'md:w-56' : 'md:w-[60px]'}
             ${isMobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0'}
           `}
         >
           {/* Sidebar Header */}
-          <div className="flex items-center justify-between h-14 flex-shrink-0 px-3 border-b border-white/5">
+          <div className="flex items-center justify-between h-14 flex-shrink-0 px-3 border-b border-brand-text-primary/8">
             <div className={`flex items-center overflow-hidden transition-all ${!isExpanded ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 flex-1'}`}>
               <CourtIcon className="h-4 w-4 text-brand-accent mr-2" />
               <h1 className="text-[13px] font-semibold text-brand-text-primary leading-tight truncate">{APP_NAME}</h1>
             </div>
             <button
               onClick={() => isMobileOpen ? toggleMobileSidebar() : toggleDesktopSidebar()}
-              className={`p-1.5 rounded-none hover:bg-white/5 text-brand-text-secondary hover:text-brand-text-primary transition-colors ${!isExpanded ? 'mx-auto' : ''}`}
+              className={`p-1.5 rounded-none hover:bg-brand-text-primary/5 text-brand-text-secondary hover:text-brand-text-primary transition-colors ${!isExpanded ? 'mx-auto' : ''}`}
             >
               {isMobileOpen ? <XMarkIcon className="h-5 w-5" /> : (isSidebarOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />)}
             </button>
@@ -203,7 +203,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Mode Badge */}
           {isExpanded && (
-            <div className="px-3 py-2 border-t border-white/5">
+            <div className="px-3 py-2 border-t border-brand-text-primary/8">
               <div className="flex items-center gap-2 px-2 py-1.5 bg-brand-accent/5 border border-brand-accent/20">
                 <ChartIcon />
                 <span className="text-[10px] font-mono text-brand-accent tracking-wider uppercase">{modeDisplay} Mode</span>
@@ -212,7 +212,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
 
           {/* Footer Actions */}
-          <div className={`p-3 border-t border-white/5 flex-shrink-0 ${!isExpanded ? 'flex flex-col items-center px-2' : ''}`}>
+          <div className={`p-3 border-t border-brand-text-primary/8 flex-shrink-0 ${!isExpanded ? 'flex flex-col items-center px-2' : ''}`}>
             <NavItem
               to={ROUTES.LANDING}
               label="End Session"

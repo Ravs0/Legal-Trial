@@ -117,6 +117,26 @@ const HomeScreen: React.FC = () => {
         />
 
         <BentoItem
+          title="AI Council Chamber"
+          description={`Convene a panel of AI legal minds to debate, dissect, and deliberate complex ${modeDisplay.toLowerCase()} legal questions. Watch them argue your case from every angle.`}
+          icon={
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813zM18 10.5l-.562-3.563L14 6.5l3.438-.437L18 2.5l.438 3.563L22 6.5l-3.562.438L18 10.5z" />
+            </svg>
+          }
+          onClick={() => navigate(ROUTES.COUNCIL)}
+          buttonText="Enter Chamber"
+          className="md:col-span-1"
+          colorClasses={{
+            borderHover: 'hover:border-brand-cobalt/50',
+            iconBgHover: 'group-hover:border-brand-cobalt/50 group-hover:bg-brand-cobalt/5',
+            iconColor: 'text-brand-cobalt',
+            titleHover: 'group-hover:text-brand-cobalt',
+            buttonText: 'text-brand-cobalt hover:text-brand-cobalt/80'
+          }}
+        />
+
+        <BentoItem
           title="Drafting Practice Studio"
           description={draftingDescription}
           icon={<QuillIcon />}

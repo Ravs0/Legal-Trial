@@ -1,8 +1,7 @@
 import React, { useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Navigate } from 'react-router-dom';
 import { TrialSimContext } from '../App';
-import { ROUTES, DRAFTING_TASKS_INDIAN, DRAFTING_TASKS_INTERNATIONAL } from '../constants';
+import { DRAFTING_TASKS_INDIAN, DRAFTING_TASKS_INTERNATIONAL } from '../constants';
 import { DraftingTask, DraftingStudioStage, ChatMessage as DraftingMessage } from '../types';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -572,11 +571,8 @@ const DraftingStudioScreen: React.FC = () => {
     }
   }, [activeRefTab]);
 
-  if (!practiceMode) {
-    return <Navigate to={ROUTES.LANDING} replace />;
-  }
 
-  const modeDisplay = practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1);
+  const modeDisplay = (practiceMode || 'indian').charAt(0).toUpperCase() + (practiceMode || 'indian').slice(1);
 
   const groupedTaskOptionsForSelect = availableTasks.reduce((acc, task) => {
     const category = task.category || 'Uncategorized';

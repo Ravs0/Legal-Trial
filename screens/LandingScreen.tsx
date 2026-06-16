@@ -2,10 +2,8 @@ import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrialSimContext } from '../App';
 import { ROUTES, APP_NAME } from '../constants';
-import { Button } from '../components/Button';
 import { GavelMinimalIcon } from '../components/icons/GavelMinimalIcon';
 import { GlobeMinimalIcon } from '../components/icons/GlobeMinimalIcon';
-import heroImage from '../assets/legal_hero_abstract.png';
 
 const LandingScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -26,118 +24,156 @@ const LandingScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-brand-bg-primary text-brand-text-primary overflow-hidden relative noise-overlay">
-      {/* Left Panel: Editorial Branding & Graphic (Desktop only) */}
-      <div className="hidden md:flex md:w-[42%] bg-brand-bg-secondary border-r border-brand-border flex-col justify-between p-12 lg:p-16 relative">
-        <div className="space-y-2">
-          <div className="inline-block px-3 py-1 rounded-none border border-brand-accent/20 bg-brand-bg-primary">
-            <span className="text-[10px] font-mono text-brand-accent tracking-widest uppercase font-medium">System Active</span>
+    <div className="min-h-screen flex flex-col bg-brand-bg-primary text-brand-text-primary relative overflow-hidden">
+
+      {/* Decorative geometric elements */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-brand-accent/15" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-brand-accent/15" />
+      <div className="absolute top-0 bottom-0 left-[8%] w-px bg-brand-text-primary/5 hidden lg:block" />
+      <div className="absolute top-0 bottom-0 right-[8%] w-px bg-brand-text-primary/5 hidden lg:block" />
+
+      {/* Top bar */}
+      <header className="relative z-10 flex items-center justify-between px-6 sm:px-12 lg:px-24 py-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 border border-brand-accent/30 flex items-center justify-center">
+            <div className="w-2 h-2 bg-brand-accent" />
           </div>
-          <h1 className="text-4xl lg:text-5xl font-bold tracking-tight font-serif text-brand-text-primary mt-4">
+          <span className="text-[10px] font-mono text-brand-text-secondary tracking-[0.25em] uppercase">
+            Legal Simulation Platform
+          </span>
+        </div>
+        <span className="text-[10px] font-mono text-brand-text-secondary/50 tracking-widest hidden sm:block">
+          v2.0
+        </span>
+      </header>
+
+      {/* Main content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 lg:px-24 relative z-10">
+
+        {/* Hero typography */}
+        <div className="text-center max-w-3xl mx-auto mb-12 lg:mb-16 animate-fadeInUp">
+          <div className="inline-block mb-6">
+            <div className="flex items-center gap-3">
+              <div className="h-px w-8 bg-brand-accent/40" />
+              <span className="text-[10px] font-mono text-brand-accent tracking-[0.3em] uppercase font-medium">
+                Established 2026
+              </span>
+              <div className="h-px w-8 bg-brand-accent/40" />
+            </div>
+          </div>
+
+          <h1 className="text-5xl sm:text-6xl lg:text-8xl font-serif font-bold tracking-tight text-brand-text-primary leading-[0.95] mb-6">
             {APP_NAME}
           </h1>
-          <p className="text-sm text-brand-text-secondary font-mono tracking-wider uppercase">
-            The Pinnacle of Legal Simulation
+
+          <div className="h-px w-24 bg-brand-accent/30 mx-auto mb-6" />
+
+          <p className="text-base sm:text-lg text-brand-text-secondary font-light leading-relaxed max-w-xl mx-auto">
+            Sharpen your legal argumentation through AI-driven mock trials.
+            Choose your jurisdiction to begin.
           </p>
         </div>
 
-        <div className="my-auto py-8 flex items-center justify-center">
-          <div className="relative group max-w-sm lg:max-w-md w-full">
-            <div className="absolute -inset-1.5 bg-gradient-to-r from-brand-accent to-brand-accent-hover opacity-20 blur-lg group-hover:opacity-30 transition duration-1000"></div>
-            <img 
-              src={heroImage} 
-              alt="Legal Harmony Editorial Artwork" 
-              className="relative rounded-none border border-brand-accent/30 shadow-[0_15px_40px_rgba(0,0,0,0.6)] w-full object-cover aspect-square"
-            />
-          </div>
-        </div>
+        {/* Jurisdiction selection cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 w-full max-w-3xl mx-auto animate-fadeInUp" style={{ animationDelay: '0.15s' }}>
 
-        <div className="text-[10px] font-mono text-brand-text-secondary/50 tracking-wider">
-          © 2026 TrialSim Technologies. All rights reserved.
-        </div>
-      </div>
-
-      {/* Right Panel: Interactive Mode Selection */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:p-16 lg:p-24 relative">
-        {/* Mobile Header (Hidden on Desktop) */}
-        <div className="md:hidden text-center mb-12 animate-fadeInUp">
-          <div className="inline-block mb-3 px-3 py-1 rounded-none border border-brand-accent/20 bg-brand-bg-secondary">
-            <span className="text-[9px] font-mono text-brand-accent tracking-widest uppercase">The Pinnacle of Legal Simulation</span>
-          </div>
-          <h1 className="text-4xl font-bold text-brand-text-primary font-serif tracking-tight mb-2">
-            {APP_NAME}
-          </h1>
-        </div>
-
-        <div className="max-w-xl mx-auto w-full space-y-10 lg:space-y-12">
-          <div className="text-center md:text-left space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-brand-text-primary font-serif">
-              Choose your practice arena
-            </h2>
-            <p className="text-sm sm:text-base text-brand-text-secondary font-light leading-relaxed">
-              Hone your legal argumentation and drafting skills with AI-driven mock trials. Select a jurisdiction to begin.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 w-full">
-            {/* Indian Legal Practice Card */}
-            <div
-              onClick={() => handleModeSelection('indian')}
-              className="bg-brand-bg-secondary border border-brand-border hover:border-brand-accent/50 p-6 sm:p-8 rounded-none transition-all duration-300 ease-out cursor-pointer focus-ring group relative flex flex-col sm:flex-row gap-5 items-start sm:items-center hover:bg-brand-bg-tertiary/20"
-              role="button"
-              tabIndex={0}
-              onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('indian')}
-            >
-              <div className="w-12 h-12 rounded-none bg-brand-bg-primary border border-brand-border flex items-center justify-center flex-shrink-0 group-hover:border-brand-accent/40 transition-colors">
-                <GavelMinimalIcon className="h-6 w-6 text-brand-accent" />
-              </div>
-              <div className="flex-grow space-y-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-brand-text-primary group-hover:text-brand-accent transition-colors font-serif">
-                    Indian Legal Practice
-                  </h3>
-                  <span className="text-[10px] font-mono text-brand-text-secondary/60 group-hover:text-brand-accent transition-colors">
-                    [ Enter ]
-                  </span>
-                </div>
-                <p className="text-xs text-brand-text-secondary leading-relaxed font-light">
-                  Constitutional, criminal, and corporate laws of India. Practice advocacy under the CPC, IPC, BNSS, and Indian precedents.
-                </p>
-              </div>
+          {/* Indian Legal Practice */}
+          <div
+            onClick={() => handleModeSelection('indian')}
+            className="group relative bg-brand-bg-secondary border border-brand-text-primary/10 p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
+              hover:bg-brand-bg-tertiary/60 hover:border-brand-accent/25 focus-ring"
+            role="button"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('indian')}
+          >
+            {/* Corner accent */}
+            <div className="absolute top-0 left-0 w-6 h-6">
+              <div className="absolute top-0 left-0 w-full h-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
+              <div className="absolute top-0 left-0 h-full w-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
             </div>
 
-            {/* International Law Practice Card */}
-            <div
-              onClick={() => handleModeSelection('international')}
-              className="bg-brand-bg-secondary border border-brand-border hover:border-brand-accent/50 p-6 sm:p-8 rounded-none transition-all duration-300 ease-out cursor-pointer focus-ring group relative flex flex-col sm:flex-row gap-5 items-start sm:items-center hover:bg-brand-bg-tertiary/20"
-              role="button"
-              tabIndex={0}
-              onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('international')}
-            >
-              <div className="w-12 h-12 rounded-none bg-brand-bg-primary border border-brand-border flex items-center justify-center flex-shrink-0 group-hover:border-brand-accent/40 transition-colors">
-                <GlobeMinimalIcon className="h-6 w-6 text-brand-accent" />
+            <div className="flex flex-col h-full">
+              <div className="w-12 h-12 border border-brand-text-primary/10 flex items-center justify-center mb-6 group-hover:border-brand-accent/30 transition-colors">
+                <GavelMinimalIcon className="h-5 w-5 text-brand-accent" />
               </div>
-              <div className="flex-grow space-y-1">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-brand-text-primary group-hover:text-brand-accent transition-colors font-serif">
-                    International Law Practice
-                  </h3>
-                  <span className="text-[10px] font-mono text-brand-text-secondary/60 group-hover:text-brand-accent transition-colors">
-                    [ Enter ]
-                  </span>
-                </div>
-                <p className="text-xs text-brand-text-secondary leading-relaxed font-light">
-                  Public international law, humanitarian law, ICJ disputes, and conventions. Master cross-border arbitration and international covenants.
-                </p>
+
+              <span className="text-[9px] font-mono text-brand-accent tracking-[0.25em] uppercase mb-3 block">
+                Jurisdiction I
+              </span>
+
+              <h3 className="text-xl sm:text-2xl font-serif font-semibold text-brand-text-primary mb-3 group-hover:text-brand-accent transition-colors duration-300">
+                Indian Legal Practice
+              </h3>
+
+              <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed font-light mb-8 flex-grow">
+                Constitutional, criminal, and corporate laws of India. Practice advocacy under the CPC, IPC, BNSS, and Indian precedents.
+              </p>
+
+              <div className="flex items-center justify-between pt-4 border-t border-brand-text-primary/8">
+                <span className="text-[10px] font-mono text-brand-text-secondary/60 tracking-wider group-hover:text-brand-accent/70 transition-colors">
+                  Select to enter
+                </span>
+                <span className="text-brand-text-secondary/40 group-hover:text-brand-accent group-hover:translate-x-1 transition-all duration-300 text-lg">
+                  &rarr;
+                </span>
               </div>
             </div>
           </div>
 
-          <p className="text-[11px] font-mono text-brand-text-secondary/40 text-center md:text-left tracking-widest uppercase">
-            Select a jurisdiction to activate simulator modules.
-          </p>
+          {/* International Law Practice */}
+          <div
+            onClick={() => handleModeSelection('international')}
+            className="group relative bg-brand-bg-secondary border border-brand-text-primary/10 -mt-px md:mt-0 md:-ml-px p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
+              hover:bg-brand-bg-tertiary/60 hover:border-brand-accent/25 focus-ring"
+            role="button"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('international')}
+          >
+            {/* Corner accent */}
+            <div className="absolute top-0 right-0 w-6 h-6">
+              <div className="absolute top-0 right-0 w-full h-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
+              <div className="absolute top-0 right-0 h-full w-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
+            </div>
+
+            <div className="flex flex-col h-full">
+              <div className="w-12 h-12 border border-brand-text-primary/10 flex items-center justify-center mb-6 group-hover:border-brand-accent/30 transition-colors">
+                <GlobeMinimalIcon className="h-5 w-5 text-brand-accent" />
+              </div>
+
+              <span className="text-[9px] font-mono text-brand-accent tracking-[0.25em] uppercase mb-3 block">
+                Jurisdiction II
+              </span>
+
+              <h3 className="text-xl sm:text-2xl font-serif font-semibold text-brand-text-primary mb-3 group-hover:text-brand-accent transition-colors duration-300">
+                International Law
+              </h3>
+
+              <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed font-light mb-8 flex-grow">
+                Public international law, humanitarian law, ICJ disputes, and conventions. Master cross-border arbitration and international covenants.
+              </p>
+
+              <div className="flex items-center justify-between pt-4 border-t border-brand-text-primary/8">
+                <span className="text-[10px] font-mono text-brand-text-secondary/60 tracking-wider group-hover:text-brand-accent/70 transition-colors">
+                  Select to enter
+                </span>
+                <span className="text-brand-text-secondary/40 group-hover:text-brand-accent group-hover:translate-x-1 transition-all duration-300 text-lg">
+                  &rarr;
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 flex items-center justify-between px-6 sm:px-12 lg:px-24 py-6">
+        <span className="text-[10px] font-mono text-brand-text-secondary/40 tracking-wider">
+          &copy; 2026 TrialSim Technologies
+        </span>
+        <span className="text-[10px] font-mono text-brand-text-secondary/40 tracking-wider hidden sm:block">
+          AI-Powered Legal Training
+        </span>
+      </footer>
     </div>
   );
 };

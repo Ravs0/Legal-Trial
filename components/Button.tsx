@@ -41,7 +41,7 @@ export const Button: React.FC<ButtonProps> = ({
       : `bg-transparent text-brand-accent border border-brand-accent hover:bg-brand-accent/10 focus:ring-brand-accent`,
     ghost: `bg-transparent text-brand-text-secondary hover:text-brand-text-primary ${
       catColors ? `focus:ring-${catColors.text.replace('text-', '')}` : 'focus:ring-brand-accent'
-    } hover:bg-white/5 active:bg-white/10`,
+    } hover:bg-brand-text-primary/5 active:bg-brand-text-primary/10`,
   };
 
   const currentVariantStyle = variantStylesConfig[variant];
