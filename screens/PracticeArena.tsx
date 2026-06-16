@@ -932,7 +932,7 @@ const PracticeArena: React.FC = () => {
                           onClick={() => setObjectionGrounds(g.value)}
                           className={`px-3.5 py-2 rounded-none border text-xs font-mono transition-all text-left flex flex-col min-w-[130px]
                             ${objectionGrounds === g.value
-                              ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-bold shadow-glow-gold-sm'
+                              ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-bold shadow-glow-accent-sm'
                               : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
                             }`}
                         >

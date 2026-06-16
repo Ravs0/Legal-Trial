@@ -13,29 +13,29 @@
       theme: {
         extend: {
           colors: {
-            'brand-bg-primary': '#121212',
-            'brand-bg-secondary': '#1c1c1c',
-            'brand-bg-tertiary': '#242424',
-            'brand-text-primary': '#f1f5f9',
-            'brand-text-secondary': '#94a3b8',
+            'brand-bg-primary': '#0D0F12',
+            'brand-bg-secondary': '#16191E',
+            'brand-bg-tertiary': '#1F242B',
+            'brand-text-primary': '#F3F5F7',
+            'brand-text-secondary': '#7F8D9C',
 
-            'brand-accent': '#d4a84b',
-            'brand-accent-hover': '#e3be6d',
-            'brand-accent-text': '#121212',
-            'brand-accent-muted': 'rgba(212,168,75,0.15)',
+            'brand-accent': '#FF5A1F',
+            'brand-accent-hover': '#FF7643',
+            'brand-accent-text': '#0D0F12',
+            'brand-accent-muted': 'rgba(255, 90, 31, 0.15)',
 
-            'brand-gradient-from': '#d4a84b',
-            'brand-gradient-mid': '#e3be6d',
-            'brand-gradient-to': '#b88830',
+            'brand-gradient-from': '#FF5A1F',
+            'brand-gradient-mid': '#FF7643',
+            'brand-gradient-to': '#D03E0B',
 
-            'brand-border': 'rgba(255,255,255,0.07)',
-            'brand-border-light': 'rgba(255,255,255,0.12)',
+            'brand-border': 'rgba(255,255,255,0.08)',
+            'brand-border-light': 'rgba(255,255,255,0.15)',
 
-            'brand-error': '#ef4444',
-            'brand-success': '#10b981',
+            'brand-error': '#E53E3E',
+            'brand-success': '#38A169',
 
-            'brand-navy': '#13161c',
-            'brand-navy-light': '#191d25',
+            'brand-navy': '#111419',
+            'brand-navy-light': '#181C23',
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -43,12 +43,11 @@
             mono: ['JetBrains Mono', 'monospace'],
           },
           boxShadow: {
-            'glow-gold': '0 0 0 1px rgba(212,168,75,0.3), 0 4px 14px rgba(0,0,0,0.5)',
-            'glow-gold-sm': '0 0 0 1px rgba(212,168,75,0.2)',
+            'glow-accent': '0 0 0 1px rgba(255, 90, 31, 0.3), 0 4px 14px rgba(0,0,0,0.5)',
+            'glow-accent-sm': '0 0 0 1px rgba(255, 90, 31, 0.2)',
             'card': '0 4px 24px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.4)',
-            'card-hover': '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,168,75,0.2)',
+            'card-hover': '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255, 90, 31, 0.2)',
             'inner-subtle': 'inset 0 1px 2px rgba(0,0,0,0.4)',
-
           },
           keyframes: {
             fadeIn: {
@@ -146,12 +145,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(212, 168, 75, 0.25);
+      background: rgba(255, 90, 31, 0.25);
       border-radius: 10px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(212, 168, 75, 0.5);
+      background: rgba(255, 90, 31, 0.5);
     }
 
     .custom-scrollbar {
@@ -168,12 +167,12 @@
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(212, 168, 75, 0.2);
+      background: rgba(255, 90, 31, 0.2);
       border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(212, 168, 75, 0.4);
+      background: rgba(255, 90, 31, 0.4);
     }
 
     /* Glass card */
@@ -184,9 +183,9 @@
       border: 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    /* Gold shimmer text effect */
+    /* Vermilion shimmer text effect */
     .text-shimmer {
-      background: linear-gradient(90deg, #d4a84b, #e3be6d, #d4a84b, #b88830, #d4a84b);
+      background: linear-gradient(90deg, #FF5A1F, #FF7643, #FF5A1F, #D03E0B, #FF5A1F);
       background-size: 200% auto;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -235,7 +234,7 @@
     /* Select styling */
     select option[value^="__optgroup__"] {
       font-weight: bold;
-      color: #d4a84b;
+      color: #FF5A1F;
       background-color: #13161c;
       padding-top: 0.5rem;
       padding-bottom: 0.25rem;
@@ -266,7 +265,7 @@
 
     /* Focus ring */
     .focus-ring:focus-visible {
-      outline: 2px solid rgba(212, 168, 75, 0.5);
+      outline: 2px solid rgba(255, 90, 31, 0.5);
       outline-offset: 2px;
     }
 
@@ -281,7 +280,7 @@
       inset: 0;
       border-radius: inherit;
       padding: 1px;
-      background: linear-gradient(135deg, rgba(212, 168, 75, 0.3), transparent 50%, rgba(212, 168, 75, 0.1));
+      background: linear-gradient(135deg, rgba(255, 90, 31, 0.3), transparent 50%, rgba(255, 90, 31, 0.1));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;

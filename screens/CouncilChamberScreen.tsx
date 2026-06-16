@@ -97,7 +97,7 @@ const DeliberationBlueprint: React.FC<{
           stroke-dashoffset: -20;
         }
       }
-      @keyframes pulse-glow-gold {
+      @keyframes pulse-glow-vermilion {
         0%, 100% {
           stroke-opacity: 0.6;
         }
@@ -121,8 +121,8 @@ const DeliberationBlueprint: React.FC<{
           stroke-opacity: 1;
         }
       }
-      .dash-flow-gold {
-        stroke: #c9a84c;
+      .dash-flow-vermilion {
+        stroke: #FF5A1F;
         stroke-dasharray: 6, 6;
         animation: dashoffset-flow 1.2s linear infinite;
       }
@@ -131,8 +131,8 @@ const DeliberationBlueprint: React.FC<{
         stroke-dasharray: 6, 6;
         animation: dashoffset-flow 1.2s linear infinite;
       }
-      .pulse-gold {
-        animation: pulse-glow-gold 2s infinite ease-in-out;
+      .pulse-vermilion {
+        animation: pulse-glow-vermilion 2s infinite ease-in-out;
       }
       .pulse-blue {
         animation: pulse-glow-blue 2s infinite ease-in-out;
@@ -168,7 +168,7 @@ const DeliberationBlueprint: React.FC<{
           <path
             d="M 100 100 Q 200 40 300 100"
             fill="none"
-            stroke="#c9a84c"
+            stroke="#FF5A1F"
             strokeOpacity={isProcessing ? "0.8" : "0.2"}
             strokeWidth="2"
           />
@@ -185,7 +185,7 @@ const DeliberationBlueprint: React.FC<{
               <path
                 d="M 100 100 Q 200 40 300 100"
                 fill="none"
-                className="dash-flow-gold"
+                className="dash-flow-vermilion"
                 strokeWidth="2"
               />
               <path
@@ -194,7 +194,7 @@ const DeliberationBlueprint: React.FC<{
                 className="dash-flow-blue"
                 strokeWidth="2"
               />
-              <circle r="4" fill="#c9a84c">
+              <circle r="4" fill="#FF5A1F">
                 <animateMotion dur="2s" repeatCount="indefinite" path="M 100 100 Q 200 40 300 100" />
               </circle>
               <circle r="4" fill="#38bdf8">
@@ -208,7 +208,7 @@ const DeliberationBlueprint: React.FC<{
             onMouseEnter={() => setHoveredNode('user')}
             onMouseLeave={() => setHoveredNode(null)}
           >
-            <circle cx="100" cy="100" r="28" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
+            <circle cx="100" cy="100" r="28" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="2" className="pulse-vermilion" />
             <circle cx="100" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
             <text x="100" y="104" textAnchor="middle" fill="#ffffff" fontSize="12" fontFamily="monospace" fontWeight="bold">§</text>
             <text x="100" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">COUNSEL</text>
@@ -221,13 +221,13 @@ const DeliberationBlueprint: React.FC<{
             onMouseLeave={() => setHoveredNode(null)}
           >
             <circle cx="300" cy="100" r="38" fill="none" stroke="#38bdf8" strokeOpacity="0.1" strokeWidth="1" strokeDasharray="4,2" className="spin-hub" />
-            <circle cx="300" cy="100" r="28" fill="#0d1b2a" stroke={isReasoner ? "#c9a84c" : "#38bdf8"} strokeWidth="2.5" className={isProcessing ? "pulse-gold" : "pulse-blue"} />
+            <circle cx="300" cy="100" r="28" fill="#0d1b2a" stroke={isReasoner ? "#FF5A1F" : "#38bdf8"} strokeWidth="2.5" className={isProcessing ? "pulse-vermilion" : "pulse-blue"} />
             <circle cx="300" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
             <text x="300" y="103.5" textAnchor="middle" fill="#ffffff" fontSize="9" fontFamily="monospace" fontWeight="bold">{isReasoner ? "PRO" : "V4"}</text>
             <text x="300" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">
               {isReasoner ? "DEEPSEEK V4 PRO" : "DEEPSEEK V4"}
             </text>
-            <text x="300" y="160" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">
+            <text x="300" y="160" textAnchor="middle" fill="#FF5A1F" fontSize="7" fontWeight="bold" fontFamily="monospace">
               (CLICK TOGGLE)
             </text>
           </g>
@@ -235,7 +235,7 @@ const DeliberationBlueprint: React.FC<{
           {/* SVG Tooltips (Agentic Explainability) */}
           {hoveredNode === 'user' && (
             <g className="pointer-events-none">
-              <rect x="15" y="165" width="170" height="25" fill="#121212" stroke="#c9a84c" strokeWidth="1" rx="0" />
+              <rect x="15" y="165" width="170" height="25" fill="#121212" stroke="#FF5A1F" strokeWidth="1" rx="0" />
               <text x="100" y="180" textAnchor="middle" fill="#f1f5f9" fontSize="8" fontFamily="monospace">You: The lead counsel formulating queries.</text>
             </g>
           )}
@@ -266,7 +266,7 @@ const DeliberationBlueprint: React.FC<{
         <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[170px]">
           {styleBlock}
           
-          <circle cx="200" cy="100" r="50" fill="none" stroke="#c9a84c" strokeOpacity="0.03" strokeWidth="1" strokeDasharray="8,8" className="spin-hub" />
+          <circle cx="200" cy="100" r="50" fill="none" stroke="#FF5A1F" strokeOpacity="0.03" strokeWidth="1" strokeDasharray="8,8" className="spin-hub" />
 
           {nodes.map((n, i) => {
             const nextNode = nodes[(i + 1) % nodes.length];
@@ -280,7 +280,7 @@ const DeliberationBlueprint: React.FC<{
                   y1={n.cy}
                   x2={nextNode.cx}
                   y2={nextNode.cy}
-                  stroke={isCompleted ? "#c9a84c" : "#1b263b"}
+                  stroke={isCompleted ? "#FF5A1F" : "#1b263b"}
                   strokeWidth="2"
                   strokeOpacity={isCompleted ? "0.8" : "0.25"}
                 />
@@ -290,7 +290,7 @@ const DeliberationBlueprint: React.FC<{
                     y1={n.cy}
                     x2={nextNode.cx}
                     y2={nextNode.cy}
-                    className="dash-flow-gold"
+                    className="dash-flow-vermilion"
                     strokeWidth="2"
                   />
                 )}
@@ -314,15 +314,15 @@ const DeliberationBlueprint: React.FC<{
                   cx={n.cx}
                   cy={n.cy}
                   r="18"
-                  fill={isCompleted ? "#c9a84c" : "#0d1b2a"}
+                  fill={isCompleted ? "#FF5A1F" : "#0d1b2a"}
                   fillOpacity={isCompleted ? "0.15" : "0.9"}
-                  stroke={isActive ? "#amber-400" : isCompleted ? "#c9a84c" : "#1b263b"}
+                  stroke={isActive ? "#FF7643" : isCompleted ? "#FF5A1F" : "#1b263b"}
                   strokeWidth={isActive ? "2.5" : "1.5"}
-                  className={isActive ? "pulse-gold" : ""}
+                  className={isActive ? "pulse-vermilion" : ""}
                 />
                 
                 {isCompleted ? (
-                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#c9a84c" fontSize="9" fontFamily="monospace" fontWeight="bold">✓</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#FF5A1F" fontSize="9" fontFamily="monospace" fontWeight="bold">✓</text>
                 ) : (
                   <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill={isPending ? "#555" : "#ffffff"} fontSize="9" fontFamily="serif" fontWeight="bold">{n.icon}</text>
                 )}
@@ -331,7 +331,7 @@ const DeliberationBlueprint: React.FC<{
                   x={n.cx}
                   y={n.cy + 28}
                   textAnchor="middle"
-                  fill={isActive ? "#c9a84c" : isCompleted ? "#ffffff" : "#666"}
+                  fill={isActive ? "#FF5A1F" : isCompleted ? "#ffffff" : "#666"}
                   fontSize="7"
                   fontWeight={isActive ? "bold" : "normal"}
                   fontFamily="monospace"
@@ -343,8 +343,8 @@ const DeliberationBlueprint: React.FC<{
           })}
 
           <g transform="translate(200, 100)" className={isProcessing ? "spin-hub" : ""}>
-            <circle cx="0" cy="0" r="12" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
-            <text x="0" y="3.5" textAnchor="middle" fill="#c9a84c" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="9" fontFamily="mono" fontWeight="bold">Ω</text>
+            <circle cx="0" cy="0" r="12" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
+            <text x="0" y="3.5" textAnchor="middle" fill="#FF5A1F" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="9" fontFamily="mono" fontWeight="bold">Ω</text>
           </g>
         </svg>
       </div>
@@ -376,7 +376,7 @@ const DeliberationBlueprint: React.FC<{
                   y1={center.y}
                   x2={j.cx}
                   y2={j.cy}
-                  stroke={isSelected ? "#c9a84c" : "#1b263b"}
+                  stroke={isSelected ? "#FF5A1F" : "#1b263b"}
                   strokeWidth={isSelected ? "3" : "1.5"}
                   strokeOpacity={isSelected ? "0.9" : "0.2"}
                 />
@@ -388,10 +388,10 @@ const DeliberationBlueprint: React.FC<{
                       y1={center.y}
                       x2={j.cx}
                       y2={j.cy}
-                      className="dash-flow-gold"
+                      className="dash-flow-vermilion"
                       strokeWidth="2"
                     />
-                    <circle r="4" fill="#c9a84c">
+                    <circle r="4" fill="#FF5A1F">
                       <animateMotion 
                          dur="1.5s" 
                         repeatCount="indefinite" 
@@ -405,9 +405,9 @@ const DeliberationBlueprint: React.FC<{
           })}
 
           <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
-            <circle cx="0" cy="0" r="20" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
+            <circle cx="0" cy="0" r="20" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="2" className="pulse-vermilion" />
             <circle cx="0" cy="0" r="15" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
-            <text x="0" y="3.5" textAnchor="middle" fill="#c9a84c" fontSize="10" fontFamily="mono" fontWeight="bold">§</text>
+            <text x="0" y="3.5" textAnchor="middle" fill="#FF5A1F" fontSize="10" fontFamily="mono" fontWeight="bold">§</text>
           </g>
 
           {jurists.map((j) => {
@@ -426,20 +426,20 @@ const DeliberationBlueprint: React.FC<{
                   cx={j.cx}
                   cy={j.cy}
                   r="18"
-                  fill={isSelected ? "#c9a84c" : "#0d1b2a"}
+                  fill={isSelected ? "#FF5A1F" : "#0d1b2a"}
                   fillOpacity={isSelected ? "0.15" : "0.9"}
-                  stroke={isSelected ? "#c9a84c" : "#1b263b"}
+                  stroke={isSelected ? "#FF5A1F" : "#1b263b"}
                   strokeWidth={isSelected ? "2.5" : "1.5"}
-                  className={isSelected ? "pulse-gold" : ""}
+                  className={isSelected ? "pulse-vermilion" : ""}
                 />
                 
-                <text x={j.cx} y={j.cy + 3.5} textAnchor="middle" fill={isSelected ? "#c9a84c" : "#ffffff"} fontSize="9" fontFamily="mono" fontWeight="bold">{j.avatar}</text>
+                <text x={j.cx} y={j.cy + 3.5} textAnchor="middle" fill={isSelected ? "#FF5A1F" : "#ffffff"} fontSize="9" fontFamily="mono" fontWeight="bold">{j.avatar}</text>
                 
                 <text
                   x={j.cx}
                   y={j.cy + 27}
                   textAnchor="middle"
-                  fill={isSelected ? "#c9a84c" : "#777"}
+                  fill={isSelected ? "#FF5A1F" : "#777"}
                   fontSize="7"
                   fontWeight={isSelected ? "bold" : "normal"}
                   fontFamily="monospace"
@@ -464,12 +464,12 @@ const DeliberationBlueprint: React.FC<{
           <path d="M 85 120 L 200 175 L 315 120" fill="none" stroke="#1b263b" strokeWidth="1.2" />
           
           <line x1="200" y1="45" x2="200" y2="175" stroke="#38bdf8" strokeWidth="1.2" strokeOpacity="0.25" />
-          <line x1="85" y1="120" x2="200" y2="175" stroke="#c9a84c" strokeWidth="1.5" strokeOpacity="0.3" />
+          <line x1="85" y1="120" x2="200" y2="175" stroke="#FF5A1F" strokeWidth="1.5" strokeOpacity="0.3" />
           <line x1="315" y1="120" x2="200" y2="175" stroke="#ef4444" strokeWidth="1.5" strokeOpacity="0.3" />
 
           {isProcessing && (
             <>
-              <circle r="3.5" fill="#c9a84c">
+              <circle r="3.5" fill="#FF5A1F">
                 <animateMotion dur="2s" repeatCount="indefinite" path="M 85 120 L 200 175" />
               </circle>
               <circle r="3.5" fill="#ef4444">
@@ -488,9 +488,9 @@ const DeliberationBlueprint: React.FC<{
           </g>
 
           <g className="float-2">
-            <circle cx="85" cy="120" r="18" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="1.5" className="pulse-gold" />
+            <circle cx="85" cy="120" r="18" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="1.5" className="pulse-vermilion" />
             <text x="85" y="123.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">SH</text>
-            <text x="85" y="93" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">24 STAKEHOLDERS</text>
+            <text x="85" y="93" textAnchor="middle" fill="#FF5A1F" fontSize="7" fontWeight="bold" fontFamily="monospace">24 STAKEHOLDERS</text>
           </g>
 
           <g className="float-3">
@@ -500,12 +500,12 @@ const DeliberationBlueprint: React.FC<{
           </g>
 
           <g className="float-1">
-            <circle cx="200" cy="175" r="22" fill="#0d1b2a" stroke="#c9a84c" strokeWidth="2" className="pulse-gold" />
+            <circle cx="200" cy="175" r="22" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="2" className="pulse-vermilion" />
             {isProcessing && (
-              <circle cx="200" cy="175" r="25" fill="none" stroke="#c9a84c" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" className="spin-hub" />
+              <circle cx="200" cy="175" r="25" fill="none" stroke="#FF5A1F" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" className="spin-hub" />
             )}
             <text x="200" y="179.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">SC</text>
-            <text x="200" y="207" textAnchor="middle" fill="#c9a84c" fontSize="7" fontWeight="bold" fontFamily="monospace">SYNTHESIS CORE</text>
+            <text x="200" y="207" textAnchor="middle" fill="#FF5A1F" fontSize="7" fontWeight="bold" fontFamily="monospace">SYNTHESIS CORE</text>
           </g>
         </svg>
       </div>
