@@ -21,22 +21,32 @@ class SubjectChat implements Chat {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: this.history, system: this.system }),
+      body: JSON.stringify({ messages: this.history, system: this.system, stream: true }),
     });
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       throw new Error(err.error || `API error ${res.status}`);
     }
-    const data = await res.json();
-    const responseText = data.text || '';
-    this.history.push({ role: 'assistant', content: responseText });
 
-    const words = responseText.split(' ');
-    for (let i = 0; i < words.length; i++) {
-      yield { text: (i === 0 ? '' : ' ') + words[i] };
-      await new Promise(r => setTimeout(r, 15));
+    const reader = res.body?.getReader();
+    if (!reader) {
+      throw new Error("Response body is not readable");
     }
+
+    const decoder = new TextDecoder();
+    let accumulatedText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      accumulatedText += chunk;
+      yield { text: chunk };
+    }
+
+    this.history.push({ role: 'assistant', content: accumulatedText });
   }
 }
 

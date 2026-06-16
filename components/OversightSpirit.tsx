@@ -286,12 +286,28 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, system: systemPrompt }),
+        body: JSON.stringify({ messages: apiMessages, system: systemPrompt, stream: true }),
       });
 
       if (!res.ok) throw new Error('API error');
-      const data = await res.json();
-      const responseText = data.text || "Ugh, my connection dropped. Give me a second.";
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No stream reader');
+
+      const decoder = new TextDecoder();
+      let responseText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        responseText += chunk;
+        const current = responseText;
+        setMessages(prev =>
+          prev.map(m => m.id === responseId ? { ...m, text: current } : m)
+        );
+      }
 
       // Update chat history for continuity
       setChatHistory(prev => [
@@ -299,18 +315,6 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
         { role: 'user', content: userMsg },
         { role: 'assistant', content: responseText },
       ]);
-
-      // Simulate streaming word-by-word
-      const words = responseText.split(' ');
-      let accumulated = '';
-      for (let i = 0; i < words.length; i++) {
-        accumulated += (i === 0 ? '' : ' ') + words[i];
-        const current = accumulated;
-        setMessages(prev =>
-          prev.map(m => m.id === responseId ? { ...m, text: current } : m)
-        );
-        await new Promise(r => setTimeout(r, 18));
-      }
     } catch {
       setMessages(prev =>
         prev.map(m => m.id === responseId
@@ -337,11 +341,11 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
 
       {/* ─── Full Chat Window ──────────────────────────────────────────────── */}
       {isOpen && (
-        <div className="bg-brand-bg-primary border border-brand-accent shadow-[0_0_20px_rgba(212,175,55,0.25)] rounded-none w-80 sm:w-96 h-[28rem] flex flex-col mb-4 overflow-hidden animate-fadeInUp">
+        <div className="bg-brand-bg-primary border border-brand-accent shadow-[6px_6px_0px_0px_#d4a84b] rounded-none w-80 sm:w-96 h-[28rem] flex flex-col mb-4 overflow-hidden animate-fadeInUp">
           {/* Header */}
           <div className="bg-brand-bg-secondary border-b border-brand-accent px-4 py-2.5 flex justify-between items-center">
             <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 bg-brand-accent/20 border border-brand-accent rounded-full flex items-center justify-center">
+              <div className="w-7 h-7 bg-brand-accent/20 border border-brand-accent rounded-none flex items-center justify-center">
                 <span className="text-sm font-bold text-brand-accent font-serif">K</span>
               </div>
               <div>
@@ -366,7 +370,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
             {messages.map(msg => (
               <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.sender === 'koku' && (
-                  <div className="w-6 h-6 bg-brand-accent/15 border border-brand-accent/40 rounded-full flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                  <div className="w-6 h-6 bg-brand-accent/15 border border-brand-accent/40 rounded-none flex items-center justify-center mr-2 mt-1 flex-shrink-0">
                     <span className="text-[10px] font-bold text-brand-accent font-serif">K</span>
                   </div>
                 )}
@@ -383,13 +387,13 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
             ))}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="w-6 h-6 bg-brand-accent/15 border border-brand-accent/40 rounded-full flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                <div className="w-6 h-6 bg-brand-accent/15 border border-brand-accent/40 rounded-none flex items-center justify-center mr-2 mt-1 flex-shrink-0">
                   <span className="text-[10px] font-bold text-brand-accent font-serif">K</span>
                 </div>
                 <div className="max-w-[80%] px-3 py-2 text-sm bg-brand-accent/8 text-brand-text-primary border border-brand-accent/30 flex space-x-1 items-center">
-                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-none animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-none animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-none animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             )}
@@ -429,9 +433,9 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
           }`}
           onClick={expandToastToChat}
         >
-          <div className="bg-brand-bg-primary border border-brand-accent/60 shadow-[0_0_15px_rgba(212,175,55,0.2)] px-4 py-3 flex items-start gap-3 group hover:border-brand-accent transition-colors">
+          <div className="bg-brand-bg-primary border border-brand-accent/60 shadow-[4px_4px_0px_0px_#d4a84b] rounded-none px-4 py-3 flex items-start gap-3 group hover:border-brand-accent transition-colors">
             {/* Koku avatar */}
-            <div className="w-8 h-8 bg-brand-accent/20 border border-brand-accent rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <div className="w-8 h-8 bg-brand-accent/20 border border-brand-accent rounded-none flex items-center justify-center flex-shrink-0 mt-0.5">
               <span className="text-sm font-bold text-brand-accent font-serif">K</span>
             </div>
             <div className="flex-grow min-w-0">
@@ -458,11 +462,11 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
       {!isOpen && (
         <button
           onClick={() => { dismissToast(); setIsOpen(true); }}
-          className="w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-full shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:shadow-[0_0_30px_rgba(212,175,55,0.6)] hover:scale-105 transition-all flex items-center justify-center relative group"
+          className="w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-none shadow-[4px_4px_0px_0px_#d4a84b] hover:shadow-[2px_2px_0px_0px_#d4a84b] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center relative group"
         >
           <span className="text-xl font-bold text-brand-accent font-serif">K</span>
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-error rounded-full border border-brand-bg-primary animate-pulse" />
-          <div className="absolute right-16 bg-brand-bg-secondary border border-brand-accent text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-error rounded-none border border-brand-bg-primary animate-pulse" />
+          <div className="absolute right-16 bg-brand-bg-secondary border border-brand-accent text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-none">
             Oversight Active
           </div>
         </button>

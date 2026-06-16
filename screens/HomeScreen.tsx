@@ -22,7 +22,7 @@ interface BentoItemProps {
 
 const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick, buttonText, className = '', isHero = false }) => (
   <div
-    className={`bg-brand-bg-primary border border-brand-text-primary/30 flex flex-col rounded-none p-4 sm:p-6 lg:p-8 transition-all duration-300 ease-out group 
+    className={`bg-brand-bg-primary border border-brand-text-primary/30 flex flex-col rounded-none p-4 sm:p-6 lg:p-8 transition-all duration-300 ease-out group -ml-px -mt-px
     ${onClick && !isHero ? 'cursor-pointer hover:bg-brand-bg-secondary focus-ring' : ''}
     ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-8 sm:py-12 lg:py-16 relative overflow-hidden' : ''}
     ${className}`}

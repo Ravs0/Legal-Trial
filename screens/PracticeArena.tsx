@@ -829,12 +829,12 @@ const PracticeArena: React.FC = () => {
                           }
                         }}
                         placeholder={isInlineObjectionActive ? "Explain objection basis... (e.g. Opposing Counsel's assertion has no basis in the evidence record)" : "Address the Court... (Shift+Enter for new line)"}
-                        className="w-full p-4 pl-5 pr-12 bg-brand-bg-secondary text-brand-text-primary rounded-none border border-brand-text-primary/30 focus:ring-1 focus:ring-brand-accent focus:outline-none resize-none min-h-[70px] max-h-[180px] placeholder-brand-text-secondary/50 font-light text-base sm:text-lg custom-scrollbar transition-all group"
+                        className="w-full p-3 pl-4 pr-12 bg-brand-bg-secondary text-brand-text-primary rounded-none border border-brand-text-primary/30 focus:ring-1 focus:ring-brand-accent focus:outline-none resize-none min-h-[50px] max-h-[110px] placeholder-brand-text-secondary/50 font-light text-xs sm:text-sm custom-scrollbar transition-all group"
                         rows={2}
                         disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
                       />
-                      <div className="absolute top-2 right-2 p-1.5 hidden sm:block opacity-40">
-                        <span className="text-[10px] font-mono tracking-widest uppercase">{isInlineObjectionActive ? "Objection" : "Drafting"}</span>
+                      <div className="absolute top-2 right-2 p-1 opacity-40">
+                        <span className="text-[8px] font-mono tracking-widest uppercase">{isInlineObjectionActive ? "Objection" : "Drafting"}</span>
                       </div>
                     </div>
                   </div>
@@ -886,13 +886,13 @@ const PracticeArena: React.FC = () => {
       {/* Mobile Drawer Backdrop */}
       {isMobileDrawerOpen && (
         <div 
-          className="lg:hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-40 transition-opacity duration-300"
+          className="lg:hidden fixed inset-0 bg-[#121212]/80 z-40 transition-opacity duration-300"
           onClick={() => setIsMobileDrawerOpen(false)}
         />
       )}
       
       {/* Mobile Drawer Content */}
-      <div className={`lg:hidden fixed bottom-0 left-0 right-0 max-h-[85vh] bg-brand-bg-primary border-t border-brand-text-primary/30 rounded-none z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar p-6 space-y-6 shadow-2xl ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+      <div className={`lg:hidden fixed bottom-0 left-0 right-0 max-h-[85vh] bg-brand-bg-primary border-t-2 border-brand-accent rounded-none z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar p-6 space-y-6 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="flex justify-between items-center pb-2 border-b border-brand-text-primary/30">
           <h3 className="text-lg font-bold font-serif text-brand-accent flex items-center"><CourtIcon className="h-5 w-5 mr-2 text-brand-accent" /> Bench Companion</h3>
           <button onClick={() => setIsMobileDrawerOpen(false)} className="text-brand-text-secondary hover:text-brand-accent text-sm font-mono p-1">Close</button>

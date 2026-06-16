@@ -52,6 +52,8 @@ export default async function handler(req, res) {
         ? [{ role: "system", content: system }, ...messages]
         : messages;
 
+    const streamRequested = !!body.stream;
+
     let upstream;
     try {
         upstream = await fetch(config.url, {
@@ -66,10 +68,57 @@ export default async function handler(req, res) {
                 messages: allMessages,
                 temperature: config.model === "deepseek-reasoner" ? undefined : 0.6,
                 max_tokens: config.model === "deepseek-reasoner" ? undefined : 1000,
+                stream: streamRequested,
             }),
         });
     } catch (err) {
         return res.status(502).json({ error: `Network error: ${err.message}` });
+    }
+
+    if (!upstream.ok) {
+        let upstreamData = {};
+        try { upstreamData = await upstream.json(); } catch {}
+        return res.status(502).json({
+            error: `${config.model} returned ${upstream.status}`,
+            detail: upstreamData,
+        });
+    }
+
+    if (streamRequested) {
+        res.writeHead(200, {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Transfer-Encoding": "chunked",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        });
+
+        const reader = upstream.body;
+        let buffer = "";
+        const decoder = new TextDecoder();
+        for await (const chunk of reader) {
+            buffer += typeof chunk === "string" ? chunk : decoder.decode(chunk, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // keep last partial line in buffer
+
+            for (const line of lines) {
+                const cleaned = line.trim();
+                if (!cleaned) continue;
+                if (cleaned === "data: [DONE]") continue;
+                if (cleaned.startsWith("data: ")) {
+                    try {
+                        const json = JSON.parse(cleaned.slice(6));
+                        const content = json.choices?.[0]?.delta?.content || "";
+                        if (content) {
+                            res.write(content);
+                        }
+                    } catch (e) {
+                        // ignore malformed lines
+                    }
+                }
+            }
+        }
+        res.end();
+        return;
     }
 
     let upstreamData;
@@ -78,13 +127,6 @@ export default async function handler(req, res) {
     } catch {
         const rawText = await upstream.text().catch(() => "");
         return res.status(502).json({ error: `Bad response from ${config.model} (${upstream.status}): ${rawText.slice(0, 200)}` });
-    }
-
-    if (!upstream.ok) {
-        return res.status(502).json({
-            error: `${config.model} returned ${upstream.status}`,
-            detail: upstreamData,
-        });
     }
 
     const text = upstreamData?.choices?.[0]?.message?.content || "";
