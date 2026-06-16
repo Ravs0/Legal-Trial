@@ -200,17 +200,17 @@ const CaseLibraryScreen: React.FC = () => {
 
   return (
     <div className="space-y-16 animate-fadeIn pb-12 overflow-x-hidden relative">
-      <div className="text-center pt-8 relative z-10 max-w-4xl mx-auto px-4">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-6">
-          <DocumentTextIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand-accent" />
+      <div className="text-center pt-4 lg:pt-8 relative z-10 max-w-4xl mx-auto px-4">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-4 lg:mb-6">
+          <DocumentTextIcon className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-brand-accent" />
         </div>
-        <div className="inline-flex items-center justify-center space-x-2 mb-3 opacity-80">
-          <div className="h-px w-8 bg-brand-text-primary/30"></div>
-          <span className="text-[10px] font-mono text-brand-text-primary tracking-widest uppercase">{modeDisplay} Context</span>
-          <div className="h-px w-8 bg-brand-text-primary/30"></div>
+        <div className="inline-flex items-center justify-center space-x-2 mb-2 lg:mb-3 opacity-80">
+          <div className="h-px w-6 lg:w-8 bg-brand-text-primary/30"></div>
+          <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-primary tracking-widest uppercase">{modeDisplay} Context</span>
+          <div className="h-px w-6 lg:w-8 bg-brand-text-primary/30"></div>
         </div>
-        <h1 className="text-4xl sm:text-5xl font-bold text-brand-text-primary font-serif tracking-tight mb-4">Case Library</h1>
-        <p className="text-brand-text-secondary font-light max-w-2xl mx-auto leading-relaxed">
+        <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-brand-text-primary font-serif tracking-tight mb-3 lg:mb-4">Case Library</h1>
+        <p className="text-xs lg:text-base text-brand-text-secondary font-light max-w-2xl mx-auto leading-relaxed">
           An exclusive archive of procedural and substantive legal scenarios. Review the docket and select a matter to commence practice.
         </p>
       </div>
@@ -244,8 +244,8 @@ const CaseLibraryScreen: React.FC = () => {
             <Card className="p-6 sm:p-8 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none relative overflow-hidden">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-text-primary/30 pb-4 mb-6 gap-4">
                 <div className="space-y-1 text-left">
-                  <h3 className="text-xl sm:text-2xl font-serif font-bold text-brand-text-primary flex items-center">
-                    <svg className="w-6 h-6 mr-2.5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                  <h3 className="text-base sm:text-xl lg:text-2xl font-serif font-bold text-brand-text-primary flex items-center">
+                    <svg className="w-5 h-5 lg:w-6 lg:h-6 mr-2 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                     Bespoke Custom Case Simulator
                   </h3>
                   <p className="text-xs text-brand-text-secondary font-light">

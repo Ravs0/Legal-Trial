@@ -22,9 +22,9 @@ interface BentoItemProps {
 
 const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick, buttonText, className = '', isHero = false }) => (
   <div
-    className={`bg-brand-bg-primary border border-brand-text-primary/30 flex flex-col rounded-none p-6 sm:p-8 transition-all duration-300 ease-out group 
+    className={`bg-brand-bg-primary border border-brand-text-primary/30 flex flex-col rounded-none p-4 sm:p-6 lg:p-8 transition-all duration-300 ease-out group 
     ${onClick && !isHero ? 'cursor-pointer hover:bg-brand-bg-secondary focus-ring' : ''}
-    ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-12 sm:py-16 relative overflow-hidden' : ''}
+    ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-8 sm:py-12 lg:py-16 relative overflow-hidden' : ''}
     ${className}`}
     onClick={!isHero && onClick ? onClick : undefined}
     tabIndex={onClick && !isHero ? 0 : undefined}
@@ -32,20 +32,20 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
     role={onClick && !isHero ? "button" : undefined}
   >
     {icon && !isHero && (
-      <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mb-5">
-        <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-6 w-6" })}</div>
+      <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mb-4 lg:mb-5">
+        <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-5 w-5 lg:h-6 lg:w-6" })}</div>
       </div>
     )}
 
     {icon && isHero && (
-      <div className="relative z-10 w-24 h-24 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mb-8">
-        <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-12 w-12" })}</div>
+      <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mb-5 lg:mb-8">
+        <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12" })}</div>
       </div>
     )}
 
     <div className="relative z-10 w-full flex-grow flex flex-col">
-      <h3 className={`font-serif mb-3 ${isHero ? 'text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-brand-text-primary' : 'text-xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors'}`}>{title}</h3>
-      <div className={`font-light flex-grow leading-relaxed ${isHero ? 'text-lg sm:text-xl text-brand-text-secondary/90 max-w-3xl mx-auto mb-8' : 'text-sm text-brand-text-secondary mb-6'}`}>{description}</div>
+      <h3 className={`font-serif mb-2 lg:mb-3 ${isHero ? 'text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight text-brand-text-primary' : 'text-base lg:text-xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors'}`}>{title}</h3>
+      <div className={`font-light flex-grow leading-relaxed ${isHero ? 'text-sm sm:text-base lg:text-xl text-brand-text-secondary/90 max-w-3xl mx-auto mb-5 lg:mb-8' : 'text-xs lg:text-sm text-brand-text-secondary mb-4 lg:mb-6'}`}>{description}</div>
 
       {buttonText && !isHero && (
         <div className="mt-auto w-full pt-4 border-t border-brand-text-primary/30">
@@ -65,9 +65,9 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
           variant="primary"
           size="lg"
           onClick={onClick}
-          className="mt-2 mx-auto px-10 py-4 text-lg font-medium transition-transform duration-300"
+          className="mt-2 mx-auto px-6 lg:px-10 py-3 lg:py-4 text-sm lg:text-lg font-medium transition-transform duration-300"
         >
-          <PlusCircleIcon className="h-6 w-6 mr-3 opacity-90" />
+          <PlusCircleIcon className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3 opacity-90" />
           {buttonText}
         </Button>
       )}
@@ -105,7 +105,7 @@ const HomeScreen: React.FC = () => {
           icon={<CourtIcon />}
           onClick={() => navigate(ROUTES.SETUP)}
           buttonText={`Start New ${modeDisplay} Trial Session`}
-          className="min-h-[400px]"
+          className="min-h-[280px] lg:min-h-[400px]"
         />
 
         <BentoItem
@@ -145,7 +145,7 @@ const HomeScreen: React.FC = () => {
 
       <div className="text-center pt-10 pb-4 relative">
         <div className="absolute top-0 left-1/4 right-1/4 h-px bg-brand-text-primary/30"></div>
-        <p className="text-sm font-light tracking-wide text-brand-text-secondary/70 max-w-2xl mx-auto">
+        <p className="text-xs lg:text-sm font-light tracking-wide text-brand-text-secondary/70 max-w-2xl mx-auto px-4">
           {APP_NAME} is a rigorous training module designed to critically assess and dramatically improve your legal argumentation and drafting dexterity within the {modeDisplay.toLowerCase()} context.
         </p>
       </div>

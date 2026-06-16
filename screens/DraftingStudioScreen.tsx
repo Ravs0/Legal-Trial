@@ -1,5 +1,5 @@
-
 import React, { useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Navigate } from 'react-router-dom';
 import { TrialSimContext } from '../App';
 import { ROUTES, DRAFTING_TASKS_INDIAN, DRAFTING_TASKS_INTERNATIONAL } from '../constants';
@@ -176,29 +176,59 @@ const DraftingStudioScreen: React.FC = () => {
 
   const handleSpeak = async (text: string) => {
     try {
-      const cleanText = text.replace(/\*\*|_/g, ''); // Strip markdown chars
-      const response = await fetch('/api/voice', {
+      const response = await fetch('http://localhost:5001/api/speech/synthesize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          action: 'tts',
-          text: cleanText.slice(0, 800), // Cap length
-          language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
-          gender: 'female',
+          text,
+          voice_id: 'sarvam-english'
         }),
       });
 
-      if (!response.ok) throw new Error('TTS failed');
-      const data = await response.json();
-      if (data.status === 'success' && data.audio) {
-        const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
-        await audio.play();
+      if (!response.ok) {
+        throw new Error('Speech synthesis failed');
       }
-    } catch (err) {
-      console.error('Failed voice playback:', err);
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+      
+    } catch (error) {
+      console.error('Error playing speech:', error);
     }
   };
 
+  const renderMarkdown = (text: string) => {
+    if (!text) return null;
+    return (
+      <ReactMarkdown
+        components={{
+          strong: ({node, ...props}) => <strong className="text-brand-accent font-semibold" {...props} />,
+          em: ({node, ...props}) => <em className="font-serif italic opacity-95" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc pl-4 my-2 space-y-1" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props} />,
+          li: ({node, ...props}) => <li className="" {...props} />,
+          h1: ({node, ...props}) => <h1 className="text-lg font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-base font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-sm font-serif font-bold text-brand-text-primary mt-3 mb-1" {...props} />,
+          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+          code: ({node, className, children, ...props}) => {
+            const match = /language-(\w+)/.exec(className || '');
+            return !match ? (
+              <code className="bg-brand-bg-secondary px-1 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>
+            ) : (
+              <pre className="bg-brand-bg-secondary p-2 rounded text-xs font-mono overflow-x-auto"><code {...props}>{children}</code></pre>
+            );
+          }
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
+  };
 
   const isLoading = isFactGenerating || isLoadingAiInteraction;
 
@@ -641,58 +671,58 @@ Section 8.2 Limitation of Liability.
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] animate-fadeIn relative">
+    <div className="flex flex-col min-h-[calc(100vh-100px)] h-full overflow-y-auto custom-scrollbar animate-fadeIn relative pb-8">
 
       {/* Header & Stepper */}
-      <div className="flex-shrink-0 mb-6 lg:mb-8 text-center lg:text-left flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 px-1">
+      <div className="flex-shrink-0 mb-4 lg:mb-8 text-center lg:text-left flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-6 px-1">
         <div>
-            <div className="flex items-center justify-center lg:justify-start space-x-3 mb-2">
-                <QuillIcon className="h-6 w-6 text-brand-accent" />
-                <h1 className="text-2xl lg:text-3xl font-serif font-bold text-shimmer tracking-tight">Drafting Studio</h1>
-                <span className="text-[10px] font-mono text-brand-accent border border-brand-text-primary/30 px-2 py-0.5 rounded-none uppercase tracking-widest">{modeDisplay}</span>
+            <div className="flex items-center justify-center lg:justify-start space-x-2 lg:space-x-3 mb-1 lg:mb-2">
+                <QuillIcon className="h-5 w-5 lg:h-6 lg:w-6 text-brand-accent" />
+                <h1 className="text-lg lg:text-3xl font-serif font-bold text-shimmer tracking-tight">Drafting Studio</h1>
+                <span className="text-[8px] lg:text-[10px] font-mono text-brand-accent border border-brand-text-primary/30 px-1.5 lg:px-2 py-0.5 rounded-none uppercase tracking-widest">{modeDisplay}</span>
             </div>
-            <p className="text-sm text-brand-text-secondary font-light max-w-xl mx-auto lg:mx-0">
+            <p className="text-xs lg:text-sm text-brand-text-secondary font-light max-w-xl mx-auto lg:mx-0">
                 AI-powered legal instrument synthesis and procedural validation.
             </p>
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center justify-center space-x-2 md:space-x-4">
+        <div className="flex items-center justify-center space-x-1.5 md:space-x-4">
             {steps.map((step, idx) => (
                 <React.Fragment key={step.id}>
                     <div className="flex flex-col items-center group">
-                        <div className={`w-8 h-8 rounded-none flex items-center justify-center text-xs font-bold transition-all duration-300
+                        <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-none flex items-center justify-center text-[10px] lg:text-xs font-bold transition-all duration-300
                             ${idx <= currentStepIndex ? 'bg-brand-accent text-brand-bg-primary scale-110' : 'bg-brand-bg-secondary border border-brand-text-primary/30 text-brand-text-secondary/50'}
                         `}>
-                            {idx < currentStepIndex ? <CheckCircleIcon className="w-5 h-5" /> : idx + 1}
+                            {idx < currentStepIndex ? <CheckCircleIcon className="w-4 h-4 lg:w-5 lg:h-5" /> : idx + 1}
                         </div>
-                        <span className={`text-[9px] mt-1.5 font-mono uppercase tracking-tighter transition-colors ${idx <= currentStepIndex ? 'text-brand-accent' : 'text-brand-text-secondary/40'}`}>
+                        <span className={`text-[7px] lg:text-[9px] mt-1 lg:mt-1.5 font-mono uppercase tracking-tighter transition-colors ${idx <= currentStepIndex ? 'text-brand-accent' : 'text-brand-text-secondary/40'}`}>
                             {step.label}
                         </span>
                     </div>
                     {idx < steps.length - 1 && (
-                        <div className={`h-[1px] w-4 md:w-8 transition-colors duration-500 mb-4 ${idx < currentStepIndex ? 'bg-brand-accent' : 'bg-brand-text-primary/10'}`}></div>
+                        <div className={`h-[1px] w-3 md:w-8 transition-colors duration-500 mb-4 ${idx < currentStepIndex ? 'bg-brand-accent' : 'bg-brand-text-primary/10'}`}></div>
                     )}
                 </React.Fragment>
             ))}
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-grow overflow-hidden relative">
+      <div className="flex flex-col lg:flex-row gap-6 flex-grow lg:overflow-hidden relative min-h-[600px] lg:min-h-0">
         
         {/* Main Interface */}
         {stage === 'task_selection' || stage === 'fact_generation_loading' ? (
             <div className="flex-grow flex items-center justify-center">
-                <Card className="max-w-xl w-full p-10 bg-brand-bg-secondary border-brand-text-primary/30 relative overflow-hidden group">
+                <Card className="max-w-xl w-full p-5 sm:p-10 bg-brand-bg-secondary border-brand-text-primary/30 relative overflow-hidden group">
                     
                     {stage === 'task_selection' ? (
                         <div className="space-y-8 relative z-10">
                             <div className="text-center">
-                                <div className="w-16 h-16 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-4">
-                                    <ClipboardIcon className="w-8 h-8 text-brand-accent" />
+                                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                                    <ClipboardIcon className="w-6 h-6 lg:w-8 lg:h-8 text-brand-accent" />
                                 </div>
-                                <h3 className="text-xl font-serif font-semibold text-brand-text-primary">Choose your Practice Area</h3>
-                                <p className="text-sm text-brand-text-secondary font-light mt-1">Select an instrument to generate a practice scenario.</p>
+                                <h3 className="text-base lg:text-xl font-serif font-semibold text-brand-text-primary">Choose your Practice Area</h3>
+                                <p className="text-xs lg:text-sm text-brand-text-secondary font-light mt-1">Select an instrument to generate a practice scenario.</p>
                             </div>
 
                             <SelectInput
@@ -727,22 +757,24 @@ Section 8.2 Limitation of Liability.
         ) : (
             <>
                 {/* Reference Sidebar (Left/Collapsible) */}
-                <aside className={`flex-shrink-0 transition-all duration-500 ease-in-out border-brand-text-primary/30 bg-brand-bg-primary rounded-none overflow-hidden flex flex-col
-                    ${isRefPanelOpen ? 'w-full lg:w-[380px] h-[300px] lg:h-auto' : 'w-full lg:w-16 h-12 lg:h-auto'}
+                <aside className={`flex-shrink-0 transition-all duration-500 ease-in-out border border-brand-text-primary/30 bg-brand-bg-primary rounded-none overflow-hidden flex flex-col
+                    ${isRefPanelOpen ? 'w-full lg:w-[380px] max-h-[40vh] lg:max-h-none lg:h-auto' : 'w-full lg:w-16 h-10 lg:h-auto'}
                 `}>
                     {/* Sidebar Header / Toggle */}
-                    <div className="p-3 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between">
+                    <div className="p-2 lg:p-3 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between">
                         {isRefPanelOpen ? (
-                            <div className="flex items-center space-x-3 ml-2">
-                                <span className="text-[11px] font-mono font-bold text-brand-accent tracking-widest uppercase">Reference Bank</span>
+                            <div className="flex items-center space-x-2 ml-1 lg:ml-2">
+                                <span className="text-[10px] lg:text-[11px] font-mono font-bold text-brand-accent tracking-widest uppercase">Reference Bank</span>
                             </div>
-                        ) : null}
+                        ) : (
+                            <span className="text-[9px] font-mono text-brand-text-secondary/60 uppercase tracking-wider lg:hidden">Tap to open references</span>
+                        )}
                         <button 
                             onClick={() => setIsRefPanelOpen(!isRefPanelOpen)}
-                            className="p-2 rounded-none hover:bg-brand-bg-secondary text-brand-text-secondary hover:text-brand-accent transition-all mx-auto lg:mx-0"
+                            className="p-1.5 lg:p-2 rounded-none hover:bg-brand-bg-secondary text-brand-text-secondary hover:text-brand-accent transition-all lg:mx-0"
                             title={isRefPanelOpen ? "Minimize" : "Expand"}
                         >
-                            {isRefPanelOpen ? <XMarkIcon className="w-5 h-5" /> : <Bars3Icon className="w-5 h-5" />}
+                            {isRefPanelOpen ? <XMarkIcon className="w-4 h-4 lg:w-5 lg:h-5" /> : <Bars3Icon className="w-4 h-4 lg:w-5 lg:h-5" />}
                         </button>
                     </div>
 
@@ -812,8 +844,8 @@ Section 8.2 Limitation of Liability.
                                             <div className="h-px w-4 bg-brand-accent"></div>
                                             <span className="text-[10px] font-mono uppercase tracking-widest">{currentTask?.type} Case Facts</span>
                                         </div>
-                                        <div className="whitespace-pre-wrap font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                            {generatedFacts || "Generating facts..."}
+                                        <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
+                                            {generatedFacts ? renderMarkdown(generatedFacts) : "Generating facts..."}
                                         </div>
                                     </div>
                                 )}
@@ -853,8 +885,8 @@ Section 8.2 Limitation of Liability.
                                             </div>
                                         ) : (
                                             <div>
-                                                <div className="whitespace-pre-wrap font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                                    {aiFeedback || "Submit your draft for AI review."}
+                                                <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
+                                                    {aiFeedback ? renderMarkdown(aiFeedback) : "Submit your draft for AI review."}
                                                 </div>
                                                 {aiFeedback && (
                                                     <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
@@ -878,8 +910,8 @@ Section 8.2 Limitation of Liability.
                                             <div className="h-px w-4 bg-brand-accent"></div>
                                             <span className="text-[10px] font-mono uppercase tracking-widest">Filing Protocol</span>
                                         </div>
-                                        <div className="whitespace-pre-wrap font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                            {filingProcedure || "Filing info not requested yet."}
+                                        <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
+                                            {filingProcedure ? renderMarkdown(filingProcedure) : "Filing info not requested yet."}
                                             {filingProcedure && (
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                     <button
@@ -902,13 +934,13 @@ Section 8.2 Limitation of Liability.
                 </aside>
 
                 {/* Editor Area (Right/Main) */}
-                <main className="flex-grow flex flex-col overflow-hidden bg-brand-bg-primary border border-brand-text-primary/30 rounded-none relative">
+                <main className="flex-grow flex flex-col min-h-[300px] lg:min-h-0 overflow-hidden bg-brand-bg-primary border border-brand-text-primary/30 rounded-none relative">
                     
                     {/* Editor Toolbar */}
-                    <div className="flex-shrink-0 p-4 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between z-10">
-                        <div className="flex flex-col">
-                            <span className="text-[9px] font-mono text-brand-text-secondary uppercase tracking-[0.2em] mb-0.5">Editor</span>
-                            <h3 className="text-sm font-serif font-semibold text-brand-text-primary">{currentTask?.title}</h3>
+                    <div className="flex-shrink-0 p-2.5 lg:p-4 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between z-10 gap-2">
+                        <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-[8px] lg:text-[9px] font-mono text-brand-text-secondary uppercase tracking-[0.2em] mb-0.5">Editor</span>
+                            <h3 className="text-xs lg:text-sm font-serif font-semibold text-brand-text-primary truncate">{currentTask?.title}</h3>
                         </div>
 
                         <div className="flex items-center space-x-3">
@@ -922,24 +954,24 @@ Section 8.2 Limitation of Liability.
                                     />
                                 </div>
                             )}
-                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[10px] h-8 px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-none">
-                                Reset Task
+                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-none flex-shrink-0">
+                                Reset
                             </Button>
                         </div>
                     </div>
 
                         <div className="flex-grow relative bg-brand-bg-primary">
                         {stage === 'task_details_display' ? (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-8 text-center bg-brand-bg-primary/95 group">
-                                <Card className="max-w-md p-8 border-brand-text-primary/30 bg-brand-bg-secondary transition-transform duration-500">
-                                    <div className="w-12 h-12 bg-brand-bg-primary rounded-none flex items-center justify-center mx-auto mb-4 border border-brand-text-primary/30">
-                                        <QuillIcon className="w-6 h-6 text-brand-accent" />
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 lg:p-8 text-center bg-brand-bg-primary/95 group">
+                                <Card className="max-w-md p-5 lg:p-8 border-brand-text-primary/30 bg-brand-bg-secondary transition-transform duration-500">
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-brand-bg-primary rounded-none flex items-center justify-center mx-auto mb-3 lg:mb-4 border border-brand-text-primary/30">
+                                        <QuillIcon className="w-5 h-5 lg:w-6 lg:h-6 text-brand-accent" />
                                     </div>
-                                    <h4 className="text-lg font-serif font-bold text-brand-text-primary mb-2">Scenario Ready</h4>
-                                    <p className="text-sm text-brand-text-secondary font-light mb-6 leading-relaxed">
-                                        Review the generated <span className="text-brand-accent font-medium">Facts</span> in the reference panel. Once you're ready to synthesize the <span className="text-brand-accent font-medium">{currentTask?.type}</span>, open the editor.
+                                    <h4 className="text-base lg:text-lg font-serif font-bold text-brand-text-primary mb-1.5 lg:mb-2">Scenario Ready</h4>
+                                    <p className="text-xs lg:text-sm text-brand-text-secondary font-light mb-4 lg:mb-6 leading-relaxed">
+                                        Review the <span className="text-brand-accent font-medium">Facts</span> in the reference panel, then open the editor to draft your <span className="text-brand-accent font-medium">{currentTask?.type}</span>.
                                     </p>
-                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="lg" className="uppercase tracking-wider text-xs rounded-none border border-brand-accent hover:bg-brand-accent hover:text-brand-navy">
+                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="md" className="uppercase tracking-wider text-[10px] lg:text-xs rounded-none border border-brand-accent hover:bg-brand-accent hover:text-brand-navy">
                                         Commence Drafting
                                     </Button>
                                 </Card>
@@ -950,47 +982,43 @@ Section 8.2 Limitation of Liability.
                             value={userDraft}
                             onChange={(e) => setUserDraft(e.target.value)}
                             placeholder={`Start drafting your ${currentTask?.type}...\n\n[Focus: ${currentTask?.objective}]`}
-                            className="w-full h-full p-8 lg:p-12 bg-transparent text-brand-text-primary resize-none outline-none custom-scrollbar placeholder-brand-text-secondary/20 text-base sm:text-lg leading-loose font-light font-sans selection:bg-brand-accent/20 transition-all"
+                            className="w-full h-full p-4 sm:p-6 lg:p-12 bg-transparent text-brand-text-primary resize-none outline-none custom-scrollbar placeholder-brand-text-secondary/20 text-sm sm:text-base lg:text-lg leading-relaxed lg:leading-loose font-light font-sans selection:bg-brand-accent/20 transition-all"
                             disabled={isLoading || stage === 'task_details_display'}
                             spellCheck="true"
                         />
                     </div>
 
                     {/* Bottom Command Bar */}
-                    <div className="flex-shrink-0 p-4 border-t border-brand-text-primary/30 bg-brand-bg-secondary flex flex-col sm:flex-row items-center justify-between gap-4 z-10">
-                        <div className="flex items-center space-x-6">
-                            <div className="flex flex-col">
-                                <span className="text-[9px] font-mono text-brand-text-secondary uppercase tracking-widest mb-1">Status</span>
-                                <div className="flex items-center space-x-3">
-                                    <div className="flex items-center space-x-1.5">
-                                        <div className={`w-1.5 h-1.5 rounded-none ${userDraft.length > 0 ? 'bg-green-500' : 'bg-brand-text-secondary/30'}`}></div>
-                                        <span className="text-[10px] font-medium text-brand-text-primary">{userDraft.length} chars</span>
-                                    </div>
-                                    {scoringResult && (
-                                        <button
-                                            onClick={() => { setActiveRefTab('score'); if(!isRefPanelOpen) setIsRefPanelOpen(true); }}
-                                            className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-none border transition-all cursor-pointer
-                                                ${scoringResult.verdictTier === 'excellent' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
-                                                  scoringResult.verdictTier === 'good' ? 'border-brand-accent/30 bg-brand-accent/10 text-brand-accent' :
-                                                  scoringResult.verdictTier === 'fair' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
-                                                  'border-red-500/30 bg-red-500/10 text-red-400'}
-                                            `}
-                                            title="View full scoring breakdown"
-                                        >
-                                            <ChartBarIcon className="w-3 h-3" />
-                                            <span className="text-[10px] font-mono font-bold">{Math.round(scoringResult.totalScore)}</span>
-                                        </button>
-                                    )}
-                                </div>
+                    <div className="flex-shrink-0 p-2.5 lg:p-4 border-t border-brand-text-primary/30 bg-brand-bg-secondary z-10">
+                        {/* Status row */}
+                        <div className="flex items-center justify-between mb-2 lg:mb-0 lg:inline-flex lg:mr-4">
+                            <div className="flex items-center space-x-2">
+                                <div className={`w-1.5 h-1.5 rounded-none ${userDraft.length > 0 ? 'bg-green-500' : 'bg-brand-text-secondary/30'}`}></div>
+                                <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-primary">{userDraft.length} chars</span>
                             </div>
+                            {scoringResult && (
+                                <button
+                                    onClick={() => { setActiveRefTab('score'); if(!isRefPanelOpen) setIsRefPanelOpen(true); }}
+                                    className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-none border transition-all cursor-pointer
+                                        ${scoringResult.verdictTier === 'excellent' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
+                                          scoringResult.verdictTier === 'good' ? 'border-brand-accent/30 bg-brand-accent/10 text-brand-accent' :
+                                          scoringResult.verdictTier === 'fair' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
+                                          'border-red-500/30 bg-red-500/10 text-red-400'}
+                                    `}
+                                    title="View full scoring breakdown"
+                                >
+                                    <ChartBarIcon className="w-3 h-3" />
+                                    <span className="text-[9px] font-mono font-bold">{Math.round(scoringResult.totalScore)}</span>
+                                </button>
+                            )}
                         </div>
-
-                        <div className="flex items-center space-x-3 w-full sm:w-auto">
+                        {/* Action buttons row */}
+                        <div className="flex items-center gap-2 flex-wrap">
                             <button
                               type="button"
                               onClick={isRecording ? stopRecording : startRecording}
                               disabled={isLoading || stage === 'task_details_display'}
-                              className={`w-10 h-10 flex-shrink-0 rounded-none border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
+                              className={`w-8 h-8 lg:w-10 lg:h-10 flex-shrink-0 rounded-none border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
                                 ${isRecording
                                   ? 'bg-brand-error/20 border-brand-error text-brand-error animate-pulse'
                                   : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary hover:bg-brand-bg-primary'
@@ -998,9 +1026,9 @@ Section 8.2 Limitation of Liability.
                               title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
                             >
                               {isRecording ? (
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
                               ) : (
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                                <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
                               )}
                             </button>
 
@@ -1013,9 +1041,9 @@ Section 8.2 Limitation of Liability.
                                 variant="ghost"
                                 size="sm"
                                 disabled={!userDraft}
-                                className="text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-none uppercase tracking-wider h-10 px-4"
+                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-none uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                             >
-                                {isCopied ? 'Copied!' : 'Copy Draft'}
+                                {isCopied ? 'Copied!' : 'Copy'}
                             </Button>
 
                             {stage === 'feedback_review' || stage === 'filing_procedure' ? (
@@ -1024,20 +1052,20 @@ Section 8.2 Limitation of Liability.
                                     variant="outline"
                                     size="sm"
                                     disabled={isLoading}
-                                    className="flex-1 sm:flex-none text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-none uppercase tracking-wider h-10 px-4"
+                                    className="text-[8px] lg:text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-none uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                                 >
-                                    Filing Protocol
+                                    Filing
                                 </Button>
                             ) : null}
 
                             <Button 
                                 onClick={handleSubmitForReview}
                                 variant="primary"
-                                size="lg"
+                                size="sm"
                                 disabled={isLoading || userDraft.length < 10 || stage === 'task_details_display'}
-                                className="flex-1 sm:flex-none min-w-[160px] rounded-none transition-all text-xs uppercase tracking-[0.15em] h-10 border border-brand-accent"
+                                className="flex-1 min-w-0 rounded-none transition-all text-[9px] lg:text-xs uppercase tracking-wider h-8 lg:h-10 border border-brand-accent"
                             >
-                                {isLoadingAiInteraction ? 'Reviewing...' : (aiFeedback ? 'Re-Submit Draft' : 'Submit for Review')}
+                                {isLoadingAiInteraction ? 'Reviewing...' : (aiFeedback ? 'Re-Submit' : 'Submit')}
                             </Button>
                         </div>
                     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { TrialSimContext } from '../App';
@@ -504,38 +505,33 @@ export const CouncilChamberScreen: React.FC = () => {
   if (!context) throw new Error('TrialSimContext not found');
   const { practiceMode } = context;
 
-  const formatText = (text: string): React.ReactNode => {
+  const renderMarkdown = (text: string) => {
     if (!text) return null;
-    const lines = text.split('\n');
-    return lines.map((line, lineIdx) => {
-      const isBullet = line.trim().startsWith('* ') || line.trim().startsWith('- ');
-      const displayLine = isBullet ? line.trim().substring(2) : line;
-      const parts = displayLine.split(/(\*\*.*?\*\*|\*.*?\*|_.*?_)/g);
-      const lineContent = parts.map((part, index) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={index} className="text-brand-accent font-semibold">{part.slice(2, -2)}</strong>;
-        }
-        if ((part.startsWith('*') && part.endsWith('*')) || (part.startsWith('_') && part.endsWith('_'))) {
-          return <em key={index} className="font-serif italic opacity-95">{part.slice(1, -1)}</em>;
-        }
-        return part;
-      });
-
-      if (isBullet) {
-        return (
-          <div key={lineIdx} className="flex items-start my-1 pl-2">
-            <span className="text-brand-accent mr-2 flex-shrink-0">•</span>
-            <span>{lineContent}</span>
-          </div>
-        );
-      }
-
-      return (
-        <div key={lineIdx} className="min-h-[1.2em]">
-          {lineContent}
-        </div>
-      );
-    });
+    return (
+      <ReactMarkdown
+        components={{
+          strong: ({node, ...props}) => <strong className="text-brand-accent font-semibold" {...props} />,
+          em: ({node, ...props}) => <em className="font-serif italic opacity-95" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc pl-4 my-2 space-y-1" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props} />,
+          li: ({node, ...props}) => <li className="" {...props} />,
+          h1: ({node, ...props}) => <h1 className="text-lg font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-base font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-sm font-serif font-bold text-brand-text-primary mt-3 mb-1" {...props} />,
+          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+          code: ({node, className, children, ...props}) => {
+            const match = /language-(\w+)/.exec(className || '');
+            return !match ? (
+              <code className="bg-brand-bg-secondary px-1 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>
+            ) : (
+              <pre className="bg-brand-bg-secondary p-2 rounded text-xs font-mono overflow-x-auto"><code {...props}>{children}</code></pre>
+            );
+          }
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
   };
 
   const [activeTab, setActiveTab] = useState<ChamberMode>(ChamberMode.DIRECT);
@@ -877,20 +873,20 @@ export const CouncilChamberScreen: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col overflow-hidden ">
+    <div className="w-full h-full flex flex-col overflow-y-auto custom-scrollbar pb-10">
       
       {/* ========================================================================= */}
       {/* MOBILE APP-STYLE LAYOUT (Phones & Tablets < 1024px)                        */}
       {/* ========================================================================= */}
-      <div className="lg:hidden flex flex-col h-[calc(100dvh-130px)] overflow-hidden text-left relative">
+      <div className="lg:hidden flex flex-col min-h-[calc(100dvh-130px)] text-left relative">
         
         {/* Dynamic Mode Tab Bar Selector */}
-        <div className="w-full flex flex-col gap-3 p-3.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-4 ">
+        <div className="w-full flex flex-col gap-2 p-2.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold">Select Deliberation Protocol</span>
+            <span className="text-xs font-serif font-bold text-brand-text-primary/80">Deliberation Protocol</span>
             {activeTab === ChamberMode.DIRECT && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold">Model:</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-serif font-bold text-brand-text-primary/80">Model:</span>
                 <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
@@ -916,9 +912,9 @@ export const CouncilChamberScreen: React.FC = () => {
                   key={m.value}
                   type="button"
                   onClick={() => setActiveTab(m.value)}
-                  className={`px-2 py-2.5 rounded-none border text-[11px] font-medium font-serif flex items-center justify-center gap-1.5 
+                  className={`px-2 py-2 rounded-none border text-[10px] font-medium font-serif flex items-center justify-center gap-1 
                     ${isActive 
-                      ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent text-brand-text-primary font-semibold scale-[1.02]' 
+                      ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-semibold' 
                       : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
                     }`}
                 >
@@ -932,8 +928,8 @@ export const CouncilChamberScreen: React.FC = () => {
 
         {/* Mobile Vertical Scroll for Persona Council */}
         {activeTab === ChamberMode.COUNCIL && (
-          <div className="w-full flex flex-col gap-1.5 mb-4 ">
-            <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold block ml-1">Consult Jurist</span>
+          <div className="w-full flex flex-col gap-1 mb-3">
+            <span className="text-xs font-serif font-bold text-brand-text-primary/80 block ml-1">Consult Jurist</span>
             <div className="grid grid-cols-5 gap-2 select-none items-start w-full">
               {PERSONAS.map((p) => {
                 const isSelected = selectedPersona.id === p.id;
@@ -967,18 +963,18 @@ export const CouncilChamberScreen: React.FC = () => {
         )}
 
         {/* Chat Workspace (Mobile) */}
-        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle max-h-[50vh]">
+        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle min-h-[200px]">
           {/* Chat Feed (Mobile) */}
           <div className="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar text-left relative z-10">
             {activeHistory.length <= 1 && (
-              <div className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none space-y-2 text-left mb-2 ">
-                <h4 className="text-sm font-serif font-bold text-shimmer flex items-center gap-2">
+              <div className="p-3 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none space-y-1.5 text-left mb-2">
+                <h4 className="text-xs font-serif font-bold text-shimmer flex items-center gap-1.5">
                   <span className="font-serif font-bold border-r pr-2 mr-2">[ CHAMBER ]</span>
                   <span>
                     {activeTab === ChamberMode.DIRECT ? 'Direct Consult Suite' : activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
                   </span>
                 </h4>
-                <p className="text-[11px] text-brand-text-secondary font-light leading-relaxed">
+                <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed">
                   {activeTab === ChamberMode.DIRECT 
                     ? 'Consult DeepSeek V4 directly for fast briefings, draft outlines, and immediate legal advice.'
                     : activeTab === ChamberMode.ORACLE 
@@ -1012,7 +1008,7 @@ export const CouncilChamberScreen: React.FC = () => {
                         : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
-                  <div className="font-light text-brand-text-primary space-y-1.5">{formatText(item.text)}</div>
+                  <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
                   
                   {item.trace && item.trace.length > 0 && (
                     <details className="mt-3 pt-2.5 border-t border-white/10 text-[11px] font-light text-brand-text-secondary/80">
@@ -1181,7 +1177,7 @@ export const CouncilChamberScreen: React.FC = () => {
       {/* ========================================================================= */}
       {/* LAPTOP HIGH-FIDELITY WAR ROOM DASHBOARD (Large Screens >= 1024px)          */}
       {/* ========================================================================= */}
-      <div className="hidden lg:grid grid-cols-12 gap-6 h-[calc(100vh-140px)] w-full overflow-hidden text-left">
+      <div className="hidden lg:grid grid-cols-12 gap-6 min-h-[calc(100vh-140px)] w-full text-left">
         
         {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
         <div className="col-span-3 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
@@ -1346,7 +1342,7 @@ export const CouncilChamberScreen: React.FC = () => {
                         : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
-                  <div className="font-light text-brand-text-primary space-y-1.5">{formatText(item.text)}</div>
+                  <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
                 </div>
 
                 {item.sender === 'assistant' && item.text && (
