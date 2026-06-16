@@ -1269,7 +1269,7 @@ Section 8.2 Limitation of Liability.
                                     <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-secondary">{userDraft.length} chars</span>
                                 </div>
                                 <span className={`text-[9px] font-mono text-brand-accent transition-opacity duration-300 ${showAutoSave ? 'opacity-100' : 'opacity-0'}`}>
-                                    [✓ Saved]
+                                    [Saved]
                                 </span>
                             </div>
                             {scoringResult && (

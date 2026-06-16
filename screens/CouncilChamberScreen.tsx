@@ -322,7 +322,7 @@ const DeliberationBlueprint: React.FC<{
                 />
                 
                 {isCompleted ? (
-                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#FF5A1F" fontSize="9" fontFamily="monospace" fontWeight="bold">✓</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#FF5A1F" fontSize="9" fontFamily="monospace" fontWeight="bold">§</text>
                 ) : (
                   <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill={isPending ? "#555" : "#ffffff"} fontSize="9" fontFamily="serif" fontWeight="bold">{n.icon}</text>
                 )}
@@ -859,7 +859,7 @@ export const CouncilChamberScreen: React.FC = () => {
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        updateProvisionalBubble('❌ Deliberation cancelled by user.');
+        updateProvisionalBubble('[Cancelled] Deliberation cancelled by user.');
         setChatHistories(prev => {
           const history = prev[activeTab] || [];
           return {
@@ -873,7 +873,7 @@ export const CouncilChamberScreen: React.FC = () => {
           };
         });
       } else {
-        updateProvisionalBubble(`⚠️ Error: ${err.message || err}`);
+        updateProvisionalBubble(`[Error] ${err.message || err}`);
         setChatHistories(prev => {
           const history = prev[activeTab] || [];
           return {
@@ -969,7 +969,7 @@ export const CouncilChamberScreen: React.FC = () => {
                     >
                       {p.avatar}
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[7px] font-bold">✓</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[7px] font-bold">§</span>
                       )}
                     </div>
                     <span className={`text-[8px] tracking-wide font-mono transition-colors text-center truncate w-full
@@ -1082,7 +1082,7 @@ export const CouncilChamberScreen: React.FC = () => {
                       onClick={handleCancel}
                       className="text-[8px] font-mono uppercase px-2 py-0.5 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25  cursor-pointer font-bold"
                     >
-                      ✕ Abort
+                      [Abort]
                     </button>
                   </div>
                   
@@ -1107,7 +1107,7 @@ export const CouncilChamberScreen: React.FC = () => {
                             <span className={`w-3 h-3 rounded-none flex items-center justify-center border text-[7px] font-bold
                               ${isCompleted ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' : isActive ? 'bg-amber-500/10 border-amber-500 text-amber-400 ' : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'}`}
                             >
-                              {isCompleted ? '✓' : idx + 1}
+                              {isCompleted ? '§' : idx + 1}
                             </span>
                             <span className={isCompleted ? 'text-brand-text-secondary/60 line-through' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/35'}>
                               {stg}
@@ -1128,7 +1128,7 @@ export const CouncilChamberScreen: React.FC = () => {
           <div className="p-3 border-t border-brand-text-primary/30 bg-brand-bg-secondary/90  relative z-20">
             {audioError && (
               <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-none  text-left">
-                ⚠️ {audioError}
+                [Error] {audioError}
               </div>
             )}
 
@@ -1175,7 +1175,7 @@ export const CouncilChamberScreen: React.FC = () => {
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-none border border-brand-error/30 bg-brand-error/15 text-brand-error  flex items-center justify-center font-bold"
                     title="Abort consult"
                   >
-                    ✕
+                    x
                   </button>
                 ) : (
                   <button
@@ -1393,7 +1393,7 @@ export const CouncilChamberScreen: React.FC = () => {
           <div className="p-3 border-t border-brand-text-primary/30 bg-brand-bg-secondary/80  relative z-20">
             {audioError && (
               <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-none text-left ">
-                ⚠️ {audioError}
+                [Error] {audioError}
               </div>
             )}
 
@@ -1446,7 +1446,7 @@ export const CouncilChamberScreen: React.FC = () => {
                   onClick={handleCancel}
                   className="px-4 border border-brand-error/40 rounded-none bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[10px] font-mono uppercase tracking-wider flex-shrink-0  font-semibold"
                 >
-                  ✕ Cancel
+                  Cancel
                 </button>
               ) : (
                 <Button
@@ -1544,7 +1544,7 @@ export const CouncilChamberScreen: React.FC = () => {
                                     : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'
                                 }`}
                               >
-                                {isCompleted ? '✓' : idx + 1}
+                                {isCompleted ? '§' : idx + 1}
                               </span>
                               <span className={isCompleted ? 'text-brand-text-secondary/50 line-through' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/30'}>
                                 {stg}
@@ -1564,7 +1564,7 @@ export const CouncilChamberScreen: React.FC = () => {
                         <div key={index} className="space-y-1 p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
                           <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5 flex items-center justify-between">
                             <span>Stage {index + 1}: {tr.stage}</span>
-                            <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">✓ READY</span>
+                            <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">READY</span>
                           </h6>
                           <p className="leading-relaxed font-light text-brand-text-secondary text-[10px] whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{tr.content}</p>
                         </div>

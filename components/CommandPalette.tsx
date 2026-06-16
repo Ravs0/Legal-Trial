@@ -208,11 +208,11 @@ export const CommandPalette: React.FC = () => {
 
   return (
     <div 
-      className="fixed inset-0 bg-[#121212]/90 flex items-start justify-center z-[99999] p-4 sm:p-10 pt-16 sm:pt-24"
+      className="fixed inset-0 bg-[#0D0F12]/90 flex items-start justify-center z-[99999] p-4 sm:p-10 pt-16 sm:pt-24"
       onClick={() => setIsOpen(false)}
     >
       <div 
-        className="w-full max-w-2xl bg-brand-bg-primary border-2 border-brand-accent rounded-none shadow-[6px_6px_0px_0px_#d4a84b] flex flex-col max-h-[480px] overflow-hidden"
+        className="w-full max-w-2xl bg-brand-bg-primary border-2 border-brand-accent rounded-none shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col max-h-[480px] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Input */}

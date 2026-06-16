@@ -341,7 +341,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
 
       {/* ─── Full Chat Window ──────────────────────────────────────────────── */}
       {isOpen && (
-        <div className="bg-brand-bg-primary border border-brand-accent shadow-[6px_6px_0px_0px_#d4a84b] rounded-none w-80 sm:w-96 h-[28rem] flex flex-col mb-4 overflow-hidden animate-fadeInUp">
+        <div className="bg-brand-bg-primary border border-brand-accent shadow-[6px_6px_0px_0px_#FF5A1F] rounded-none w-80 sm:w-96 h-[28rem] flex flex-col mb-4 overflow-hidden animate-fadeInUp">
           {/* Header */}
           <div className="bg-brand-bg-secondary border-b border-brand-accent px-4 py-2.5 flex justify-between items-center">
             <div className="flex items-center space-x-2">
@@ -433,7 +433,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
           }`}
           onClick={expandToastToChat}
         >
-          <div className="bg-brand-bg-primary border border-brand-accent/60 shadow-[4px_4px_0px_0px_#d4a84b] rounded-none px-4 py-3 flex items-start gap-3 group hover:border-brand-accent transition-colors">
+          <div className="bg-brand-bg-primary border border-brand-accent/60 shadow-[4px_4px_0px_0px_#FF5A1F] rounded-none px-4 py-3 flex items-start gap-3 group hover:border-brand-accent transition-colors">
             {/* Koku avatar */}
             <div className="w-8 h-8 bg-brand-accent/20 border border-brand-accent rounded-none flex items-center justify-center flex-shrink-0 mt-0.5">
               <span className="text-sm font-bold text-brand-accent font-serif">K</span>
@@ -462,7 +462,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
       {!isOpen && (
         <button
           onClick={() => { dismissToast(); setIsOpen(true); }}
-          className="w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-none shadow-[4px_4px_0px_0px_#d4a84b] hover:shadow-[2px_2px_0px_0px_#d4a84b] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center relative group"
+          className="w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-none shadow-[4px_4px_0px_0px_#FF5A1F] hover:shadow-[2px_2px_0px_0px_#FF5A1F] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center relative group"
         >
           <span className="text-xl font-bold text-brand-accent font-serif">K</span>
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-error rounded-none border border-brand-bg-primary animate-pulse" />

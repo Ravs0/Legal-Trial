@@ -17,15 +17,100 @@ import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
 import { usePrecedentSearch } from '../hooks/usePrecedentSearch';
 
 
-const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty }> = ({ difficulty }) => {
+const getCategoryColorClasses = (categoryId: string) => {
+  switch (categoryId) {
+    case 'constitutional':
+    case 'public_international_law':
+      return {
+        text: 'text-brand-amber',
+        bg: 'bg-brand-amber',
+        border: 'border-brand-amber',
+        borderHover: 'hover:border-brand-amber',
+        bgMuted: 'bg-brand-amber/10',
+        textMuted: 'text-brand-amber/80',
+        accentGlow: 'group-hover:border-brand-amber/50 group-hover:shadow-[0_0_15px_rgba(212,154,59,0.15)]',
+      };
+    case 'criminal':
+    case 'international_criminal_law':
+      return {
+        text: 'text-brand-rust',
+        bg: 'bg-brand-rust',
+        border: 'border-brand-rust',
+        borderHover: 'hover:border-brand-rust',
+        bgMuted: 'bg-brand-rust/10',
+        textMuted: 'text-brand-rust/80',
+        accentGlow: 'group-hover:border-brand-rust/50 group-hover:shadow-[0_0_15px_rgba(194,89,63,0.15)]',
+      };
+    case 'commercial':
+    case 'international_arbitration':
+      return {
+        text: 'text-brand-emerald',
+        bg: 'bg-brand-emerald',
+        border: 'border-brand-emerald',
+        borderHover: 'hover:border-brand-emerald',
+        bgMuted: 'bg-brand-emerald/10',
+        textMuted: 'text-brand-emerald/80',
+        accentGlow: 'group-hover:border-brand-emerald/50 group-hover:shadow-[0_0_15px_rgba(46,125,50,0.15)]',
+      };
+    case 'family':
+    case 'labor':
+    case 'international_human_rights':
+      return {
+        text: 'text-brand-terracotta',
+        bg: 'bg-brand-terracotta',
+        border: 'border-brand-terracotta',
+        borderHover: 'hover:border-brand-terracotta',
+        bgMuted: 'bg-brand-terracotta/10',
+        textMuted: 'text-brand-terracotta/80',
+        accentGlow: 'group-hover:border-brand-terracotta/50 group-hover:shadow-[0_0_15px_rgba(212,106,106,0.15)]',
+      };
+    case 'property':
+    case 'law_of_the_sea':
+    case 'ipr_in':
+    case 'international_ip_law':
+      return {
+        text: 'text-brand-cobalt',
+        bg: 'bg-brand-cobalt',
+        border: 'border-brand-cobalt',
+        borderHover: 'hover:border-brand-cobalt',
+        bgMuted: 'bg-brand-cobalt/10',
+        textMuted: 'text-brand-cobalt/80',
+        accentGlow: 'group-hover:border-brand-cobalt/50 group-hover:shadow-[0_0_15px_rgba(63,81,181,0.15)]',
+      };
+    case 'environmental_in':
+    case 'international_environmental_law':
+      return {
+        text: 'text-brand-sage',
+        bg: 'bg-brand-sage',
+        border: 'border-brand-sage',
+        borderHover: 'hover:border-brand-sage',
+        bgMuted: 'bg-brand-sage/10',
+        textMuted: 'text-brand-sage/80',
+        accentGlow: 'group-hover:border-brand-sage/50 group-hover:shadow-[0_0_15px_rgba(123,142,120,0.15)]',
+      };
+    default:
+      return {
+        text: 'text-brand-concrete',
+        bg: 'bg-brand-concrete',
+        border: 'border-brand-concrete',
+        borderHover: 'hover:border-brand-concrete',
+        bgMuted: 'bg-brand-concrete/10',
+        textMuted: 'text-brand-concrete/80',
+        accentGlow: 'group-hover:border-brand-concrete/50 group-hover:shadow-[0_0_15px_rgba(209,213,219,0.15)]',
+      };
+  }
+};
+
+const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty; categoryId?: string }> = ({ difficulty, categoryId }) => {
+  const colors = categoryId ? getCategoryColorClasses(categoryId) : null;
   let bgColor = 'bg-brand-bg-secondary';
-  let borderColor = 'border-brand-text-primary/30';
-  let textColor = 'text-brand-text-secondary';
+  let borderColor = colors ? colors.border : 'border-brand-text-primary/30';
+  let textColor = colors ? colors.text : 'text-brand-text-secondary';
 
   if (difficulty === CaseDifficulty.ADVANCED) {
     bgColor = 'bg-brand-bg-primary';
-    borderColor = 'border-brand-accent';
-    textColor = 'text-brand-accent';
+    borderColor = colors ? colors.border : 'border-brand-accent';
+    textColor = colors ? colors.text : 'text-brand-accent';
   }
 
   return (
@@ -412,59 +497,62 @@ const CaseLibraryScreen: React.FC = () => {
 
             {searchResults.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                {searchResults.map(({ caseItem, score, matchedTerms }) => (
-                  <Card
-                    key={caseItem.id}
-                    className="flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer"
-                    onClick={() => handlePracticeCase(caseItem)}
-                  >
-                    <div className="p-6 pb-0 flex-grow">
-                      <div className="flex justify-between items-start mb-5">
-                        <DifficultyBadge difficulty={caseItem.difficulty} />
-                        <div className="flex items-center space-x-2">
-                          <span className="text-[10px] font-mono text-brand-accent bg-brand-bg-secondary px-2 py-1 border border-brand-accent/25">Score: {score}</span>
-                          <div className="w-8 h-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <svg className="w-4 h-4 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                {searchResults.map(({ caseItem, score, matchedTerms }) => {
+                  const catColors = getCategoryColorClasses(caseItem.categoryId);
+                  return (
+                    <Card
+                      key={caseItem.id}
+                      className={`flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 ${catColors.accentGlow} hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer`}
+                      onClick={() => handlePracticeCase(caseItem)}
+                    >
+                      <div className="p-6 pb-0 flex-grow">
+                        <div className="flex justify-between items-start mb-5">
+                          <DifficultyBadge difficulty={caseItem.difficulty} categoryId={caseItem.categoryId} />
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-[10px] font-mono ${catColors.text} bg-brand-bg-secondary px-2 py-1 border ${catColors.border}/25`}>Score: {score}</span>
+                            <div className="w-8 h-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <svg className={`w-4 h-4 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-brand-accent transition-colors duration-300" title={caseItem.title}>{caseItem.title}</h4>
+                        <h4 className={`text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:${catColors.text} transition-colors duration-300`} title={caseItem.title}>{caseItem.title}</h4>
 
-                      <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseItem.briefFacts}</p>
+                        <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseItem.briefFacts}</p>
 
-                      {matchedTerms.length > 0 && (
-                        <div className="mb-4 flex flex-wrap gap-1.5">
-                          {matchedTerms.map((term, i) => (
-                            <span key={i} className="text-[9px] font-mono bg-brand-accent/10 text-brand-accent border border-brand-accent/20 px-1.5 py-0.5 uppercase">
-                              {term}
-                            </span>
-                          ))}
+                        {matchedTerms.length > 0 && (
+                          <div className="mb-4 flex flex-wrap gap-1.5">
+                            {matchedTerms.map((term, i) => (
+                              <span key={i} className={`text-[9px] font-mono ${catColors.bgMuted} ${catColors.text} border ${catColors.border}/20 px-1.5 py-0.5 uppercase`}>
+                                {term}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="mb-6">
+                          <h5 className={`text-[10px] font-mono font-semibold ${catColors.text} uppercase tracking-widest mb-2 flex items-center`}>
+                            <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
+                          </h5>
+                          <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
+                            {caseItem.legalIssues.slice(0, 3).map((issue, idx) => (
+                              <li key={idx} className="flex items-start">
+                                <span className={`${catColors.text} mr-2 mt-0.5`}>•</span>
+                                <span className="line-clamp-2 leading-snug">{issue}</span>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      )}
-
-                      <div className="mb-6">
-                        <h5 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest mb-2 flex items-center">
-                          <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
-                        </h5>
-                        <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
-                          {caseItem.legalIssues.slice(0, 3).map((issue, idx) => (
-                            <li key={idx} className="flex items-start">
-                              <span className="text-brand-accent mr-2 mt-0.5">•</span>
-                              <span className="line-clamp-2 leading-snug">{issue}</span>
-                            </li>
-                          ))}
-                        </ul>
                       </div>
-                    </div>
 
-                    <div className="p-6 pt-0 mt-auto">
-                      <Button variant="outline" size="sm" fullWidth className="group-hover:bg-brand-accent group-hover:text-brand-accent-text group-hover:border-brand-accent transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
-                        Review Case File
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
+                      <div className="p-6 pt-0 mt-auto">
+                        <Button variant="outline" size="sm" fullWidth className={`group-hover:${catColors.bg} group-hover:text-brand-bg-primary group-hover:${catColors.border} transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5`}>
+                          Review Case File
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             ) : (
               <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-none bg-brand-bg-secondary flex items-center justify-center">
@@ -475,12 +563,13 @@ const CaseLibraryScreen: React.FC = () => {
         ) : (
           activeCaseCategories.map((category: CaseCategory) => {
             const categoryCases = activeCases.filter(c => c.categoryId === category.id);
+            const catColors = getCategoryColorClasses(category.id);
 
             return (
               <section key={category.id} aria-labelledby={`category-title-${category.id}`} className="scroll-mt-24 relative">
                 <div className="mb-8 flex items-end justify-between border-b border-brand-text-primary/30 pb-4">
                   <div className="flex items-center">
-                    <div className="w-1.5 h-8 bg-brand-accent mr-4"></div>
+                    <div className={`w-1.5 h-8 ${catColors.bg} mr-4`}></div>
                     <div>
                       <h2 id={`category-title-${category.id}`} className="text-3xl font-semibold text-brand-text-primary font-serif tracking-tight">{category.name}</h2>
                       <p className="text-sm font-light text-brand-text-secondary mt-1">{category.description}</p>
@@ -496,29 +585,29 @@ const CaseLibraryScreen: React.FC = () => {
                     {categoryCases.map((caseDetail: CaseDetail) => (
                       <Card
                         key={caseDetail.id}
-                        className="flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer"
+                        className={`flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 ${catColors.accentGlow} hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer`}
                         onClick={() => handlePracticeCase(caseDetail)}
                       >
                         <div className="p-6 pb-0 flex-grow">
                           <div className="flex justify-between items-start mb-5">
-                            <DifficultyBadge difficulty={caseDetail.difficulty} />
+                            <DifficultyBadge difficulty={caseDetail.difficulty} categoryId={caseDetail.categoryId} />
                             <div className="w-8 h-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                              <svg className="w-4 h-4 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                              <svg className={`w-4 h-4 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </div>
                           </div>
 
-                          <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-brand-accent transition-colors duration-300" title={caseDetail.title}>{caseDetail.title}</h4>
+                          <h4 className={`text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:${catColors.text} transition-colors duration-300`} title={caseDetail.title}>{caseDetail.title}</h4>
 
                           <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseDetail.briefFacts}</p>
 
                           <div className="mb-6">
-                            <h5 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest mb-2 flex items-center">
+                            <h5 className={`text-[10px] font-mono font-semibold ${catColors.text} uppercase tracking-widest mb-2 flex items-center`}>
                               <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
                             </h5>
                             <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
                               {caseDetail.legalIssues.slice(0, 3).map((issue, idx) => (
                                 <li key={idx} className="flex items-start">
-                                  <span className="text-brand-accent mr-2 mt-0.5">•</span>
+                                  <span className={`${catColors.text} mr-2 mt-0.5`}>•</span>
                                   <span className="line-clamp-2 leading-snug">{issue}</span>
                                 </li>
                               ))}
@@ -528,7 +617,7 @@ const CaseLibraryScreen: React.FC = () => {
                         </div>
 
                         <div className="p-6 pt-0 mt-auto">
-                          <Button variant="outline" size="sm" fullWidth className="group-hover:bg-brand-accent group-hover:text-brand-accent-text group-hover:border-brand-accent transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
+                          <Button variant="outline" size="sm" fullWidth className={`group-hover:${catColors.bg} group-hover:text-brand-bg-primary group-hover:${catColors.border} transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5`}>
                             Review Case File
                           </Button>
                         </div>
@@ -557,7 +646,7 @@ const CaseLibraryScreen: React.FC = () => {
           <div className="space-y-8">
             <div className="bg-brand-bg-secondary p-5 rounded-none border border-brand-text-primary/30">
               <div className="flex items-center space-x-3 mb-2">
-                <DifficultyBadge difficulty={selectedCaseForPractice.difficulty} />
+                <DifficultyBadge difficulty={selectedCaseForPractice.difficulty} categoryId={selectedCaseForPractice.categoryId} />
                 <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary/60">{modeDisplay} Arena</span>
               </div>
               <h3 className="text-2xl font-serif font-semibold text-brand-text-primary leading-tight">{selectedCaseForPractice.title}</h3>

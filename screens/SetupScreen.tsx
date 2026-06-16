@@ -14,6 +14,7 @@ import { CaseCategoryId, CaseDetail, JudgePersonality, JudgePersonalityId, Sessi
 import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
 import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
+import { getCategoryColorClasses } from '../services/colorUtils';
 
 const SetupScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -40,6 +41,8 @@ const SetupScreen: React.FC = () => {
   const [selectedCaseDetails, setSelectedCaseDetails] = useState<CaseDetail | null>(null);
   const [selectedJudgeDetails, setSelectedJudgeDetails] = useState<JudgePersonality | null>(null);
   const [selectedOpposingCounselDetails, setSelectedOpposingCounselDetails] = useState<OpposingCounselPersonality | null>(null);
+
+  const catColors = getCategoryColorClasses(selectedCategoryId || 'default');
 
   useEffect(() => {
     setSelectedCategoryId(currentCaseCategories[0]?.id || '');
@@ -205,7 +208,7 @@ const SetupScreen: React.FC = () => {
             <Card className="flex flex-col h-full bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
               <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
                 <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
-                  <DocumentTextIcon className="h-6 w-6 text-brand-accent" />
+                  <DocumentTextIcon className={`h-6 w-6 ${catColors.text}`} />
                 </div>
                 <h4 className="font-semibold text-brand-text-primary text-xl font-serif">Selected Case</h4>
               </div>
@@ -219,7 +222,7 @@ const SetupScreen: React.FC = () => {
               <ul className="space-y-2 mb-6 text-brand-text-secondary text-sm font-light">
                 {selectedCaseDetails.legalIssues.map((issue, i) => (
                   <li key={i} className="flex items-start">
-                    <span className="text-brand-accent mr-2 mt-0.5 opacity-70">◆</span>
+                    <span className={`${catColors.text} mr-2 mt-0.5 opacity-70`}>◆</span>
                     <span>{issue}</span>
                   </li>
                 ))}
@@ -235,7 +238,7 @@ const SetupScreen: React.FC = () => {
               <Card className="flex flex-col flex-1 bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
                 <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
                   <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
-                    <GavelIcon className="h-6 w-6 text-brand-accent" />
+                    <GavelIcon className={`h-6 w-6 ${catColors.text}`} />
                   </div>
                   <h4 className="font-semibold text-brand-text-primary text-xl font-serif">The Bench</h4>
                 </div>
@@ -247,19 +250,19 @@ const SetupScreen: React.FC = () => {
               <Card className="flex flex-col flex-1 bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
                 <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
                   <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
-                    <BriefcaseIcon className="h-6 w-6 text-brand-accent" />
+                    <BriefcaseIcon className={`h-6 w-6 ${catColors.text}`} />
                   </div>
                   <h4 className="font-semibold text-brand-text-primary text-xl font-serif">Opposing Counsel</h4>
                 </div>
                 <p className="font-bold text-brand-text-primary text-lg mb-1">{selectedOpposingCounselDetails.name}</p>
-                <p className="text-xs font-mono text-brand-accent mb-3 tracking-widest uppercase">{selectedOpposingCounselDetails.specialty}</p>
+                <p className={`text-xs font-mono ${catColors.text} mb-3 tracking-widest uppercase`}>{selectedOpposingCounselDetails.specialty}</p>
                 <p className="text-brand-text-secondary text-sm line-clamp-4 leading-relaxed font-light">{selectedOpposingCounselDetails.description}</p>
               </Card>
             )}
           </div>
           {(!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails) && !currentCases.length && (
             <Card className="md:col-span-2 lg:col-span-1 flex items-center justify-center p-12 text-center border-dashed border border-brand-text-primary/30 bg-brand-bg-secondary">
-              <p className="text-brand-text-secondary max-w-sm">Please make your selections from the panel. If dropdowns are empty, no data is configured for <span className="font-semibold text-brand-accent">{modeDisplay}</span> mode.</p>
+              <p className="text-brand-text-secondary max-w-sm">Please make your selections from the panel. If dropdowns are empty, no data is configured for <span className={`font-semibold ${catColors.text}`}>{modeDisplay}</span> mode.</p>
             </Card>
           )}
         </div>
@@ -274,6 +277,7 @@ const SetupScreen: React.FC = () => {
               size="lg"
               variant="primary"
               disabled={!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails}
+              categoryId={selectedCategoryId || undefined}
               className="py-4 text-xl"
             >
               <span>Enter the Arena</span>

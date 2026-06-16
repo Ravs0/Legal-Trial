@@ -88,7 +88,7 @@ function App() {
     <TrialSimContext.Provider value={contextValue}>
       <ConversationBridgeProvider>
       <HashRouter>
-        {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-75 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
+        {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-75 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-concrete" textColor="text-brand-text-secondary" /></div>}
         {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
         <OversightSpirit />
         <CommandPalette />

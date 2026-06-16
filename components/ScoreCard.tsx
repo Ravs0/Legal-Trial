@@ -12,7 +12,7 @@ const ScoreGauge: React.FC<{ score: number; tier: ScoringResult['verdictTier'] }
   const progress = (score / 100) * circumference;
   const strokeColor = {
     excellent: '#10b981',
-    good:      '#d4a84b',
+    good:      '#D49A3B',
     fair:      '#f59e0b',
     poor:      '#ef4444',
   }[tier];
