@@ -135,7 +135,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isExpanded = isSidebarOpen || isMobileOpen;
 
   return (
-    <div className="min-h-screen flex bg-brand-bg-primary text-brand-text-primary overflow-x-hidden relative">
+    <div className="h-dvh flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
 
       {/* Mobile Top Bar */}
       {showSidebar && (
@@ -227,11 +227,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </aside>
       )}
 
-      <main className={`flex-grow z-10 transition-all duration-300 ease-in-out min-h-screen flex flex-col 
+      <main className={`flex-grow z-10 transition-all duration-300 ease-in-out h-dvh flex flex-col overflow-y-auto 
         ${showSidebar ? (isSidebarOpen ? 'md:ml-56' : 'md:ml-[60px]') : ''}
         ${showSidebar ? 'pt-14 md:pt-0' : ''}
       `}>
-        <div className="flex-grow p-4 sm:p-8 lg:p-10 mb-8 max-w-[1400px] mx-auto w-full">
+        <div className="flex-grow p-3 sm:p-6 lg:p-10 max-w-[1400px] mx-auto w-full">
           {children}
         </div>
       </main>

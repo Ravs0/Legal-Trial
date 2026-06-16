@@ -335,25 +335,29 @@ const SentientSubjectsScreen: React.FC = () => {
   };
 
   return (
-    <div className="animate-fadeIn flex flex-col lg:flex-row gap-0 lg:gap-6 min-h-[calc(100dvh-130px)] w-full text-left">
+    <div className="animate-fadeIn flex flex-col lg:flex-row gap-0 lg:gap-6 w-full text-left"
+      style={{ height: 'calc(100dvh - 130px)' }}>
+
       {/* ─── Subject Selector Panel ──────────────────────────────────────────── */}
-      <div className="w-full lg:w-80 flex-shrink-0 flex flex-col">
-        {/* Mobile: Horizontal scroll */}
-        <div className="lg:hidden">
-          <div className="flex items-center gap-2 p-2 overflow-x-auto custom-scrollbar">
+      <div className="w-full lg:w-80 flex-shrink-0 lg:flex lg:flex-col lg:h-full">
+
+        {/* Mobile: Compact horizontal strip */}
+        <div className="lg:hidden flex-shrink-0 border-b border-brand-text-primary/20 bg-brand-bg-secondary/30">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 overflow-x-auto custom-scrollbar"
+            style={{ WebkitOverflowScrolling: 'touch' }}>
             {SENTIENT_SUBJECTS.map(s => {
               const isActive = selectedSubject.id === s.id;
               return (
                 <button
                   key={s.id}
                   onClick={() => handleSubjectSwitch(s)}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 border rounded-none text-[10px] font-mono transition-all
+                  className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 border rounded-none text-[10px] font-mono transition-all
                     ${isActive
                       ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-bold'
-                      : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary'
+                      : 'bg-brand-bg-primary border-brand-text-primary/20 text-brand-text-secondary active:bg-brand-bg-secondary'
                     }`}
                 >
-                  <span className="text-sm">{s.avatar}</span>
+                  <span className="text-xs">{s.avatar}</span>
                   <span className="whitespace-nowrap">{s.name}</span>
                 </button>
               );
@@ -362,8 +366,8 @@ const SentientSubjectsScreen: React.FC = () => {
         </div>
 
         {/* Desktop: Vertical list */}
-        <div className="hidden lg:flex lg:flex-col gap-0 h-full border border-brand-text-primary/30 bg-brand-bg-primary overflow-hidden">
-          <div className="p-4 border-b border-brand-text-primary/30">
+        <div className="hidden lg:flex lg:flex-col gap-0 h-full border border-brand-text-primary/30 bg-brand-bg-primary overflow-y-auto custom-scrollbar">
+          <div className="p-4 border-b border-brand-text-primary/30 flex-shrink-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[9px] font-mono text-brand-accent tracking-widest uppercase">[ Sentient Subjects ]</span>
             </div>
@@ -378,14 +382,14 @@ const SentientSubjectsScreen: React.FC = () => {
               <button
                 key={s.id}
                 onClick={() => handleSubjectSwitch(s)}
-                className={`w-full text-left p-4 border-b border-brand-text-primary/10 transition-all group
+                className={`w-full text-left p-4 border-b border-brand-text-primary/10 transition-all group flex-shrink-0
                   ${isActive
                     ? 'bg-brand-bg-secondary border-l-2 border-l-brand-accent'
                     : 'hover:bg-brand-bg-secondary/50 border-l-2 border-l-transparent'
                   }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-none border flex items-center justify-center text-lg
+                  <div className={`w-10 h-10 rounded-none border flex items-center justify-center text-lg flex-shrink-0
                     ${isActive ? 'border-brand-accent bg-brand-accent/10' : 'border-brand-text-primary/20 bg-brand-bg-primary'}`}
                   >
                     {s.avatar}
@@ -398,7 +402,7 @@ const SentientSubjectsScreen: React.FC = () => {
                       {isActive && <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />}
                     </div>
                     <span className="text-[10px] text-brand-text-secondary/50 font-mono">{s.title}</span>
-                    <span className={`text-[8px] font-mono ${s.color} tracking-wider`}>[ {s.archetype} ]</span>
+                    <span className={`text-[8px] font-mono ${s.color} tracking-wider block`}>[ {s.archetype} ]</span>
                   </div>
                 </div>
               </button>
@@ -408,21 +412,23 @@ const SentientSubjectsScreen: React.FC = () => {
       </div>
 
       {/* ─── Chat + Info Area ─────────────────────────────────────────────────── */}
-      <div className="flex-grow flex flex-col min-h-0 border border-brand-text-primary/30 bg-brand-bg-primary overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 lg:p-4 border-b border-brand-text-primary/30 bg-brand-bg-secondary/50">
-          <div className="flex items-center gap-2 lg:gap-3 min-w-0">
-            <span className="text-xl lg:text-2xl">{selectedSubject.avatar}</span>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className={`text-sm lg:text-lg font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h2>
-                <span className="text-[8px] lg:text-[9px] font-mono text-brand-text-secondary/50 uppercase tracking-widest hidden sm:inline">{selectedSubject.title}</span>
-                <span className={`text-[7px] lg:text-[8px] font-mono ${selectedSubject.color} px-1.5 py-0.5 border border-current/30 hidden sm:inline`}>{selectedSubject.archetype}</span>
+      {/* flex-1 min-h-0 is CRITICAL — without min-h-0 flexbox won't shrink below content size, breaking scroll */}
+      <div className="flex-1 min-h-0 flex flex-col border border-brand-text-primary/30 lg:border-t-0 border-t-0 bg-brand-bg-primary">
+
+        {/* Header — compact on mobile */}
+        <div className="flex items-center justify-between px-3 py-2 lg:p-4 border-b border-brand-text-primary/30 bg-brand-bg-secondary/50 flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <span className="text-lg lg:text-2xl flex-shrink-0">{selectedSubject.avatar}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className={`text-xs lg:text-lg font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h2>
+                <span className={`text-[7px] lg:text-[8px] font-mono ${selectedSubject.color} px-1 py-0.5 border border-current/30`}>{selectedSubject.archetype}</span>
+                <span className="text-[7px] lg:text-[9px] font-mono text-brand-text-secondary/50 uppercase tracking-widest hidden sm:inline">{selectedSubject.title}</span>
               </div>
-              <div className="flex items-center gap-2">
+              {/* Tagline + listening dots: hidden on small mobile */}
+              <div className="hidden sm:flex items-center gap-2">
                 <p className="text-[9px] lg:text-[10px] text-brand-text-secondary/60 font-light italic truncate">{selectedSubject.tagline}</p>
-                {/* Show other subjects as "listening" dots */}
-                <div className="hidden sm:flex items-center gap-0.5 ml-1">
+                <div className="flex items-center gap-0.5 ml-1 flex-shrink-0">
                   {SENTIENT_SUBJECTS.filter(s => s.id !== selectedSubject.id).map(s => (
                     <span key={s.id} className="text-[10px] opacity-30 hover:opacity-80 transition-opacity cursor-default" title={`${s.name} is listening`}>
                       {s.avatar}
@@ -434,34 +440,34 @@ const SentientSubjectsScreen: React.FC = () => {
           </div>
           <button
             onClick={() => setShowInfo(!showInfo)}
-            className="text-[9px] font-mono text-brand-accent border border-brand-accent/30 px-2 py-1 rounded-none hover:bg-brand-accent/10 transition-colors flex-shrink-0"
+            className="text-[8px] lg:text-[9px] font-mono text-brand-accent border border-brand-accent/30 px-2 py-1 rounded-none hover:bg-brand-accent/10 active:bg-brand-accent/20 transition-colors flex-shrink-0 ml-2"
           >
             {showInfo ? '[ Chat ]' : '[ Info ]'}
           </button>
         </div>
 
-        {/* Content Area */}
+        {/* Content Area — flex-1 min-h-0 ensures this stretches AND scrolls */}
         {showInfo ? (
-          <div className="flex-grow p-4 lg:p-8 overflow-y-auto custom-scrollbar">
-            <div className="max-w-2xl mx-auto space-y-6">
-              <div className="space-y-3">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 lg:p-8">
+            <div className="max-w-2xl mx-auto space-y-4 lg:space-y-6">
+              <div className="space-y-2 lg:space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 lg:w-20 lg:h-20 rounded-none border-2 border-brand-accent/40 flex items-center justify-center text-3xl lg:text-5xl bg-brand-bg-secondary">
+                  <div className="w-12 h-12 lg:w-20 lg:h-20 rounded-none border-2 border-brand-accent/40 flex items-center justify-center text-2xl lg:text-5xl bg-brand-bg-secondary flex-shrink-0">
                     {selectedSubject.avatar}
                   </div>
-                  <div>
-                    <h1 className={`text-xl lg:text-3xl font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h1>
-                    <p className="text-xs lg:text-sm font-mono text-brand-text-secondary/60">{selectedSubject.title}</p>
-                    <span className={`inline-block mt-1 text-[9px] lg:text-[10px] font-mono ${selectedSubject.color} px-2 py-0.5 border border-current/30`}>{selectedSubject.archetype}</span>
+                  <div className="min-w-0">
+                    <h1 className={`text-lg lg:text-3xl font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h1>
+                    <p className="text-[10px] lg:text-sm font-mono text-brand-text-secondary/60">{selectedSubject.title}</p>
+                    <span className={`inline-block mt-0.5 text-[8px] lg:text-[10px] font-mono ${selectedSubject.color} px-1.5 py-0.5 border border-current/30`}>{selectedSubject.archetype}</span>
                   </div>
                 </div>
-                <p className="text-sm lg:text-base text-brand-text-primary/80 font-light italic border-l-2 border-brand-accent/40 pl-4 py-1">
+                <p className="text-xs lg:text-base text-brand-text-primary/80 font-light italic border-l-2 border-brand-accent/40 pl-3 lg:pl-4 py-1">
                   "{selectedSubject.tagline}"
                 </p>
               </div>
 
-              <div className="space-y-2 p-4 border border-brand-text-primary/20 bg-brand-bg-secondary/30">
-                <span className="text-[9px] font-mono text-brand-accent tracking-widest uppercase block mb-3">[ Emotional Registers ]</span>
+              <div className="space-y-1.5 lg:space-y-2 p-3 lg:p-4 border border-brand-text-primary/20 bg-brand-bg-secondary/30">
+                <span className="text-[8px] lg:text-[9px] font-mono text-brand-accent tracking-widest uppercase block mb-2 lg:mb-3">[ Emotional Registers ]</span>
                 <RegisterBar label="Cynicism" value={selectedSubject.emotionalRegisters.cynicism} color="bg-red-500/70" />
                 <RegisterBar label="Intensity" value={selectedSubject.emotionalRegisters.intensity} color="bg-orange-500/70" />
                 <RegisterBar label="Empathy" value={selectedSubject.emotionalRegisters.empathy} color="bg-pink-500/70" />
@@ -469,20 +475,20 @@ const SentientSubjectsScreen: React.FC = () => {
               </div>
 
               {/* Cross-awareness note */}
-              <div className="p-3 border border-brand-text-primary/10 bg-brand-bg-secondary/20">
-                <div className="flex items-center gap-2 mb-1.5">
+              <div className="p-2.5 lg:p-3 border border-brand-text-primary/10 bg-brand-bg-secondary/20">
+                <div className="flex items-center gap-1.5 mb-1">
                   {SENTIENT_SUBJECTS.filter(s => s.id !== selectedSubject.id).map(s => (
-                    <span key={s.id} className="text-base">{s.avatar}</span>
+                    <span key={s.id} className="text-sm lg:text-base">{s.avatar}</span>
                   ))}
                 </div>
-                <p className="text-[10px] text-brand-text-secondary/50 font-light">
-                  Other subjects are listening. They may interject during your conversation with remarks, disagreements, or additional context.
+                <p className="text-[9px] lg:text-[10px] text-brand-text-secondary/50 font-light leading-relaxed">
+                  Other subjects are listening. They may interject with remarks, disagreements, or additional context.
                 </p>
               </div>
 
               <button
                 onClick={() => setShowInfo(false)}
-                className="w-full py-3 lg:py-4 text-sm lg:text-base font-serif font-bold border-2 transition-all border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-bg-primary"
+                className="w-full py-2.5 lg:py-4 text-xs lg:text-base font-serif font-bold border-2 transition-all border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-bg-primary active:bg-brand-accent active:text-brand-bg-primary"
               >
                 Begin Communion with {selectedSubject.name} →
               </button>
@@ -490,25 +496,26 @@ const SentientSubjectsScreen: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="flex-grow p-3 lg:p-5 overflow-y-auto custom-scrollbar space-y-3 lg:space-y-4">
+            {/* Messages — flex-1 min-h-0 is the key to making this scroll on mobile */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2.5 lg:p-5 space-y-2.5 lg:space-y-4">
               {messages.map(renderMessage)}
 
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="p-3 border border-brand-text-primary/10 flex items-center gap-1.5">
-                    <span className={`text-[8px] font-mono uppercase tracking-widest ${selectedSubject.color} mr-2`}>{selectedSubject.name}</span>
-                    <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="p-2 lg:p-3 border border-brand-text-primary/10 flex items-center gap-1.5">
+                    <span className={`text-[7px] lg:text-[8px] font-mono uppercase tracking-widest ${selectedSubject.color} mr-1 lg:mr-2`}>{selectedSubject.name}</span>
+                    <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 bg-brand-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               )}
 
               {interjecting && (
                 <div className="flex justify-start animate-fadeIn">
-                  <div className="p-2.5 border-l-2 border-dashed border-brand-text-primary/20 ml-4 pl-3">
+                  <div className="p-2 border-l-2 border-dashed border-brand-text-primary/20 ml-2 lg:ml-4 pl-2 lg:pl-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[8px] font-mono text-brand-text-secondary/40 uppercase tracking-widest">{interjecting} is typing...</span>
+                      <span className="text-[7px] lg:text-[8px] font-mono text-brand-text-secondary/40 uppercase tracking-widest">{interjecting} is typing...</span>
                       <span className="w-1 h-1 bg-brand-text-secondary/40 rounded-full animate-bounce" />
                     </div>
                   </div>
@@ -518,7 +525,8 @@ const SentientSubjectsScreen: React.FC = () => {
               <div ref={chatEndRef} />
             </div>
 
-            <div className="p-2.5 lg:p-4 border-t border-brand-text-primary/30 bg-brand-bg-secondary/70">
+            {/* Input — sticky at bottom, never hidden */}
+            <div className="flex-shrink-0 p-2 lg:p-4 border-t border-brand-text-primary/30 bg-brand-bg-secondary/70">
               <form onSubmit={e => { e.preventDefault(); handleSend(); }} className="flex gap-2 items-center">
                 <div className="relative flex-grow flex items-center bg-brand-bg-primary rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent">
                   <input
@@ -528,14 +536,14 @@ const SentientSubjectsScreen: React.FC = () => {
                     onChange={e => setInput(e.target.value)}
                     disabled={isTyping}
                     placeholder={`Speak to ${selectedSubject.name}...`}
-                    className="w-full pl-3 lg:pl-4 pr-10 py-2 lg:py-2.5 bg-transparent text-brand-text-primary outline-none text-xs font-light placeholder-brand-text-secondary/30"
+                    className="w-full pl-2.5 lg:pl-4 pr-9 lg:pr-10 py-2 lg:py-2.5 bg-transparent text-brand-text-primary outline-none text-xs font-light placeholder-brand-text-secondary/30"
                   />
                   <button
                     type="submit"
                     disabled={!input.trim() || isTyping}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-none bg-brand-accent disabled:bg-brand-bg-secondary text-brand-navy disabled:text-brand-text-secondary/30 flex items-center justify-center"
+                    className="absolute right-1 lg:right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 lg:w-7 lg:h-7 rounded-none bg-brand-accent disabled:bg-brand-bg-secondary text-brand-navy disabled:text-brand-text-secondary/30 flex items-center justify-center"
                   >
-                    <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 lg:w-3.5 lg:h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
                   </button>
@@ -550,3 +558,4 @@ const SentientSubjectsScreen: React.FC = () => {
 };
 
 export default SentientSubjectsScreen;
+
