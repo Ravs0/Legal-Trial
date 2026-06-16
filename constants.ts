@@ -1755,6 +1755,7 @@ export const ROUTES = {
   OPPOSING_COUNSEL: '/opposing-counsel', 
   DRAFTING_STUDIO: '/drafting-studio',
   COUNCIL: '/council',
+  SENTIENT_SUBJECTS: '/sentient-subjects',
 };
 
 export const MOCK_API_KEY = "YOUR_API_KEY_HERE";
