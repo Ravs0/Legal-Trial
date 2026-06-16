@@ -11,6 +11,8 @@ import { generateDraftingFacts, generateDraftingGuidance, getFilingProcedureInfo
 import { SelectInput } from '../components/SelectInput';
 import { scoreLegalWriting, ScoringResult } from '../services/legalWritingScorer';
 import { ScoreCard } from '../components/ScoreCard';
+import { Modal } from '../components/Modal';
+
 
 // Icons
 import { Bars3Icon } from '../components/icons/Bars3Icon';
@@ -1132,7 +1134,7 @@ Section 8.2 Limitation of Liability.
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex justify-between items-center border-b border-brand-text-primary/30 pb-2">
                                             <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">Snapshots ({snapshots.length})</span>
-                                            <Button size="xs" variant="primary" onClick={saveSnapshot} className="px-2 py-1 text-[9px] font-mono rounded-none uppercase tracking-wider">
+                                            <Button size="sm" variant="primary" onClick={saveSnapshot} className="px-2 py-1 text-[9px] font-mono rounded-none uppercase tracking-wider">
                                                 [ Snapshot ]
                                             </Button>
                                         </div>

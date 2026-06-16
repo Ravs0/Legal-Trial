@@ -88,7 +88,6 @@ const DeliberationBlueprint: React.FC<{
   setSelectedPersona,
 }) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [showReasoningLogs, setShowReasoningLogs] = useState<boolean>(false);
 
   const styleBlock = (
     <style>{`
@@ -557,6 +556,7 @@ export const CouncilChamberScreen: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [oracleStage, setOracleStage] = useState<string>('');
   const [oracleTrace, setOracleTrace] = useState<{ stage: string; content: string }[]>([]);
+  const [showReasoningLogs, setShowReasoningLogs] = useState<boolean>(false);
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState<boolean>(false);
