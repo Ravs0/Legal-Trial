@@ -16,21 +16,32 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+// ─── Section Header (only shows when sidebar is open) ─────────────────────────
+const SectionLabel: React.FC<{ label: string; isOpen: boolean }> = ({ label, isOpen }) => {
+  if (!isOpen) return <div className="h-px bg-white/5 my-2 mx-2" />;
+  return (
+    <div className="px-4 pt-4 pb-1.5">
+      <span className="text-[9px] font-mono tracking-[0.2em] uppercase text-brand-accent/70 font-semibold">{label}</span>
+    </div>
+  );
+};
+
+// ─── Nav Item ─────────────────────────────────────────────────────────────────
 const NavItem: React.FC<{
   to: string;
   label: string;
   icon?: React.ReactNode;
+  badge?: string;
   end?: boolean;
   onClick?: () => void;
   isSidebarOpen: boolean;
-}> = ({ to, label, icon, end = false, onClick, isSidebarOpen }) => {
+}> = ({ to, label, icon, badge, end = false, onClick, isSidebarOpen }) => {
   const location = useLocation();
-  const getIsActive = ({ isActive }: { isActive: boolean }): boolean => isActive;
 
   const navLinkClass = (isActive: boolean): string =>
-    `flex items-center px-4 py-3 rounded-none text-[13px] font-medium transition-all group relative overflow-hidden
+    `flex items-center px-3 py-2.5 rounded-none text-[12px] font-medium transition-all group relative overflow-hidden
      ${isActive
-      ? 'bg-brand-accent/10 text-brand-accent border border-brand-accent/20'
+      ? 'bg-brand-accent/10 text-brand-accent border-l-2 border-l-brand-accent border-y border-r border-y-brand-accent/20 border-r-brand-accent/20'
       : 'text-brand-text-secondary border border-transparent hover:bg-white/5 hover:text-brand-text-primary'
     }`;
 
@@ -38,8 +49,13 @@ const NavItem: React.FC<{
 
   const commonContent = (
     <>
-      {icon && <span className={`h-4 w-4 flex-shrink-0 transition-opacity ${manualIsActive ? 'text-brand-accent opacity-100' : 'opacity-70 group-hover:opacity-100'} ${isSidebarOpen ? 'mr-3' : 'mx-auto'}`}>{icon}</span>}
-      {isSidebarOpen && <span className="truncate tracking-wide">{label}</span>}
+      {icon && <span className={`h-4 w-4 flex-shrink-0 transition-opacity ${manualIsActive ? 'text-brand-accent opacity-100' : 'opacity-60 group-hover:opacity-100'} ${isSidebarOpen ? 'mr-2.5' : 'mx-auto'}`}>{icon}</span>}
+      {isSidebarOpen && (
+        <span className="truncate tracking-wide flex-grow">{label}</span>
+      )}
+      {isSidebarOpen && badge && (
+        <span className="text-[8px] font-mono px-1.5 py-0.5 bg-brand-accent/15 text-brand-accent border border-brand-accent/30 tracking-wider uppercase ml-auto flex-shrink-0">{badge}</span>
+      )}
       {!isSidebarOpen && (
         <span className="absolute left-full ml-4 px-2 py-1 text-[11px] font-medium text-brand-bg-primary bg-brand-accent rounded-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none md:block hidden">
           {label}
@@ -57,7 +73,7 @@ const NavItem: React.FC<{
   }
 
   return (
-    <NavLink to={to} className={({ isActive }) => navLinkClass(getIsActive({ isActive }))} end={end}>
+    <NavLink to={to} className={() => navLinkClass(manualIsActive)} end={end}>
       {commonContent}
     </NavLink>
   );
@@ -66,6 +82,25 @@ const NavItem: React.FC<{
 const ArrowLeftOnRectangleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+  </svg>
+);
+
+// ─── Inline SVG Icons ─────────────────────────────────────────────────────────
+const SparklesIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813zM18 10.5l-.562-3.563L14 6.5l3.438-.437L18 2.5l.438 3.563L22 6.5l-3.562.438L18 10.5z" />
+  </svg>
+);
+
+const BrainIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+  </svg>
+);
+
+const ChartIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
   </svg>
 );
 
@@ -97,6 +132,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const hideSidebarOnPaths = [ROUTES.PRACTICE, ROUTES.LANDING];
   const showSidebar = !hideSidebarOnPaths.includes(location.pathname) && practiceMode;
+  const isExpanded = isSidebarOpen || isMobileOpen;
 
   return (
     <div className="min-h-screen flex bg-brand-bg-primary text-brand-text-primary overflow-x-hidden relative">
@@ -126,60 +162,57 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {showSidebar && (
         <aside
           className={`fixed inset-y-0 left-0 z-50 bg-brand-bg-secondary border-r border-white/5 flex flex-col transition-all duration-300 ease-in-out
-            ${isSidebarOpen ? 'md:w-64' : 'md:w-[72px]'}
-            ${isMobileOpen ? 'translate-x-0 w-[280px]' : '-translate-x-full md:translate-x-0'}
+            ${isSidebarOpen ? 'md:w-56' : 'md:w-[60px]'}
+            ${isMobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0'}
           `}
         >
           {/* Sidebar Header */}
-          <div className="flex items-center justify-between h-16 flex-shrink-0 px-4 border-b border-white/5">
-            <div className={`flex items-center overflow-hidden transition-all ${(!isSidebarOpen && !isMobileOpen) ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 flex-1'}`}>
+          <div className="flex items-center justify-between h-14 flex-shrink-0 px-3 border-b border-white/5">
+            <div className={`flex items-center overflow-hidden transition-all ${!isExpanded ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 flex-1'}`}>
               <CourtIcon className="h-4 w-4 text-brand-accent mr-2" />
-              <div className="flex flex-col">
-                <h1 className="text-[15px] font-semibold text-brand-text-primary leading-tight truncate">{APP_NAME}</h1>
-              </div>
+              <h1 className="text-[13px] font-semibold text-brand-text-primary leading-tight truncate">{APP_NAME}</h1>
             </div>
             <button
               onClick={() => isMobileOpen ? toggleMobileSidebar() : toggleDesktopSidebar()}
-              className={`p-1.5 rounded-none hover:bg-white/5 text-brand-text-secondary hover:text-brand-text-primary transition-colors ${!isSidebarOpen && !isMobileOpen ? 'mx-auto' : ''}`}
+              className={`p-1.5 rounded-none hover:bg-white/5 text-brand-text-secondary hover:text-brand-text-primary transition-colors ${!isExpanded ? 'mx-auto' : ''}`}
             >
               {isMobileOpen ? <XMarkIcon className="h-5 w-5" /> : (isSidebarOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />)}
             </button>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-grow py-4 px-3 space-y-1.5 overflow-y-auto custom-scrollbar">
-            <NavItem to={ROUTES.HOME} label="Dashboard" icon={<HomeIcon />} end={true} isSidebarOpen={isSidebarOpen || isMobileOpen} />
-            <div className="h-px bg-white/5 my-2 mx-2"></div>
-            <NavItem to={ROUTES.SETUP} label="New Trial" icon={<PlusCircleIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
-            <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting Studio" icon={<QuillIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
-            <NavItem 
-              to={ROUTES.COUNCIL} 
-              label="AI Council Chamber" 
-              icon={
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813zM18 10.5l-.562-3.563L14 6.5l3.438-.437L18 2.5l.438 3.563L22 6.5l-3.562.438L18 10.5z" />
-                </svg>
-              } 
-              isSidebarOpen={isSidebarOpen || isMobileOpen} 
-            />
-            <NavItem 
-              to={ROUTES.SENTIENT_SUBJECTS} 
-              label="Sentient Subjects" 
-              icon={
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-                </svg>
-              } 
-              isSidebarOpen={isSidebarOpen || isMobileOpen} 
-            />
-            <div className="h-px bg-white/5 my-2 mx-2"></div>
-            <NavItem to={ROUTES.LIBRARY} label="Case Library" icon={<DocumentTextIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
-            <NavItem to={ROUTES.JUDGES} label="Judges Roster" icon={<GavelIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
-            <NavItem to={ROUTES.OPPOSING_COUNSEL} label="Opposing Counsel" icon={<UsersIcon />} isSidebarOpen={isSidebarOpen || isMobileOpen} />
+          <nav className="flex-grow py-2 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
+            <NavItem to={ROUTES.HOME} label="Dashboard" icon={<HomeIcon />} end={true} isSidebarOpen={isExpanded} />
+
+            {/* ─── AI MODULES ─────────────────────────────────────────── */}
+            <SectionLabel label="AI Modules" isOpen={isExpanded} />
+            <NavItem to={ROUTES.COUNCIL} label="Council Chamber" icon={<SparklesIcon />} badge="AI" isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.SENTIENT_SUBJECTS} label="Sentient Subjects" icon={<BrainIcon />} badge="NEW" isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting Studio" icon={<QuillIcon />} isSidebarOpen={isExpanded} />
+
+            {/* ─── PRACTICE ───────────────────────────────────────────── */}
+            <SectionLabel label="Practice" isOpen={isExpanded} />
+            <NavItem to={ROUTES.SETUP} label="New Trial" icon={<PlusCircleIcon />} isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.LIBRARY} label="Case Library" icon={<DocumentTextIcon />} isSidebarOpen={isExpanded} />
+
+            {/* ─── REFERENCE ──────────────────────────────────────────── */}
+            <SectionLabel label="Reference" isOpen={isExpanded} />
+            <NavItem to={ROUTES.JUDGES} label="Judges Roster" icon={<GavelIcon />} isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.OPPOSING_COUNSEL} label="Opposing Counsel" icon={<UsersIcon />} isSidebarOpen={isExpanded} />
           </nav>
 
+          {/* Mode Badge */}
+          {isExpanded && (
+            <div className="px-3 py-2 border-t border-white/5">
+              <div className="flex items-center gap-2 px-2 py-1.5 bg-brand-accent/5 border border-brand-accent/20">
+                <ChartIcon />
+                <span className="text-[10px] font-mono text-brand-accent tracking-wider uppercase">{modeDisplay} Mode</span>
+              </div>
+            </div>
+          )}
+
           {/* Footer Actions */}
-          <div className={`p-4 border-t border-white/5 flex-shrink-0 space-y-3 ${(!isSidebarOpen && !isMobileOpen) ? 'flex flex-col items-center px-2' : ''}`}>
+          <div className={`p-3 border-t border-white/5 flex-shrink-0 ${!isExpanded ? 'flex flex-col items-center px-2' : ''}`}>
             <NavItem
               to={ROUTES.LANDING}
               label="End Session"
@@ -188,14 +221,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 context?.setPracticeMode(null);
                 if (window.innerWidth < 768) setIsMobileOpen(false);
               }}
-              isSidebarOpen={isSidebarOpen || isMobileOpen}
+              isSidebarOpen={isExpanded}
             />
           </div>
         </aside>
       )}
 
       <main className={`flex-grow z-10 transition-all duration-300 ease-in-out min-h-screen flex flex-col 
-        ${showSidebar ? (isSidebarOpen ? 'md:ml-64' : 'md:ml-[72px]') : ''}
+        ${showSidebar ? (isSidebarOpen ? 'md:ml-56' : 'md:ml-[60px]') : ''}
         ${showSidebar ? 'pt-14 md:pt-0' : ''}
       `}>
         <div className="flex-grow p-4 sm:p-8 lg:p-10 mb-8 max-w-[1400px] mx-auto w-full">

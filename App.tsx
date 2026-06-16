@@ -18,6 +18,7 @@ import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Chat } from './types';
 import { OversightSpirit } from './components/OversightSpirit';
+import { ConversationBridgeProvider } from './components/ConversationBridge';
 
 export const TrialSimContext = createContext<TrialSimContextType | null>(null);
 
@@ -84,6 +85,7 @@ function App() {
 
   return (
     <TrialSimContext.Provider value={contextValue}>
+      <ConversationBridgeProvider>
       <HashRouter>
         {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-75 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
         {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
@@ -104,6 +106,7 @@ function App() {
           <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
         </Routes>
       </HashRouter>
+      </ConversationBridgeProvider>
     </TrialSimContext.Provider>
   );
 }

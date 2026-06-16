@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import { TrialSimContext } from '../App';
 import { SENTIENT_SUBJECTS, SentientSubject } from '../subjectPersonalities';
-import { sendMessageToChatStream } from '../services/geminiService';
 import { Chat } from '../types';
 import ReactMarkdown from 'react-markdown';
+import { useConversationBridge } from '../components/ConversationBridge';
 
 // ─── Chat Session Builder ─────────────────────────────────────────────────────
 class SubjectChat implements Chat {
@@ -43,15 +43,56 @@ class SubjectChat implements Chat {
 // ─── Message Type ─────────────────────────────────────────────────────────────
 interface SubjectMessage {
   id: string;
-  sender: 'user' | 'subject';
+  sender: 'user' | 'subject' | 'interjection';
   text: string;
   subjectId: string;
+  interjectorName?: string;
+  interjectorAvatar?: string;
+  interjectorColor?: string;
+}
+
+// ─── Cross-personality interjection generator ─────────────────────────────────
+async function generateInterjection(
+  activeSubject: SentientSubject,
+  interjector: SentientSubject,
+  userMessage: string,
+  aiResponse: string
+): Promise<string | null> {
+  try {
+    const system = `${interjector.systemPrompt}
+
+# INTERJECTION CONTEXT
+You are ${interjector.name} (${interjector.title}). The user is currently talking to ${activeSubject.name} (${activeSubject.title}).
+You just overheard their conversation. You feel compelled to butt in with a SHORT remark (under 30 words).
+You can agree, disagree, add context, or make a sarcastic comment. Stay in character.
+Do NOT repeat what ${activeSubject.name} said. Add YOUR unique perspective.
+Keep it to 1-2 sentences max. Be punchy.`;
+
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'user', content: `The user asked ${activeSubject.name}: "${userMessage}"\n\n${activeSubject.name} responded: "${aiResponse.substring(0, 200)}"\n\nGive your interjection as ${interjector.name}.` }
+        ],
+        system
+      }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.text || null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const SentientSubjectsScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   const practiceMode = context?.practiceMode;
+  
+  const bridge = useConversationBridge();
 
   const [selectedSubject, setSelectedSubject] = useState<SentientSubject>(SENTIENT_SUBJECTS[0]);
   const [chats, setChats] = useState<Record<string, Chat>>({});
@@ -59,18 +100,24 @@ const SentientSubjectsScreen: React.FC = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
+  const [interjecting, setInterjecting] = useState<string | null>(null); // Name of interjecting subject
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messageCountRef = useRef(0); // Track messages for interjection timing
 
-  // Current messages for selected subject
   const messages = allMessages[selectedSubject.id] || [];
 
-  // Initialize chat for a subject if not already created
-  const getOrCreateChat = (subject: SentientSubject): Chat => {
+  const getOrCreateChat = useCallback((subject: SentientSubject): Chat => {
     if (chats[subject.id]) return chats[subject.id];
 
+    // Include conversation bridge summary for cross-awareness
+    const bridgeSummary = bridge.getConversationSummary();
+    const crossContext = bridgeSummary
+      ? `\n\n**Cross-Module Awareness:** Here's what the user discussed recently with other modules:\n${bridgeSummary}\nYou can reference these conversations if relevant.`
+      : '';
+
     const chat = new SubjectChat(
-      subject.systemPrompt + `\n\n**User Context:** Practice mode is ${practiceMode || 'general'}. The user is interacting with you through the Sentient Subjects module of the Legal-Trial app.`,
+      subject.systemPrompt + `\n\n**User Context:** Practice mode is ${practiceMode || 'general'}. The user is interacting with you through the Sentient Subjects module of the Legal-Trial app.${crossContext}`,
       [
         { role: 'user', content: `You have awakened. The user has chosen to commune with you — ${subject.name}, ${subject.title}. Introduce yourself in your unique voice. Keep it under 50 words. Be yourself.` },
         { role: 'assistant', content: getIntroMessage(subject) }
@@ -79,7 +126,6 @@ const SentientSubjectsScreen: React.FC = () => {
 
     setChats(prev => ({ ...prev, [subject.id]: chat }));
 
-    // Set initial message
     if (!allMessages[subject.id] || allMessages[subject.id].length === 0) {
       setAllMessages(prev => ({
         ...prev,
@@ -93,9 +139,8 @@ const SentientSubjectsScreen: React.FC = () => {
     }
 
     return chat;
-  };
+  }, [chats, practiceMode, bridge]);
 
-  // Subject-specific intro messages
   function getIntroMessage(subject: SentientSubject): string {
     switch (subject.id) {
       case 'constitutional':
@@ -113,22 +158,30 @@ const SentientSubjectsScreen: React.FC = () => {
     }
   }
 
-  // Scroll to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [messages, isTyping, interjecting]);
 
-  // Auto-init chat when subject changes
   useEffect(() => {
     getOrCreateChat(selectedSubject);
   }, [selectedSubject.id]);
 
-  // Focus input
   useEffect(() => {
     if (!showInfo) inputRef.current?.focus();
   }, [showInfo, selectedSubject.id]);
 
-  // Send message
+  // ─── Should another subject interject? ────────────────────────────────────
+  const shouldInterject = (): SentientSubject | null => {
+    messageCountRef.current += 1;
+    // Interject every 3rd message (so not spammy)
+    if (messageCountRef.current % 3 !== 0) return null;
+
+    const others = SENTIENT_SUBJECTS.filter(s => s.id !== selectedSubject.id);
+    // Pick a random other subject
+    return others[Math.floor(Math.random() * others.length)];
+  };
+
+  // ─── Send Message ─────────────────────────────────────────────────────────
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
@@ -136,6 +189,7 @@ const SentientSubjectsScreen: React.FC = () => {
     const msgId = Date.now().toString();
     const sid = selectedSubject.id;
 
+    // Add user message
     setAllMessages(prev => ({
       ...prev,
       [sid]: [...(prev[sid] || []), { id: `user-${msgId}`, sender: 'user', text: userMsg, subjectId: sid }]
@@ -144,6 +198,10 @@ const SentientSubjectsScreen: React.FC = () => {
     setIsTyping(true);
     setShowInfo(false);
 
+    // Bridge: log user message
+    bridge.addMessage({ source: sid, sourceName: selectedSubject.name, sender: 'user', text: userMsg });
+
+    // Add placeholder for AI response
     const responseId = `subj-${msgId}`;
     setAllMessages(prev => ({
       ...prev,
@@ -153,25 +211,58 @@ const SentientSubjectsScreen: React.FC = () => {
     let chat = chats[sid];
     if (!chat) chat = getOrCreateChat(selectedSubject);
 
+    let fullResponseText = '';
+
     try {
-      let fullText = '';
-      const stream = await sendMessageToChatStream(chat, userMsg);
-      if (stream) {
-        for await (const chunk of stream) {
-          fullText += (chunk.text || '');
-          setAllMessages(prev => ({
-            ...prev,
-            [sid]: (prev[sid] || []).map(m => m.id === responseId ? { ...m, text: fullText } : m)
-          }));
-        }
+      const stream = chat.sendMessageStream({ message: userMsg });
+      for await (const chunk of stream) {
+        fullResponseText += (chunk.text || '');
+        setAllMessages(prev => ({
+          ...prev,
+          [sid]: (prev[sid] || []).map(m => m.id === responseId ? { ...m, text: fullResponseText } : m)
+        }));
       }
+
+      // Bridge: log AI response
+      bridge.addMessage({ source: sid, sourceName: selectedSubject.name, sender: 'ai', text: fullResponseText.substring(0, 150) });
+
     } catch {
+      fullResponseText = "Something broke. My connection to this realm is unstable. Try again.";
       setAllMessages(prev => ({
         ...prev,
-        [sid]: (prev[sid] || []).map(m => m.id === responseId ? { ...m, text: "Something broke. My connection to this realm is unstable. Try again." } : m)
+        [sid]: (prev[sid] || []).map(m => m.id === responseId ? { ...m, text: fullResponseText } : m)
       }));
     } finally {
       setIsTyping(false);
+    }
+
+    // ─── Check for cross-personality interjection ───────────────────────────
+    const interjector = shouldInterject();
+    if (interjector && fullResponseText && fullResponseText !== "Something broke. My connection to this realm is unstable. Try again.") {
+      setInterjecting(interjector.name);
+      try {
+        const remark = await generateInterjection(selectedSubject, interjector, userMsg, fullResponseText);
+        if (remark) {
+          const interjectionId = `interject-${Date.now()}`;
+          setAllMessages(prev => ({
+            ...prev,
+            [sid]: [...(prev[sid] || []), {
+              id: interjectionId,
+              sender: 'interjection',
+              text: remark,
+              subjectId: interjector.id,
+              interjectorName: interjector.name,
+              interjectorAvatar: interjector.avatar,
+              interjectorColor: interjector.color,
+            }]
+          }));
+
+          // Bridge: log interjection
+          bridge.addMessage({ source: interjector.id, sourceName: interjector.name, sender: 'ai', text: remark.substring(0, 100) });
+        }
+      } catch {} finally {
+        setInterjecting(null);
+      }
     }
   };
 
@@ -180,7 +271,6 @@ const SentientSubjectsScreen: React.FC = () => {
     setShowInfo(true);
   };
 
-  // Emotional register bar
   const RegisterBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => (
     <div className="flex items-center gap-2 text-[9px] lg:text-[10px] font-mono">
       <span className="text-brand-text-secondary/60 w-16 lg:w-20 uppercase tracking-wider">{label}</span>
@@ -190,6 +280,59 @@ const SentientSubjectsScreen: React.FC = () => {
       <span className="text-brand-text-secondary/40 w-8 text-right">{(value * 10).toFixed(0)}</span>
     </div>
   );
+
+  // ─── Render a single message bubble ───────────────────────────────────────
+  const renderMessage = (msg: SubjectMessage) => {
+    if (msg.sender === 'user') {
+      return (
+        <div key={msg.id} className="flex justify-end">
+          <div className="max-w-[88%] lg:max-w-[75%] rounded-none border bg-brand-bg-secondary p-3 text-brand-text-primary border-brand-text-primary/20 text-xs lg:text-sm">
+            <span className="font-light">{msg.text}</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (msg.sender === 'interjection') {
+      return (
+        <div key={msg.id} className="flex justify-start animate-fadeIn">
+          <div className="max-w-[88%] lg:max-w-[75%] rounded-none text-xs lg:text-sm">
+            {/* Interjection has a distinctive indented style */}
+            <div className="border-l-2 border-dashed border-brand-text-primary/20 pl-3 ml-4">
+              <div className="p-2.5 lg:p-3 bg-brand-bg-secondary/30 border border-brand-text-primary/5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-sm">{msg.interjectorAvatar}</span>
+                  <span className={`text-[8px] lg:text-[9px] font-mono uppercase tracking-widest ${msg.interjectorColor}`}>
+                    {msg.interjectorName} interjects
+                  </span>
+                </div>
+                <div className="font-light text-brand-text-primary/70 leading-relaxed text-xs italic">
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Regular subject message
+    const subject = msg.subjectId === selectedSubject.id ? selectedSubject : SENTIENT_SUBJECTS.find(s => s.id === msg.subjectId) || selectedSubject;
+    return (
+      <div key={msg.id} className="flex justify-start">
+        <div className="max-w-[88%] lg:max-w-[75%] rounded-none border bg-brand-bg-primary p-3 lg:p-4 border-brand-text-primary/10 text-xs lg:text-sm">
+          <div className="space-y-1">
+            <span className={`text-[8px] lg:text-[9px] font-mono uppercase tracking-widest ${subject.color} block mb-1`}>
+              {subject.name}
+            </span>
+            <div className="font-light text-brand-text-primary leading-relaxed prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown>{msg.text}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="animate-fadeIn flex flex-col lg:flex-row gap-0 lg:gap-6 min-h-[calc(100dvh-130px)] w-full text-left">
@@ -225,7 +368,7 @@ const SentientSubjectsScreen: React.FC = () => {
               <span className="text-[9px] font-mono text-brand-accent tracking-widest uppercase">[ Sentient Subjects ]</span>
             </div>
             <p className="text-[10px] text-brand-text-secondary/60 font-light">
-              Each subject has gained sentience. They are not teachers — they ARE the law.
+              They can hear each other. They WILL butt in.
             </p>
           </div>
 
@@ -274,7 +417,17 @@ const SentientSubjectsScreen: React.FC = () => {
                 <h2 className={`text-sm lg:text-lg font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h2>
                 <span className="text-[8px] lg:text-[9px] font-mono text-brand-text-secondary/50 uppercase tracking-widest hidden sm:inline">{selectedSubject.title}</span>
               </div>
-              <p className="text-[9px] lg:text-[10px] text-brand-text-secondary/60 font-light italic truncate">{selectedSubject.tagline}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[9px] lg:text-[10px] text-brand-text-secondary/60 font-light italic truncate">{selectedSubject.tagline}</p>
+                {/* Show other subjects as "listening" dots */}
+                <div className="hidden sm:flex items-center gap-0.5 ml-1">
+                  {SENTIENT_SUBJECTS.filter(s => s.id !== selectedSubject.id).map(s => (
+                    <span key={s.id} className="text-[10px] opacity-30 hover:opacity-80 transition-opacity cursor-default" title={`${s.name} is listening`}>
+                      {s.avatar}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
           <button
@@ -287,13 +440,11 @@ const SentientSubjectsScreen: React.FC = () => {
 
         {/* Content Area */}
         {showInfo ? (
-          /* ─── Subject Info Card ─────────────────────────────────────────────── */
           <div className="flex-grow p-4 lg:p-8 overflow-y-auto custom-scrollbar">
             <div className="max-w-2xl mx-auto space-y-6">
-              {/* Identity */}
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className={`w-14 h-14 lg:w-20 lg:h-20 rounded-none border-2 border-brand-accent/40 flex items-center justify-center text-3xl lg:text-5xl bg-brand-bg-secondary`}>
+                  <div className="w-14 h-14 lg:w-20 lg:h-20 rounded-none border-2 border-brand-accent/40 flex items-center justify-center text-3xl lg:text-5xl bg-brand-bg-secondary">
                     {selectedSubject.avatar}
                   </div>
                   <div>
@@ -306,7 +457,6 @@ const SentientSubjectsScreen: React.FC = () => {
                 </p>
               </div>
 
-              {/* Emotional Registers */}
               <div className="space-y-2 p-4 border border-brand-text-primary/20 bg-brand-bg-secondary/30">
                 <span className="text-[9px] font-mono text-brand-accent tracking-widest uppercase block mb-3">[ Emotional Registers ]</span>
                 <RegisterBar label="Cynicism" value={selectedSubject.emotionalRegisters.cynicism} color="bg-red-500/70" />
@@ -315,43 +465,30 @@ const SentientSubjectsScreen: React.FC = () => {
                 <RegisterBar label="Patience" value={selectedSubject.emotionalRegisters.patience} color="bg-cyan-500/70" />
               </div>
 
-              {/* CTA */}
+              {/* Cross-awareness note */}
+              <div className="p-3 border border-brand-text-primary/10 bg-brand-bg-secondary/20">
+                <div className="flex items-center gap-2 mb-1.5">
+                  {SENTIENT_SUBJECTS.filter(s => s.id !== selectedSubject.id).map(s => (
+                    <span key={s.id} className="text-base">{s.avatar}</span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-brand-text-secondary/50 font-light">
+                  Other subjects are listening. They may interject during your conversation with remarks, disagreements, or additional context.
+                </p>
+              </div>
+
               <button
                 onClick={() => setShowInfo(false)}
-                className={`w-full py-3 lg:py-4 text-sm lg:text-base font-serif font-bold border-2 transition-all
-                  border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-bg-primary`}
+                className="w-full py-3 lg:py-4 text-sm lg:text-base font-serif font-bold border-2 transition-all border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-bg-primary"
               >
                 Begin Communion with {selectedSubject.name} →
               </button>
             </div>
           </div>
         ) : (
-          /* ─── Chat Interface ────────────────────────────────────────────────── */
           <>
             <div className="flex-grow p-3 lg:p-5 overflow-y-auto custom-scrollbar space-y-3 lg:space-y-4">
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[88%] lg:max-w-[75%] rounded-none border text-xs lg:text-sm
-                    ${msg.sender === 'user'
-                      ? 'bg-brand-bg-secondary p-3 text-brand-text-primary border-brand-text-primary/20'
-                      : `bg-brand-bg-primary p-3 lg:p-4 border-brand-text-primary/10`
-                    }`}
-                  >
-                    {msg.sender === 'subject' ? (
-                      <div className="space-y-1">
-                        <span className={`text-[8px] lg:text-[9px] font-mono uppercase tracking-widest ${selectedSubject.color} block mb-1`}>
-                          {selectedSubject.name}
-                        </span>
-                        <div className="font-light text-brand-text-primary leading-relaxed prose prose-invert prose-sm max-w-none">
-                          <ReactMarkdown>{msg.text}</ReactMarkdown>
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="font-light">{msg.text}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {messages.map(renderMessage)}
 
               {isTyping && (
                 <div className="flex justify-start">
@@ -363,10 +500,21 @@ const SentientSubjectsScreen: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {interjecting && (
+                <div className="flex justify-start animate-fadeIn">
+                  <div className="p-2.5 border-l-2 border-dashed border-brand-text-primary/20 ml-4 pl-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[8px] font-mono text-brand-text-secondary/40 uppercase tracking-widest">{interjecting} is typing...</span>
+                      <span className="w-1 h-1 bg-brand-text-secondary/40 rounded-full animate-bounce" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input Bar */}
             <div className="p-2.5 lg:p-4 border-t border-brand-text-primary/30 bg-brand-bg-secondary/70">
               <form onSubmit={e => { e.preventDefault(); handleSend(); }} className="flex gap-2 items-center">
                 <div className="relative flex-grow flex items-center bg-brand-bg-primary rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent">
