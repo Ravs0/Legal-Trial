@@ -16,7 +16,7 @@ import { ROUTES } from './constants';
 import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Chat } from './types';
-
+import { OversightSpirit } from './components/OversightSpirit';
 
 export const TrialSimContext = createContext<TrialSimContextType | null>(null);
 
@@ -86,6 +86,7 @@ function App() {
       <HashRouter>
         {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-75 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
         {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
+        <OversightSpirit />
         <Routes>
           <Route path={ROUTES.LANDING} element={<LandingScreen />} />
           <Route path="/" element={<Layout><Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace /></Layout>} />

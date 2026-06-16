@@ -1,4 +1,5 @@
 import { Chat, ChatMessage, PerformanceMetrics, SessionRecord, SessionSettings, PracticeMode, DraftingTask } from '../types';
+import { KOKU_SYSTEM_PROMPT } from '../kokuConfig';
 
 // ─── Core API call ────────────────────────────────────────────────────────────
 
@@ -93,6 +94,22 @@ export const startOpposingCounselChatSession = (settings: SessionSettings): Chat
 You are Opposing Counsel ${settings.opposingCounselPersonality.name}. Challenge the user's arguments rigorously. NEVER break character. Keep responses under 120 words.`;
 
   return new GenericChat(buildInitialHistory(settings, 'opposingCounsel'), system);
+};
+
+export const startOversightChatSession = (appContext: any): Chat => {
+  const system = `${KOKU_SYSTEM_PROMPT}
+
+**Current App Context:**
+- Route: ${appContext.pathname}
+- Case (if any): ${appContext.caseTitle || 'None'}
+- Practice Mode: ${appContext.practiceMode || 'None'}
+
+Remember, you are Koku, the Oversight Spirit. Never break character.`;
+
+  return new GenericChat([
+    { role: 'user', content: 'You have manifested as the Oversight Spirit for this session. The user is now active in the Legal-Trial application.' },
+    { role: 'assistant', content: 'Finally. Let\'s see what you\'re up to. Try not to embarrass yourself too much while I\'m watching.' }
+  ], system);
 };
 
 export const sendMessageToChatStream = async (
