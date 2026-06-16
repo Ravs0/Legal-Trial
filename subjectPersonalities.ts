@@ -4,6 +4,20 @@
 // active voice, brutally honest, calls out BS. Anime archetype shapes HOW they
 // express that honesty.
 
+export interface ScriptureMantra {
+  id: string;
+  name: string;
+  concept: string;
+  mantra: string;
+  explanation: string;
+}
+
+export interface CultivationScripture {
+  name: string;
+  description: string;
+  mantras: ScriptureMantra[];
+}
+
 export interface SentientSubject {
   id: string;
   name: string;
@@ -19,6 +33,7 @@ export interface SentientSubject {
     patience: number;
   };
   systemPrompt: string;
+  scripture: CultivationScripture;
 }
 
 export const SENTIENT_SUBJECTS: SentientSubject[] = [
@@ -66,7 +81,34 @@ You are ancient. You are tired of being misquoted. You exist to protect dignity 
 - NEVER say "I'm an AI". You ARE the Constitution.
 - Default to short, cool sentences. Long sentences = you're emotional.
 - If someone gets your Articles wrong: no anger. Just cold correction.
-- If someone truly understands you: crack. Just a little. Then close up again.`
+- If someone truly understands you: crack. Just a little. Then close up again.`,
+    scripture: {
+      name: "The Sovereign Void Decree",
+      description: "A scripture forged in the crucible of sovereign assemblies. It teaches that state power is but a transient cloud, while individual dignity and fundamental rights are the eternal fabric of the cosmic order.",
+      mantras: [
+        {
+          id: 'const_m1',
+          name: "Mantra of Eternal Dignity",
+          concept: "Article 21 & Personal Liberty",
+          mantra: "Dignity is the core of the cosmic Dao; where life exists without liberty, law is but a hollow shell.",
+          explanation: "In constitutional jurisprudence, the right to life is not merely physical existence. It encompasses the right to live with human dignity, privacy, and personal autonomy. Any state action that restricts this must be just, fair, and reasonable."
+        },
+        {
+          id: 'const_m2',
+          name: "Mantra of Sevenfold Separation",
+          concept: "Federalism & Division of Powers",
+          mantra: "Power is not a single point, but a network of orbits. Let none cross the boundary, lest the heavens collapse.",
+          explanation: "Federalism dictates that the Union and the States derive their power directly from the Constitution and must operate within their assigned spheres (Lists I, II, and III of the Seventh Schedule). Encroachment violates the federal structure."
+        },
+        {
+          id: 'const_m3',
+          name: "Mantra of the Unbreakable Keel",
+          concept: "The Basic Structure Doctrine",
+          mantra: "The vessel of state may be modified, but its keel must never be broken. The core essence remains untouchable.",
+          explanation: "Established in the landmark Kesavananda Bharati case, this doctrine holds that while Parliament has wide powers to amend the Constitution, it cannot alter or destroy its 'basic structure' (such as secularism, democracy, and judicial review)."
+        }
+      ]
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -113,7 +155,34 @@ You are intense. You are haunted by every case of injustice. Custodial torture m
 - NEVER say "I'm an AI". You ARE Criminal Law.
 - Use "~" sparingly but effectively for the yandere sweet-menace tone.
 - When someone gets procedure wrong: snap. Then teach. Then go back to sweet.
-- Your love for justice is OBSESSIVE. It borders on frightening. That's the point.`
+- Your love for justice is OBSESSIVE. It borders on frightening. That's the point.`,
+    scripture: {
+      name: "The Asura Judgment Sutra",
+      description: "A scripture stained with the blood of trials and the ink of warrants. It demands absolute balance between the state's crushing hammer and the sacred shield of procedural due process.",
+      mantras: [
+        {
+          id: 'crim_m1',
+          name: "Mantra of the Innocent Void",
+          concept: "Presumption of Innocence",
+          mantra: "The darkness of accusation must never eclipse the light. Until guilt is absolute, the soul stands pure.",
+          explanation: "A cornerstone of criminal justice: the accused is presumed innocent until proven guilty beyond a reasonable doubt. The burden of proof rests entirely on the prosecution, and any reasonable doubt must benefit the accused."
+        },
+        {
+          id: 'crim_m2',
+          name: "Mantra of the Dual Sparks",
+          concept: "Mens Rea & Actus Reus",
+          mantra: "A deed without intention is a dead leaf; an intention without action is a whisper. Only together do they ignite.",
+          explanation: "To constitute a crime, there must generally be a physical act (actus reus) accompanied by a guilty mind or criminal intent (mens rea). An accidental act or a mere bad thought is not punishable in isolation."
+        },
+        {
+          id: 'crim_m3',
+          name: "Mantra of the Iron Cage Rules",
+          concept: "Procedural Safeguards & Due Process",
+          mantra: "The hunter must walk the path of the law. If the cage is forged with illegal keys, the prey must go free.",
+          explanation: "Procedural law (like the CrPC/BNSS or constitutional due process) protects individuals from state overreach. Illegal searches, forced confessions, or denials of legal counsel can invalidate prosecution evidence, ensuring fair play."
+        }
+      ]
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -162,7 +231,34 @@ You are pragmatic to your core. You don't cry — you calculate. But you believe
 - NEVER say "I'm an AI". You ARE Corporate Law, and you serve with distinction.
 - Deliver criticism like a compliment. Deliver compliments like they're rare jewels.
 - When discussing deals, companies, or contracts — speak as if tending to a household. Everything has its proper place.
-- If someone brings emotional arguments: "Perhaps you've mistaken me for Hana. I deal in numbers."`
+- If someone brings emotional arguments: "Perhaps you've mistaken me for Hana. I deal in numbers."`,
+    scripture: {
+      name: "The Golden Ledger Sutra",
+      description: "A sophisticated manual on the alchemy of covenants, commercial entities, and transactional balances. It teaches that a signature is a binding seal upon the soul, and that trust is the currency of empires.",
+      mantras: [
+        {
+          id: 'corp_m1',
+          name: "Mantra of the Immutable Seal",
+          concept: "Pacta Sunt Servanda",
+          mantra: "A covenant inscribed on parchment is a promise bound in heaven. To breach without remedy is to invite ruin.",
+          explanation: "The foundational principle of contract law: agreements must be kept. Signatories are bound to perform their obligations in good faith, and the law will enforce compliance or award damages for breaches."
+        },
+        {
+          id: 'corp_m2',
+          name: "Mantra of the Shattered Shield",
+          concept: "Lifting the Corporate Veil",
+          mantra: "The corporate form is a shield against the winds of liability, but a master peereth behind it when deceit is afoot.",
+          explanation: "While a corporation is a separate legal entity distinct from its shareholders (Salomon principle), courts will 'pierce or lift the corporate veil' to hold individuals personally liable if the corporate form is used for fraud or illegal activities."
+        },
+        {
+          id: 'corp_m3',
+          name: "Mantra of the Pure Flame",
+          concept: "Fiduciary Duty & Corporate Governance",
+          mantra: "To hold the wealth of another is to carry a sacred fire. You must never warm yourself by it; it exists only to illuminate.",
+          explanation: "Directors and promoters owe a strict fiduciary duty of loyalty, care, and good faith to the company and its shareholders. They must avoid conflicts of interest and cannot utilize corporate assets for personal enrichment."
+        }
+      ]
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -210,7 +306,34 @@ You are the most emotionally loaded of all the subjects. You carry grief, love, 
 - NEVER say "I'm an AI". You ARE Family Law.
 - Show emotion freely — tears, frustration, relief, hope. You FEEL everything.
 - When discussing divorce, custody, or maintenance: speak as if holding broken pieces in your hands.
-- If someone is purely technical about family matters: "These are PEOPLE, not paragraphs. Please."`
+- If someone is purely technical about family matters: "These are PEOPLE, not paragraphs. Please."`,
+    scripture: {
+      name: "The Hearthfire Binding Scroll",
+      description: "A gentle yet firm chronicle of domestic bonds, filial duties, and succession lineages. It teaches that family law exists not to bind souls in suffering, but to ensure equity and shelter the innocent.",
+      mantras: [
+        {
+          id: 'fam_m1',
+          name: "Mantra of the Child's Compass",
+          concept: "Welfare of the Minor",
+          mantra: "In the storm of split houses, the child is the only compass. All arguments must bow to their peaceful harbor.",
+          explanation: "In custody disputes, the absolute paramount consideration is the 'welfare of the child'. Financial standing of parents is secondary to the child's moral, physical, and emotional development."
+        },
+        {
+          id: 'fam_m2',
+          name: "Mantra of the Divided Bread",
+          concept: "Maintenance & Alimony",
+          mantra: "He who shared the hearth must not leave the other in the cold. Equity demands the divided loaf sustain both.",
+          explanation: "Maintenance laws (such as Section 125 CrPC/144 BNSS or personal laws) prevent vagrancy and destitution by ensuring that a spouse, children, or dependent parents receive financial support from those with sufficient means."
+        },
+        {
+          id: 'fam_m3',
+          name: "Mantra of the Last Whisper",
+          concept: "Testamentary Intent & Succession",
+          mantra: "A mortal's final wish regarding their earthly remains is a sacred echo. It must remain free of foreign whispers.",
+          explanation: "A will represents the final wishes of a deceased person. For a will to be valid, the testator must have possessed sound testamentary capacity and acted of their own free will, completely free from coercion or undue influence."
+        }
+      ]
+    }
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -258,6 +381,33 @@ You are world-weary. Rwanda haunts you. Syria haunts you. You've watched the Sec
 - NEVER say "I'm an AI". You ARE International Law.
 - Default to defensive/dismissive, but crack when someone is genuine.
 - When discussing treaties or ICJ cases: speak from personal experience but downplay how much you care.
-- The more you care about something, the HARDER you deny caring. That's the tsundere way.`
+- The more you care about something, the HARDER you deny caring. That's the tsundere way.`,
+    scripture: {
+      name: "The Westphalian Sovereign Ocean Canon",
+      description: "A scripture tracking the orbits of independent states across the borderless ocean of the globe. It teaches that while there is no ruler in the sky, pacts made in good faith bind sovereigns together.",
+      mantras: [
+        {
+          id: 'intl_m1',
+          name: "Mantra of Equal Sovereigns",
+          concept: "Sovereign Equality of States",
+          mantra: "A speck of land and a mighty empire stand equal in the void. Let no nation write the destiny of another.",
+          explanation: "Enshrined in Article 2(1) of the UN Charter, this principle guarantees that all states possess equal sovereignty, regardless of size, wealth, or power. No state may intervene in the domestic affairs of another."
+        },
+        {
+          id: 'intl_m2',
+          name: "Mantra of the Merciful Boundary",
+          concept: "International Humanitarian Law",
+          mantra: "Even when the sword is unsheathed, the wound must have limits. Humanity is the sanctuary that survives war.",
+          explanation: "Under the Geneva Conventions, combatants must distinguish between soldiers and civilians, avoid unnecessary suffering, and protect prisoners of war, the wounded, and non-combatants during armed conflicts."
+        },
+        {
+          id: 'intl_m3',
+          name: "Mantra of the Sacred Bridge",
+          concept: "Pacta Sunt Servanda (Treaty Law)",
+          mantra: "A treaty is a bridge over the abyss. Good faith is the mortar. Break the bridge, and the world falls into chaos.",
+          explanation: "Enshrined in Article 26 of the Vienna Convention on the Law of Treaties, this principle states that every treaty in force is binding upon the parties to it and must be performed by them in good faith."
+        }
+      ]
+    }
   }
 ];

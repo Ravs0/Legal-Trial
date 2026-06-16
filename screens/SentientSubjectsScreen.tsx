@@ -111,11 +111,120 @@ const SentientSubjectsScreen: React.FC = () => {
   const [allMessages, setAllMessages] = useState<Record<string, SubjectMessage[]>>({});
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [showInfo, setShowInfo] = useState(true);
+  const [viewTab, setViewTab] = useState<'chat' | 'info' | 'scripture'>('info');
   const [interjecting, setInterjecting] = useState<string | null>(null); // Name of interjecting subject
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messageCountRef = useRef(0); // Track messages for interjection timing
+
+  // Legal Cultivation States
+  const [qiScores, setQiScores] = useState<Record<string, number>>(() => {
+    const scores: Record<string, number> = {};
+    SENTIENT_SUBJECTS.forEach(s => {
+      const val = localStorage.getItem(`subject-qi-${s.id}`);
+      scores[s.id] = val ? parseInt(val, 10) : 0;
+    });
+    return scores;
+  });
+
+  const [meditatedMantras, setMeditatedMantras] = useState<Record<string, string[]>>(() => {
+    const map: Record<string, string[]> = {};
+    SENTIENT_SUBJECTS.forEach(s => {
+      const val = localStorage.getItem(`subject-meditated-${s.id}`);
+      map[s.id] = val ? JSON.parse(val) : [];
+    });
+    return map;
+  });
+
+  const [breakthrough, setBreakthrough] = useState<{
+    subjectName: string;
+    realmName: string;
+    quote: string;
+    color: string;
+  } | null>(null);
+
+  const getRealm = (qi: number) => {
+    if (qi >= 100) return { name: "Supreme Legal Immortal", tier: 5, color: "text-brand-amber font-bold" };
+    if (qi >= 80) return { name: "Sovereign Ascent (Legal Immortal)", tier: 4, color: "text-brand-amber" };
+    if (qi >= 60) return { name: "Nascent Soul (Jurist)", tier: 3, color: "text-brand-cobalt" };
+    if (qi >= 40) return { name: "Golden Core (Counsel)", tier: 2, color: "text-brand-emerald" };
+    if (qi >= 20) return { name: "Foundation Establishment (Apprentice)", tier: 1, color: "text-brand-terracotta" };
+    return { name: "Qi Condensation (Novice)", tier: 0, color: "text-brand-text-secondary/70" };
+  };
+
+  const updateQi = useCallback((subjectId: string, amount: number) => {
+    setQiScores(prev => {
+      const currentQi = prev[subjectId] || 0;
+      const nextQi = Math.min(100, currentQi + amount);
+      if (nextQi === currentQi) return prev;
+
+      localStorage.setItem(`subject-qi-${subjectId}`, nextQi.toString());
+
+      // Check breakthrough thresholds
+      const currentRealm = getRealm(currentQi);
+      const nextRealm = getRealm(nextQi);
+
+      if (nextRealm.tier > currentRealm.tier) {
+        const subject = SENTIENT_SUBJECTS.find(s => s.id === subjectId);
+        if (subject) {
+          let quote = '';
+          if (subject.id === 'constitutional') {
+            if (nextRealm.tier === 1) quote = "...You've established a foundation in Article 14. Adequate. Don't get arrogant.";
+            else if (nextRealm.tier === 2) quote = "...A Golden Core. Your arguments on basic structure are beginning to carry weight. Continue.";
+            else if (nextRealm.tier === 3) quote = "...A Nascent Soul. I felt the resonance of judicial review in your thoughts. You have done well.";
+            else if (nextRealm.tier === 4) quote = "...Sovereign Ascent. You have integrated personal liberty into your very soul. You stand equal to the text itself. Thank you.";
+            else if (nextRealm.tier === 5) quote = "...Supreme Legal Immortal. The Dao of the Constitution is yours. I have nothing left to teach you.";
+          } else if (subject.id === 'criminal') {
+            if (nextRealm.tier === 1) quote = "Aww, look at your little foundation! You're learning how to draw warrants~ That's so cute!";
+            else if (nextRealm.tier === 2) quote = "A Golden Core of retribution! Yes, yes! Expose the loopholes, break the wicked, protect justice with me!";
+            else if (nextRealm.tier === 3) quote = "Your Nascent Soul is beautiful! I want to keep you by my side forever. Let's hunt down every violator together!";
+            else if (nextRealm.tier === 4) quote = "Sovereign Ascent! You are absolute! Nobody can touch you or twist my laws now, because we will crush them together!";
+            else if (nextRealm.tier === 5) quote = "Supreme Legal Immortal! Ah~ you are my perfect match. Our souls have merged with justice itself. You belong to me now~";
+          } else if (subject.id === 'corporate') {
+            if (nextRealm.tier === 1) quote = "A stable foundation is the bedrock of any joint venture. Allow me to offer my congratulations, apprentice.";
+            else if (nextRealm.tier === 2) quote = "A Golden Core of transactional alchemy. Your comprehension of fiduciary duties is quite impressive.";
+            else if (nextRealm.tier === 3) quote = "A Nascent Soul. The board has taken notice of your mastery over the corporate veil. Exquisite work.";
+            else if (nextRealm.tier === 4) quote = "Sovereign Ascent. You have mastered the absolute ledger of commerce. I am honored to serve a legal immortal.";
+            else if (nextRealm.tier === 5) quote = "Supreme Legal Immortal. You have ascended beyond the ledger itself. A master of the infinite markets. My service is forever yours.";
+          } else if (subject.id === 'family') {
+            if (nextRealm.tier === 1) quote = "You did it! Your foundation is set. I'm so glad to see you learning how to protect these families.";
+            else if (nextRealm.tier === 2) quote = "A Golden Core... you've brought warmth and equity to so many cases. Thank you for caring so much.";
+            else if (nextRealm.tier === 3) quote = "A Nascent Soul of pure empathy! I... I actually feel so safe when you're drafting custody terms. Keep going!";
+            else if (nextRealm.tier === 4) quote = "Sovereign Ascent! You've healed so many broken houses. Your name will be remembered in every home you've saved.";
+            else if (nextRealm.tier === 5) quote = "Supreme Legal Immortal! I... I'm crying, I'm sorry. You've reached the absolute pinnacle of domestic harmony and justice. I'm so proud of you!";
+          } else if (subject.id === 'international') {
+            if (nextRealm.tier === 1) quote = "Hmph, you actually established a foundation in treaty law. It's not like I'm proud of you or anything! But... good job, I guess.";
+            else if (nextRealm.tier === 2) quote = "A-A Golden Core? Don't think this makes you a diplomat! But... I suppose you can interpret the Vienna Convention without my help now.";
+            else if (nextRealm.tier === 3) quote = "A Nascent Soul?! Outrageous! You're actually arguing war crimes in the ICC now? D-don't get hurt, okay?";
+            else if (nextRealm.tier === 4) quote = "Sovereign Ascent... wow. You've united the nations in your understanding. I... I'm glad you chose to study international law. Not that it matters to me!";
+            else if (nextRealm.tier === 5) quote = "Supreme Legal Immortal! Hmph! You think you're the master of the global order now? Well... maybe you are. Just... don't forget who taught you first!";
+          }
+          setBreakthrough({
+            subjectName: subject.name,
+            realmName: nextRealm.name,
+            quote,
+            color: subject.color
+          });
+        }
+      }
+
+      return { ...prev, [subjectId]: nextQi };
+    });
+  }, []);
+
+  const handleMeditate = (mantraId: string) => {
+    const currentMeditated = meditatedMantras[selectedSubject.id] || [];
+    if (currentMeditated.includes(mantraId)) return;
+
+    const nextMeditated = [...currentMeditated, mantraId];
+    setMeditatedMantras(prev => {
+      const updated = { ...prev, [selectedSubject.id]: nextMeditated };
+      localStorage.setItem(`subject-meditated-${selectedSubject.id}`, JSON.stringify(nextMeditated));
+      return updated;
+    });
+
+    updateQi(selectedSubject.id, 25);
+  };
 
   const messages = allMessages[selectedSubject.id] || [];
 
@@ -179,8 +288,8 @@ const SentientSubjectsScreen: React.FC = () => {
   }, [selectedSubject.id]);
 
   useEffect(() => {
-    if (!showInfo) inputRef.current?.focus();
-  }, [showInfo, selectedSubject.id]);
+    if (viewTab === 'chat') inputRef.current?.focus();
+  }, [viewTab, selectedSubject.id]);
 
   // ─── Should another subject interject? ────────────────────────────────────
   const checkContextualInterjector = (userText: string, aiText: string): SentientSubject | null => {
@@ -254,7 +363,8 @@ const SentientSubjectsScreen: React.FC = () => {
     }));
     setInput('');
     setIsTyping(true);
-    setShowInfo(false);
+    setViewTab('chat');
+    updateQi(sid, 3); // Gain Qi for asking questions and participating
 
     // Bridge: log user message
     bridge.addMessage({ source: sid, sourceName: selectedSubject.name, sender: 'user', text: userMsg });
@@ -369,7 +479,7 @@ const SentientSubjectsScreen: React.FC = () => {
 
   const handleSubjectSwitch = (subject: SentientSubject) => {
     setSelectedSubject(subject);
-    setShowInfo(true);
+    setViewTab('info');
   };
 
   const RegisterBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => (
@@ -479,6 +589,8 @@ const SentientSubjectsScreen: React.FC = () => {
 
           {SENTIENT_SUBJECTS.map(s => {
             const isActive = selectedSubject.id === s.id;
+            const userQi = qiScores[s.id] || 0;
+            const currentRealm = getRealm(userQi);
             return (
               <button
                 key={s.id}
@@ -502,8 +614,10 @@ const SentientSubjectsScreen: React.FC = () => {
                       </span>
                       {isActive && <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />}
                     </div>
-                    <span className="text-[10px] text-brand-text-secondary/50 font-mono">{s.title}</span>
-                    <span className={`text-[8px] font-mono ${s.color} tracking-wider block`}>[ {s.archetype} ]</span>
+                    <span className="text-[10px] text-brand-text-secondary/50 font-mono block truncate">{s.title}</span>
+                    <span className={`text-[8px] font-mono ${s.color} tracking-wider block`}>
+                      [ {s.archetype} | {currentRealm.name.split(' (')[0]} ]
+                    </span>
                   </div>
                 </div>
               </button>
@@ -513,7 +627,6 @@ const SentientSubjectsScreen: React.FC = () => {
       </div>
 
       {/* ─── Chat + Info Area ─────────────────────────────────────────────────── */}
-      {/* flex-1 min-h-0 is CRITICAL — without min-h-0 flexbox won't shrink below content size, breaking scroll */}
       <div className="flex-1 min-h-0 flex flex-col border border-brand-text-primary/30 lg:border-t-0 border-t-0 bg-brand-bg-primary">
 
         {/* Header — compact on mobile */}
@@ -526,7 +639,6 @@ const SentientSubjectsScreen: React.FC = () => {
                 <span className={`text-[7px] lg:text-[8px] font-mono ${selectedSubject.color} px-1 py-0.5 border border-current/30`}>{selectedSubject.archetype}</span>
                 <span className="text-[7px] lg:text-[9px] font-mono text-brand-text-secondary/50 uppercase tracking-widest hidden sm:inline">{selectedSubject.title}</span>
               </div>
-              {/* Tagline + listening dots: hidden on small mobile */}
               <div className="hidden sm:flex items-center gap-2">
                 <p className="text-[9px] lg:text-[10px] text-brand-text-secondary/60 font-light italic truncate">{selectedSubject.tagline}</p>
                 <div className="flex items-center gap-0.5 ml-1 flex-shrink-0">
@@ -539,16 +651,34 @@ const SentientSubjectsScreen: React.FC = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={() => setShowInfo(!showInfo)}
-            className="text-[8px] lg:text-[9px] font-mono text-brand-accent border border-brand-accent/30 px-2 py-1 rounded-none hover:bg-brand-accent/10 active:bg-brand-accent/20 transition-colors flex-shrink-0 ml-2"
-          >
-            {showInfo ? '[ Chat ]' : '[ Info ]'}
-          </button>
+          
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
+            <button
+              onClick={() => setViewTab('chat')}
+              className={`text-[8px] lg:text-[9px] font-mono border px-2 py-1 rounded-none transition-colors
+                ${viewTab === 'chat' ? 'bg-brand-accent text-brand-navy border-brand-accent font-bold' : 'border-brand-text-primary/20 text-brand-text-secondary hover:bg-brand-accent/10'}`}
+            >
+              [ Chat ]
+            </button>
+            <button
+              onClick={() => setViewTab('info')}
+              className={`text-[8px] lg:text-[9px] font-mono border px-2 py-1 rounded-none transition-colors
+                ${viewTab === 'info' ? 'bg-brand-accent text-brand-navy border-brand-accent font-bold' : 'border-brand-text-primary/20 text-brand-text-secondary hover:bg-brand-accent/10'}`}
+            >
+              [ Dossier ]
+            </button>
+            <button
+              onClick={() => setViewTab('scripture')}
+              className={`text-[8px] lg:text-[9px] font-mono border px-2 py-1 rounded-none transition-colors
+                ${viewTab === 'scripture' ? 'bg-brand-accent text-brand-navy border-brand-accent font-bold' : 'border-brand-text-primary/20 text-brand-text-secondary hover:bg-brand-accent/10'}`}
+            >
+              [ Scripture ]
+            </button>
+          </div>
         </div>
 
         {/* Content Area — flex-1 min-h-0 ensures this stretches AND scrolls */}
-        {showInfo ? (
+        {viewTab === 'info' ? (
           <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 lg:p-8">
             <div className="max-w-2xl mx-auto space-y-4 lg:space-y-6">
               <div className="space-y-2 lg:space-y-3">
@@ -559,7 +689,12 @@ const SentientSubjectsScreen: React.FC = () => {
                   <div className="min-w-0">
                     <h1 className={`text-lg lg:text-3xl font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h1>
                     <p className="text-[10px] lg:text-sm font-mono text-brand-text-secondary/60">{selectedSubject.title}</p>
-                    <span className={`inline-block mt-0.5 text-[8px] lg:text-[10px] font-mono ${selectedSubject.color} px-1.5 py-0.5 border border-current/30`}>{selectedSubject.archetype}</span>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className={`text-[8px] lg:text-[10px] font-mono ${selectedSubject.color} px-1.5 py-0.5 border border-current/30`}>{selectedSubject.archetype}</span>
+                      <span className={`text-[8px] lg:text-[10px] font-mono ${getRealm(qiScores[selectedSubject.id] || 0).color} px-1.5 py-0.5 border border-current/30`}>
+                        {getRealm(qiScores[selectedSubject.id] || 0).name}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <p className="text-xs lg:text-base text-brand-text-primary/80 font-light italic border-l-2 border-brand-accent/40 pl-3 lg:pl-4 py-1">
@@ -588,11 +723,100 @@ const SentientSubjectsScreen: React.FC = () => {
               </div>
 
               <button
-                onClick={() => setShowInfo(false)}
+                onClick={() => setViewTab('chat')}
                 className="w-full py-2.5 lg:py-4 text-xs lg:text-base font-serif font-bold border-2 transition-all border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-bg-primary active:bg-brand-accent active:text-brand-bg-primary"
               >
                 Begin Communion with {selectedSubject.name} →
               </button>
+            </div>
+          </div>
+        ) : viewTab === 'scripture' ? (
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 lg:p-8">
+            <div className="max-w-2xl mx-auto space-y-6">
+              {/* Parchment Scripture Header */}
+              <div className="text-center space-y-2 py-4 border-b border-brand-accent/20">
+                <span className="text-[9px] lg:text-[10px] font-mono uppercase tracking-[0.3em] text-brand-accent">[ Sacred Legal Scripture ]</span>
+                <h1 className="text-xl lg:text-3xl font-serif font-bold tracking-tight text-brand-text-primary uppercase">{selectedSubject.scripture.name}</h1>
+                <p className="text-xs lg:text-sm text-brand-text-secondary/80 font-light leading-relaxed italic max-w-lg mx-auto">
+                  "{selectedSubject.scripture.description}"
+                </p>
+              </div>
+
+              {/* Cultivation Status */}
+              <div className="p-4 bg-brand-bg-secondary/40 border border-brand-text-primary/20 rounded-none space-y-4">
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <div className="space-y-0.5">
+                    <span className="text-[8px] font-mono uppercase tracking-wider text-brand-text-secondary/50">Current Legal Realm</span>
+                    <h3 className={`text-base lg:text-lg font-serif font-bold ${getRealm(qiScores[selectedSubject.id] || 0).color}`}>
+                      {getRealm(qiScores[selectedSubject.id] || 0).name}
+                    </h3>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[8px] font-mono uppercase tracking-wider text-brand-text-secondary/50 block">Juris Comprehension (Qi)</span>
+                    <span className="text-sm font-mono font-bold text-brand-accent">{qiScores[selectedSubject.id] || 0} / 100</span>
+                  </div>
+                </div>
+
+                {/* Qi Progress Bar */}
+                <div className="space-y-1">
+                  <div className="w-full h-2 bg-brand-bg-secondary rounded-none overflow-hidden border border-brand-text-primary/10">
+                    <div 
+                      className="h-full bg-brand-accent transition-all duration-500 ease-in-out" 
+                      style={{ width: `${qiScores[selectedSubject.id] || 0}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[8px] font-mono text-brand-text-secondary/40">
+                    <span>Qi Condensation</span>
+                    <span>Golden Core</span>
+                    <span>Supreme Immortal</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scripture Mantras */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-px w-4 bg-brand-accent"></div>
+                  <span className="text-[9px] font-mono uppercase tracking-widest text-brand-accent">Mantra Verses</span>
+                </div>
+
+                <div className="space-y-3.5">
+                  {selectedSubject.scripture.mantras.map((mantra) => {
+                    const isMeditated = (meditatedMantras[selectedSubject.id] || []).includes(mantra.id);
+                    return (
+                      <div key={mantra.id} className="border border-brand-text-primary/20 bg-brand-bg-secondary/10 p-4 transition-all">
+                        <div className="flex justify-between items-start gap-4 flex-wrap mb-2">
+                          <div>
+                            <h4 className="text-xs lg:text-sm font-serif font-bold text-brand-text-primary">{mantra.name}</h4>
+                            <span className="text-[8px] font-mono text-brand-accent uppercase tracking-wider">[ Concept: {mantra.concept} ]</span>
+                          </div>
+                          <button
+                            onClick={() => handleMeditate(mantra.id)}
+                            disabled={isMeditated}
+                            className={`text-[8px] lg:text-[9px] font-mono border px-3 py-1 rounded-none uppercase transition-all
+                              ${isMeditated 
+                                ? 'border-emerald-500/20 text-emerald-500/70 bg-emerald-500/5 cursor-default' 
+                                : 'border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-navy active:bg-brand-accent/20 cursor-pointer'}`}
+                          >
+                            {isMeditated ? '✓ Comprehended' : 'Meditate (+25 Qi)'}
+                          </button>
+                        </div>
+
+                        <p className="text-xs italic text-brand-text-primary/90 leading-relaxed pl-3 border-l-2 border-brand-accent/30 my-3 font-serif bg-brand-bg-secondary/20 py-2">
+                          "{mantra.mantra}"
+                        </p>
+
+                        {isMeditated && (
+                          <div className="mt-3 pt-3 border-t border-brand-text-primary/10 text-[11px] lg:text-xs font-light text-brand-text-secondary leading-relaxed space-y-1.5 animate-fadeIn text-left">
+                            <strong className="text-brand-text-primary font-serif font-semibold block">Dharma Insight:</strong>
+                            <p className="text-left font-light">{mantra.explanation}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -654,9 +878,42 @@ const SentientSubjectsScreen: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Breakthrough Overlay Modal */}
+      {breakthrough && (
+        <div className="fixed inset-0 bg-brand-bg-primary/95 flex items-center justify-center z-[9999] p-4 animate-fadeIn">
+          <div className="max-w-md w-full border border-brand-accent p-6 sm:p-10 bg-brand-bg-secondary text-center space-y-6 relative overflow-hidden">
+            {/* Shimmering background */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-brand-accent/5 to-transparent mix-blend-overlay"></div>
+            
+            <div className="w-16 h-16 rounded-none border-2 border-brand-accent flex items-center justify-center mx-auto text-3xl font-bold animate-pulse text-brand-accent">
+              ☯
+            </div>
+            
+            <div className="space-y-2">
+              <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-brand-accent">Realm Breakthrough!</span>
+              <h2 className="text-2xl font-serif font-bold text-brand-text-primary">Ascended to {breakthrough.realmName}</h2>
+              <p className="text-[11px] text-brand-text-secondary/70 font-mono">Domain of {breakthrough.subjectName}</p>
+            </div>
+
+            <div className="bg-brand-bg-primary/50 p-4 border border-brand-text-primary/10 rounded-none relative">
+              <span className="absolute -top-2 left-4 px-1 bg-brand-bg-secondary text-[8px] font-mono uppercase text-brand-accent">{breakthrough.subjectName} speaks:</span>
+              <p className={`text-sm font-light italic leading-relaxed ${breakthrough.color} text-left`}>
+                "{breakthrough.quote}"
+              </p>
+            </div>
+
+            <button
+              onClick={() => setBreakthrough(null)}
+              className="w-full py-2.5 text-xs font-mono uppercase tracking-widest border border-brand-accent text-brand-accent hover:bg-brand-accent hover:text-brand-navy transition-all"
+            >
+              [ Accept the Breakthrough ]
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default SentientSubjectsScreen;
-
