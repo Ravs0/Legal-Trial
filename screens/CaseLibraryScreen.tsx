@@ -14,6 +14,8 @@ import { CaseCategory, CaseDetail, CaseDifficulty, JudgePersonality, OpposingCou
 import { SelectInput } from '../components/SelectInput';
 import { Modal } from '../components/Modal';
 import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
+import { usePrecedentSearch } from '../hooks/usePrecedentSearch';
+
 
 const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty }> = ({ difficulty }) => {
   let bgColor = 'bg-brand-bg-secondary';
@@ -163,6 +165,10 @@ const CaseLibraryScreen: React.FC = () => {
   const activeCaseCategories = practiceMode === 'international' ? INTERNATIONAL_CASE_CATEGORIES : CASE_CATEGORIES;
   const modeDisplay = practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchResults = usePrecedentSearch(searchQuery, activeCases);
+
+
 
   const handlePracticeCase = (caseDetail: CaseDetail) => {
     setSelectedCaseForPractice(caseDetail);
@@ -213,7 +219,25 @@ const CaseLibraryScreen: React.FC = () => {
         <p className="text-xs lg:text-base text-brand-text-secondary font-light max-w-2xl mx-auto leading-relaxed">
           An exclusive archive of procedural and substantive legal scenarios. Review the docket and select a matter to commence practice.
         </p>
+        <div className="mt-8 max-w-xl mx-auto relative">
+          <input
+            type="text"
+            placeholder="Search docket precedents (e.g. copyright, contract, negligence)..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono text-brand-accent hover:text-brand-text-primary transition-colors"
+            >
+              [ CLEAR ]
+            </button>
+          )}
+        </div>
       </div>
+
 
       {/* Custom Case Simulator Section */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -371,77 +395,157 @@ const CaseLibraryScreen: React.FC = () => {
       </div>
 
       <div className="space-y-16 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        {activeCaseCategories.map((category: CaseCategory) => {
-          const categoryCases = activeCases.filter(c => c.categoryId === category.id);
-
-          return (
-            <section key={category.id} aria-labelledby={`category-title-${category.id}`} className="scroll-mt-24 relative">
-              <div className="mb-8 flex items-end justify-between border-b border-brand-text-primary/30 pb-4">
-                <div className="flex items-center">
-                  <div className="w-1.5 h-8 bg-brand-accent mr-4"></div>
-                  <div>
-                    <h2 id={`category-title-${category.id}`} className="text-3xl font-semibold text-brand-text-primary font-serif tracking-tight">{category.name}</h2>
-                    <p className="text-sm font-light text-brand-text-secondary mt-1">{category.description}</p>
-                  </div>
-                </div>
-                <div className="hidden sm:block">
-                  <span className="text-xs font-mono text-brand-text-secondary/50 uppercase tracking-widest">{categoryCases.length} Matters</span>
+        {searchQuery.trim() ? (
+          <section className="scroll-mt-24 relative">
+            <div className="mb-8 flex items-end justify-between border-b border-brand-text-primary/30 pb-4">
+              <div className="flex items-center">
+                <div className="w-1.5 h-8 bg-brand-accent mr-4"></div>
+                <div>
+                  <h2 className="text-3xl font-semibold text-brand-text-primary font-serif tracking-tight">Search Results</h2>
+                  <p className="text-sm font-light text-brand-text-secondary mt-1">Ranked by keyword matching and document relevance</p>
                 </div>
               </div>
+              <div>
+                <span className="text-xs font-mono text-brand-text-secondary/50 uppercase tracking-widest">{searchResults.length} Match(es)</span>
+              </div>
+            </div>
 
-              {categoryCases.length > 0 ? (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                  {categoryCases.map((caseDetail: CaseDetail) => (
-                    <Card
-                      key={caseDetail.id}
-                      className="flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer"
-                      onClick={() => handlePracticeCase(caseDetail)}
-                    >
-                      <div className="p-6 pb-0 flex-grow">
-                        <div className="flex justify-between items-start mb-5">
-                          <DifficultyBadge difficulty={caseDetail.difficulty} />
+            {searchResults.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                {searchResults.map(({ caseItem, score, matchedTerms }) => (
+                  <Card
+                    key={caseItem.id}
+                    className="flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer"
+                    onClick={() => handlePracticeCase(caseItem)}
+                  >
+                    <div className="p-6 pb-0 flex-grow">
+                      <div className="flex justify-between items-start mb-5">
+                        <DifficultyBadge difficulty={caseItem.difficulty} />
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[10px] font-mono text-brand-accent bg-brand-bg-secondary px-2 py-1 border border-brand-accent/25">Score: {score}</span>
                           <div className="w-8 h-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <svg className="w-4 h-4 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                           </div>
                         </div>
+                      </div>
 
-                        <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-brand-accent transition-colors duration-300" title={caseDetail.title}>{caseDetail.title}</h4>
+                      <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-brand-accent transition-colors duration-300" title={caseItem.title}>{caseItem.title}</h4>
 
-                        <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseDetail.briefFacts}</p>
+                      <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseItem.briefFacts}</p>
 
-                        <div className="mb-6">
-                          <h5 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest mb-2 flex items-center">
-                            <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
-                          </h5>
-                          <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
-                            {caseDetail.legalIssues.slice(0, 3).map((issue, idx) => (
-                              <li key={idx} className="flex items-start">
-                                <span className="text-brand-accent mr-2 mt-0.5">•</span>
-                                <span className="line-clamp-2 leading-snug">{issue}</span>
-                              </li>
-                            ))}
-                            {caseDetail.legalIssues.length > 3 && <li className="text-brand-text-secondary/60 italic text-[11px] pl-3">+{caseDetail.legalIssues.length - 3} additional issues</li>}
-                          </ul>
+                      {matchedTerms.length > 0 && (
+                        <div className="mb-4 flex flex-wrap gap-1.5">
+                          {matchedTerms.map((term, i) => (
+                            <span key={i} className="text-[9px] font-mono bg-brand-accent/10 text-brand-accent border border-brand-accent/20 px-1.5 py-0.5 uppercase">
+                              {term}
+                            </span>
+                          ))}
                         </div>
-                      </div>
+                      )}
 
-                      <div className="p-6 pt-0 mt-auto">
-                        <Button variant="outline" size="sm" fullWidth className="group-hover:bg-brand-accent group-hover:text-brand-accent-text group-hover:border-brand-accent transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
-                          Review Case File
-                        </Button>
+                      <div className="mb-6">
+                        <h5 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest mb-2 flex items-center">
+                          <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
+                        </h5>
+                        <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
+                          {caseItem.legalIssues.slice(0, 3).map((issue, idx) => (
+                            <li key={idx} className="flex items-start">
+                              <span className="text-brand-accent mr-2 mt-0.5">•</span>
+                              <span className="line-clamp-2 leading-snug">{issue}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </Card>
-                  ))}
+                    </div>
+
+                    <div className="p-6 pt-0 mt-auto">
+                      <Button variant="outline" size="sm" fullWidth className="group-hover:bg-brand-accent group-hover:text-brand-accent-text group-hover:border-brand-accent transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
+                        Review Case File
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-none bg-brand-bg-secondary flex items-center justify-center">
+                <p className="text-brand-text-secondary font-light">No precedents match your search query.</p>
+              </div>
+            )}
+          </section>
+        ) : (
+          activeCaseCategories.map((category: CaseCategory) => {
+            const categoryCases = activeCases.filter(c => c.categoryId === category.id);
+
+            return (
+              <section key={category.id} aria-labelledby={`category-title-${category.id}`} className="scroll-mt-24 relative">
+                <div className="mb-8 flex items-end justify-between border-b border-brand-text-primary/30 pb-4">
+                  <div className="flex items-center">
+                    <div className="w-1.5 h-8 bg-brand-accent mr-4"></div>
+                    <div>
+                      <h2 id={`category-title-${category.id}`} className="text-3xl font-semibold text-brand-text-primary font-serif tracking-tight">{category.name}</h2>
+                      <p className="text-sm font-light text-brand-text-secondary mt-1">{category.description}</p>
+                    </div>
+                  </div>
+                  <div className="hidden sm:block">
+                    <span className="text-xs font-mono text-brand-text-secondary/50 uppercase tracking-widest">{categoryCases.length} Matters</span>
+                  </div>
                 </div>
-              ) : (
-                <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-none bg-brand-bg-secondary flex items-center justify-center">
-                  <p className="text-brand-text-secondary font-light">No cases currently available in this docket for {modeDisplay} mode.</p>
-                </div>
-              )}
-            </section>
-          )
-        })}
+
+                {categoryCases.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                    {categoryCases.map((caseDetail: CaseDetail) => (
+                      <Card
+                        key={caseDetail.id}
+                        className="flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer"
+                        onClick={() => handlePracticeCase(caseDetail)}
+                      >
+                        <div className="p-6 pb-0 flex-grow">
+                          <div className="flex justify-between items-start mb-5">
+                            <DifficultyBadge difficulty={caseDetail.difficulty} />
+                            <div className="w-8 h-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <svg className="w-4 h-4 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </div>
+                          </div>
+
+                          <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-brand-accent transition-colors duration-300" title={caseDetail.title}>{caseDetail.title}</h4>
+
+                          <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseDetail.briefFacts}</p>
+
+                          <div className="mb-6">
+                            <h5 className="text-[10px] font-mono font-semibold text-brand-accent uppercase tracking-widest mb-2 flex items-center">
+                              <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
+                            </h5>
+                            <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
+                              {caseDetail.legalIssues.slice(0, 3).map((issue, idx) => (
+                                <li key={idx} className="flex items-start">
+                                  <span className="text-brand-accent mr-2 mt-0.5">•</span>
+                                  <span className="line-clamp-2 leading-snug">{issue}</span>
+                                </li>
+                              ))}
+                              {caseDetail.legalIssues.length > 3 && <li className="text-brand-text-secondary/60 italic text-[11px] pl-3">+{caseDetail.legalIssues.length - 3} additional issues</li>}
+                            </ul>
+                          </div>
+                        </div>
+
+                        <div className="p-6 pt-0 mt-auto">
+                          <Button variant="outline" size="sm" fullWidth className="group-hover:bg-brand-accent group-hover:text-brand-accent-text group-hover:border-brand-accent transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
+                            Review Case File
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-none bg-brand-bg-secondary flex items-center justify-center">
+                    <p className="text-brand-text-secondary font-light">No cases currently available in this docket for {modeDisplay} mode.</p>
+                  </div>
+                )}
+              </section>
+            );
+          })
+        )}
       </div>
+
 
       {selectedCaseForPractice && selectedJudge && selectedOpposingCounsel && (
         <Modal

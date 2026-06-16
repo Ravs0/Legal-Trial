@@ -53,6 +53,12 @@ const AcademicCapIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const HistoryIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+  </svg>
+);
+
 
 interface GroupedTaskOption {
   label: string;
@@ -81,7 +87,10 @@ const DraftingStudioScreen: React.FC = () => {
   const [isLoadingAiInteraction, setIsLoadingAiInteraction] = useState<boolean>(false);
   
   // Reference Panel States
-  const [activeRefTab, setActiveRefTab] = useState<'facts' | 'feedback' | 'procedure' | 'score' | 'course'>('facts');
+  const [activeRefTab, setActiveRefTab] = useState<'facts' | 'feedback' | 'procedure' | 'score' | 'course' | 'history'>('facts');
+  const [snapshots, setSnapshots] = useState<{ id: string; timestamp: string; text: string }[]>([]);
+  const [selectedSnapshotForDiff, setSelectedSnapshotForDiff] = useState<string | null>(null);
+  const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<string>('');
   const [filingProcedure, setFilingProcedure] = useState<string>('');
   const [isRefPanelOpen, setIsRefPanelOpen] = useState<boolean>(true);
@@ -96,6 +105,182 @@ const DraftingStudioScreen: React.FC = () => {
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
   const [showAutoSave, setShowAutoSave] = useState<boolean>(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveSnapshot = useCallback(() => {
+    if (!currentTask || !userDraft.trim()) return;
+    const key = `draft-snapshots-${currentTask.id}`;
+    const newSnapshot = {
+      id: `snapshot-${Date.now()}`,
+      timestamp: new Date().toLocaleString(),
+      text: userDraft
+    };
+    const updated = [newSnapshot, ...snapshots];
+    setSnapshots(updated);
+    localStorage.setItem(key, JSON.stringify(updated));
+    
+    setShowAutoSave(true);
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => setShowAutoSave(false), 2000);
+  }, [currentTask, userDraft, snapshots]);
+
+  useEffect(() => {
+    if (currentTask) {
+      const key = `draft-snapshots-${currentTask.id}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        try {
+          setSnapshots(JSON.parse(saved));
+        } catch (e) {
+          console.error("Failed to parse snapshots", e);
+          setSnapshots([]);
+        }
+      } else {
+        setSnapshots([]);
+      }
+    }
+  }, [currentTask]);
+
+  useEffect(() => {
+    const handleToggleFocus = () => {
+      setIsFocusMode(prev => !prev);
+    };
+    const handleSaveSnapshot = () => {
+      saveSnapshot();
+    };
+
+    window.addEventListener('cmd-palette-toggle-focus-mode', handleToggleFocus);
+    window.addEventListener('cmd-palette-save-snapshot', handleSaveSnapshot);
+
+    return () => {
+      window.removeEventListener('cmd-palette-toggle-focus-mode', handleToggleFocus);
+      window.removeEventListener('cmd-palette-save-snapshot', handleSaveSnapshot);
+    };
+  }, [saveSnapshot]);
+
+  const computeDiff = (oldText: string, newText: string) => {
+    const oldLines = oldText.split('\n');
+    const newLines = newText.split('\n');
+    const maxLines = Math.max(oldLines.length, newLines.length);
+    const diffRows: { oldNum: number | string; oldLine: string; newNum: number | string; newLine: string; type: 'unchanged' | 'modified' | 'added' | 'deleted' }[] = [];
+
+    let oldIdx = 0;
+    let newIdx = 0;
+
+    while (oldIdx < oldLines.length || newIdx < newLines.length) {
+      const oLine = oldLines[oldIdx] ?? null;
+      const nLine = newLines[newIdx] ?? null;
+
+      if (oLine === nLine) {
+        diffRows.push({
+          oldNum: oldIdx + 1,
+          oldLine: oLine,
+          newNum: newIdx + 1,
+          newLine: nLine,
+          type: 'unchanged'
+        });
+        oldIdx++;
+        newIdx++;
+      } else if (oLine !== null && nLine === null) {
+        diffRows.push({
+          oldNum: oldIdx + 1,
+          oldLine: oLine,
+          newNum: '-',
+          newLine: '',
+          type: 'deleted'
+        });
+        oldIdx++;
+      } else if (oLine === null && nLine !== null) {
+        diffRows.push({
+          oldNum: '-',
+          oldLine: '',
+          newNum: newIdx + 1,
+          newLine: nLine,
+          type: 'added'
+        });
+        newIdx++;
+      } else {
+        diffRows.push({
+          oldNum: oldIdx + 1,
+          oldLine: oLine,
+          newNum: '-',
+          newLine: '',
+          type: 'deleted'
+        });
+        diffRows.push({
+          oldNum: '-',
+          oldLine: '',
+          newNum: newIdx + 1,
+          newLine: nLine,
+          type: 'added'
+        });
+        oldIdx++;
+        newIdx++;
+      }
+    }
+
+    return diffRows;
+  };
+
+  const renderDiffViewer = () => {
+    if (!selectedSnapshotForDiff) return null;
+    const snapshot = snapshots.find(s => s.id === selectedSnapshotForDiff);
+    if (!snapshot) return null;
+
+    const diffRows = computeDiff(snapshot.text, userDraft);
+
+    return (
+      <div className="space-y-4 text-left font-mono">
+        <div className="flex justify-between items-center bg-brand-bg-secondary p-3 border border-brand-text-primary/30">
+          <span className="text-xs text-brand-text-primary uppercase font-bold">Comparing current draft to snapshot ({snapshot.timestamp})</span>
+          <span className="text-[10px] text-brand-text-secondary">Line-by-line comparison</span>
+        </div>
+
+        <div className="max-h-[50vh] overflow-y-auto border border-brand-text-primary/30 text-xs custom-scrollbar">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-brand-bg-secondary text-[10px] uppercase border-b border-brand-text-primary/30 text-brand-text-secondary">
+                <th className="p-2 border-r border-brand-text-primary/20 w-12 text-center">Line</th>
+                <th className="p-2 border-r border-brand-text-primary/20 w-1/2 text-left">Snapshot</th>
+                <th className="p-2 border-r border-brand-text-primary/20.w-12 text-center">Line</th>
+                <th className="p-2 text-left w-1/2">Current Draft</th>
+              </tr>
+            </thead>
+            <tbody>
+              {diffRows.map((row, idx) => {
+                let rowBg = '';
+                let oldTextColor = 'text-brand-text-secondary/70';
+                let newTextColor = 'text-brand-text-secondary/70';
+
+                if (row.type === 'deleted') {
+                  rowBg = 'bg-brand-error/10';
+                  oldTextColor = 'text-brand-error font-medium line-through';
+                } else if (row.type === 'added') {
+                  rowBg = 'bg-emerald-500/10';
+                  newTextColor = 'text-emerald-400 font-medium';
+                } else {
+                  oldTextColor = 'text-brand-text-primary/80';
+                  newTextColor = 'text-brand-text-primary/80';
+                }
+
+                return (
+                  <tr key={idx} className={`border-b border-brand-text-primary/10 ${rowBg}`}>
+                    <td className="p-1.5 border-r border-brand-text-primary/20 text-center text-[10px] text-brand-text-secondary/40 select-none">{row.oldNum}</td>
+                    <td className={`p-1.5 border-r border-brand-text-primary/20 whitespace-pre-wrap font-sans ${oldTextColor}`}>{row.oldLine}</td>
+                    <td className="p-1.5 border-r border-brand-text-primary/20 text-center text-[10px] text-brand-text-secondary/40 select-none">{row.newNum}</td>
+                    <td className={`p-1.5 whitespace-pre-wrap font-sans ${newTextColor}`}>{row.newLine}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end pt-4 border-t border-brand-text-primary/30">
+          <Button variant="outline" onClick={() => setIsDiffModalOpen(false)}>Close Compare</Button>
+        </div>
+      </div>
+    );
+  };
 
   const handleCopySnippet = (index: number, text: string) => {
     navigator.clipboard.writeText(text);
@@ -844,6 +1029,14 @@ Section 8.2 Limitation of Liability.
                                     <AcademicCapIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'course' ? 'text-brand-accent' : ''}`} />
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Syllabus</span>
                                 </button>
+                                <button 
+                                    onClick={() => setActiveRefTab('history')}
+                                    className={`flex-1 flex flex-col items-center py-3 px-1 transition-all border-b-2 
+                                        ${activeRefTab === 'history' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
+                                >
+                                    <HistoryIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'history' ? 'text-brand-accent' : ''}`} />
+                                    <span className="text-[9px] font-mono uppercase tracking-tighter">History</span>
+                                </button>
                             </div>
 
                             {/* Tab Content */}
@@ -938,6 +1131,66 @@ Section 8.2 Limitation of Liability.
                                 )}
 
                                 {activeRefTab === 'course' && renderSyllabus()}
+
+                                {activeRefTab === 'history' && (
+                                    <div className="animate-fadeIn space-y-4">
+                                        <div className="flex justify-between items-center border-b border-brand-text-primary/30 pb-2">
+                                            <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">Snapshots ({snapshots.length})</span>
+                                            <Button size="xs" variant="primary" onClick={saveSnapshot} className="px-2 py-1 text-[9px] font-mono rounded-none uppercase tracking-wider">
+                                                [ Snapshot ]
+                                            </Button>
+                                        </div>
+                                        
+                                        {snapshots.length === 0 ? (
+                                            <p className="text-xs text-brand-text-secondary/60 italic leading-relaxed py-4 text-left">
+                                                No snapshots saved for this draft yet. Click the Snapshot button above or press Cmd+S (or use Command Palette) to capture the current draft state.
+                                            </p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {snapshots.map((snap) => (
+                                                    <div key={snap.id} className="bg-brand-bg-secondary border border-brand-text-primary/30 p-3 rounded-none flex flex-col space-y-2 text-left">
+                                                        <div className="flex justify-between items-start">
+                                                            <span className="text-[10px] font-mono text-brand-text-primary font-semibold">{snap.timestamp}</span>
+                                                            <span className="text-[9px] font-mono text-brand-text-secondary/60">({snap.text.length} chars)</span>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (window.confirm("Are you sure you want to restore this snapshot? This will replace your current draft content.")) {
+                                                                        setUserDraft(snap.text);
+                                                                    }
+                                                                }}
+                                                                className="text-[9px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase"
+                                                            >
+                                                                Restore
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedSnapshotForDiff(snap.id);
+                                                                    setIsDiffModalOpen(true);
+                                                                }}
+                                                                className="text-[9px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase"
+                                                            >
+                                                                Compare Diff
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    const key = `draft-snapshots-${currentTask?.id}`;
+                                                                    const updated = snapshots.filter(s => s.id !== snap.id);
+                                                                    setSnapshots(updated);
+                                                                    localStorage.setItem(key, JSON.stringify(updated));
+                                                                }}
+                                                                className="text-[9px] font-mono text-red-400 hover:text-red-300 transition-colors border border-red-500/20 px-2 py-1 uppercase ml-auto"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </>
                     )}
@@ -1096,6 +1349,15 @@ Section 8.2 Limitation of Liability.
             </>
         )}
       </div>
+
+      <Modal
+        isOpen={isDiffModalOpen}
+        onClose={() => setIsDiffModalOpen(false)}
+        title="Draft Version Diff Comparator"
+        size="xl"
+      >
+        {renderDiffViewer()}
+      </Modal>
     </div>
   );
 };

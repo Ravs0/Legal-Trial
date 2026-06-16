@@ -71,28 +71,40 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
     return '';
   }
 
-  const handleSpeak = async (text: string) => {
+  const handleSpeak = (text: string) => {
     try {
+      window.speechSynthesis.cancel(); // Abort active speaking
       const cleanText = text.replace(/\*\*|_/g, ''); // Strip markdown chars
-      const response = await fetch('/api/voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'tts',
-          text: cleanText.slice(0, 800), // Cap length
-          language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
-          gender: 'female',
-        }),
-      });
+      const utterance = new SpeechSynthesisUtterance(cleanText.slice(0, 800));
 
-      if (!response.ok) throw new Error('TTS failed');
-      const data = await response.json();
-      if (data.status === 'success' && data.audio) {
-        const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
-        await audio.play();
+      let pitch = 1.0;
+      let rate = 1.0;
+
+      // Map character voice settings
+      if (isJudge) {
+        if (judgePersonalityId === 'hr_khanna') { pitch = 0.85; rate = 0.95; }
+        else if (judgePersonalityId === 'vr_krishna_iyer') { pitch = 1.05; rate = 1.05; }
+        else if (judgePersonalityId === 'pn_bhagwati') { pitch = 0.9; rate = 0.9; }
+        else if (judgePersonalityId === 'dy_chandrachud') { pitch = 1.0; rate = 1.0; }
+        else if (judgePersonalityId === 'js_verma') { pitch = 0.8; rate = 0.95; }
+      } else if (isOpposingCounsel) {
+        pitch = 1.1;
+        rate = 1.05;
       }
+
+      utterance.pitch = pitch;
+      utterance.rate = rate;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferredLang = practiceMode === 'indian' ? 'en-IN' : 'en-US';
+      const voice = voices.find(v => v.lang.includes(preferredLang)) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      if (voice) {
+        utterance.voice = voice;
+      }
+
+      window.speechSynthesis.speak(utterance);
     } catch (err) {
-      console.error('Failed voice playback:', err);
+      console.error('Failed native speech synthesis:', err);
     }
   };
 

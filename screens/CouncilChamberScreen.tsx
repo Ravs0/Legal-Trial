@@ -593,25 +593,32 @@ export const CouncilChamberScreen: React.FC = () => {
 
   const activeHistory = chatHistories[activeTab] || [];
 
-  const handleSpeak = async (text: string) => {
+  const handleSpeak = (text: string) => {
     try {
-      const response = await fetch('/api/voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'tts',
-          text: text.slice(0, 800), // Cap length for fast TTS delivery
-          language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
-          gender: 'female',
-        }),
-      });
+      window.speechSynthesis.cancel();
+      const cleanText = text.replace(/\*\*|_/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText.slice(0, 800));
 
-      if (!response.ok) throw new Error('TTS call failed');
-      const data = await response.json();
-      if (data.status === 'success' && data.audio) {
-        const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
-        await audio.play();
+      let pitch = 1.0;
+      let rate = 1.0;
+
+      if (selectedPersona.id === 'leibowitz') { pitch = 0.8; rate = 0.95; }
+      else if (selectedPersona.id === 'richelieu') { pitch = 0.7; rate = 0.85; }
+      else if (selectedPersona.id === 'jethmalani') { pitch = 1.1; rate = 1.1; }
+      else if (selectedPersona.id === 'nariman') { pitch = 0.9; rate = 0.95; }
+      else if (selectedPersona.id === 'parfit') { pitch = 1.0; rate = 1.0; }
+
+      utterance.pitch = pitch;
+      utterance.rate = rate;
+
+      const voices = window.speechSynthesis.getVoices();
+      const preferredLang = practiceMode === 'indian' ? 'en-IN' : 'en-US';
+      const voice = voices.find(v => v.lang.includes(preferredLang)) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      if (voice) {
+        utterance.voice = voice;
       }
+
+      window.speechSynthesis.speak(utterance);
     } catch (err) {
       console.error('Failed speech synthesis:', err);
     }

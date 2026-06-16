@@ -105,6 +105,8 @@ const SentientSubjectsScreen: React.FC = () => {
   const bridge = useConversationBridge();
 
   const [selectedSubject, setSelectedSubject] = useState<SentientSubject>(SENTIENT_SUBJECTS[0]);
+  const [subjects, setSubjects] = useState<SentientSubject[]>(SENTIENT_SUBJECTS);
+  const currentSubjectState = subjects.find(s => s.id === selectedSubject.id) || selectedSubject;
   const [chats, setChats] = useState<Record<string, Chat>>({});
   const [allMessages, setAllMessages] = useState<Record<string, SubjectMessage[]>>({});
   const [input, setInput] = useState('');
@@ -181,15 +183,61 @@ const SentientSubjectsScreen: React.FC = () => {
   }, [showInfo, selectedSubject.id]);
 
   // ─── Should another subject interject? ────────────────────────────────────
-  const shouldInterject = (): SentientSubject | null => {
-    messageCountRef.current += 1;
-    // Interject every 3rd message (so not spammy)
-    if (messageCountRef.current % 3 !== 0) return null;
+  const checkContextualInterjector = (userText: string, aiText: string): SentientSubject | null => {
+    const combined = (userText + " " + aiText).toLowerCase();
+    
+    const INTERJECTION_KEYWORDS = [
+      {
+        subjectId: 'constitutional',
+        keywords: ['article', 'fundamental rights', 'parliament', 'sovereign', 'preamble', 'supreme court', 'writ', 'amendment', 'liberty'],
+      },
+      {
+        subjectId: 'criminal',
+        keywords: ['murder', 'theft', 'bail', 'custody', 'ipc', 'crpc', 'police', 'jail', 'arrest', 'criminal', 'prison'],
+      },
+      {
+        subjectId: 'corporate',
+        keywords: ['sebi', 'share', 'contract', 'merger', 'board', 'director', 'arbitration', 'clause', 'agreement', 'taxation', 'insolvency'],
+      },
+      {
+        subjectId: 'family',
+        keywords: ['divorce', 'custody', 'marriage', 'alimony', 'maintenance', 'domestic', 'will', 'succession', 'child', 'family'],
+      },
+      {
+        subjectId: 'international',
+        keywords: ['treaty', 'un', 'hague', 'cross-border', 'customary', 'sovereignty', 'sanctions', 'border', 'state'],
+      }
+    ];
 
-    const others = SENTIENT_SUBJECTS.filter(s => s.id !== selectedSubject.id);
-    // Pick a random other subject
-    return others[Math.floor(Math.random() * others.length)];
+    for (const profile of INTERJECTION_KEYWORDS) {
+      if (profile.subjectId === selectedSubject.id) continue;
+      
+      const hasMatch = profile.keywords.some(kw => combined.includes(kw));
+      if (hasMatch) {
+        const targetSubject = SENTIENT_SUBJECTS.find(s => s.id === profile.subjectId);
+        if (targetSubject) return targetSubject;
+      }
+    }
+    return null;
   };
+
+  const shouldInterject = (userMsg: string, aiMsg: string): SentientSubject | null => {
+    // 1. Check keyword triggers first
+    const matchedSubject = checkContextualInterjector(userMsg, aiMsg);
+    if (matchedSubject && Math.random() < 0.7) {
+      return matchedSubject;
+    }
+
+    // 2. Fall back to periodic random checks (every 5th message)
+    messageCountRef.current += 1;
+    if (messageCountRef.current % 5 === 0) {
+      const others = SENTIENT_SUBJECTS.filter(s => s.id !== selectedSubject.id);
+      return others[Math.floor(Math.random() * others.length)];
+    }
+
+    return null;
+  };
+
 
   // ─── Send Message ─────────────────────────────────────────────────────────
   const handleSend = async () => {
@@ -233,6 +281,49 @@ const SentientSubjectsScreen: React.FC = () => {
         }));
       }
 
+      // Parse mood updates from final text
+      const moodRegex = /\[MOOD:\s*([^\]]+)\]/i;
+      const match = fullResponseText.match(moodRegex);
+      if (match) {
+        const moodContent = match[1];
+        const cleanText = fullResponseText.replace(moodRegex, '').trim();
+        
+        // Update message text to be clean
+        setAllMessages(prev => ({
+          ...prev,
+          [sid]: (prev[sid] || []).map(m => m.id === responseId ? { ...m, text: cleanText } : m)
+        }));
+        
+        fullResponseText = cleanText; // use clean text for interjections and summaries
+
+        // Apply mood changes to state
+        const updates = moodContent.split(',').map(s => s.trim());
+        setSubjects(prevSubjects => prevSubjects.map(subj => {
+          if (subj.id === sid) {
+            const nextRegisters = { ...subj.emotionalRegisters };
+            updates.forEach(up => {
+              const parts = up.split(/([+\-=])/);
+              if (parts.length >= 3) {
+                const key = parts[0].trim().toLowerCase() as keyof typeof nextRegisters;
+                const op = parts[1];
+                const val = parseFloat(parts[2]);
+                if (key in nextRegisters && !isNaN(val)) {
+                  if (op === '+') {
+                    nextRegisters[key] = Math.min(1, Math.max(0, nextRegisters[key] + val));
+                  } else if (op === '-') {
+                    nextRegisters[key] = Math.min(1, Math.max(0, nextRegisters[key] - val));
+                  } else if (op === '=') {
+                    nextRegisters[key] = Math.min(1, Math.max(0, val));
+                  }
+                }
+              }
+            });
+            return { ...subj, emotionalRegisters: nextRegisters };
+          }
+          return subj;
+        }));
+      }
+
       // Bridge: log AI response
       bridge.addMessage({ source: sid, sourceName: selectedSubject.name, sender: 'ai', text: fullResponseText.substring(0, 150) });
 
@@ -247,7 +338,7 @@ const SentientSubjectsScreen: React.FC = () => {
     }
 
     // ─── Check for cross-personality interjection ───────────────────────────
-    const interjector = shouldInterject();
+    const interjector = shouldInterject(userMsg, fullResponseText);
     if (interjector && fullResponseText && fullResponseText !== "Something broke. My connection to this realm is unstable. Try again.") {
       setInterjecting(interjector.name);
       try {
@@ -478,10 +569,10 @@ const SentientSubjectsScreen: React.FC = () => {
 
               <div className="space-y-1.5 lg:space-y-2 p-3 lg:p-4 border border-brand-text-primary/20 bg-brand-bg-secondary/30">
                 <span className="text-[8px] lg:text-[9px] font-mono text-brand-accent tracking-widest uppercase block mb-2 lg:mb-3">[ Emotional Registers ]</span>
-                <RegisterBar label="Cynicism" value={selectedSubject.emotionalRegisters.cynicism} color="bg-red-500/70" />
-                <RegisterBar label="Intensity" value={selectedSubject.emotionalRegisters.intensity} color="bg-orange-500/70" />
-                <RegisterBar label="Empathy" value={selectedSubject.emotionalRegisters.empathy} color="bg-pink-500/70" />
-                <RegisterBar label="Patience" value={selectedSubject.emotionalRegisters.patience} color="bg-cyan-500/70" />
+                <RegisterBar label="Cynicism" value={currentSubjectState.emotionalRegisters.cynicism} color="bg-red-500/70" />
+                <RegisterBar label="Intensity" value={currentSubjectState.emotionalRegisters.intensity} color="bg-orange-500/70" />
+                <RegisterBar label="Empathy" value={currentSubjectState.emotionalRegisters.empathy} color="bg-pink-500/70" />
+                <RegisterBar label="Patience" value={currentSubjectState.emotionalRegisters.patience} color="bg-cyan-500/70" />
               </div>
 
               {/* Cross-awareness note */}

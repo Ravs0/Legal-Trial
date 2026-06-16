@@ -42,6 +42,15 @@ const PracticeArena: React.FC = () => {
   const [objectionExplanation, setObjectionExplanation] = useState('');
   const [isInlineObjectionActive, setIsInlineObjectionActive] = useState(false);
 
+  const [objectionWindowActive, setObjectionWindowActive] = useState(false);
+  const [objectionWindowSecondsLeft, setObjectionWindowSecondsLeft] = useState(4.0);
+  const [quickObjectionsCount, setQuickObjectionsCount] = useState(0);
+  const [runningScore, setRunningScore] = useState(100);
+
+  const lastUserMessageRef = useRef('');
+  const lastOcMessageRef = useRef('');
+
+
   // Voice recording states for STT
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [audioError, setAudioError] = useState<string | null>(null);
@@ -246,6 +255,84 @@ const PracticeArena: React.FC = () => {
     }
   }, [messages, isAiTyping]);
 
+  const triggerAutoJudgeResponse = useCallback(async () => {
+    if (sessionEnded || !isTimerRunning || !activeChatJudge || !currentSessionSettings) return;
+    setIsAiTyping('judge');
+    const contextForJudge = `Counsel (User) stated: "${lastUserMessageRef.current}"\n\nOpposing Counsel (${currentSessionSettings.opposingCounselPersonality.name} - ${currentSessionSettings.opposingCounselPersonality.specialty}) responded: "${lastOcMessageRef.current}"\n\nYour Honor, your critical examination and questions?`;
+    try {
+      await streamAiResponse(activeChatJudge, contextForJudge, 'judge');
+    } catch (e) {
+      console.error("Error triggerAutoJudgeResponse:", e);
+    } finally {
+      setIsAiTyping(false);
+      if (currentSessionRecordRef.current) {
+        setMessages(prevFinalMessages => {
+          if (currentSessionRecordRef.current) {
+            currentSessionRecordRef.current.transcript = prevFinalMessages;
+          }
+          return prevFinalMessages;
+        });
+      }
+    }
+  }, [sessionEnded, isTimerRunning, activeChatJudge, currentSessionSettings]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (objectionWindowActive) {
+      interval = setInterval(() => {
+        setObjectionWindowSecondsLeft(prev => {
+          if (prev <= 0.1) {
+            setObjectionWindowActive(false);
+            // Trigger the auto judge response since window expired!
+            triggerAutoJudgeResponse();
+            return 0;
+          }
+          return Number((prev - 0.1).toFixed(1));
+        });
+      }, 100);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [objectionWindowActive, triggerAutoJudgeResponse]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+
+      if (e.key.toLowerCase() === 'o') {
+        const lastMessage = messages[messages.length - 1];
+        const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
+        if (canObject && !isInlineObjectionActive) {
+          e.preventDefault();
+          setIsInlineObjectionActive(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [messages, isAiTyping, sessionEnded, isTimerRunning, isInlineObjectionActive]);
+
+  useEffect(() => {
+    const handlePaletteObjection = () => {
+      const lastMessage = messages[messages.length - 1];
+      const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
+      if (canObject && !isInlineObjectionActive) {
+        setIsInlineObjectionActive(true);
+      }
+    };
+
+    window.addEventListener('cmd-palette-raise-objection', handlePaletteObjection);
+    return () => window.removeEventListener('cmd-palette-raise-objection', handlePaletteObjection);
+  }, [messages, isAiTyping, sessionEnded, isTimerRunning, isInlineObjectionActive]);
+
+
   const streamAiResponse = async (
     chatInstance: Chat,
     textForAi: string,
@@ -296,6 +383,13 @@ const PracticeArena: React.FC = () => {
   const handleObjectionSubmit = async () => {
     if (isAiTyping || sessionEnded || !activeChatJudge || !currentSessionSettings || !isTimerRunning) return;
 
+    const isQuick = objectionWindowActive && objectionWindowSecondsLeft > 0;
+    if (isQuick) {
+      setQuickObjectionsCount(prev => prev + 1);
+      setRunningScore(prev => prev + 25); // Award +25 points for quick objection
+      setObjectionWindowActive(false);
+    }
+
     const groundsText = {
       relevance: 'Irrelevant Arguments',
       facts: 'Mischaracterization of Facts',
@@ -303,7 +397,7 @@ const PracticeArena: React.FC = () => {
       speculation: 'Speculation Without Evidence',
     }[objectionGrounds] || 'General Objection';
 
-    const userMessageText = `[OBJECTION] Grounds: ${groundsText}\nBasis: ${objectionExplanation.trim()}`;
+    const userMessageText = `[OBJECTION] Grounds: ${groundsText}\nBasis: ${objectionExplanation.trim()}${isQuick ? ' (Quick Objection Reflex - Speed Bonus Granted)' : ''}`;
     const userMessage: ChatMessage = {
       id: `user-objection-${Date.now()}`,
       sender: 'user',
@@ -333,7 +427,7 @@ const PracticeArena: React.FC = () => {
 
     try {
       setIsAiTyping('judge');
-      const contextForJudge = `Counsel (User) has RAISED AN OBJECTION during their submission.\nGrounds of Objection: ${groundsText}\nUser's Basis: "${savedExplanation}"\n\nOpposing Counsel (${currentSessionSettings.opposingCounselPersonality.name}) previously argued: "${ocStatementText}"\n\nAdjudicate this objection strictly in character as Justice ${currentSessionSettings.judgePersonality.name}. State clearly whether the objection is SUSTAINED or OVERRULED, explain your reasoning based on the Case Brief ("${currentSessionSettings.caseDetail.briefFacts}") and Relevant Law ("${currentSessionSettings.caseDetail.relevantArticlesSections}") in under 100 words, and instruct the counsels how to proceed.`;
+      const contextForJudge = `Counsel (User) has RAISED AN OBJECTION during their submission.\nGrounds of Objection: ${groundsText}\nUser's Basis: "${savedExplanation}"\n\nOpposing Counsel (${currentSessionSettings.opposingCounselPersonality.name}) previously argued: "${ocStatementText}"\n\nAdjudicate this objection strictly in character as Justice ${currentSessionSettings.judgePersonality.name}. State clearly whether the objection is SUSTAINED or OVERRULED, explain your reasoning based on the Case Brief ("${currentSessionSettings.caseDetail.briefFacts}") and Relevant Law ("${currentSessionSettings.caseDetail.relevantArticlesSections}") in under 100 words, and instruct the counsels how to proceed. ${isQuick ? "Note and praise counsel's excellent courtroom reflexes in objecting within the immediate timed objection window." : ''}`;
       
       await streamAiResponse(activeChatJudge, contextForJudge, 'judge');
     } catch (error) {
@@ -347,7 +441,16 @@ const PracticeArena: React.FC = () => {
   const handleSendMessage = async () => {
     if (!userInput.trim() || isAiTyping || !activeChatJudge || !activeChatOpposingCounsel || sessionEnded || !currentSessionSettings || !isTimerRunning) return;
 
+    // Reset objection window if active
+    if (objectionWindowActive) {
+      setObjectionWindowActive(false);
+    }
+
     const userMessageText = userInput.trim();
+    // Simple score tracking: award points for standard submission
+    setRunningScore(prev => prev + 10);
+    lastUserMessageRef.current = userMessageText;
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -371,17 +474,13 @@ const PracticeArena: React.FC = () => {
       ocResponseText = await streamAiResponse(activeChatOpposingCounsel, userMessageText, 'opposingCounsel');
       if (sessionEnded || !isTimerRunning) return;
 
-      // Introduce a delay before the judge responds
-      if (!sessionEnded && isTimerRunning) {
-        setIsAiTyping(false);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
+      lastOcMessageRef.current = ocResponseText;
 
-      if (sessionEnded || !isTimerRunning) return;
-
-      setIsAiTyping('judge');
-      const contextForJudge = `Counsel (User) stated: "${userMessageText}"\n\nOpposing Counsel (${currentSessionSettings.opposingCounselPersonality.name} - ${currentSessionSettings.opposingCounselPersonality.specialty}) responded: "${ocResponseText}"\n\nYour Honor, your critical examination and questions?`;
-      await streamAiResponse(activeChatJudge, contextForJudge, 'judge');
+      // Opposing Counsel response is completed!
+      // Trigger the 4-second timed objection window before the Judge response
+      setIsAiTyping(false);
+      setObjectionWindowActive(true);
+      setObjectionWindowSecondsLeft(4.0);
 
     } catch (error) {
       console.error("Error during AI interaction:", error);
@@ -400,18 +499,10 @@ const PracticeArena: React.FC = () => {
         return updated;
       });
       setGlobalError(errorText);
-    } finally {
       setIsAiTyping(false);
-      if (currentSessionRecordRef.current) {
-        setMessages(prevFinalMessages => {
-          if (currentSessionRecordRef.current) {
-            currentSessionRecordRef.current.transcript = prevFinalMessages;
-          }
-          return prevFinalMessages;
-        });
-      }
     }
   };
+
 
   const renderBenchCompanion = () => {
     if (!currentSessionSettings) return null;
@@ -435,6 +526,24 @@ const PracticeArena: React.FC = () => {
             <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2 border-t border-brand-text-primary/30">
               <p className="font-semibold text-brand-text-primary/95">Relevant Law / Precedents:</p>
               <p className="font-mono text-[10px] text-brand-accent/90 leading-relaxed">{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Real-time score details */}
+        <div className="space-y-3">
+          <h4 className="text-xs uppercase font-mono tracking-widest text-brand-accent border-b border-brand-text-primary/30 pb-1 flex items-center">
+            <svg className="h-4 w-4 mr-1.5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            Live Trial Standing
+          </h4>
+          <div className="bg-brand-bg-primary border border-brand-text-primary/30 rounded-none p-3.5 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[9px] font-mono text-brand-text-secondary uppercase">Court Score</p>
+              <p className="text-2xl font-mono text-brand-accent font-bold mt-1">{runningScore}</p>
+            </div>
+            <div>
+              <p className="text-[9px] font-mono text-brand-text-secondary uppercase">Quick Reflexes</p>
+              <p className="text-2xl font-mono text-brand-accent font-bold mt-1">{quickObjectionsCount}</p>
             </div>
           </div>
         </div>
@@ -587,6 +696,11 @@ const PracticeArena: React.FC = () => {
             <CourtIcon className="h-5 w-5" />
           </button>
           
+          <div className="text-right bg-brand-bg-secondary px-3.5 py-1.5 sm:px-5 sm:py-3 rounded-none border border-brand-text-primary/30 hidden sm:block">
+            <p className="text-xl sm:text-4xl font-mono tracking-tight text-brand-accent">{runningScore}</p>
+            <p className="text-[8px] sm:text-[10px] uppercase font-mono tracking-widest mt-0.5 sm:mt-1 text-brand-text-secondary/80">Court Score</p>
+          </div>
+
           <div className="text-right bg-brand-bg-secondary px-3.5 py-1.5 sm:px-5 sm:py-3 rounded-none border border-brand-text-primary/30">
             <p className={`text-xl sm:text-4xl font-mono tracking-tight ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : 'text-brand-accent'}`}>{formattedTime}</p>
             <p className="text-[8px] sm:text-[10px] uppercase font-mono tracking-widest mt-0.5 sm:mt-1 text-brand-text-secondary/80">{remainingSeconds <= 0 ? "Session Ended" : (isTimerRunning ? "Time Remaining" : "Timer Paused")}</p>
@@ -600,9 +714,40 @@ const PracticeArena: React.FC = () => {
         <div className="flex flex-col flex-grow h-full overflow-hidden relative">
           <div ref={chatContainerRef} className="flex-grow p-4 sm:p-6 space-y-2 overflow-y-auto custom-scrollbar">
             <div className="max-w-4xl mx-auto">
-              {messages.map(msg => (
-                <ChatMessageComponent key={msg.id} message={msg} judgePersonalityId={judgeId} opposingCounselPersonalityId={ocId} practiceMode={practiceMode} />
-              ))}
+              {messages.map((msg, index) => {
+                const isLastMessage = index === messages.length - 1;
+                const showObjectionTimer = isLastMessage && msg.sender === 'opposingCounsel' && objectionWindowActive;
+
+                return (
+                  <div key={msg.id} className="relative">
+                    <ChatMessageComponent message={msg} judgePersonalityId={judgeId} opposingCounselPersonalityId={ocId} practiceMode={practiceMode} />
+                    {showObjectionTimer && (
+                      <div className="max-w-[75%] ml-[3.5rem] sm:ml-[5.5rem] mb-6 -mt-3 animate-fadeIn text-left">
+                        <div className="bg-brand-bg-secondary border border-brand-accent/50 p-3 rounded-none flex flex-col space-y-2">
+                          <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider text-brand-accent">
+                            <span className="font-semibold flex items-center">
+                              <svg className="w-3.5 h-3.5 mr-1 text-brand-accent animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                              Objection Reflex Window
+                            </span>
+                            <span className="font-bold">{objectionWindowSecondsLeft}s remaining</span>
+                          </div>
+                          {/* Shrinking progress bar */}
+                          <div className="w-full bg-brand-bg-primary h-1.5 rounded-none overflow-hidden border border-brand-text-primary/20">
+                            <div 
+                              className="bg-brand-accent h-full transition-all duration-100 ease-linear"
+                              style={{ width: `${(objectionWindowSecondsLeft / 4.0) * 100}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between items-center text-[9px] font-mono text-brand-text-secondary/70">
+                            <span>Press [ O ] or click [ Raise Objection ] below</span>
+                            <span className="text-brand-accent font-semibold">[ SPEED BONUS +25 PTS ]</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               {isAiTyping && (
                 <div className="flex items-start mb-6 w-full animate-fadeInUp">
                   <div className={`flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mx-3 sm:mx-4`}>
