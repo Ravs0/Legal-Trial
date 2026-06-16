@@ -508,27 +508,27 @@ const PracticeArena: React.FC = () => {
   };
 
 
+  const lastMessage = messages[messages.length - 1];
+  const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
+
   const renderBenchCompanion = () => {
     if (!currentSessionSettings) return null;
 
-    const lastMessage = messages[messages.length - 1];
-    const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
-
     return (
-      <div className="space-y-6 text-brand-text-primary text-left">
+      <div className="space-y-6 text-zinc-300 text-left">
         {/* Active Case Brief Section */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/30 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
             <BriefcaseIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Active Case Brief
           </h4>
-          <div className="bg-brand-bg-primary border border-brand-text-primary/30 rounded-none p-3.5 space-y-2">
-            <h5 className="text-sm font-semibold text-brand-text-primary font-serif">{currentSessionSettings.caseDetail.title}</h5>
-            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
-              <p className="font-semibold text-brand-text-primary/95">Brief Facts:</p>
-              <p className="leading-relaxed">{currentSessionSettings.caseDetail.briefFacts}</p>
+          <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 space-y-3 shadow-sm">
+            <h5 className="text-sm font-semibold text-zinc-100 font-serif">{currentSessionSettings.caseDetail.title}</h5>
+            <div className="text-xs text-zinc-400 font-light space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
+              <p className="font-semibold text-zinc-300">Brief Facts:</p>
+              <p className="leading-relaxed font-light">{currentSessionSettings.caseDetail.briefFacts}</p>
             </div>
-            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2 border-t border-brand-text-primary/30">
-              <p className="font-semibold text-brand-text-primary/95">Relevant Law / Precedents:</p>
+            <div className="text-xs text-zinc-400 font-light space-y-1.5 pt-2.5 border-t border-zinc-900/60">
+              <p className="font-semibold text-zinc-300">Relevant Law / Precedents:</p>
               <p className={`font-mono text-[10px] ${catColors.text}/90 leading-relaxed`}>{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
             </div>
           </div>
@@ -536,17 +536,17 @@ const PracticeArena: React.FC = () => {
 
         {/* Real-time score details */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/30 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
             <svg className={`h-4 w-4 mr-1.5 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             Live Trial Standing
           </h4>
-          <div className="bg-brand-bg-primary border border-brand-text-primary/30 rounded-none p-3.5 grid grid-cols-2 gap-4">
+          <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 grid grid-cols-2 gap-4 shadow-sm">
             <div>
-              <p className="text-[9px] font-mono text-brand-text-secondary uppercase">Court Score</p>
+              <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">Court Score</p>
               <p className={`text-2xl font-mono ${catColors.text} font-bold mt-1`}>{runningScore}</p>
             </div>
             <div>
-              <p className="text-[9px] font-mono text-brand-text-secondary uppercase">Quick Reflexes</p>
+              <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">Quick Reflexes</p>
               <p className={`text-2xl font-mono ${catColors.text} font-bold mt-1`}>{quickObjectionsCount}</p>
             </div>
           </div>
@@ -554,28 +554,28 @@ const PracticeArena: React.FC = () => {
 
         {/* Bench Profile Section */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/30 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
             <CourtIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Strategic Bench Profile
           </h4>
-          <div className="bg-brand-bg-primary border border-brand-text-primary/30 rounded-none p-3.5 space-y-3">
+          <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 space-y-4 shadow-sm">
             {/* Judge info */}
             <div className="flex items-start space-x-3">
-              <div className={`h-8 w-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold`}>
+              <div className={`h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-850 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold text-xs`}>
                 J
               </div>
               <div className="space-y-0.5">
-                <p className="text-xs font-semibold text-brand-text-primary">{currentSessionSettings.judgePersonality.name}</p>
-                <p className="text-[10px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.judgePersonality.description}</p>
+                <p className="text-xs font-semibold text-zinc-200">{currentSessionSettings.judgePersonality.name}</p>
+                <p className="text-[10px] text-zinc-400 leading-relaxed font-light">{currentSessionSettings.judgePersonality.description}</p>
               </div>
             </div>
             {/* Counsel info */}
-            <div className="flex items-start space-x-3 pt-2.5 border-t border-brand-text-primary/30">
-              <div className={`h-8 w-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold`}>
+            <div className="flex items-start space-x-3 pt-3 border-t border-zinc-900/60">
+              <div className={`h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-850 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold text-xs`}>
                 OC
               </div>
               <div className="space-y-0.5">
-                <p className="text-xs font-semibold text-brand-text-primary">{currentSessionSettings.opposingCounselPersonality.name} (Opposing)</p>
-                <p className="text-[10px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.opposingCounselPersonality.specialty} — {currentSessionSettings.opposingCounselPersonality.description}</p>
+                <p className="text-xs font-semibold text-zinc-200">{currentSessionSettings.opposingCounselPersonality.name}</p>
+                <p className="text-[10px] text-zinc-400 leading-relaxed font-light">{currentSessionSettings.opposingCounselPersonality.specialty} — {currentSessionSettings.opposingCounselPersonality.description}</p>
               </div>
             </div>
           </div>
@@ -583,19 +583,19 @@ const PracticeArena: React.FC = () => {
 
         {/* Objections Toolkit Section */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/30 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
             <GavelIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Objections Toolkit
           </h4>
           
           {!canObject ? (
-            <div className="bg-brand-bg-primary border border-brand-text-primary/30 rounded-none p-4 text-center">
-              <p className="text-xs text-brand-text-secondary/60 italic leading-relaxed">
+            <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 text-center">
+              <p className="text-xs text-zinc-500 italic leading-relaxed font-light">
                 Objections are currently locked. You can raise a formal objection only when Opposing Counsel has completed a submission.
               </p>
             </div>
           ) : (
             <div className="space-y-4 animate-fadeIn">
-              <p className="text-xs text-brand-text-secondary font-light leading-relaxed">
+              <p className="text-xs text-zinc-400 font-light leading-relaxed">
                 Select grounds and enter a concise basis to object to the Opposing Counsel's statement.
               </p>
               
@@ -610,25 +610,25 @@ const PracticeArena: React.FC = () => {
                     key={g.value}
                     type="button"
                     onClick={() => setObjectionGrounds(g.value)}
-                    className={`p-2.5 rounded-none border text-left transition-all ${
+                    className={`p-2.5 rounded-lg border text-left transition-all ${
                       objectionGrounds === g.value
-                        ? `bg-brand-text-primary text-brand-bg-primary ${catColors.border} font-semibold`
-                        : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
+                        ? `bg-zinc-900 text-zinc-100 ${catColors.border} font-semibold`
+                        : 'bg-zinc-950/40 border-zinc-850 text-zinc-400 hover:border-zinc-750 hover:text-zinc-200'
                     }`}
                   >
                     <p className="text-[11px] font-bold tracking-wide uppercase">{g.label}</p>
-                    <p className="text-[9px] text-brand-text-secondary/70 truncate mt-0.5">{g.desc}</p>
+                    <p className="text-[9px] text-zinc-500 truncate mt-0.5">{g.desc}</p>
                   </button>
                 ))}
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-mono text-brand-text-secondary uppercase tracking-wider">Basis of Objection</label>
+                <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Basis of Objection</label>
                 <textarea
                   value={objectionExplanation}
                   onChange={(e) => setObjectionExplanation(e.target.value)}
                   placeholder="Explain why this statement is objectionable in one concise sentence..."
-                  className="w-full p-3 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-text-primary text-xs text-brand-text-primary placeholder-brand-text-secondary/40 font-light resize-none min-h-[70px]"
+                  className="w-full p-3 bg-zinc-900/30 border border-zinc-850 rounded-lg focus:outline-none focus:border-zinc-700 text-xs text-zinc-200 placeholder-zinc-650 resize-none min-h-[70px]"
                   rows={2}
                 />
               </div>
@@ -639,7 +639,7 @@ const PracticeArena: React.FC = () => {
                   setIsMobileDrawerOpen(false);
                 }}
                 disabled={!objectionExplanation.trim()}
-                className={`w-full py-2.5 text-xs tracking-wider uppercase font-bold text-brand-navy ${catColors.bg} ${catColors.bgHover} disabled:bg-brand-bg-secondary disabled:text-brand-text-secondary/50 rounded-none border ${catColors.border} transition-all flex items-center justify-center`}
+                className={`w-full py-2.5 rounded-lg text-xs tracking-wider uppercase font-semibold text-zinc-950 ${catColors.bg} hover:brightness-110 disabled:bg-zinc-900 disabled:text-zinc-600 border-none transition-all flex items-center justify-center`}
               >
                 Raise Formal Objection
               </button>
@@ -652,8 +652,8 @@ const PracticeArena: React.FC = () => {
 
   if (!currentSessionSettings || !practiceMode) {
     return (
-      <div className="flex justify-center items-center h-full bg-brand-bg-primary">
-        <LoadingSpinner text="Loading session setup..." spinnerColor={catColors.text} textColor="text-brand-text-secondary" />
+      <div className="flex justify-center items-center h-full bg-[#0a0a0a]">
+        <LoadingSpinner text="Loading session setup..." spinnerColor={catColors.text} textColor="text-zinc-500" />
       </div>
     );
   }
@@ -662,52 +662,53 @@ const PracticeArena: React.FC = () => {
   const ocId = currentSessionSettings.opposingCounselPersonality.id;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
+    <div className="flex flex-col h-[100dvh] bg-[#0a0a0a] text-zinc-150 overflow-hidden relative">
 
-      <div className="p-4 sm:p-6 bg-brand-bg-primary rounded-none border-b border-brand-text-primary/30 flex flex-row justify-between items-center sticky top-0 z-20 flex-shrink-0">
+      <div className="p-4 sm:p-6 bg-[#0f0f0f]/80 backdrop-blur-md border-b border-zinc-800/80 flex flex-row justify-between items-center sticky top-0 z-20 flex-shrink-0">
         <div className="text-left flex-grow max-w-3xl mr-2">
           <div className="flex items-center space-x-3 mb-1">
-            <span className="inline-block px-2 py-0.5 rounded-none text-[10px] font-mono border border-brand-text-primary/30 text-brand-text-primary bg-brand-bg-secondary uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
-            <span className="text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
+            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-mono border border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
+            <span className="text-[10px] font-mono text-zinc-550 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-shimmer truncate font-serif" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
-          <div className="flex flex-wrap items-center text-xs sm:text-sm text-brand-text-secondary mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-shimmer truncate font-serif text-zinc-100" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
+          <div className="flex flex-wrap items-center text-xs sm:text-sm text-zinc-400 mt-1">
             <span className="flex items-center mr-4"><GavelIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.judgePersonality.name}</span>
             <span className="flex items-center"><BriefcaseIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.opposingCounselPersonality.name}</span>
           </div>
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-          {/* End Early for Mobile */}
+          {/* End Early */}
           {!sessionEnded && isTimerRunning && (
             <button 
               onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
-              className="lg:hidden p-2 rounded-none border border-brand-error/40 bg-brand-bg-primary text-brand-error hover:bg-brand-error/10 transition-all flex items-center justify-center flex-shrink-0 font-bold"
+              className="p-2 sm:px-3 sm:py-1.5 rounded-lg border border-red-500/20 bg-zinc-950/40 hover:bg-red-950/20 text-red-400 hover:text-red-350 transition-all flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-wider"
               title="End Trial Early"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
+              <span className="hidden sm:inline">End Early</span>
             </button>
           )}
 
           {/* Bench Companion Toggle for Mobile */}
           <button 
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="lg:hidden p-2 rounded-none border border-brand-text-primary/30 bg-brand-bg-primary text-brand-text-primary hover:bg-brand-bg-secondary transition-all flex items-center justify-center"
+            className="lg:hidden p-2 rounded-lg border border-zinc-800/60 bg-zinc-900/40 text-zinc-350 hover:bg-zinc-800/60 transition-all flex items-center justify-center"
             title="Open Bench Companion"
           >
             <CourtIcon className="h-5 w-5" />
           </button>
           
-          <div className="text-right bg-brand-bg-secondary px-3.5 py-1.5 sm:px-5 sm:py-3 rounded-none border border-brand-text-primary/30 hidden sm:block">
-            <p className={`text-xl sm:text-4xl font-mono tracking-tight ${catColors.text}`}>{runningScore}</p>
-            <p className="text-[8px] sm:text-[10px] uppercase font-mono tracking-widest mt-0.5 sm:mt-1 text-brand-text-secondary/80">Court Score</p>
+          <div className="text-right bg-zinc-900/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-zinc-800/60 hidden sm:block">
+            <p className={`text-xl sm:text-2xl font-mono tracking-tight ${catColors.text} font-bold`}>{runningScore}</p>
+            <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-zinc-500">Court Score</p>
           </div>
 
-          <div className="text-right bg-brand-bg-secondary px-3.5 py-1.5 sm:px-5 sm:py-3 rounded-none border border-brand-text-primary/30">
-            <p className={`text-xl sm:text-4xl font-mono tracking-tight ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : catColors.text}`}>{formattedTime}</p>
-            <p className="text-[8px] sm:text-[10px] uppercase font-mono tracking-widest mt-0.5 sm:mt-1 text-brand-text-secondary/80">{remainingSeconds <= 0 ? "Session Ended" : (isTimerRunning ? "Time Remaining" : "Timer Paused")}</p>
+          <div className="text-right bg-zinc-900/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-zinc-800/60">
+            <p className={`text-xl sm:text-2xl font-mono tracking-tight font-bold ${remainingSeconds < 60 ? 'text-red-400 animate-pulse' : catColors.text}`}>{formattedTime}</p>
+            <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-zinc-500">{remainingSeconds <= 0 ? "Ended" : (isTimerRunning ? "Remaining" : "Paused")}</p>
           </div>
         </div>
       </div>
@@ -716,7 +717,7 @@ const PracticeArena: React.FC = () => {
       <div className="flex flex-grow overflow-hidden relative z-10 w-full">
         {/* Left Column: Chat Area */}
         <div className="flex flex-col flex-grow h-full overflow-hidden relative">
-          <div ref={chatContainerRef} className="flex-grow p-4 sm:p-6 space-y-2 overflow-y-auto custom-scrollbar">
+          <div ref={chatContainerRef} className="flex-grow p-4 sm:p-6 space-y-2 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
             <div className="max-w-4xl mx-auto">
               {messages.map((msg, index) => {
                 const isLastMessage = index === messages.length - 1;
@@ -724,10 +725,10 @@ const PracticeArena: React.FC = () => {
 
                 return (
                   <div key={msg.id} className="relative">
-                    <ChatMessageComponent message={msg} judgePersonalityId={judgeId} opposingCounselPersonalityId={ocId} practiceMode={practiceMode} />
+                    <ChatMessageComponent message={msg} judgePersonalityId={judgeId} opposingCounselPersonalityId={ocId} practiceMode={practiceMode} categoryId={categoryId || undefined} />
                     {showObjectionTimer && (
-                      <div className="max-w-[75%] ml-[3.5rem] sm:ml-[5.5rem] mb-6 -mt-3 animate-fadeIn text-left">
-                        <div className={`bg-brand-bg-secondary border border-t-2 ${catColors.border}/50 p-3 rounded-none flex flex-col space-y-2`}>
+                      <div className="max-w-[85%] ml-[3.5rem] sm:ml-[5.5rem] mb-6 -mt-3 animate-fadeIn text-left">
+                        <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 flex flex-col space-y-2 shadow-sm">
                           <div className={`flex justify-between items-center text-[10px] font-mono uppercase tracking-wider ${catColors.text}`}>
                             <span className="font-semibold flex items-center">
                               <svg className={`w-3.5 h-3.5 mr-1 ${catColors.text} animate-pulse`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -736,14 +737,14 @@ const PracticeArena: React.FC = () => {
                             <span className="font-bold">{objectionWindowSecondsLeft}s remaining</span>
                           </div>
                           {/* Shrinking progress bar */}
-                          <div className="w-full bg-brand-bg-primary h-1.5 rounded-none overflow-hidden border border-brand-text-primary/20">
+                          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800/40">
                             <div 
-                              className={`${catColors.bg} h-full transition-all duration-100 ease-linear`}
+                              className={`${catColors.bg} h-full transition-all duration-100 ease-linear rounded-full`}
                               style={{ width: `${(objectionWindowSecondsLeft / 4.0) * 100}%` }}
                             ></div>
                           </div>
-                          <div className="flex justify-between items-center text-[9px] font-mono text-brand-text-secondary/70">
-                            <span>Press [ O ] or click [ Raise Objection ] below</span>
+                          <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500">
+                            <span>Press [ O ] or click Objection below</span>
                             <span className={`${catColors.text} font-semibold`}>[ SPEED BONUS +25 PTS ]</span>
                           </div>
                         </div>
@@ -753,28 +754,42 @@ const PracticeArena: React.FC = () => {
                 );
               })}
               {isAiTyping && (
-                <div className="flex items-start mb-6 w-full animate-fadeInUp">
-                  <div className={`flex-shrink-0 h-10 w-10 sm:h-12 sm:w-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mx-3 sm:mx-4`}>
-                    {isAiTyping === 'judge' && <CourtIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${catColors.text}`} />}
-                    {isAiTyping === 'opposingCounsel' && <BriefcaseIcon className={`h-5 w-5 sm:h-6 sm:w-6 ${catColors.text}`} />}
+                <div className="flex items-start mb-6 px-4 py-3 w-full animate-fadeInUp">
+                  <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-zinc-900 border border-zinc-800/60 flex items-center justify-center mx-2 sm:mx-3">
+                    {isAiTyping === 'judge' ? (
+                      <CourtIcon className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${catColors.text}`} />
+                    ) : (
+                      <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-zinc-450" />
+                    )}
                   </div>
-                  <div className="bg-brand-bg-secondary text-brand-text-primary rounded-none p-4 sm:p-5 border border-brand-text-primary/30 flex items-center space-x-2">
-                    <span className="text-sm font-light italic opacity-80">{isAiTyping === 'judge' ? "The Court is considering your argument" : "Opposing Counsel is formulating a response"}</span>
-                    <span className="flex space-x-1">
-                      <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></span>
-                      <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></span>
-                      <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></span>
-                    </span>
+                  <div className="flex flex-col flex-grow items-start max-w-[calc(100%-3rem)] pl-1">
+                    <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                      <span className="font-bold text-zinc-350">
+                        {isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel'}
+                      </span>
+                      <span>✦</span>
+                      <span className="text-zinc-650">Typing</span>
+                    </div>
+                    <div className="flex items-center space-x-2.5 py-1">
+                      <span className="text-xs sm:text-sm font-light text-zinc-455 italic">
+                        {isAiTyping === 'judge' ? "The Court is considering your argument" : "Opposing Counsel is formulating a response"}
+                      </span>
+                      <span className="flex space-x-1 items-center h-2.5">
+                        <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></span>
+                        <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></span>
+                        <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
               {sessionEnded && !isTimerRunning && (
-                <div className="text-center p-8 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none my-8 mx-auto max-w-lg">
-                  <div className="w-16 h-16 bg-brand-bg-primary rounded-none flex items-center justify-center mx-auto mb-4 border border-brand-text-primary/30">
-                    <GavelIcon className={`w-8 h-8 ${catColors.text}`} />
+                <div className="text-center p-8 bg-zinc-950/40 border border-zinc-800/80 rounded-xl my-8 mx-auto max-w-lg shadow-sm">
+                  <div className="w-14 h-14 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800/60">
+                    <GavelIcon className={`w-6 h-6 ${catColors.text}`} />
                   </div>
-                  <p className="text-2xl font-serif font-semibold text-shimmer mb-6">Session Concluded</p>
-                  <Button onClick={() => handleSessionEnd(true, !currentSessionRecordRef.current?.performance)} size="lg" variant="primary" className="w-full text-lg">
+                  <p className="text-2xl font-serif font-semibold text-zinc-100 mb-6">Session Concluded</p>
+                  <Button onClick={() => handleSessionEnd(true, !currentSessionRecordRef.current?.performance)} size="lg" variant="primary" className="w-full text-lg rounded-lg">
                     {currentSessionRecordRef.current?.performance ? 'View Detailed Analysis' : 'Analyze Performance'}
                   </Button>
                 </div>
@@ -783,132 +798,37 @@ const PracticeArena: React.FC = () => {
           </div>
           {/* User Input Area */}
           {!sessionEnded && (
-            <div className="p-3 sm:p-6 bg-brand-bg-primary border-t border-brand-text-primary/30 z-20 relative flex-shrink-0">
+            <div className="p-3 sm:p-6 bg-[#0a0a0a] border-t border-zinc-900/60 z-20 relative flex-shrink-0">
               <div className="max-w-4xl mx-auto">
                 {audioError && (
-                  <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[11px] rounded-none text-left animate-fadeIn">
+                  <div className="p-2.5 mb-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] rounded-lg text-left animate-fadeIn">
                     [ Error ] {audioError}
                   </div>
                 )}
 
-                {/* Mobile Viewport Composer (Sleek Messaging Bar) */}
-                <div className="flex sm:hidden flex-col w-full">
-                  {(() => {
-                    const lastMessage = messages[messages.length - 1];
-                    const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
-                    return canObject && !isInlineObjectionActive ? (
-                      <div className="flex justify-center mb-2 animate-fadeInUp">
-                        <button
-                          type="button"
-                          onClick={() => setIsInlineObjectionActive(true)}
-                          className={`px-4 py-1.5 rounded-none border ${catColors.border}/50 bg-brand-bg-secondary ${catColors.text} text-[10px] font-bold font-mono uppercase tracking-widest hover:${catColors.bg} hover:text-brand-navy transition-all flex items-center gap-1`}
-                        >
-                          <span>[ Raise Objection ]</span>
-                          <span className={`text-[9px] ${catColors.bg} text-brand-navy px-1 rounded-none font-mono font-bold ml-1`}>Object!</span>
-                        </button>
-                      </div>
-                    ) : null;
-                  })()}
-
-                  {isInlineObjectionActive && (
-                    <div className={`flex flex-col space-y-2 p-2 bg-brand-bg-secondary border ${catColors.border}/30 rounded-none mb-2.5 text-left animate-fadeIn`}>
-                      <div className="flex items-center justify-between border-b border-brand-text-primary/10 pb-1">
-                        <span className={`text-[9px] font-mono font-bold ${catColors.text} uppercase tracking-wider`}>Objection Grounds</span>
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            setIsInlineObjectionActive(false);
-                            setObjectionExplanation('');
-                          }}
-                          className={`text-[9px] font-mono text-brand-text-secondary hover:${catColors.text} uppercase`}
-                        >
-                          [ Cancel ]
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5 select-none">
-                        {[
-                          { value: 'relevance', label: 'Relevance' },
-                          { value: 'facts', label: 'Facts' },
-                          { value: 'law', label: 'Law' },
-                          { value: 'speculation', label: 'Speculation' },
-                        ].map(g => (
-                          <button
-                            key={g.value}
-                            type="button"
-                            onClick={() => setObjectionGrounds(g.value)}
-                            className={`p-1.5 rounded-none border text-[10px] font-mono transition-all text-center
-                              ${objectionGrounds === g.value
-                                ? `${catColors.bgMuted} ${catColors.border} text-brand-text-primary font-bold`
-                                : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary'
-                              }`}
-                          >
-                            {g.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2.5 w-full">
-                    {/* Compact Microphone Record Icon */}
+                {/* Objection prompt pill */}
+                {canObject && !isInlineObjectionActive && (
+                  <div className="flex justify-center mb-3 animate-fadeInUp">
                     <button
                       type="button"
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
-                      className={`w-10 h-10 flex-shrink-0 rounded-none border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
-                        ${isRecording
-                          ? 'bg-brand-error/20 border-brand-error text-brand-error animate-pulse'
-                          : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary hover:bg-brand-bg-primary'
-                        }`}
-                      title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
+                      onClick={() => setIsInlineObjectionActive(true)}
+                      className={`px-4 py-2 rounded-full border border-zinc-800/80 bg-zinc-950/60 hover:${catColors.bg} hover:text-zinc-950 hover:border-transparent ${catColors.text} text-[10px] font-bold font-mono uppercase tracking-widest transition-all duration-300 flex items-center gap-2 shadow-sm`}
                     >
-                      {isRecording ? (
-                        <span className="w-2.5 h-2.5 bg-brand-error rounded-none animate-ping"></span>
-                      ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
-                      )}
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>Objection! Raise Objection</span>
+                      <span className="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded text-[8px] font-mono">Press [ O ]</span>
                     </button>
-
-                    {/* Unified Composer Container */}
-                    <div className="relative flex-grow flex items-center bg-brand-bg-secondary rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-text-primary transition-all">
-                      <textarea
-                        value={isInlineObjectionActive ? objectionExplanation : userInput}
-                        onChange={(e) => isInlineObjectionActive ? setObjectionExplanation(e.target.value) : setUserInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            isInlineObjectionActive ? handleObjectionSubmit() : handleSendMessage();
-                          }
-                        }}
-                        placeholder={isInlineObjectionActive ? "Explain objection basis..." : "Address the Court..."}
-                        className="w-full pl-4 pr-10 py-2.5 bg-transparent text-brand-text-primary outline-none resize-none min-h-[42px] max-h-[120px] placeholder-brand-text-secondary/30 font-light text-xs sm:text-sm custom-scrollbar"
-                        rows={1}
-                        disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
-                      />
-                      
-                      {/* Nested Send Icon Button */}
-                      <button
-                        type="button"
-                        onClick={isInlineObjectionActive ? handleObjectionSubmit : handleSendMessage}
-                        disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
-                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-none ${catColors.bg} ${catColors.bgHover} disabled:bg-brand-bg-secondary text-brand-navy disabled:text-brand-text-secondary/30 transition-all flex items-center justify-center`}
-                        title={isInlineObjectionActive ? "Submit Objection" : "Send message"}
-                      >
-                        <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                        </svg>
-                      </button>
-                    </div>
                   </div>
-                </div>
+                )}
 
-
-                {/* Desktop Viewport Composer (Full Panel Layout) */}
+                {/* Objection formulation panel */}
                 {isInlineObjectionActive && (
-                  <div className={`hidden sm:flex flex-col space-y-3 p-4.5 bg-brand-bg-secondary border ${catColors.border}/30 rounded-none mb-4 text-left animate-fadeIn`}>
-                    <div className="flex items-center justify-between border-b border-brand-text-primary/10 pb-2">
-                      <span className={`text-xs font-mono font-bold ${catColors.text} tracking-wider uppercase flex items-center`}>
-                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                  <div className="flex flex-col space-y-2.5 p-3.5 bg-zinc-950/40 border border-zinc-800/80 rounded-xl mb-3 text-left animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-mono font-bold ${catColors.text} uppercase tracking-wider flex items-center gap-1.5`}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                         Drafting Formal Objection
                       </span>
                       <button 
@@ -917,108 +837,94 @@ const PracticeArena: React.FC = () => {
                           setIsInlineObjectionActive(false);
                           setObjectionExplanation('');
                         }}
-                        className={`text-[10px] font-mono uppercase text-brand-text-secondary hover:${catColors.text} transition-colors`}
+                        className="text-[10px] font-mono uppercase text-zinc-500 hover:text-zinc-350 transition-colors"
                       >
                         [ Cancel ]
                       </button>
                     </div>
-                    
-                    <div className="flex flex-wrap gap-2.5 select-none">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
-                        { value: 'relevance', label: 'Relevance', desc: 'Irrelevant arguments' },
-                        { value: 'facts', label: 'Facts', desc: 'Mischaracterizing facts' },
-                        { value: 'law', label: 'Law', desc: 'Misapplying precedent' },
-                        { value: 'speculation', label: 'Speculation', desc: 'Speculative assertions' },
+                        { value: 'relevance', label: 'Relevance', desc: 'Irrelevant' },
+                        { value: 'facts', label: 'Facts', desc: 'Mischaracterizing' },
+                        { value: 'law', label: 'Law', desc: 'Misapplying' },
+                        { value: 'speculation', label: 'Speculation', desc: 'Speculative' },
                       ].map(g => (
                         <button
                           key={g.value}
                           type="button"
                           onClick={() => setObjectionGrounds(g.value)}
-                          className={`px-3.5 py-2 rounded-none border text-xs font-mono transition-all text-left flex flex-col min-w-[130px]
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-all text-center flex flex-col items-center justify-center
                             ${objectionGrounds === g.value
-                              ? `${catColors.bgMuted} ${catColors.border} text-brand-text-primary font-bold`
-                              : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
+                              ? `${catColors.bgMuted} ${catColors.border} text-zinc-150 font-semibold`
+                              : 'bg-zinc-900/30 border-zinc-800/60 text-zinc-400 hover:border-zinc-750 hover:text-zinc-200'
                             }`}
                         >
-                          <span className="font-bold">{g.label}</span>
-                          <span className="text-[8px] opacity-75 truncate mt-0.5">{g.desc}</span>
+                          <span className="font-semibold text-[11px] sm:text-xs">{g.label}</span>
+                          <span className="text-[8px] opacity-60 hidden sm:inline">{g.desc}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 )}
 
-                <div className="hidden sm:flex flex-col sm:flex-row items-stretch sm:items-end space-y-3 sm:space-y-0 sm:space-x-4">
-                  <div className="relative flex-grow flex items-end gap-3">
-                    <button
-                      type="button"
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
-                      className={`w-12 h-12 flex-shrink-0 rounded-none border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
-                        ${isRecording
-                          ? 'bg-brand-error/20 border-brand-error text-brand-error animate-pulse'
-                          : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary hover:bg-brand-bg-primary'
-                        }`}
-                      title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
-                    >
-                      {isRecording ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
-                      )}
-                    </button>
-                    <div className="relative flex-grow bg-transparent">
-                      <textarea
-                        value={isInlineObjectionActive ? objectionExplanation : userInput}
-                        onChange={(e) => isInlineObjectionActive ? setObjectionExplanation(e.target.value) : setUserInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            isInlineObjectionActive ? handleObjectionSubmit() : handleSendMessage();
-                          }
-                        }}
-                        placeholder={isInlineObjectionActive ? "Explain objection basis... (e.g. Opposing Counsel's assertion has no basis in the evidence record)" : "Address the Court... (Shift+Enter for new line)"}
-                        className="w-full p-3 pl-4 pr-12 bg-brand-bg-secondary text-brand-text-primary rounded-none border border-brand-text-primary/30 focus:ring-1 focus:ring-brand-text-primary focus:outline-none resize-none min-h-[50px] max-h-[110px] placeholder-brand-text-secondary/50 font-light text-xs sm:text-sm custom-scrollbar transition-all group"
-                        rows={2}
-                        disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
-                      />
-                      <div className="absolute top-2 right-2 p-1 opacity-40">
-                        <span className="text-[8px] font-mono tracking-widest uppercase">{isInlineObjectionActive ? "Objection" : "Drafting"}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-row w-full sm:w-auto sm:flex-col space-x-2.5 sm:space-x-0 sm:space-y-3 items-stretch justify-end">
-                    <button
-                      onClick={isInlineObjectionActive ? handleObjectionSubmit : handleSendMessage}
-                      disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
-                      className={`flex-grow sm:flex-grow-0 py-3.5 sm:py-4 px-6 sm:px-8 text-base sm:text-lg font-semibold ${catColors.bg} ${catColors.bgHover} text-brand-navy disabled:bg-brand-bg-secondary disabled:text-brand-text-secondary/50 rounded-none border ${catColors.border} transition-all flex items-center justify-center font-bold`}
-                    >
-                      {isInlineObjectionActive ? "Object" : "Send"}
-                    </button>
-                    {(() => {
-                      const lastMessage = messages[messages.length - 1];
-                      const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
-                      return canObject && !isInlineObjectionActive ? (
-                        <button
-                          onClick={() => {
-                            setIsInlineObjectionActive(true);
-                          }}
-                          className={`flex-grow sm:flex-grow-0 py-3.5 px-4 text-xs tracking-wider uppercase border ${catColors.border}/50 ${catColors.text} bg-transparent ${catColors.bgHoverMuted} focus:ring-brand-text-primary rounded-none font-bold transition-all`}
-                        >
-                          Objection!
-                        </button>
-                      ) : null;
-                    })()}
-                    <button
-                      onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
-                      className="py-3 px-4 text-xs tracking-wider uppercase border border-brand-error/50 text-brand-error bg-transparent hover:bg-brand-error/10 focus:ring-brand-error rounded-none flex-shrink-0 font-bold transition-all"
-                      disabled={sessionEnded || !isTimerRunning}
-                    >
-                      End Early
-                    </button>
-                  </div>
+                {/* Sleek Input Composer Capsule */}
+                <div className="relative flex items-end gap-2.5 max-w-3xl mx-auto rounded-xl border border-zinc-800/80 bg-[#151515] focus-within:border-zinc-750 transition-all px-3 py-2 sm:py-2.5 shadow-sm shadow-black/20">
+                  {/* Microphone Record Button */}
+                  <button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
+                    className={`w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg flex items-center justify-center transition-all focus:outline-none disabled:opacity-40
+                      ${isRecording
+                        ? 'bg-red-500/20 border border-red-500/30 text-red-400 animate-pulse'
+                        : 'bg-zinc-900 border border-zinc-800/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                      }`}
+                    title={isRecording ? 'Stop Recording' : 'Speak to Transcribe'}
+                  >
+                    {isRecording ? (
+                      <span className="w-2.5 h-2.5 bg-red-400 rounded-sm animate-ping"></span>
+                    ) : (
+                      <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/>
+                      </svg>
+                    )}
+                  </button>
+
+                  {/* Textarea */}
+                  <textarea
+                    value={isInlineObjectionActive ? objectionExplanation : userInput}
+                    onChange={(e) => isInlineObjectionActive ? setObjectionExplanation(e.target.value) : setUserInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        isInlineObjectionActive ? handleObjectionSubmit() : handleSendMessage();
+                      }
+                    }}
+                    placeholder={isInlineObjectionActive ? "Explain objection basis..." : "Address the Court..."}
+                    className="flex-grow bg-transparent text-zinc-100 placeholder-zinc-500 text-xs sm:text-sm resize-none focus:outline-none min-h-[36px] max-h-[140px] py-2 custom-scrollbar font-light"
+                    rows={1}
+                    disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
+                  />
+
+                  {/* Send Button */}
+                  <button
+                    type="button"
+                    onClick={isInlineObjectionActive ? handleObjectionSubmit : handleSendMessage}
+                    disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
+                    className={`w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-full flex items-center justify-center transition-all focus:outline-none
+                      ${(isInlineObjectionActive ? objectionExplanation.trim() : userInput.trim()) && !isAiTyping && isTimerRunning
+                        ? `${catColors.bg} text-zinc-950 hover:brightness-110`
+                        : 'bg-zinc-900 text-zinc-650 border border-zinc-800/60 cursor-not-allowed'
+                      }`}
+                    title={isInlineObjectionActive ? "Submit Objection" : "Send Statement"}
+                  >
+                    <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
                 </div>
-                <p className="text-center mt-3 text-[10px] font-mono text-brand-text-secondary/40 tracking-widest uppercase hidden sm:block">
+                
+                <p className="text-center mt-3 text-[10px] font-mono text-zinc-650 tracking-widest uppercase hidden sm:block select-none">
                   Present your arguments clearly and concisely. The Court is listening.
                 </p>
               </div>
@@ -1027,7 +933,7 @@ const PracticeArena: React.FC = () => {
         </div>
 
         {/* Right Column: Bench Companion (Desktop) */}
-        <div className="lg:w-[380px] xl:w-[420px] w-full lg:flex hidden flex-col border-l border-brand-text-primary/30 bg-brand-bg-primary overflow-y-auto custom-scrollbar p-6 space-y-6 flex-shrink-0 h-full relative z-20">
+        <div className="lg:w-[380px] xl:w-[420px] w-full lg:flex hidden flex-col border-l border-zinc-900/60 bg-[#0a0a0a] overflow-y-auto custom-scrollbar p-6 space-y-6 flex-shrink-0 h-full relative z-20">
           {renderBenchCompanion()}
         </div>
       </div>
@@ -1035,16 +941,16 @@ const PracticeArena: React.FC = () => {
       {/* Mobile Drawer Backdrop */}
       {isMobileDrawerOpen && (
         <div 
-          className="lg:hidden fixed inset-0 bg-[#121212]/80 z-40 transition-opacity duration-300"
+          className="lg:hidden fixed inset-0 bg-[#000000]/80 z-40 transition-opacity duration-300"
           onClick={() => setIsMobileDrawerOpen(false)}
         />
       )}
       
       {/* Mobile Drawer Content */}
-      <div className={`lg:hidden fixed bottom-0 left-0 right-0 max-h-[85vh] bg-brand-bg-primary border-t-2 ${catColors.border} rounded-none z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar p-6 space-y-6 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-        <div className="flex justify-between items-center pb-2 border-b border-brand-text-primary/30">
+      <div className={`lg:hidden fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#0d0d0d] border-t border-zinc-800/80 rounded-t-xl z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar p-6 space-y-6 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
           <h3 className={`text-lg font-bold font-serif ${catColors.text} flex items-center`}><CourtIcon className={`h-5 w-5 mr-2 ${catColors.text}`} /> Bench Companion</h3>
-          <button onClick={() => setIsMobileDrawerOpen(false)} className={`text-brand-text-secondary hover:${catColors.text} text-sm font-mono p-1`}>Close</button>
+          <button onClick={() => setIsMobileDrawerOpen(false)} className="text-zinc-500 hover:text-zinc-350 text-sm font-mono p-1">Close</button>
         </div>
         {renderBenchCompanion()}
       </div>

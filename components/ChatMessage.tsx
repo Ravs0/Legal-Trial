@@ -1,47 +1,52 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { ChatMessage as ChatMessageType, JudgePersonalityId, OpposingCounselPersonalityId } from '../types';
 import { JUDGE_PERSONALITIES, OPPOSING_COUNSEL_PERSONALITIES, INTERNATIONAL_JUDGE_PERSONALITIES, INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES } from '../constants';
 import { UserIcon } from './icons/UserIcon';
 import { CourtIcon } from './icons/CourtIcon';
 import { BriefcaseIcon } from './icons/BriefcaseIcon';
+import { getCategoryColorClasses } from '../services/colorUtils';
 
 interface ChatMessageProps {
   message: ChatMessageType;
   judgePersonalityId?: JudgePersonalityId;
   opposingCounselPersonalityId?: OpposingCounselPersonalityId;
   practiceMode?: 'indian' | 'international';
+  categoryId?: string;
 }
 
-export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonalityId, opposingCounselPersonalityId, practiceMode }) => {
+export const ChatMessage: React.FC<ChatMessageProps> = ({ 
+  message, 
+  judgePersonalityId, 
+  opposingCounselPersonalityId, 
+  practiceMode,
+  categoryId
+}) => {
+  const [copied, setCopied] = useState(false);
   const isUser = message.sender === 'user';
   const isJudge = message.sender === 'judge';
   const isOpposingCounsel = message.sender === 'opposingCounsel';
 
+  const catColors = categoryId ? getCategoryColorClasses(categoryId) : {
+    text: 'text-brand-concrete',
+    bg: 'bg-brand-concrete',
+    border: 'border-brand-concrete',
+    bgMuted: 'bg-brand-concrete/10',
+    textMuted: 'text-brand-concrete/80',
+  };
+
   const alignment = isUser ? 'items-end' : 'items-start';
 
-  // Luxury Dark Mode Styles
-  let bubbleColor = 'bg-brand-bg-primary text-brand-text-primary border border-brand-text-primary/30';
-  let avatarIconColor = 'text-brand-accent';
-  let avatarBgColor = 'bg-brand-bg-secondary border border-brand-text-primary/30';
-
-  if (isUser) {
-    bubbleColor = 'bg-brand-accent text-brand-accent-text border border-brand-accent/55';
-    avatarIconColor = 'text-brand-accent-text';
-    avatarBgColor = 'bg-brand-accent border-transparent';
-  } else if (isJudge) {
-    bubbleColor = 'bg-brand-bg-secondary text-brand-text-primary border border-brand-text-primary/30';
-    avatarBgColor = 'bg-brand-bg-secondary border border-brand-text-primary/30';
-  }
-
-  const textAlign = isUser ? 'text-right' : 'text-left';
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const formatText = (text: string): React.ReactNode => {
     const parts = text.split(/(\*\*.*?\*\*|_.*?_)/g);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        // Bold text should stand out slightly more
-        return <strong key={index} className={isUser ? "text-brand-navy font-bold" : "text-brand-accent font-semibold"}>{part.slice(2, -2)}</strong>;
+        return <strong key={index} className={`${isUser ? 'text-brand-accent' : catColors.text} font-semibold`}>{part.slice(2, -2)}</strong>;
       }
       if (part.startsWith('_') && part.endsWith('_')) {
         return <em key={index} className="font-serif italic opacity-90">{part.slice(1, -1)}</em>;
@@ -69,7 +74,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
       return oc ? `${oc.name} (${oc.specialty})` : 'Opposing Counsel';
     }
     return '';
-  }
+  };
 
   const handleSpeak = (text: string) => {
     try {
@@ -108,38 +113,66 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, judgePersonal
     }
   };
 
-
   return (
-    <div className={`flex flex-col ${alignment} mb-4 sm:mb-6 animate-fadeInUp w-full`}>
-      <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end max-w-full sm:max-w-[85%] lg:max-w-[75%]`}>
-        <div className={`flex-shrink-0 h-8 w-8 sm:h-12 sm:w-12 rounded-none flex items-center justify-center mx-2.5 sm:mx-4 ${avatarBgColor}`}>
-          {isUser && <UserIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
-          {isJudge && <CourtIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
-          {isOpposingCounsel && <BriefcaseIcon className={`h-4.5 w-4.5 sm:h-6 sm:w-6 ${avatarIconColor}`} />}
+    <div className={`group relative flex flex-col ${alignment} mb-6 px-4 py-3 rounded-lg hover:bg-zinc-900/20 transition-all duration-300 ease-out animate-fadeInUp w-full`}>
+      {/* Floating actions menu (revealed on hover) */}
+      {!isUser && (
+        <div className="absolute right-4 top-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center space-x-2 bg-zinc-950/80 border border-zinc-800/80 px-2 py-1 rounded-md shadow-sm z-10 text-[10px] font-mono">
+          <button
+            onClick={() => handleSpeak(message.text)}
+            className={`${catColors.text} hover:opacity-85 transition-opacity font-semibold`}
+            title="Speak this statement"
+          >
+            Listen
+          </button>
+          <span className="text-zinc-800">|</span>
+          <button
+            onClick={handleCopy}
+            className="text-zinc-400 hover:text-zinc-200 transition-colors font-semibold"
+            title="Copy message to clipboard"
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+      )}
+
+      <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-start w-full max-w-4xl mx-auto`}>
+        {/* Sleek Rounded Avatar */}
+        <div className={`flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center mx-2 sm:mx-3 ${
+          isUser 
+            ? 'bg-zinc-800/45 border border-zinc-750/30' 
+            : isJudge 
+              ? 'bg-zinc-900 border border-zinc-800/60' 
+              : 'bg-zinc-900 border border-zinc-800/60'
+        }`}>
+          {isUser && <UserIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-zinc-400" />}
+          {isJudge && <CourtIcon className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${catColors.text}`} />}
+          {isOpposingCounsel && <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-zinc-400" />}
         </div>
 
-        <div className="flex flex-col max-w-[calc(100%-3rem)] sm:max-w-[calc(100%-5rem)]">
-          <p className={`text-[9px] sm:text-xs font-mono uppercase tracking-widest text-brand-text-secondary/80 mb-1 ${isUser ? 'mr-1 text-right' : 'ml-1 text-left'}`}>
-            <span className={isUser ? 'text-brand-accent/80 font-semibold' : ''}>{getSenderName()}</span>
-            {' ✦ '}
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            {!isUser && (
-              <>
-                {' ✦ '}
-                <button
-                  onClick={() => handleSpeak(message.text)}
-                  className="text-brand-accent hover:text-brand-accent-hover transition-colors font-semibold"
-                  title="Speak this statement"
-                >
-                  [ Listen ]
-                </button>
-              </>
+        <div className={`flex flex-col flex-grow ${isUser ? 'items-end' : 'items-start'} max-w-[calc(100%-3rem)]`}>
+          {/* Header Row */}
+          <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+            <span className={`font-bold ${isUser ? 'text-zinc-400' : 'text-zinc-350'}`}>{getSenderName()}</span>
+            <span>✦</span>
+            <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+
+          {/* Message Content */}
+          <div className={`w-full ${isUser ? 'flex justify-end' : ''}`}>
+            {isUser ? (
+              <div className="bg-zinc-900/60 text-zinc-100 border border-zinc-800/40 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm max-w-[85%] text-left">
+                <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-light selection:bg-brand-accent/20">
+                  {formatText(message.text)}
+                </p>
+              </div>
+            ) : (
+              <div className="text-left w-full pl-1">
+                <p className="text-xs sm:text-sm leading-relaxed text-zinc-100 whitespace-pre-wrap font-light selection:bg-brand-accent/20">
+                  {formatText(message.text)}
+                </p>
+              </div>
             )}
-          </p>
-          <div className={`${bubbleColor} rounded-none p-4 sm:p-5 relative`}>
-            <div className={`text-sm sm:text-base leading-relaxed whitespace-pre-wrap ${textAlign} font-light`}>
-              {formatText(message.text)}
-            </div>
           </div>
         </div>
       </div>
