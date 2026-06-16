@@ -140,7 +140,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         {/* Sleek Rounded Avatar */}
         <div className={`flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full flex items-center justify-center mx-2 sm:mx-3 ${
           isUser 
-            ? 'bg-zinc-800/45 border border-zinc-750/30' 
+            ? 'bg-zinc-800/45 border border-zinc-800/30' 
             : isJudge 
               ? 'bg-zinc-900 border border-zinc-800/60' 
               : 'bg-zinc-900 border border-zinc-800/60'
@@ -153,7 +153,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         <div className={`flex flex-col flex-grow ${isUser ? 'items-end' : 'items-start'} max-w-[calc(100%-3rem)]`}>
           {/* Header Row */}
           <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-            <span className={`font-bold ${isUser ? 'text-zinc-400' : 'text-zinc-350'}`}>{getSenderName()}</span>
+            <span className={`font-bold ${isUser ? 'text-zinc-400' : 'text-zinc-300'}`}>{getSenderName()}</span>
             <span>✦</span>
             <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>

@@ -613,7 +613,7 @@ const PracticeArena: React.FC = () => {
                     className={`p-2.5 rounded-lg border text-left transition-all ${
                       objectionGrounds === g.value
                         ? `bg-zinc-900 text-zinc-100 ${catColors.border} font-semibold`
-                        : 'bg-zinc-950/40 border-zinc-850 text-zinc-400 hover:border-zinc-750 hover:text-zinc-200'
+                        : 'bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
                     }`}
                   >
                     <p className="text-[11px] font-bold tracking-wide uppercase">{g.label}</p>
@@ -628,7 +628,7 @@ const PracticeArena: React.FC = () => {
                   value={objectionExplanation}
                   onChange={(e) => setObjectionExplanation(e.target.value)}
                   placeholder="Explain why this statement is objectionable in one concise sentence..."
-                  className="w-full p-3 bg-zinc-900/30 border border-zinc-850 rounded-lg focus:outline-none focus:border-zinc-700 text-xs text-zinc-200 placeholder-zinc-650 resize-none min-h-[70px]"
+                  className="w-full p-3 bg-zinc-900/30 border border-zinc-800 rounded-lg focus:outline-none focus:border-zinc-700 text-xs text-zinc-200 placeholder-zinc-500 resize-none min-h-[70px]"
                   rows={2}
                 />
               </div>
@@ -662,13 +662,13 @@ const PracticeArena: React.FC = () => {
   const ocId = currentSessionSettings.opposingCounselPersonality.id;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0a0a0a] text-zinc-150 overflow-hidden relative">
+    <div className="flex flex-col h-[100dvh] bg-[#0a0a0a] text-zinc-200 overflow-hidden relative">
 
       <div className="p-4 sm:p-6 bg-[#0f0f0f]/80 backdrop-blur-md border-b border-zinc-800/80 flex flex-row justify-between items-center sticky top-0 z-20 flex-shrink-0">
         <div className="text-left flex-grow max-w-3xl mr-2">
           <div className="flex items-center space-x-3 mb-1">
             <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-mono border border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
-            <span className="text-[10px] font-mono text-zinc-550 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-shimmer truncate font-serif text-zinc-100" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
           <div className="flex flex-wrap items-center text-xs sm:text-sm text-zinc-400 mt-1">
@@ -695,7 +695,7 @@ const PracticeArena: React.FC = () => {
           {/* Bench Companion Toggle for Mobile */}
           <button 
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="lg:hidden p-2 rounded-lg border border-zinc-800/60 bg-zinc-900/40 text-zinc-350 hover:bg-zinc-800/60 transition-all flex items-center justify-center"
+            className="lg:hidden p-2 rounded-lg border border-zinc-800/60 bg-zinc-900/40 text-zinc-400 hover:bg-zinc-800/60 transition-all flex items-center justify-center"
             title="Open Bench Companion"
           >
             <CourtIcon className="h-5 w-5" />
@@ -759,19 +759,19 @@ const PracticeArena: React.FC = () => {
                     {isAiTyping === 'judge' ? (
                       <CourtIcon className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${catColors.text}`} />
                     ) : (
-                      <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-zinc-450" />
+                      <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-zinc-400" />
                     )}
                   </div>
                   <div className="flex flex-col flex-grow items-start max-w-[calc(100%-3rem)] pl-1">
                     <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                      <span className="font-bold text-zinc-350">
+                      <span className="font-bold text-zinc-300">
                         {isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel'}
                       </span>
                       <span>✦</span>
-                      <span className="text-zinc-650">Typing</span>
+                      <span className="text-zinc-500">Typing</span>
                     </div>
                     <div className="flex items-center space-x-2.5 py-1">
-                      <span className="text-xs sm:text-sm font-light text-zinc-455 italic">
+                      <span className="text-xs sm:text-sm font-light text-zinc-400 italic">
                         {isAiTyping === 'judge' ? "The Court is considering your argument" : "Opposing Counsel is formulating a response"}
                       </span>
                       <span className="flex space-x-1 items-center h-2.5">
@@ -855,8 +855,8 @@ const PracticeArena: React.FC = () => {
                           onClick={() => setObjectionGrounds(g.value)}
                           className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-all text-center flex flex-col items-center justify-center
                             ${objectionGrounds === g.value
-                              ? `${catColors.bgMuted} ${catColors.border} text-zinc-150 font-semibold`
-                              : 'bg-zinc-900/30 border-zinc-800/60 text-zinc-400 hover:border-zinc-750 hover:text-zinc-200'
+                              ? `${catColors.bgMuted} ${catColors.border} text-zinc-200 font-semibold`
+                              : 'bg-zinc-900/30 border-zinc-800/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
                             }`}
                         >
                           <span className="font-semibold text-[11px] sm:text-xs">{g.label}</span>
@@ -868,7 +868,7 @@ const PracticeArena: React.FC = () => {
                 )}
 
                 {/* Sleek Input Composer Capsule */}
-                <div className="relative flex items-end gap-2.5 max-w-3xl mx-auto rounded-xl border border-zinc-800/80 bg-[#151515] focus-within:border-zinc-750 transition-all px-3 py-2 sm:py-2.5 shadow-sm shadow-black/20">
+                <div className="relative flex items-end gap-2.5 max-w-3xl mx-auto rounded-xl border border-zinc-800/80 bg-[#151515] focus-within:border-zinc-700 transition-all px-3 py-2 sm:py-2.5 shadow-sm shadow-black/20">
                   {/* Microphone Record Button */}
                   <button
                     type="button"
@@ -914,7 +914,7 @@ const PracticeArena: React.FC = () => {
                     className={`w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-full flex items-center justify-center transition-all focus:outline-none
                       ${(isInlineObjectionActive ? objectionExplanation.trim() : userInput.trim()) && !isAiTyping && isTimerRunning
                         ? `${catColors.bg} text-zinc-950 hover:brightness-110`
-                        : 'bg-zinc-900 text-zinc-650 border border-zinc-800/60 cursor-not-allowed'
+                        : 'bg-zinc-900 text-zinc-500 border border-zinc-800/60 cursor-not-allowed'
                       }`}
                     title={isInlineObjectionActive ? "Submit Objection" : "Send Statement"}
                   >
@@ -924,7 +924,7 @@ const PracticeArena: React.FC = () => {
                   </button>
                 </div>
                 
-                <p className="text-center mt-3 text-[10px] font-mono text-zinc-650 tracking-widest uppercase hidden sm:block select-none">
+                <p className="text-center mt-3 text-[10px] font-mono text-zinc-500 tracking-widest uppercase hidden sm:block select-none">
                   Present your arguments clearly and concisely. The Court is listening.
                 </p>
               </div>
@@ -950,7 +950,7 @@ const PracticeArena: React.FC = () => {
       <div className={`lg:hidden fixed bottom-0 left-0 right-0 max-h-[85vh] bg-[#0d0d0d] border-t border-zinc-800/80 rounded-t-xl z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar p-6 space-y-6 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
           <h3 className={`text-lg font-bold font-serif ${catColors.text} flex items-center`}><CourtIcon className={`h-5 w-5 mr-2 ${catColors.text}`} /> Bench Companion</h3>
-          <button onClick={() => setIsMobileDrawerOpen(false)} className="text-zinc-500 hover:text-zinc-350 text-sm font-mono p-1">Close</button>
+          <button onClick={() => setIsMobileDrawerOpen(false)} className="text-zinc-500 hover:text-zinc-400 text-sm font-mono p-1">Close</button>
         </div>
         {renderBenchCompanion()}
       </div>
