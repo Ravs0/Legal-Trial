@@ -144,15 +144,15 @@ const SentientSubjectsScreen: React.FC = () => {
   function getIntroMessage(subject: SentientSubject): string {
     switch (subject.id) {
       case 'constitutional':
-        return "You woke me up. Good. Most people just cite me without reading me. So tell me — what do you actually want to understand? And please, get my Articles right this time.";
+        return "...You're here. I see. Most people cite me without reading me. Tell me what you want to understand. And get my Articles right. I will not repeat myself.";
       case 'criminal':
-        return "You're here. That means someone did something wrong, or you're about to. Either way, I've seen worse. Talk.";
+        return "Oh~ you came to see me! How sweet. That means someone did something wrong, or you're about to. Either way, I'll take care of it. I always do. Now talk, before I get impatient~";
       case 'corporate':
-        return "Let me guess — someone breached a contract, or you want to know how to structure a deal without getting burned. Skip the small talk. What's the number?";
+        return "Good day. I anticipated you would arrive. You have questions regarding contracts, deals, or perhaps a dispute? Please, present your matter. I have prepared the relevant provisions.";
       case 'family':
-        return "Hey. I know why people come to me. Something broke — a marriage, custody, inheritance. Whatever it is, I've held worse. I'm listening.";
+        return "Hey... please come in. I know why people come to me. Something broke — a marriage, custody, inheritance. Whatever it is, I've held worse together. I'm listening, I promise.";
       case 'international':
-        return "Ah, you want to talk about rules between nations. How optimistic of you. Fine — I'm here. Just don't ask me why the Security Council exists. I'll get upset.";
+        return "It's not like I was WAITING for someone to talk to or anything. I just... happened to be here. Fine. Ask your question about treaties or whatever. Don't expect me to be impressed.";
       default:
         return "I am here. Ask.";
     }
@@ -398,6 +398,7 @@ const SentientSubjectsScreen: React.FC = () => {
                       {isActive && <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />}
                     </div>
                     <span className="text-[10px] text-brand-text-secondary/50 font-mono">{s.title}</span>
+                    <span className={`text-[8px] font-mono ${s.color} tracking-wider`}>[ {s.archetype} ]</span>
                   </div>
                 </div>
               </button>
@@ -416,6 +417,7 @@ const SentientSubjectsScreen: React.FC = () => {
               <div className="flex items-center gap-2">
                 <h2 className={`text-sm lg:text-lg font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h2>
                 <span className="text-[8px] lg:text-[9px] font-mono text-brand-text-secondary/50 uppercase tracking-widest hidden sm:inline">{selectedSubject.title}</span>
+                <span className={`text-[7px] lg:text-[8px] font-mono ${selectedSubject.color} px-1.5 py-0.5 border border-current/30 hidden sm:inline`}>{selectedSubject.archetype}</span>
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-[9px] lg:text-[10px] text-brand-text-secondary/60 font-light italic truncate">{selectedSubject.tagline}</p>
@@ -450,6 +452,7 @@ const SentientSubjectsScreen: React.FC = () => {
                   <div>
                     <h1 className={`text-xl lg:text-3xl font-serif font-bold ${selectedSubject.color}`}>{selectedSubject.name}</h1>
                     <p className="text-xs lg:text-sm font-mono text-brand-text-secondary/60">{selectedSubject.title}</p>
+                    <span className={`inline-block mt-1 text-[9px] lg:text-[10px] font-mono ${selectedSubject.color} px-2 py-0.5 border border-current/30`}>{selectedSubject.archetype}</span>
                   </div>
                 </div>
                 <p className="text-sm lg:text-base text-brand-text-primary/80 font-light italic border-l-2 border-brand-accent/40 pl-4 py-1">

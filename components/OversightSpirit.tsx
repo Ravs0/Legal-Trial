@@ -62,9 +62,9 @@ const ROUTE_REMARKS: Record<string, string[]> = {
     "Entering the council. Listen first, then form your own opinion.",
   ],
   '/sentient-subjects': [
-    "Communing with the Subjects? They don't bite. Well, Danda might.",
-    "The sentient subjects await. Each one has opinions. Strong ones.",
-    "Going to chat with living law itself? Bold. They'll see through your BS instantly.",
+    "Communing with the Subjects? They don't bite. Well, Kira might~",
+    "Going to chat with anime law personalities? Ren won't show it, but they care.",
+    "Careful with Sora. She'll deny caring about you. She definitely cares.",
   ],
   '/analysis': [
     "Checking your performance? Brave. The numbers don't lie, even if you do.",
