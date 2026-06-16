@@ -92,6 +92,11 @@ const DraftingStudioScreen: React.FC = () => {
   const [checklistChecked, setChecklistChecked] = useState<boolean[]>([false, false, false, false, false]);
   const [copiedSnippetIndex, setCopiedSnippetIndex] = useState<number | null>(null);
 
+  // Focus Mode & Auto-Save
+  const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
+  const [showAutoSave, setShowAutoSave] = useState<boolean>(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleCopySnippet = (index: number, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedSnippetIndex(index);
@@ -236,7 +241,11 @@ const DraftingStudioScreen: React.FC = () => {
   useEffect(() => {
     if (currentTask && userDraft) {
       localStorage.setItem(`draft-save-${currentTask.id}`, userDraft);
+      setShowAutoSave(true);
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => setShowAutoSave(false), 2000);
     }
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
   }, [userDraft, currentTask]);
 
   useEffect(() => {
@@ -758,6 +767,7 @@ Section 8.2 Limitation of Liability.
             <>
                 {/* Reference Sidebar (Left/Collapsible) */}
                 <aside className={`flex-shrink-0 transition-all duration-500 ease-in-out border border-brand-text-primary/30 bg-brand-bg-primary rounded-none overflow-hidden flex flex-col
+                    ${isFocusMode ? 'hidden' : ''}
                     ${isRefPanelOpen ? 'w-full lg:w-[380px] max-h-[40vh] lg:max-h-none lg:h-auto' : 'w-full lg:w-16 h-10 lg:h-auto'}
                 `}>
                     {/* Sidebar Header / Toggle */}
@@ -954,7 +964,15 @@ Section 8.2 Limitation of Liability.
                                     />
                                 </div>
                             )}
-                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-none flex-shrink-0">
+                            <Button 
+                                onClick={() => setIsFocusMode(!isFocusMode)}
+                                variant="outline"
+                                size="sm"
+                                className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-none flex-shrink-0"
+                            >
+                                {isFocusMode ? 'Exit Focus' : 'Focus Mode'}
+                            </Button>
+                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-none flex-shrink-0 hidden sm:flex">
                                 Reset
                             </Button>
                         </div>
@@ -992,9 +1010,14 @@ Section 8.2 Limitation of Liability.
                     <div className="flex-shrink-0 p-2.5 lg:p-4 border-t border-brand-text-primary/30 bg-brand-bg-secondary z-10">
                         {/* Status row */}
                         <div className="flex items-center justify-between mb-2 lg:mb-0 lg:inline-flex lg:mr-4">
-                            <div className="flex items-center space-x-2">
-                                <div className={`w-1.5 h-1.5 rounded-none ${userDraft.length > 0 ? 'bg-green-500' : 'bg-brand-text-secondary/30'}`}></div>
-                                <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-primary">{userDraft.length} chars</span>
+                            <div className="flex items-center space-x-3">
+                                <div className="flex items-center space-x-1.5">
+                                    <div className={`w-1.5 h-1.5 rounded-none ${userDraft.length > 0 ? 'bg-green-500' : 'bg-brand-text-secondary/30'}`}></div>
+                                    <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-secondary">{userDraft.length} chars</span>
+                                </div>
+                                <span className={`text-[9px] font-mono text-brand-accent transition-opacity duration-300 ${showAutoSave ? 'opacity-100' : 'opacity-0'}`}>
+                                    [✓ Saved]
+                                </span>
                             </div>
                             {scoringResult && (
                                 <button

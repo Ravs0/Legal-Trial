@@ -19,11 +19,11 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles = `font-medium rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent 
-                      disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ease-out 
-                      flex items-center justify-center relative overflow-hidden group`;
+                      disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 
+                      flex items-center justify-center relative overflow-hidden group min-h-[44px] sm:min-h-[0]`;
 
   let variantStylesConfig = {
-    primary: `bg-brand-accent text-brand-accent-text hover:bg-brand-accent-hover focus:ring-brand-accent border border-brand-accent/55`,
+    primary: `bg-brand-accent text-brand-accent-text hover:bg-brand-accent-hover focus:ring-brand-accent border border-brand-accent`,
     secondary: `bg-brand-bg-secondary text-brand-text-primary hover:text-brand-text-primary border border-brand-text-primary/30 hover:border-brand-text-primary focus:ring-brand-accent`,
     danger: `bg-brand-error text-white hover:bg-red-600 focus:ring-brand-error border border-brand-error`,
     outline: `bg-transparent text-brand-accent border border-brand-accent hover:bg-brand-accent/10 focus:ring-brand-accent`,
@@ -46,10 +46,7 @@ export const Button: React.FC<ButtonProps> = ({
       disabled={isLoading || props.disabled}
       {...props}
     >
-      {/* Button Shine Effect (for primary) */}
-      {variant === 'primary' && !props.disabled && !isLoading && (
-        <span className="absolute top-0 -left-full w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[45deg] group-hover:animate-[shimmer_1.5s_infinite]"></span>
-      )}
+      {/* Shimmer effect removed for Brutalist flat UI */}
 
       {isLoading && (
         <svg className={`animate-spin h-5 w-5 text-current ${children ? '-ml-1 mr-3' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

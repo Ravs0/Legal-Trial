@@ -88,6 +88,7 @@ const DeliberationBlueprint: React.FC<{
   setSelectedPersona,
 }) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [showReasoningLogs, setShowReasoningLogs] = useState<boolean>(false);
 
   const styleBlock = (
     <style>{`
@@ -230,6 +231,20 @@ const DeliberationBlueprint: React.FC<{
               (CLICK TOGGLE)
             </text>
           </g>
+
+          {/* SVG Tooltips (Agentic Explainability) */}
+          {hoveredNode === 'user' && (
+            <g className="pointer-events-none">
+              <rect x="15" y="165" width="170" height="25" fill="#121212" stroke="#c9a84c" strokeWidth="1" rx="0" />
+              <text x="100" y="180" textAnchor="middle" fill="#f1f5f9" fontSize="8" fontFamily="monospace">You: The lead counsel formulating queries.</text>
+            </g>
+          )}
+          {hoveredNode === 'model' && (
+            <g className="pointer-events-none">
+              <rect x="215" y="165" width="170" height="25" fill="#121212" stroke="#38bdf8" strokeWidth="1" rx="0" />
+              <text x="300" y="180" textAnchor="middle" fill="#f1f5f9" fontSize="8" fontFamily="monospace">{isReasoner ? 'DeepSeek V4 Pro: Extended logical thinking.' : 'DeepSeek V4: High-speed synthesis.'}</text>
+            </g>
+          )}
         </svg>
       </div>
     );
@@ -1474,9 +1489,19 @@ export const CouncilChamberScreen: React.FC = () => {
 
             {/* Scrollable Trace Logs or System Status Archive */}
             <div className="flex-grow flex flex-col min-h-0 border-t border-brand-text-primary/30 pt-3">
-              <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold block mb-2">
-                {isProcessing ? `Live Trace: ${oracleStage}` : 'Process Log Archive'}
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold block">
+                  {isProcessing ? `Live Trace: ${oracleStage}` : 'Process Log Archive'}
+                </span>
+                {oracleTrace.length > 0 && (
+                  <button 
+                    onClick={() => setShowReasoningLogs(!showReasoningLogs)}
+                    className="text-[9px] font-mono border border-brand-text-primary/30 px-2 py-0.5 hover:text-brand-accent transition-colors uppercase"
+                  >
+                    {showReasoningLogs ? 'Hide Reasoning' : 'Show Reasoning'}
+                  </button>
+                )}
+              </div>
 
               <div className="flex-grow overflow-y-auto custom-scrollbar space-y-3 pr-0.5 text-left">
                 {isProcessing && oracleStage && (
@@ -1526,17 +1551,19 @@ export const CouncilChamberScreen: React.FC = () => {
                 )}
 
                 {oracleTrace.length > 0 ? (
-                  <div className="space-y-3">
-                    {oracleTrace.map((tr, index) => (
-                      <div key={index} className="space-y-1 p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
-                        <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5 flex items-center justify-between">
-                          <span>Stage {index + 1}: {tr.stage}</span>
-                          <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">✓ READY</span>
-                        </h6>
-                        <p className="leading-relaxed font-light text-brand-text-secondary text-[10px] whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{tr.content}</p>
-                      </div>
-                    ))}
-                  </div>
+                  showReasoningLogs && (
+                    <div className="space-y-3 animate-fadeIn">
+                      {oracleTrace.map((tr, index) => (
+                        <div key={index} className="space-y-1 p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
+                          <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5 flex items-center justify-between">
+                            <span>Stage {index + 1}: {tr.stage}</span>
+                            <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">✓ READY</span>
+                          </h6>
+                          <p className="leading-relaxed font-light text-brand-text-secondary text-[10px] whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{tr.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )
                 ) : !isProcessing ? (
                   <div className="p-4 border border-white/5 bg-brand-bg-primary rounded-none space-y-2 text-center text-brand-text-secondary font-light">
                     <span className="text-2xl "></span>
