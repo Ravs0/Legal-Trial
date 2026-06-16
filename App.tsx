@@ -39,7 +39,8 @@ const GlobalErrorDisplay: React.FC<{ message: string; onDismiss: () => void }> =
 
 const ModeSpecificRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const context = useContext(TrialSimContext);
-  if (!context?.practiceMode) {
+  const mode = context?.practiceMode || (localStorage.getItem('practiceMode') as PracticeMode | null);
+  if (!mode) {
     return <Navigate to={ROUTES.LANDING} replace />;
   }
   return element;
@@ -53,17 +54,18 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFactGenerating, setIsFactGenerating] = useState(false); // New state for drafting fact generation
-  const [practiceMode, setPracticeMode] = useState<PracticeMode | null>(() => {
+  const [practiceMode, setPracticeModeState] = useState<PracticeMode | null>(() => {
     return localStorage.getItem('practiceMode') as PracticeMode | null;
   });
 
-  useEffect(() => {
-    if (practiceMode) {
-      localStorage.setItem('practiceMode', practiceMode);
+  const setPracticeMode = (mode: PracticeMode | null) => {
+    setPracticeModeState(mode);
+    if (mode) {
+      localStorage.setItem('practiceMode', mode);
     } else {
       localStorage.removeItem('practiceMode');
     }
-  }, [practiceMode]);
+  };
 
   useEffect(() => {
     if (!practiceMode) {
@@ -94,7 +96,7 @@ function App() {
         <CommandPalette />
         <Routes>
           <Route path={ROUTES.LANDING} element={<LandingScreen />} />
-          <Route path="/" element={<Layout><Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace /></Layout>} />
+          <Route path="/" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
           <Route path={ROUTES.HOME} element={<Layout><ModeSpecificRoute element={<HomeScreen />} /></Layout>} />
           <Route path={ROUTES.SETUP} element={<Layout><ModeSpecificRoute element={<SetupScreen />} /></Layout>} />
           <Route path={ROUTES.PRACTICE} element={<ModeSpecificRoute element={<PracticeArena />} />} />

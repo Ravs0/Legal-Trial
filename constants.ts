@@ -1745,7 +1745,7 @@ export const SESSION_DURATIONS_MINUTES: { [key in SessionType]: number } = {
 };
 
 export const ROUTES = {
-  LANDING: '/', 
+  LANDING: '/landing', 
   HOME: '/dashboard', 
   SETUP: '/setup',
   PRACTICE: '/practice',

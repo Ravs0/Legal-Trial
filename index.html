@@ -13,38 +13,38 @@
       theme: {
         extend: {
           colors: {
-            'brand-bg-primary': '#0D0F12',
-            'brand-bg-secondary': '#16191E',
-            'brand-bg-tertiary': '#1F242B',
-            'brand-text-primary': '#F3F5F7',
-            'brand-text-secondary': '#7F8D9C',
+            'brand-bg-primary': '#0B0C0E',
+            'brand-bg-secondary': '#12151A',
+            'brand-bg-tertiary': '#1B1E24',
+            'brand-text-primary': '#E8ECEF',
+            'brand-text-secondary': '#8895A5',
 
-            'brand-accent': '#E87654',
-            'brand-accent-hover': '#F19172',
-            'brand-accent-text': '#0D0F12',
-            'brand-accent-muted': 'rgba(232, 118, 84, 0.15)',
+            'brand-accent': '#C3B197',
+            'brand-accent-hover': '#D5C4AC',
+            'brand-accent-text': '#0B0C0E',
+            'brand-accent-muted': 'rgba(195, 177, 151, 0.12)',
 
-            'brand-gradient-from': '#E87654',
-            'brand-gradient-mid': '#F19172',
-            'brand-gradient-to': '#C95E3C',
+            'brand-gradient-from': '#C3B197',
+            'brand-gradient-mid': '#D5C4AC',
+            'brand-gradient-to': '#B2A086',
 
-            'brand-border': 'rgba(255,255,255,0.08)',
-            'brand-border-light': 'rgba(255,255,255,0.15)',
+            'brand-border': 'rgba(255,255,255,0.06)',
+            'brand-border-light': 'rgba(255,255,255,0.12)',
 
-            'brand-error': '#E57373',
-            'brand-success': '#81C784',
+            'brand-error': '#D97878',
+            'brand-success': '#82A687',
 
-            'brand-navy': '#111419',
-            'brand-navy-light': '#181C23',
+            'brand-navy': '#0F1115',
+            'brand-navy-light': '#16191E',
 
-            // Curated 7-Color Premium Soft Palette (Muted pastels, highly readable, no eye strain)
-            'brand-amber': '#DCAE6C',       // Muted Ochre / Constitutional Law
-            'brand-rust': '#D68A73',        // Soft Clay / Criminal Law
-            'brand-emerald': '#739F75',     // Pastel Mint Green / Corporate Law
-            'brand-terracotta': '#E5A1A1',  // Soft Muted Rose / Family Law
-            'brand-cobalt': '#7A8EC7',      // Soft Slate Blue / International Law
-            'brand-sage': '#92A88F',        // Dusty Sage Green / System Scores
-            'brand-concrete': '#BCC0C3',    // Chalk Concrete / Active Highlights
+            // Curated 7-Color Premium Soft Palette (Highly aesthetic historic/legal tones, low-saturation)
+            'brand-amber': '#CBB489',       // Muted Antique Gold
+            'brand-rust': '#C68D7B',        // Muted Terracotta Clay
+            'brand-emerald': '#8AA694',     // Muted Sage Green
+            'brand-terracotta': '#CCA3A3',  // Muted Dusty Rose
+            'brand-cobalt': '#8AA3C6',      // Muted Steel Blue
+            'brand-sage': '#9CB29D',        // Muted Pale Green-Grey
+            'brand-concrete': '#A3B5C0',    // Muted Slate Grey
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -136,7 +136,7 @@
     }
 
     body {
-      background-color: #121212;
+      background-color: #0B0C0E;
       color: #f1f5f9;
       font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -154,12 +154,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 90, 31, 0.25);
+      background: rgba(195, 177, 151, 0.25);
       border-radius: 10px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 90, 31, 0.5);
+      background: rgba(195, 177, 151, 0.45);
     }
 
     .custom-scrollbar {
@@ -176,12 +176,12 @@
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(255, 90, 31, 0.2);
+      background: rgba(195, 177, 151, 0.2);
       border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 90, 31, 0.4);
+      background: rgba(195, 177, 151, 0.4);
     }
 
     /* Glass card */
@@ -192,9 +192,9 @@
       border: 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    /* Vermilion shimmer text effect */
+    /* Champagne shimmer text effect */
     .text-shimmer {
-      background: linear-gradient(90deg, #FF5A1F, #FF7643, #FF5A1F, #D03E0B, #FF5A1F);
+      background: linear-gradient(90deg, #C3B197, #D5C4AC, #C3B197, #B2A086, #C3B197);
       background-size: 200% auto;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -274,7 +274,7 @@
 
     /* Focus ring */
     .focus-ring:focus-visible {
-      outline: 2px solid rgba(255, 90, 31, 0.5);
+      outline: 2px solid rgba(195, 177, 151, 0.5);
       outline-offset: 2px;
     }
 
@@ -289,7 +289,7 @@
       inset: 0;
       border-radius: inherit;
       padding: 1px;
-      background: linear-gradient(135deg, rgba(255, 90, 31, 0.3), transparent 50%, rgba(255, 90, 31, 0.1));
+      background: linear-gradient(135deg, rgba(195, 177, 151, 0.3), transparent 50%, rgba(195, 177, 151, 0.1));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
