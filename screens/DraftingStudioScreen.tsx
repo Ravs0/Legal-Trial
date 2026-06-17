@@ -346,7 +346,7 @@ const DraftingStudioScreen: React.FC = () => {
           body: JSON.stringify({
             action: 'stt',
             audio: base64Audio,
-            language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
+            language: 'en-IN',
           }),
         });
 
@@ -367,14 +367,13 @@ const DraftingStudioScreen: React.FC = () => {
 
   const handleSpeak = async (text: string) => {
     try {
-      const response = await fetch('http://localhost:5001/api/speech/synthesize', {
+      const response = await fetch('/api/voice', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'tts',
           text,
-          voice_id: 'sarvam-english'
+          language: 'en-IN',
         }),
       });
 
@@ -382,11 +381,20 @@ const DraftingStudioScreen: React.FC = () => {
         throw new Error('Speech synthesis failed');
       }
 
-      const audioBlob = await response.blob();
+      const data = await response.json();
+      if (data.status !== 'success' || !data.audio) {
+        throw new Error('No audio returned');
+      }
+
+      // Sarvam returns base64-encoded WAV; decode and play.
+      const byteString = atob(data.audio);
+      const bytes = new Uint8Array(byteString.length);
+      for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
+      const audioBlob = new Blob([bytes], { type: data.format === 'wav' ? 'audio/wav' : 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audio.play();
-      
+
     } catch (error) {
       console.error('Error playing speech:', error);
     }

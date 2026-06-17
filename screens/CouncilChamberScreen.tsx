@@ -672,7 +672,7 @@ export const CouncilChamberScreen: React.FC = () => {
           body: JSON.stringify({
             action: 'stt',
             audio: base64Audio,
-            language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
+            language: 'en-IN',
           }),
         });
 

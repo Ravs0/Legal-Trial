@@ -2,98 +2,31 @@ import { Chat, ChatMessage, PerformanceMetrics, SessionRecord, SessionSettings, 
 import { KOKU_SYSTEM_PROMPT } from '../kokuConfig';
 
 // ─── Core API call ────────────────────────────────────────────────────────────
+//
+// One-key model: all requests proxy through /api/chat, which holds the
+// server-side model key. The client never sees or sets any key. If the server
+// is misconfigured or the upstream fails, we surface the real error to the UI
+// rather than silently fabricating a response.
 
-// ─── Mock Fallbacks ───────────────────────────────────────────────────────────
-
-function getMockResponse(messages: { role: string; content: string }[], system?: string): string {
-  const sys = (system || '').toLowerCase();
-  const lastMsg = messages[messages.length - 1]?.content || '';
-  const lastMsgLower = lastMsg.toLowerCase();
-
-  // 1. Performance Analysis
-  if (sys.includes('performance') || sys.includes('evaluating a mock trial')) {
-    return JSON.stringify({
-      argumentStrength: 8,
-      precedentUsage: 7,
-      constitutionalBasis: 8,
-      responseQuality: 8,
-      overallScore: 82,
-      feedback: "Counsel presented a cohesive, structured argument highlighting the core breach of covenant. To improve, reference specific sub-clauses of the liability limitation section and expand on the estoppel defense.",
-      improvementAreas: [
-        "Include references to appellate court judgments on limitation clauses.",
-        "Strengthen the damages mitigation defense arguments."
-      ]
-    });
+class AiServiceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AiServiceError';
   }
-
-  // 2. Scenario Fact Generation
-  if (sys.includes('scenario architect') || lastMsgLower.includes('generate facts')) {
-    if (lastMsgLower.includes('plaint') || lastMsgLower.includes('eviction') || lastMsgLower.includes('recovery')) {
-      return "On April 12, 2026, the Plaintiff entered into a written lease agreement with the Defendant for a commercial showroom. Under Clause 4 of the lease, monthly rent of INR 1,50,000 is payable by the 5th of each calendar month. The Defendant paid rent regularly until September 2026, but defaulted thereafter. Despite three formal legal notices dated October 15, November 10, and December 5, 2026, demanding the payment of outstanding rent and vacant possession, the Defendant continues to occupy the premises without payment. The Plaintiff now seeks recovery of possession, arrears, and mesne profits.";
-    }
-    if (lastMsgLower.includes('contract') || lastMsgLower.includes('agreement')) {
-      return "This Software Development and Services Agreement is entered into by and between Alpha Solutions Private Limited ('Developer') and Beta Enterprises Inc. ('Client'). The Developer agrees to build a customized enterprise inventory management software as specified in Schedule A within four months. In consideration, the Client agrees to pay a total contract sum of USD 85,000, split across four milestone payments. Section 8 details intellectual property rights vesting solely in the Client upon full payment, and Section 12 establishes a mutual cap on liability at the total amount paid under the agreement.";
-    }
-    // Default mock facts
-    return "On June 15, 2025, the Plaintiff (a supplier of industrial electronics) and the Defendant (a local assembly factory) entered into a supply agreement. The Plaintiff delivered 500 microprocessors on September 1, 2025, which the Defendant integrated into consumer devices. By October 15, the assembly line reported a 40% failure rate due to quality defects in the microprocessors. The Defendant refused to pay the outstanding invoice of USD 45,000, claiming indemnity for damaged consumer units. The Plaintiff disputes the default and demands immediate payment.";
-  }
-
-  // 3. Filing Procedure Info
-  if (sys.includes('procedural guide') || lastMsgLower.includes('filing procedure')) {
-    return `### Filing Procedure Overview
-1. **Pre-requisites**: Issue a 15-day statutory demand or notice to the counter-party.
-2. **Drafting**: Prepare the Plaint/Petition along with a verifying affidavit, witness lists, and copies of key document exhibits.
-3. **Court Fee**: Compute the court fee based on the valuation of the subject matter under the Court Fees Act.
-4. **Filing**: Present the case at the filing counter or online portal of the competent commercial court having local and pecuniary jurisdiction.
-5. **Scrutiny**: Address any objections raised by the registry during scrutiny within the specified time.
-
-*Disclaimer: This information is for educational simulation purposes only and does not constitute formal legal advice.*`;
-  }
-
-  // 4. Drafting Guidance / Feedback
-  if (sys.includes('drafting mentor') || lastMsgLower.includes('review this')) {
-    return `### Professional Drafting Review
-1. **Structure & Form**: The formatting is highly structured and conforms to professional standards. The introductory preamble is clearly stated.
-2. **Grammar of Obligation**: Excellent use of "shall" for covenants and "represents" for factual assertions.
-3. **Strengths**: Clear identification of the parties, precise payment milestones, and robust jurisdiction clauses.
-4. **Areas of Improvement**:
-   - In Section 4 (Limitation of Liability), clarify whether the cap applies to indemnification claims.
-   - In Section 9 (Dispute Resolution), specify the seat and venue of arbitration to prevent jurisdiction disputes.`;
-  }
-
-  // 5. Judge Personality Response
-  if (sys.includes('judge')) {
-    return "The Court has heard your submission, Counsel. While your argument on the contractual obligation is noted, how do you address the question of the waiver under the subsequent correspondence? Please address this point directly.";
-  }
-
-  // 6. Opposing Counsel Personality Response
-  if (sys.includes('opposing counsel')) {
-    return "My learned friend is overlooking the explicit terms of Clause 12. The contract explicitly excludes liability for consequential damages, making the current claim completely untenable.";
-  }
-
-  // Default fallback
-  return "I have reviewed your points, Counsel. Let us examine the documentary evidence in detail to substantiate this position.";
 }
 
-// ─── Core API call ────────────────────────────────────────────────────────────
-
 async function callApi(messages: { role: string; content: string }[], system?: string): Promise<string> {
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, system }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || `API error ${res.status}`);
-    }
-    const data = await res.json();
-    return data.text || '';
-  } catch (error) {
-    console.warn("API call failed, falling back to mock response:", error);
-    return getMockResponse(messages, system);
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, system }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new AiServiceError(err.error || `AI service error (${res.status})`);
   }
+  const data = await res.json();
+  return data.text || '';
 }
 
 // ─── Chat session class ───────────────────────────────────────────────────────
@@ -140,26 +73,12 @@ class GenericChat implements Chat {
 
       this.history.push({ role: 'assistant', content: accumulatedText });
     } catch (error) {
-      console.warn("API stream failed, falling back to mock response:", error);
-      const mockText = getMockResponse(this.history, this.system);
-      
-      // Simulate streaming the mock text in chunks
-      const words = mockText.split(' ');
-      let accumulated = '';
-      for (let i = 0; i < words.length; i++) {
-        const chunk = words[i] + (i === words.length - 1 ? '' : ' ');
-        accumulated += chunk;
-        yield { text: chunk };
-        await new Promise(resolve => setTimeout(resolve, 35)); // 35ms delay between words to simulate stream
-      }
-      this.history.push({ role: 'assistant', content: accumulated });
+      // Don't pollute the conversation history with a failed attempt.
+      this.history.pop();
+      throw error instanceof Error ? error : new AiServiceError('AI stream failed');
     }
   }
 }
-
-// ─── Config check (for getApiConfig compatibility) ───────────────────────────
-
-export const getApiConfig = (): boolean => true; // always true — server handles key checks
 
 // ─── Session builders ─────────────────────────────────────────────────────────
 
@@ -238,7 +157,8 @@ export const sendMessageToChatStream = async (
 // ─── Performance analysis ─────────────────────────────────────────────────────
 
 export const analyzeSessionPerformance = async (
-  sessionRecord: SessionRecord
+  sessionRecord: SessionRecord,
+  engagementScore?: number
 ): Promise<PerformanceMetrics | null> => {
   const transcriptText = sessionRecord.transcript
     .map(msg => {
@@ -249,12 +169,16 @@ export const analyzeSessionPerformance = async (
     })
     .join('\n\n');
 
+  const engagementLine = engagementScore !== undefined
+    ? `\n\n[Court Engagement Index: ${engagementScore} — this reflects the user's live courtroom activity: submissions made and objection reflexes landed within the timed window. Weight it modestly into responseQuality.]`
+    : '';
+
   const system = `You are an Expert Legal Performance Analyst evaluating a mock trial in ${sessionRecord.settings.practiceMode} law.
 Return ONLY a raw JSON object (no markdown, no explanation) with these integer keys (1–10):
 argumentStrength, precedentUsage, constitutionalBasis, responseQuality, overallScore, feedback (string), improvementAreas (string[]).`;
 
   try {
-    const raw = await callApi([{ role: 'user', content: `Transcript:\n${transcriptText}\n\nGenerate the JSON.` }], system);
+    const raw = await callApi([{ role: 'user', content: `Transcript:\n${transcriptText}${engagementLine}\n\nGenerate the JSON.` }], system);
     let jsonStr = raw.trim().replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/```$/, '').trim();
     const parsed = JSON.parse(jsonStr);
     if (parsed.legalBasis !== undefined && parsed.constitutionalBasis === undefined) {

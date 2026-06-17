@@ -5,7 +5,7 @@ import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { TrialSimContext } from '../App';
 import { ChatMessage, SessionRecord, SessionSettings, PerformanceMetrics } from '../types';
-import { getApiConfig, startJudgeChatSession, startOpposingCounselChatSession, sendMessageToChatStream, analyzeSessionPerformance } from '../services/geminiService';
+import { startJudgeChatSession, startOpposingCounselChatSession, sendMessageToChatStream, analyzeSessionPerformance } from '../services/geminiService';
 import { ROUTES, SESSION_DURATIONS_MINUTES } from '../constants';
 import { useTimer } from '../hooks/useTimer';
 import { Chat } from '../types';
@@ -57,9 +57,18 @@ const PracticeArena: React.FC = () => {
 
   // Voice recording states for STT
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Refs to avoid stale closures (B3: live transcript, B7: judge double-fire)
+  const latestMessagesRef = useRef<ChatMessage[]>(messages);
+  const judgeStreamInFlightRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    latestMessagesRef.current = messages;
+  }, [messages]);
 
   const startRecording = async () => {
     setAudioError(null);
@@ -97,7 +106,7 @@ const PracticeArena: React.FC = () => {
   };
 
   const handleSTT = async (blob: Blob) => {
-    setIsAiTyping('judge');
+    setIsTranscribing(true);
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
@@ -108,7 +117,7 @@ const PracticeArena: React.FC = () => {
           body: JSON.stringify({
             action: 'stt',
             audio: base64Audio,
-            language: practiceMode === 'indian' ? 'en-IN' : 'hi-IN',
+            language: 'en-IN',
           }),
         });
 
@@ -116,26 +125,19 @@ const PracticeArena: React.FC = () => {
         const data = await res.json();
         if (data.status === 'success' && data.text) {
           setUserInput(prev => prev ? `${prev} ${data.text}` : data.text);
+          setAudioError(null);
         }
+        setIsTranscribing(false);
       };
       reader.readAsDataURL(blob);
     } catch (err) {
       console.error('Transcription error:', err);
       setAudioError('Failed to transcribe voice.');
-    } finally {
-      setIsAiTyping(false);
+      setIsTranscribing(false);
     }
   };
 
   const sessionDurationSeconds = currentSessionSettings ? SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType] * 60 : 900;
-
-  const onTimerEnd = useCallback(async () => {
-    if (!sessionEnded) {
-      await handleSessionEnd(true, true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionEnded]);
-
 
   const { remainingSeconds, isRunning: isTimerRunning, pause: pauseTimer, reset: resetTimer, start: startTimer, formattedTime } = useTimer({
     durationSeconds: sessionDurationSeconds,
@@ -145,7 +147,8 @@ const PracticeArena: React.FC = () => {
 
 
   const handleSessionEnd = useCallback(async (navigateToAnalysis = true, triggerAnalysis = false) => {
-    if (sessionEnded && navigateToAnalysis && currentSessionRecordRef.current?.performance && !triggerAnalysis) {
+    if (sessionEnded) {
+      // Session already ended — only re-navigate to analysis if asked.
       if (navigateToAnalysis && currentSessionRecordRef.current) {
         navigate(ROUTES.ANALYSIS, { state: { sessionRecord: currentSessionRecordRef.current } });
       }
@@ -166,7 +169,7 @@ const PracticeArena: React.FC = () => {
 
       if (triggerAnalysis && !finalRecord.performance) {
         setGlobalLoading(true);
-        const analysis = await analyzeSessionPerformance(finalRecord);
+        const analysis = await analyzeSessionPerformance(finalRecord, Math.min(runningScore, 200));
         if (analysis) {
           finalRecord.performance = analysis;
         } else {
@@ -192,18 +195,12 @@ const PracticeArena: React.FC = () => {
       navigate(ROUTES.HOME);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionEnded, messages, currentSessionSettings, remainingSeconds, navigate, setCurrentSessionSettings, setActiveChatJudge, setActiveChatOpposingCounsel, pauseTimer, setGlobalLoading, setGlobalError]);
+  }, [sessionEnded, messages, currentSessionSettings, remainingSeconds, runningScore, navigate, setCurrentSessionSettings, setActiveChatJudge, setActiveChatOpposingCounsel, pauseTimer, setGlobalLoading, setGlobalError]);
 
 
   useEffect(() => {
     if (!currentSessionSettings || !practiceMode) {
       navigate(practiceMode ? ROUTES.SETUP : ROUTES.LANDING);
-      return;
-    }
-
-    if (!getApiConfig()) {
-      setGlobalError("No AI API key found. Please add DEEPSEEK_API_KEY, KIMI_API_KEY, or GROQ_API_KEY in Vercel environment variables.");
-      navigate(ROUTES.LANDING);
       return;
     }
 
@@ -261,6 +258,8 @@ const PracticeArena: React.FC = () => {
 
   const triggerAutoJudgeResponse = useCallback(async () => {
     if (sessionEnded || !isTimerRunning || !activeChatJudge || !currentSessionSettings) return;
+    if (judgeStreamInFlightRef.current) return; // B7: prevent double-fire
+    judgeStreamInFlightRef.current = true;
     setIsAiTyping('judge');
     const contextForJudge = `Counsel (User) stated: "${lastUserMessageRef.current}"\n\nOpposing Counsel (${currentSessionSettings.opposingCounselPersonality.name} - ${currentSessionSettings.opposingCounselPersonality.specialty}) responded: "${lastOcMessageRef.current}"\n\nYour Honor, your critical examination and questions?`;
     try {
@@ -269,6 +268,7 @@ const PracticeArena: React.FC = () => {
       console.error("Error triggerAutoJudgeResponse:", e);
     } finally {
       setIsAiTyping(false);
+      judgeStreamInFlightRef.current = false;
       if (currentSessionRecordRef.current) {
         setMessages(prevFinalMessages => {
           if (currentSessionRecordRef.current) {
@@ -336,6 +336,18 @@ const PracticeArena: React.FC = () => {
     return () => window.removeEventListener('cmd-palette-raise-objection', handlePaletteObjection);
   }, [messages, isAiTyping, sessionEnded, isTimerRunning, isInlineObjectionActive]);
 
+  useEffect(() => {
+    const handlePaletteEndEarly = () => {
+      if (!sessionEnded && isTimerRunning && currentSessionSettings) {
+        handleSessionEnd(true, true);
+      }
+    };
+
+    window.addEventListener('cmd-palette-end-early', handlePaletteEndEarly);
+    return () => window.removeEventListener('cmd-palette-end-early', handlePaletteEndEarly);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionEnded, isTimerRunning, currentSessionSettings]);
+
 
   const streamAiResponse = async (
     chatInstance: Chat,
@@ -376,8 +388,7 @@ const PracticeArena: React.FC = () => {
       ));
     }
     if (currentSessionRecordRef.current) {
-      const currentTranscript = messages;
-      currentSessionRecordRef.current.transcript = currentTranscript.map(msg =>
+      currentSessionRecordRef.current.transcript = latestMessagesRef.current.map(msg =>
         msg.id === messageId ? { ...msg, text: aiResponseText } : msg
       );
     }
@@ -515,38 +526,38 @@ const PracticeArena: React.FC = () => {
     if (!currentSessionSettings) return null;
 
     return (
-      <div className="space-y-6 text-zinc-300 text-left">
+      <div className="space-y-6 text-brand-text-secondary text-left">
         {/* Active Case Brief Section */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/15 pb-1 flex items-center`}>
             <BriefcaseIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Active Case Brief
           </h4>
-          <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 space-y-3 shadow-sm">
-            <h5 className="text-sm font-semibold text-zinc-100 font-serif">{currentSessionSettings.caseDetail.title}</h5>
-            <div className="text-xs text-zinc-400 font-light space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
-              <p className="font-semibold text-zinc-300">Brief Facts:</p>
+          <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 space-y-3 shadow-card">
+            <h5 className="text-sm font-semibold text-brand-text-primary font-serif">{currentSessionSettings.caseDetail.title}</h5>
+            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
+              <p className="font-semibold text-brand-text-primary">Brief Facts:</p>
               <p className="leading-relaxed font-light">{currentSessionSettings.caseDetail.briefFacts}</p>
             </div>
-            <div className="text-xs text-zinc-400 font-light space-y-1.5 pt-2.5 border-t border-zinc-900/60">
-              <p className="font-semibold text-zinc-300">Relevant Law / Precedents:</p>
-              <p className={`font-mono text-[10px] ${catColors.text}/90 leading-relaxed`}>{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
+            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2.5 border-t border-brand-text-primary/15">
+              <p className="font-semibold text-brand-text-primary">Relevant Law / Precedents:</p>
+              <p className={`font-mono text-[10px] ${catColors.text} leading-relaxed`}>{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
             </div>
           </div>
         </div>
 
         {/* Real-time score details */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/15 pb-1 flex items-center`}>
             <svg className={`h-4 w-4 mr-1.5 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             Live Trial Standing
           </h4>
-          <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 grid grid-cols-2 gap-4 shadow-sm">
+          <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 grid grid-cols-2 gap-4 shadow-card">
             <div>
-              <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">Court Score</p>
+              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Court Score</p>
               <p className={`text-2xl font-mono ${catColors.text} font-bold mt-1`}>{runningScore}</p>
             </div>
             <div>
-              <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider">Quick Reflexes</p>
+              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Quick Reflexes</p>
               <p className={`text-2xl font-mono ${catColors.text} font-bold mt-1`}>{quickObjectionsCount}</p>
             </div>
           </div>
@@ -554,28 +565,28 @@ const PracticeArena: React.FC = () => {
 
         {/* Bench Profile Section */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/15 pb-1 flex items-center`}>
             <CourtIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Strategic Bench Profile
           </h4>
-          <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 space-y-4 shadow-sm">
+          <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 space-y-4 shadow-card">
             {/* Judge info */}
             <div className="flex items-start space-x-3">
-              <div className={`h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-850 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold text-xs`}>
+              <div className={`h-8 w-8 rounded-lg bg-brand-bg-tertiary border border-brand-text-primary/15 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold text-xs`}>
                 J
               </div>
               <div className="space-y-0.5">
-                <p className="text-xs font-semibold text-zinc-200">{currentSessionSettings.judgePersonality.name}</p>
-                <p className="text-[10px] text-zinc-400 leading-relaxed font-light">{currentSessionSettings.judgePersonality.description}</p>
+                <p className="text-xs font-semibold text-brand-text-primary">{currentSessionSettings.judgePersonality.name}</p>
+                <p className="text-[10px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.judgePersonality.description}</p>
               </div>
             </div>
             {/* Counsel info */}
-            <div className="flex items-start space-x-3 pt-3 border-t border-zinc-900/60">
-              <div className={`h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-850 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold text-xs`}>
+            <div className="flex items-start space-x-3 pt-3 border-t border-brand-text-primary/15">
+              <div className={`h-8 w-8 rounded-lg bg-brand-bg-tertiary border border-brand-text-primary/15 flex items-center justify-center flex-shrink-0 ${catColors.text} font-bold text-xs`}>
                 OC
               </div>
               <div className="space-y-0.5">
-                <p className="text-xs font-semibold text-zinc-200">{currentSessionSettings.opposingCounselPersonality.name}</p>
-                <p className="text-[10px] text-zinc-400 leading-relaxed font-light">{currentSessionSettings.opposingCounselPersonality.specialty} — {currentSessionSettings.opposingCounselPersonality.description}</p>
+                <p className="text-xs font-semibold text-brand-text-primary">{currentSessionSettings.opposingCounselPersonality.name}</p>
+                <p className="text-[10px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.opposingCounselPersonality.specialty} — {currentSessionSettings.opposingCounselPersonality.description}</p>
               </div>
             </div>
           </div>
@@ -583,22 +594,22 @@ const PracticeArena: React.FC = () => {
 
         {/* Objections Toolkit Section */}
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-zinc-900/60 pb-1 flex items-center`}>
+          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/15 pb-1 flex items-center`}>
             <GavelIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Objections Toolkit
           </h4>
-          
+
           {!canObject ? (
-            <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 text-center">
-              <p className="text-xs text-zinc-500 italic leading-relaxed font-light">
+            <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 text-center">
+              <p className="text-xs text-brand-text-secondary/80 italic leading-relaxed font-light">
                 Objections are currently locked. You can raise a formal objection only when Opposing Counsel has completed a submission.
               </p>
             </div>
           ) : (
             <div className="space-y-4 animate-fadeIn">
-              <p className="text-xs text-zinc-400 font-light leading-relaxed">
+              <p className="text-xs text-brand-text-secondary font-light leading-relaxed">
                 Select grounds and enter a concise basis to object to the Opposing Counsel's statement.
               </p>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { value: 'relevance', label: 'Relevance', desc: 'Irrelevant arguments' },
@@ -612,23 +623,23 @@ const PracticeArena: React.FC = () => {
                     onClick={() => setObjectionGrounds(g.value)}
                     className={`p-2.5 rounded-lg border text-left transition-all ${
                       objectionGrounds === g.value
-                        ? `bg-zinc-900 text-zinc-100 ${catColors.border} font-semibold`
-                        : 'bg-zinc-950/40 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                        ? `bg-brand-bg-tertiary text-brand-text-primary ${catColors.border} font-semibold`
+                        : 'bg-brand-bg-secondary/40 border-brand-text-primary/15 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
                     }`}
                   >
                     <p className="text-[11px] font-bold tracking-wide uppercase">{g.label}</p>
-                    <p className="text-[9px] text-zinc-500 truncate mt-0.5">{g.desc}</p>
+                    <p className="text-[9px] text-brand-text-secondary/70 truncate mt-0.5">{g.desc}</p>
                   </button>
                 ))}
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Basis of Objection</label>
+                <label className="block text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Basis of Objection</label>
                 <textarea
                   value={objectionExplanation}
                   onChange={(e) => setObjectionExplanation(e.target.value)}
                   placeholder="Explain why this statement is objectionable in one concise sentence..."
-                  className="w-full p-3 bg-zinc-900/30 border border-zinc-800 rounded-lg focus:outline-none focus:border-zinc-700 text-xs text-zinc-200 placeholder-zinc-500 resize-none min-h-[70px]"
+                  className="w-full p-3 bg-brand-bg-secondary/30 border border-brand-text-primary/15 rounded-lg focus:outline-none focus:border-brand-accent text-xs text-brand-text-primary placeholder-brand-text-secondary/50 resize-none min-h-[70px]"
                   rows={2}
                 />
               </div>
@@ -639,7 +650,7 @@ const PracticeArena: React.FC = () => {
                   setIsMobileDrawerOpen(false);
                 }}
                 disabled={!objectionExplanation.trim()}
-                className={`w-full py-2.5 rounded-lg text-xs tracking-wider uppercase font-semibold text-zinc-950 ${catColors.bg} hover:brightness-110 disabled:bg-zinc-900 disabled:text-zinc-600 border-none transition-all flex items-center justify-center`}
+                className={`w-full py-2.5 rounded-lg text-xs tracking-wider uppercase font-semibold text-brand-accent-text ${catColors.bg} hover:brightness-110 disabled:bg-brand-bg-tertiary disabled:text-brand-text-secondary/50 border-none transition-all flex items-center justify-center`}
               >
                 Raise Formal Objection
               </button>
@@ -652,8 +663,8 @@ const PracticeArena: React.FC = () => {
 
   if (!currentSessionSettings || !practiceMode) {
     return (
-      <div className="flex justify-center items-center h-full bg-[#0a0a0a]">
-        <LoadingSpinner text="Loading session setup..." spinnerColor={catColors.text} textColor="text-zinc-500" />
+      <div className="flex justify-center items-center h-full bg-brand-bg-primary">
+        <LoadingSpinner text="Loading session setup..." spinnerColor={catColors.text} textColor="text-brand-text-secondary" />
       </div>
     );
   }
@@ -662,27 +673,27 @@ const PracticeArena: React.FC = () => {
   const ocId = currentSessionSettings.opposingCounselPersonality.id;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0a0a0a] text-zinc-200 overflow-hidden relative">
+    <div className="flex flex-col h-[100dvh] bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
 
-      <div className="p-4 sm:p-6 bg-[#0f0f0f]/80 backdrop-blur-md border-b border-zinc-800/80 flex flex-row justify-between items-center sticky top-0 z-20 flex-shrink-0">
+      <div className="p-4 sm:p-6 bg-brand-bg-secondary/80 backdrop-blur-md border-b border-brand-text-primary/15 flex flex-row justify-between items-center sticky top-0 z-20 flex-shrink-0">
         <div className="text-left flex-grow max-w-3xl mr-2">
           <div className="flex items-center space-x-3 mb-1">
-            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-mono border border-zinc-800 bg-zinc-900/60 text-zinc-400 uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
+            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-mono border border-brand-text-primary/20 bg-brand-bg-tertiary/60 text-brand-text-secondary uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
+            <span className="text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-shimmer truncate font-serif text-zinc-100" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
-          <div className="flex flex-wrap items-center text-xs sm:text-sm text-zinc-400 mt-1">
+          <h2 className="text-xl sm:text-2xl font-bold text-shimmer truncate font-serif text-brand-text-primary" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
+          <div className="flex flex-wrap items-center text-xs sm:text-sm text-brand-text-secondary mt-1">
             <span className="flex items-center mr-4"><GavelIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.judgePersonality.name}</span>
             <span className="flex items-center"><BriefcaseIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.opposingCounselPersonality.name}</span>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
           {/* End Early */}
           {!sessionEnded && isTimerRunning && (
-            <button 
+            <button
               onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-lg border border-red-500/20 bg-zinc-950/40 hover:bg-red-950/20 text-red-400 hover:text-red-350 transition-all flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-wider"
+              className="p-2 sm:px-3 sm:py-1.5 rounded-lg border border-brand-error/30 bg-brand-bg-tertiary/40 hover:bg-brand-error/10 text-brand-error transition-all flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-wider"
               title="End Trial Early"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -693,22 +704,22 @@ const PracticeArena: React.FC = () => {
           )}
 
           {/* Bench Companion Toggle for Mobile */}
-          <button 
+          <button
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="lg:hidden p-2 rounded-lg border border-zinc-800/60 bg-zinc-900/40 text-zinc-400 hover:bg-zinc-800/60 transition-all flex items-center justify-center"
+            className="lg:hidden p-2 rounded-lg border border-brand-text-primary/15 bg-brand-bg-tertiary/40 text-brand-text-secondary hover:bg-brand-text-primary/10 transition-all flex items-center justify-center"
             title="Open Bench Companion"
           >
             <CourtIcon className="h-5 w-5" />
           </button>
-          
-          <div className="text-right bg-zinc-900/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-zinc-800/60 hidden sm:block">
+
+          <div className="text-right bg-brand-bg-tertiary/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-brand-text-primary/15 hidden sm:block">
             <p className={`text-xl sm:text-2xl font-mono tracking-tight ${catColors.text} font-bold`}>{runningScore}</p>
-            <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-zinc-500">Court Score</p>
+            <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-brand-text-secondary/70">Court Score</p>
           </div>
 
-          <div className="text-right bg-zinc-900/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-zinc-800/60">
-            <p className={`text-xl sm:text-2xl font-mono tracking-tight font-bold ${remainingSeconds < 60 ? 'text-red-400 animate-pulse' : catColors.text}`}>{formattedTime}</p>
-            <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-zinc-500">{remainingSeconds <= 0 ? "Ended" : (isTimerRunning ? "Remaining" : "Paused")}</p>
+          <div className="text-right bg-brand-bg-tertiary/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-brand-text-primary/15">
+            <p className={`text-xl sm:text-2xl font-mono tracking-tight font-bold ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : catColors.text}`}>{formattedTime}</p>
+            <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-brand-text-secondary/70">{remainingSeconds <= 0 ? "Ended" : (isTimerRunning ? "Remaining" : "Paused")}</p>
           </div>
         </div>
       </div>
@@ -717,7 +728,7 @@ const PracticeArena: React.FC = () => {
       <div className="flex flex-grow overflow-hidden relative z-10 w-full">
         {/* Left Column: Chat Area */}
         <div className="flex flex-col flex-grow h-full overflow-hidden relative">
-          <div ref={chatContainerRef} className="flex-grow p-4 sm:p-6 space-y-2 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
+          <div ref={chatContainerRef} className="flex-grow p-4 sm:p-6 space-y-2 overflow-y-auto custom-scrollbar bg-brand-bg-primary">
             <div className="max-w-4xl mx-auto">
               {messages.map((msg, index) => {
                 const isLastMessage = index === messages.length - 1;
@@ -728,7 +739,7 @@ const PracticeArena: React.FC = () => {
                     <ChatMessageComponent message={msg} judgePersonalityId={judgeId} opposingCounselPersonalityId={ocId} practiceMode={practiceMode} categoryId={categoryId || undefined} />
                     {showObjectionTimer && (
                       <div className="max-w-[85%] ml-[3.5rem] sm:ml-[5.5rem] mb-6 -mt-3 animate-fadeIn text-left">
-                        <div className="bg-zinc-950/40 border border-zinc-800/80 rounded-xl p-4 flex flex-col space-y-2 shadow-sm">
+                        <div className="bg-brand-bg-secondary/70 border border-brand-text-primary/15 rounded-xl p-4 flex flex-col space-y-2 shadow-card">
                           <div className={`flex justify-between items-center text-[10px] font-mono uppercase tracking-wider ${catColors.text}`}>
                             <span className="font-semibold flex items-center">
                               <svg className={`w-3.5 h-3.5 mr-1 ${catColors.text} animate-pulse`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -737,13 +748,13 @@ const PracticeArena: React.FC = () => {
                             <span className="font-bold">{objectionWindowSecondsLeft}s remaining</span>
                           </div>
                           {/* Shrinking progress bar */}
-                          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800/40">
-                            <div 
+                          <div className="w-full bg-brand-bg-tertiary h-1.5 rounded-full overflow-hidden border border-brand-text-primary/15">
+                            <div
                               className={`${catColors.bg} h-full transition-all duration-100 ease-linear rounded-full`}
                               style={{ width: `${(objectionWindowSecondsLeft / 4.0) * 100}%` }}
                             ></div>
                           </div>
-                          <div className="flex justify-between items-center text-[9px] font-mono text-zinc-500">
+                          <div className="flex justify-between items-center text-[9px] font-mono text-brand-text-secondary/70">
                             <span>Press [ O ] or click Objection below</span>
                             <span className={`${catColors.text} font-semibold`}>[ SPEED BONUS +25 PTS ]</span>
                           </div>
@@ -753,26 +764,26 @@ const PracticeArena: React.FC = () => {
                   </div>
                 );
               })}
-              {isAiTyping && (
+              {(isAiTyping || isTranscribing) && (
                 <div className="flex items-start mb-6 px-4 py-3 w-full animate-fadeInUp">
-                  <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-zinc-900 border border-zinc-800/60 flex items-center justify-center mx-2 sm:mx-3">
-                    {isAiTyping === 'judge' ? (
+                  <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-brand-bg-secondary border border-brand-text-primary/15 flex items-center justify-center mx-2 sm:mx-3">
+                    {isTranscribing || isAiTyping === 'judge' ? (
                       <CourtIcon className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${catColors.text}`} />
                     ) : (
-                      <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-zinc-400" />
+                      <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-brand-text-secondary" />
                     )}
                   </div>
                   <div className="flex flex-col flex-grow items-start max-w-[calc(100%-3rem)] pl-1">
-                    <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                      <span className="font-bold text-zinc-300">
-                        {isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel'}
+                    <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/70">
+                      <span className="font-bold text-brand-text-primary">
+                        {isTranscribing ? 'Transcribing' : (isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel')}
                       </span>
                       <span>✦</span>
-                      <span className="text-zinc-500">Typing</span>
+                      <span className="text-brand-text-secondary/70">{isTranscribing ? 'Voice' : 'Typing'}</span>
                     </div>
                     <div className="flex items-center space-x-2.5 py-1">
-                      <span className="text-xs sm:text-sm font-light text-zinc-400 italic">
-                        {isAiTyping === 'judge' ? "The Court is considering your argument" : "Opposing Counsel is formulating a response"}
+                      <span className="text-xs sm:text-sm font-light text-brand-text-secondary italic">
+                        {isTranscribing ? "Listening and transcribing your voice" : (isAiTyping === 'judge' ? "The Court is considering your argument" : "Opposing Counsel is formulating a response")}
                       </span>
                       <span className="flex space-x-1 items-center h-2.5">
                         <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></span>
@@ -784,11 +795,11 @@ const PracticeArena: React.FC = () => {
                 </div>
               )}
               {sessionEnded && !isTimerRunning && (
-                <div className="text-center p-8 bg-zinc-950/40 border border-zinc-800/80 rounded-xl my-8 mx-auto max-w-lg shadow-sm">
-                  <div className="w-14 h-14 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-800/60">
+                <div className="text-center p-8 bg-brand-bg-secondary/70 border border-brand-text-primary/15 rounded-xl my-8 mx-auto max-w-lg shadow-card">
+                  <div className="w-14 h-14 bg-brand-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-4 border border-brand-text-primary/15">
                     <GavelIcon className={`w-6 h-6 ${catColors.text}`} />
                   </div>
-                  <p className="text-2xl font-serif font-semibold text-zinc-100 mb-6">Session Concluded</p>
+                  <p className="text-2xl font-serif font-semibold text-brand-text-primary mb-6">Session Concluded</p>
                   <Button onClick={() => handleSessionEnd(true, !currentSessionRecordRef.current?.performance)} size="lg" variant="primary" className="w-full text-lg rounded-lg">
                     {currentSessionRecordRef.current?.performance ? 'View Detailed Analysis' : 'Analyze Performance'}
                   </Button>
@@ -798,10 +809,10 @@ const PracticeArena: React.FC = () => {
           </div>
           {/* User Input Area */}
           {!sessionEnded && (
-            <div className="p-3 sm:p-6 bg-[#0a0a0a] border-t border-zinc-900/60 z-20 relative flex-shrink-0">
+            <div className="p-3 sm:p-6 bg-brand-bg-primary border-t border-brand-text-primary/15 z-20 relative flex-shrink-0">
               <div className="max-w-4xl mx-auto">
                 {audioError && (
-                  <div className="p-2.5 mb-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] rounded-lg text-left animate-fadeIn">
+                  <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/20 text-brand-error text-[11px] rounded-lg text-left animate-fadeIn">
                     [ Error ] {audioError}
                   </div>
                 )}
@@ -812,32 +823,32 @@ const PracticeArena: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsInlineObjectionActive(true)}
-                      className={`px-4 py-2 rounded-full border border-zinc-800/80 bg-zinc-950/60 hover:${catColors.bg} hover:text-zinc-950 hover:border-transparent ${catColors.text} text-[10px] font-bold font-mono uppercase tracking-widest transition-all duration-300 flex items-center gap-2 shadow-sm`}
+                      className={`px-4 py-2 rounded-full border border-brand-text-primary/15 bg-brand-bg-secondary/60 hover:${catColors.bg} hover:text-brand-accent-text hover:border-transparent ${catColors.text} text-[10px] font-bold font-mono uppercase tracking-widest transition-all duration-300 flex items-center gap-2 shadow-card`}
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                       <span>Objection! Raise Objection</span>
-                      <span className="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded text-[8px] font-mono">Press [ O ]</span>
+                      <span className="bg-brand-bg-tertiary text-brand-text-secondary px-1.5 py-0.5 rounded text-[8px] font-mono">Press [ O ]</span>
                     </button>
                   </div>
                 )}
 
                 {/* Objection formulation panel */}
                 {isInlineObjectionActive && (
-                  <div className="flex flex-col space-y-2.5 p-3.5 bg-zinc-950/40 border border-zinc-800/80 rounded-xl mb-3 text-left animate-fadeIn">
+                  <div className="flex flex-col space-y-2.5 p-3.5 bg-brand-bg-secondary/70 border border-brand-text-primary/15 rounded-xl mb-3 text-left animate-fadeIn">
                     <div className="flex items-center justify-between">
                       <span className={`text-[10px] font-mono font-bold ${catColors.text} uppercase tracking-wider flex items-center gap-1.5`}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                         Drafting Formal Objection
                       </span>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => {
                           setIsInlineObjectionActive(false);
                           setObjectionExplanation('');
                         }}
-                        className="text-[10px] font-mono uppercase text-zinc-500 hover:text-zinc-350 transition-colors"
+                        className="text-[10px] font-mono uppercase text-brand-text-secondary/70 hover:text-brand-text-primary transition-colors"
                       >
                         [ Cancel ]
                       </button>
@@ -855,8 +866,8 @@ const PracticeArena: React.FC = () => {
                           onClick={() => setObjectionGrounds(g.value)}
                           className={`px-3 py-1.5 rounded-lg border text-xs font-mono transition-all text-center flex flex-col items-center justify-center
                             ${objectionGrounds === g.value
-                              ? `${catColors.bgMuted} ${catColors.border} text-zinc-200 font-semibold`
-                              : 'bg-zinc-900/30 border-zinc-800/60 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+                              ? `${catColors.bgMuted} ${catColors.border} text-brand-text-primary font-semibold`
+                              : 'bg-brand-bg-secondary/40 border-brand-text-primary/15 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
                             }`}
                         >
                           <span className="font-semibold text-[11px] sm:text-xs">{g.label}</span>
@@ -868,7 +879,7 @@ const PracticeArena: React.FC = () => {
                 )}
 
                 {/* Sleek Input Composer Capsule */}
-                <div className="relative flex items-end gap-2.5 max-w-3xl mx-auto rounded-xl border border-zinc-800/80 bg-[#151515] focus-within:border-zinc-700 transition-all px-3 py-2 sm:py-2.5 shadow-sm shadow-black/20">
+                <div className="relative flex items-end gap-2.5 max-w-3xl mx-auto rounded-xl border border-brand-text-primary/20 bg-brand-bg-secondary/50 focus-within:border-brand-accent focus-within:shadow-glow-accent-sm transition-all px-3 py-2 sm:py-2.5 shadow-card">
                   {/* Microphone Record Button */}
                   <button
                     type="button"
@@ -876,13 +887,13 @@ const PracticeArena: React.FC = () => {
                     disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
                     className={`w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-lg flex items-center justify-center transition-all focus:outline-none disabled:opacity-40
                       ${isRecording
-                        ? 'bg-red-500/20 border border-red-500/30 text-red-400 animate-pulse'
-                        : 'bg-zinc-900 border border-zinc-800/60 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                        ? 'bg-brand-error/15 border border-brand-error/30 text-brand-error animate-pulse'
+                        : 'bg-brand-bg-tertiary border border-brand-text-primary/15 text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-text-primary/10'
                       }`}
                     title={isRecording ? 'Stop Recording' : 'Speak to Transcribe'}
                   >
                     {isRecording ? (
-                      <span className="w-2.5 h-2.5 bg-red-400 rounded-sm animate-ping"></span>
+                      <span className="w-2.5 h-2.5 bg-brand-error rounded-sm animate-ping"></span>
                     ) : (
                       <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/>
@@ -894,14 +905,14 @@ const PracticeArena: React.FC = () => {
                   <textarea
                     value={isInlineObjectionActive ? objectionExplanation : userInput}
                     onChange={(e) => isInlineObjectionActive ? setObjectionExplanation(e.target.value) : setUserInput(e.target.value)}
-                    onKeyPress={(e) => {
+                    onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         isInlineObjectionActive ? handleObjectionSubmit() : handleSendMessage();
                       }
                     }}
                     placeholder={isInlineObjectionActive ? "Explain objection basis..." : "Address the Court..."}
-                    className="flex-grow bg-transparent text-zinc-100 placeholder-zinc-500 text-xs sm:text-sm resize-none focus:outline-none min-h-[36px] max-h-[140px] py-2 custom-scrollbar font-light"
+                    className="flex-grow bg-transparent text-brand-text-primary placeholder-brand-text-secondary/50 text-xs sm:text-sm resize-none focus:outline-none min-h-[36px] max-h-[140px] py-2 custom-scrollbar font-light"
                     rows={1}
                     disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
                   />
@@ -913,8 +924,8 @@ const PracticeArena: React.FC = () => {
                     disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
                     className={`w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-full flex items-center justify-center transition-all focus:outline-none
                       ${(isInlineObjectionActive ? objectionExplanation.trim() : userInput.trim()) && !isAiTyping && isTimerRunning
-                        ? `${catColors.bg} text-zinc-950 hover:brightness-110`
-                        : 'bg-zinc-900 text-zinc-500 border border-zinc-800/60 cursor-not-allowed'
+                        ? `${catColors.bg} text-brand-accent-text hover:brightness-110`
+                        : 'bg-brand-bg-tertiary text-brand-text-secondary/50 border border-brand-text-primary/15 cursor-not-allowed'
                       }`}
                     title={isInlineObjectionActive ? "Submit Objection" : "Send Statement"}
                   >

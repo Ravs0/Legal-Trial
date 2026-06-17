@@ -59,7 +59,6 @@ export default async function handler(req, res) {
         upstream = await fetch(config.url, {
             method: "POST",
             headers: {
-                "Access-Control-Allow-Origin": origin || "*",
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${config.key}`,
             },
