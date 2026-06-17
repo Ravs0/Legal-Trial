@@ -36,7 +36,7 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
     ${className}`}
     onClick={!isHero && onClick ? onClick : undefined}
     tabIndex={onClick && !isHero ? 0 : undefined}
-    onKeyPress={(e) => { if (onClick && !isHero && e.key === 'Enter') onClick(); }}
+    onKeyDown={(e) => { if (onClick && !isHero && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
     role={onClick && !isHero ? "button" : undefined}
   >
     {icon && !isHero && (
