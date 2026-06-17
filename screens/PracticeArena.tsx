@@ -33,8 +33,8 @@ const PracticeArena: React.FC = () => {
   const catColors = getCategoryColorClasses(categoryId || 'default');
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const messagesRef = useRef<ChatMessage[]>([]);
-  messagesRef.current = messages;
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   const [userInput, setUserInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<'judge' | 'opposingCounsel' | false>(false);
   const [sessionEnded, setSessionEnded] = useState(false);
