@@ -35,6 +35,7 @@ const PracticeArena: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesRef = useRef<ChatMessage[]>(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+  const [sessionRecord, setSessionRecord] = useState<SessionRecord | null>(null);
   const [userInput, setUserInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<'judge' | 'opposingCounsel' | false>(false);
   const [sessionEnded, setSessionEnded] = useState(false);
