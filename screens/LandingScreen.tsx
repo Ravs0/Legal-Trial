@@ -84,7 +84,7 @@ const LandingScreen: React.FC = () => {
               hover:bg-brand-bg-tertiary/60 hover:border-brand-accent/25 focus-ring"
             role="button"
             tabIndex={0}
-            onKeyPress={(e) => e.key === 'Enter' && handleModeSelection('indian')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('indian'); } }}
           >
             {/* Corner accent */}
             <div className="absolute top-0 left-0 w-6 h-6">
