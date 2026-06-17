@@ -87,11 +87,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
       // Map character voice settings
       if (isJudge) {
-        if (judgePersonalityId === 'hr_khanna') { pitch = 0.85; rate = 0.95; }
-        else if (judgePersonalityId === 'vr_krishna_iyer') { pitch = 1.05; rate = 1.05; }
-        else if (judgePersonalityId === 'pn_bhagwati') { pitch = 0.9; rate = 0.9; }
-        else if (judgePersonalityId === 'dy_chandrachud') { pitch = 1.0; rate = 1.0; }
-        else if (judgePersonalityId === 'js_verma') { pitch = 0.8; rate = 0.95; }
+        if (judgePersonalityId === 'robert_vance') { pitch = 0.85; rate = 0.95; }
+        else if (judgePersonalityId === 'arthur_pendelton') { pitch = 1.05; rate = 1.05; }
+        else if (judgePersonalityId === 'paul_vance') { pitch = 0.9; rate = 0.9; }
+        else if (judgePersonalityId === 'daniel_sterling') { pitch = 1.0; rate = 1.0; }
+        else if (judgePersonalityId === 'john_sterling') { pitch = 0.8; rate = 0.95; }
       } else if (isOpposingCounsel) {
         pitch = 1.1;
         rate = 1.05;
