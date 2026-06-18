@@ -246,13 +246,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </aside>
       )}
 
-      <main className={`flex-grow z-10 transition-all duration-300 ease-in-out h-dvh flex flex-col overflow-y-auto 
+      <main className={`flex-grow z-10 transition-all duration-300 ease-in-out h-dvh flex flex-col overflow-hidden 
         ${showSidebar ? (isSidebarOpen ? 'md:ml-56' : 'md:ml-[60px]') : ''}
         ${showSidebar ? 'pt-14 md:pt-0' : ''}
       `}>
-        <div className="flex-grow p-3 sm:p-6 lg:p-10 max-w-[1400px] mx-auto w-full">
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );

@@ -137,7 +137,7 @@ const SetupScreen: React.FC = () => {
   const difficultyOptions = Object.values(CaseDifficulty).map(d => ({ value: d, label: d }));
 
   return (
-    <div className="max-w-7xl mx-auto animate-fadeIn relative z-10">
+    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full animate-fadeIn relative z-10">
       <div className="text-center mb-12">
         <div className="inline-flex items-center justify-center space-x-2 mb-4">
           <div className="h-px w-8 bg-brand-text-primary/30"></div>

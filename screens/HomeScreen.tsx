@@ -104,7 +104,7 @@ const HomeScreen: React.FC = () => {
   );
 
   return (
-    <div className="space-y-0 animate-fadeIn max-w-7xl mx-auto relative">
+    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-0 animate-fadeIn relative">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
         <BentoItem
           isHero

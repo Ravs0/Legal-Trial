@@ -871,7 +871,7 @@ Section 8.2 Limitation of Liability.
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-100px)] h-full overflow-y-auto custom-scrollbar animate-fadeIn relative pb-8">
+    <div className="flex flex-col h-full w-full overflow-hidden animate-fadeIn relative p-3 sm:p-4 md:p-6 lg:pb-6">
 
       {/* Header & Stepper */}
       <div className="flex-shrink-0 mb-4 lg:mb-8 text-center lg:text-left flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-6 px-1">
@@ -908,7 +908,7 @@ Section 8.2 Limitation of Liability.
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-grow lg:overflow-hidden relative min-h-[600px] lg:min-h-0">
+      <div className="flex flex-col lg:flex-row gap-4 flex-grow overflow-hidden relative min-h-0">
         
         {/* Main Interface */}
         {stage === 'task_selection' || stage === 'fact_generation_loading' ? (
@@ -959,7 +959,7 @@ Section 8.2 Limitation of Liability.
                 {/* Reference Sidebar (Left/Collapsible) */}
                 <aside className={`flex-shrink-0 transition-all duration-500 ease-in-out border border-brand-text-primary/30 bg-brand-bg-primary rounded-none overflow-hidden flex flex-col
                     ${isFocusMode ? 'hidden' : ''}
-                    ${isRefPanelOpen ? 'w-full lg:w-[380px] max-h-[40vh] lg:max-h-none lg:h-auto' : 'w-full lg:w-16 h-10 lg:h-auto'}
+                    ${isRefPanelOpen ? 'w-full lg:w-[380px] h-full lg:h-auto' : 'w-full lg:w-16 h-10 lg:h-auto'}
                 `}>
                     {/* Sidebar Header / Toggle */}
                     <div className="p-2 lg:p-3 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between">

@@ -23,7 +23,7 @@ const JudgesScreen: React.FC = () => {
   const screenTitle = practiceMode === 'international' ? "International Judiciary" : "Indian Judiciary";
 
   return (
-    <div className="space-y-16 animate-fadeIn pb-12 overflow-x-hidden relative">
+    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-16 animate-fadeIn pb-12 overflow-x-hidden relative">
       <div className="text-center pt-8 relative z-10 max-w-4xl mx-auto px-4">
         <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-6">
           <GavelIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand-accent" />

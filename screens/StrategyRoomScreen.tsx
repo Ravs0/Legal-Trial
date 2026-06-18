@@ -447,7 +447,7 @@ export const StrategyRoomScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   if (!context) throw new Error('TrialSimContext not found');
   const { practiceMode } = context;
-  const vpHeight = useVisualViewport();
+  const { vpHeight, isMobile } = useVisualViewport();
 
   const renderMarkdown = (text: string) => {
     if (!text) return null;
@@ -816,8 +816,8 @@ export const StrategyRoomScreen: React.FC = () => {
 
   return (
     <div 
-      className="w-full flex flex-col overflow-hidden animate-fadeIn"
-      style={{ height: `${vpHeight}px` }}
+      className="w-full flex flex-col overflow-hidden animate-fadeIn h-full"
+      style={{ height: isMobile ? `${vpHeight}px` : '100%' }}
     >
       
       {/* ========================================================================= */}

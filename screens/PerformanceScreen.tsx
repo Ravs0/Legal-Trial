@@ -83,7 +83,7 @@ const PerformanceScreen: React.FC = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn pb-12 relative z-10">
+    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-8 animate-fadeIn pb-12 relative z-10">
       <div className="text-center mb-10 pt-4">
         <div className="inline-flex items-center justify-center space-x-2 mb-4 opacity-80">
           <div className="h-px w-8 bg-brand-text-primary/30"></div>

@@ -570,8 +570,8 @@ export const DreadlerArenaScreen: React.FC = () => {
 
   const renderArenaView = () => (
     <div 
-      className="flex flex-col gap-1.5 sm:gap-4 animate-fadeIn"
-      style={{ height: `${vpHeight}px` }}
+      className="flex flex-col gap-1.5 sm:gap-4 animate-fadeIn h-full"
+      style={{ height: isMobile ? `${vpHeight}px` : '100%' }}
     >
       {/* ─── MOBILE: Floating Toggle Buttons ─── */}
       {isMobile && (
@@ -964,7 +964,7 @@ export const DreadlerArenaScreen: React.FC = () => {
   );
 
   return (
-    <div className="w-full h-full bg-[#050508] text-zinc-100 select-none overflow-y-auto custom-scrollbar p-1">
+    <div className={`w-full h-full bg-[#050508] text-zinc-100 select-none p-1 ${isSessionActive ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
       {isSessionActive ? renderArenaView() : renderSetupView()}
     </div>
   );

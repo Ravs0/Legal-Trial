@@ -572,7 +572,7 @@ const AIPersonasScreen: React.FC = () => {
   return (
     <div 
       className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden border border-brand-text-primary/20 animate-fadeIn"
-      style={{ height: `${vpHeight}px` }}
+      style={{ height: isMobile ? `${vpHeight}px` : '100%' }}
     >
       {/* Top Header Tab Panel */}
       <div className="flex items-center justify-between border-b border-brand-text-primary/20 bg-brand-bg-dark px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0">
