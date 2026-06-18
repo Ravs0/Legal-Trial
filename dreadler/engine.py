@@ -12,7 +12,7 @@ from .state import CoherenceState
 from .critic import CriticLayer
 
 
-_DEFAULT_MODEL = "moonshotai/kimi-k2.7-code-free"
+_DEFAULT_MODEL = "z-ai/glm-5.2-free"
 
 
 def _call_zenmux(messages: List[Dict], stream: bool = True) -> str:

@@ -161,7 +161,7 @@ class CriticLayer:
 
         url = f"{self._base_url.rstrip('/')}/chat/completions"
         payload = {
-            "model": "moonshotai/kimi-k2.7-code-free",
+            "model": "z-ai/glm-5.2-free",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

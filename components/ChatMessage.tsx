@@ -166,23 +166,23 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
         <div className={`flex flex-col flex-grow ${isUser ? 'items-end' : 'items-start'} max-w-[calc(100%-3rem)]`}>
           {/* Header Row */}
-          <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-            <span className={`font-bold ${isUser ? 'text-zinc-400' : 'text-zinc-300'}`}>{getSenderName()}</span>
+          <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/70">
+            <span className={`font-bold ${isUser ? 'text-brand-text-secondary' : 'text-brand-text-primary'}`}>{getSenderName()}</span>
             <span>✦</span>
             <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
-
+ 
           {/* Message Content */}
           <div className={`w-full ${isUser ? 'flex justify-end' : ''}`}>
             {isUser ? (
-              <div className="bg-zinc-900/60 text-zinc-100 border border-zinc-800/40 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm max-w-[85%] text-left">
+              <div className="bg-brand-accent/15 text-brand-text-primary border border-brand-accent/30 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm max-w-[85%] text-left">
                 <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-light selection:bg-brand-accent/20">
                   {formatText(message.text)}
                 </p>
               </div>
             ) : (
-              <div className="text-left w-full pl-1">
-                <p className="text-xs sm:text-sm leading-relaxed text-zinc-100 whitespace-pre-wrap font-light selection:bg-brand-accent/20">
+              <div className="bg-brand-bg-secondary border border-brand-border text-brand-text-primary rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm max-w-[85%] text-left">
+                <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-light selection:bg-brand-accent/20">
                   {formatText(message.text)}
                 </p>
               </div>

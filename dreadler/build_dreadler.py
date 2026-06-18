@@ -19,7 +19,7 @@ def call_zenmux(prompt: str, system: str = "You are an expert Python engineer an
     ctx.check_hostname = False
     ctx.verify_mode    = ssl.CERT_NONE
     payload = json.dumps({
-        "model": "moonshotai/kimi-k2.7-code-free",
+        "model": "z-ai/glm-5.2-free",
         "messages": [
             {"role": "system", "content": system},
             {"role": "user",   "content": prompt}
@@ -91,7 +91,7 @@ CONTEXT = textwrap.dedent("""
     ZENMUX API:
     base_url = os.environ["ZENMUX_BASE_URL"]  # https://zenmux.ai/api/v1
     api_key  = os.environ["ZENMUX_API_KEY"]
-    model    = "moonshotai/kimi-k2.7-code-free"
+    model    = "z-ai/glm-5.2-free"
     Uses OpenAI-compatible chat completions endpoint.
     SSL verification disabled (macOS cert issue workaround).
 

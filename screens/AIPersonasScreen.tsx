@@ -855,7 +855,7 @@ const AIPersonasScreen: React.FC = () => {
                     if (isInterjection) {
                       return (
                         <div key={m.id} className="flex justify-center my-2 sm:my-3 animate-fadeIn">
-                          <div className="border border-brand-accent/30 bg-brand-bg-dark/60 p-3 sm:p-4 max-w-lg text-[10px] sm:text-xs leading-relaxed space-y-2 border-l-4">
+                          <div className="border border-brand-accent/25 bg-brand-bg-secondary/80 p-3 sm:p-4 max-w-lg text-[10px] sm:text-xs leading-relaxed space-y-2 border-l-4">
                             <div className="flex items-center space-x-2 border-b border-brand-text-primary/10 pb-1.5">
                               <span className={`h-5 w-5 border border-brand-text-primary/30 flex items-center justify-center font-mono text-[10px] bg-brand-bg-primary ${m.interjectorColor}`}>
                                 {m.interjectorAvatar}

@@ -14,7 +14,7 @@ def call_zenmux(prompt: str) -> str:
     ctx.check_hostname = False
     ctx.verify_mode    = ssl.CERT_NONE
     payload = json.dumps({
-        "model": "moonshotai/kimi-k2.7-code-free",
+        "model": "z-ai/glm-5.2-free",
         "messages": [
             {"role": "system", "content": "You are an expert Python engineer. Output ONLY raw Python code — no markdown fences, no explanations, no preamble."},
             {"role": "user",   "content": prompt}
@@ -54,7 +54,7 @@ ZENMUX API CALL FUNCTION (private, named _call_zenmux):
   Signature: def _call_zenmux(messages: List[Dict], stream: bool = True) -> str
   - Reads ZENMUX_API_KEY and ZENMUX_BASE_URL from env (default base: https://zenmux.ai/api/v1)
   - Raises RuntimeError if ZENMUX_API_KEY not set
-  - _DEFAULT_MODEL = "moonshotai/kimi-k2.7-code-free"
+  - _DEFAULT_MODEL = "z-ai/glm-5.2-free"
   - Creates ssl context: ctx.check_hostname=False, ctx.verify_mode=ssl.CERT_NONE
   - POST to {base_url}/chat/completions with JSON body: {model, messages, stream}
   - Authorization: Bearer {api_key}, Content-Type: application/json
@@ -159,7 +159,7 @@ ZENMUX API CALL (private helper inside the class or module-level):
 - Same pattern: ZENMUX_API_KEY, ZENMUX_BASE_URL env vars
 - ssl context with check_hostname=False, verify_mode=ssl.CERT_NONE
 - POST to /chat/completions with stream=False
-- model: moonshotai/kimi-k2.7-code-free
+- model: z-ai/glm-5.2-free
 
 CLASS CriticLayer:
   def __init__(self): set up ssl context, store as self._ctx

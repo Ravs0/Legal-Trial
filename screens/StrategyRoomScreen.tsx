@@ -930,7 +930,7 @@ export const StrategyRoomScreen: React.FC = () => {
                       ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
                         ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[10px]'
-                        : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
+                        : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
                     }`}
                 >
                   <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
@@ -1238,7 +1238,7 @@ export const StrategyRoomScreen: React.FC = () => {
                       ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
                         ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[11px]'
-                        : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
+                        : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
                     }`}
                 >
                   <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
