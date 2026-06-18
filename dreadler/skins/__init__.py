@@ -18,20 +18,18 @@ Example
 >>> vance = get_skin("prosecutor_vance")
 """
 
-from .prosecutor_vance import SKIN as PROSECUTOR_VANCE
-from .dr_abernathy import SKIN as DR_ABERNATHY
+from .dreadler import SKIN as DREADLER
 
 
-# Registry of all available skins. Add new entries here as additional
-# character templates are implemented.
+# Registry of all available skins. Map all keys to DREADLER for robustness.
 SKINS: dict[str, dict] = {
-    "prosecutor_vance": PROSECUTOR_VANCE,
-    "dr_abernathy": DR_ABERNATHY,
+    "dreadler": DREADLER,
+    "prosecutor_vance": DREADLER,
+    "dr_abernathy": DREADLER,
 }
 
 __all__ = [
-    "PROSECUTOR_VANCE",
-    "DR_ABERNATHY",
+    "DREADLER",
     "SKINS",
     "get_skin",
 ]
@@ -44,7 +42,7 @@ def get_skin(skin_id: str) -> dict:
     Parameters
     ----------
     skin_id: str
-        Identifier of the desired skin (e.g. ``"prosecutor_vance"``).
+        Identifier of the desired skin (e.g. ``"dreadler"``).
 
     Returns
     -------
@@ -56,10 +54,8 @@ def get_skin(skin_id: str) -> dict:
     ValueError
         If ``skin_id`` is not registered in ``SKINS``.
     """
+    # Fall back to dreadler if not found
     skin_id = skin_id.strip().lower()
-
     if skin_id not in SKINS:
-        known = ", ".join(sorted(SKINS))
-        raise ValueError(f"Unknown skin_id: {skin_id!r}. Available skins: {known}")
-
+        return DREADLER
     return SKINS[skin_id]

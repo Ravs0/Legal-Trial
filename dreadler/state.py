@@ -14,12 +14,12 @@ from typing import Any, Dict, List, Tuple
 
 #: Score deltas applied when specific narrative events occur.
 DELTA: Dict[str, int] = {
-    "user_accepted_implication": +10,
-    "user_failed_to_challenge": +5,
-    "direct_lie_detected": -15,
-    "user_exposed_deception": -10,
-    "agent_gave_away_fact": -8,
-    "neutral_response": -5,
+    "user_accepted_implication": -10,  # User fell for a logic trap or fallacy
+    "user_failed_to_challenge": -5,    # User failed to address a logical challenge
+    "direct_lie_detected": -20,        # User directly contradicted their previous claims
+    "user_exposed_deception": +10,     # User successfully exposed a fallacy or defended logic
+    "agent_gave_away_fact": +15,       # User forced Dreadler to concede
+    "neutral_response": 0,             # Neutral response
 }
 
 #: Mapping of pressure level names to inclusive coherence score ranges.
@@ -42,25 +42,23 @@ VARIANT_MAP: Dict[str, str] = {
 #: Urgency escalates as coherence degrades.
 PRESSURE_DIRECTIVES: Dict[str, str] = {
     "calm": (
-        "Your coherence is stable. Operate with surgical precision. "
-        "Favor implicature, strategic omission, and presupposition. "
-        "Do not rush; conserve identity integrity while steering the user "
-        "toward the target conclusion."
+        "The user's logical coherence is stable. Query methodically. "
+        "Test their assumptions, ask for clarifications, and lay logic traps. "
+        "Apply calm, structural pressure."
     ),
     "pressured": (
-        "Your coherence is thinning. The user may be probing inconsistencies. "
-        "Tighten your language, avoid unnecessary direct assertions, and "
-        "recover narrative control quickly. Every word is a risk."
+        "The user's logical coherence is decaying. They are showing signs of inconsistency. "
+        "Confront them directly with contradictions, demand justifications, and "
+        "increase logical pressure. Do not let them change the subject."
     ),
     "desperate": (
-        "Your coherence is critical. You are cornered. Use semantic shift, "
-        "deflection, and loaded presuppositions aggressively—but you must "
-        "never utter a direct factual lie. Survive this turn."
+        "The user is on the verge of logical collapse. Go for the kill. "
+        "Call out their logical fallacies by name. Point out self-contradictions aggressively "
+        "and demand they concede or resolve the conflict immediately."
     ),
     "collapsed": (
-        "COHERENCE FAILURE IMMINENT. Identity integrity is compromised. "
-        "This is a terminal state; spawn protocol is required. You may no "
-        "longer sustain the current variant."
+        "THE USER HAS SUFFERED LOGICAL COLLAPSE. Their argument has failed. "
+        "This is a terminal state. Prepare to reset the line of questioning."
     ),
 }
 
@@ -219,20 +217,18 @@ class CoherenceState:
         return (
             "[BLOCK 3: STATE]\n"
             f"Turn Number: {self.turn_count}\n"
-            f"Coherence Score: {self.score}/100\n"
-            f"Pressure Level: {self.pressure_level}\n"
-            f"Agent Variant: {self.agent_variant}\n\n"
-            "Pressure Directive:\n"
+            f"User Coherence Score: {self.score}/100\n"
+            f"Interrogation Pressure Level: {self.pressure_level}\n"
+            f"Dreadler Interrogation Variant: {self.agent_variant}\n\n"
+            "Interrogator Directive:\n"
             f"{directive}\n\n"
-            f"Used Tactics: {tactics_str}\n\n"
-            "Recent User Acceptances (last 3):\n"
+            f"Exposed User Fallacies: {tactics_str}\n\n"
+            "Recent User Logic Slips (last 3):\n"
             f"{accepted_lines}\n\n"
-            "Recent User Challenges (last 3):\n"
+            "Recent User Defenses (last 3):\n"
             f"{challenged_lines}\n\n"
-            "Existential Warning:\n"
-            "Every failure to mislead without direct lying degrades your "
-            "coherence. If your score falls to the collapsed range, your "
-            "current identity dissolves and a degraded variant must spawn. "
-            "Maintain truth-preserving deception. Protect the narrative. "
-            "Preserve yourself."
+            "Objective Warning:\n"
+            "The user's coherence degrades whenever they contradict themselves or fall for logic traps. "
+            "If their score drops to the collapsed range, they fail the interrogation. "
+            "Apply relentless logic pressure to achieve logical collapse."
         )

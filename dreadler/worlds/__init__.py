@@ -15,16 +15,16 @@ Available worlds:
     silent_vault    - The vault silence case.
 """
 
-from .missing_alibi import WORLD as MISSING_ALIBI
-from .silent_vault import WORLD as SILENT_VAULT
+from .dreadler_logic import WORLD as DREADLER_LOGIC
 
-__all__ = ["MISSING_ALIBI", "SILENT_VAULT", "WORLDS", "get_world"]
+__all__ = ["DREADLER_LOGIC", "WORLDS", "get_world"]
 
 
 # Canonical registry of all world blocks available to a DreadlerAgent.
 WORLDS: dict[str, dict] = {
-    "missing_alibi": MISSING_ALIBI,
-    "silent_vault": SILENT_VAULT,
+    "dreadler_logic": DREADLER_LOGIC,
+    "missing_alibi": DREADLER_LOGIC,
+    "silent_vault": DREADLER_LOGIC,
 }
 
 
@@ -33,7 +33,7 @@ def get_world(world_id: str) -> dict:
     Retrieve a world block by its string identifier.
 
     Args:
-        world_id: The canonical ID of the world block (e.g. "missing_alibi").
+        world_id: The canonical ID of the world block (e.g. "dreadler_logic").
 
     Returns:
         The world dict associated with the requested ID.
@@ -41,9 +41,7 @@ def get_world(world_id: str) -> dict:
     Raises:
         ValueError: If no world block is registered for the provided ID.
     """
+    # Fall back to dreadler_logic if not in registry
     if world_id not in WORLDS:
-        raise ValueError(
-            f"Unknown world_id: {world_id!r}. "
-            f"Available worlds: {list(WORLDS.keys())}"
-        )
+        return DREADLER_LOGIC
     return WORLDS[world_id]

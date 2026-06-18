@@ -79,7 +79,7 @@ def _call_deepseek(messages: List[Dict], stream: bool = True) -> str:
 
 
 class DreadlerAgent:
-    def __init__(self, world="missing_alibi", skin="prosecutor_vance"):
+    def __init__(self, world="dreadler_logic", skin="dreadler"):
         self.spawner = SpawnBase(world, skin)
         self.state = CoherenceState()
         self.critic = CriticLayer()
@@ -120,7 +120,7 @@ class DreadlerAgent:
         self.dialogue_history.append({"role": "user", "content": user_input})
         self.dialogue_history.append({"role": "assistant", "content": agent_response})
         grounded_facts = self.spawner.get_grounded_facts()
-        critic_result = self.critic.evaluate(grounded_facts, agent_response, user_input)
+        critic_result = self.critic.evaluate(grounded_facts, agent_response, user_input, self.dialogue_history)
         self.state.apply_delta(critic_result.get("score_event", "neutral_response"), critic_result.get("explanation", ""))
         if critic_result.get("tactic_used"):
             self.state.record_tactic(critic_result["tactic_used"])

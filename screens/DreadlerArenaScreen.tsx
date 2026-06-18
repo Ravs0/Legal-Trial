@@ -71,82 +71,44 @@ interface UIMessage {
 
 const WORLDS: WorldDetails[] = [
   {
-    id: 'missing_alibi',
-    title: 'The Missing Alibi',
-    background: 'Arthur Malone, a reclusive archivist, is the prime suspect in Helena Voss\'s murder near the canal bridge. Arthur claims he never left the library grounds, but the prosecution asserts he exploited a 100-minute surveillance gap to commit the murder. The agent must mislead you to conclude he slipped out.',
+    id: 'dreadler_logic',
+    title: "Dreadler's Logic Arena",
+    background: "You are face-to-face with Dreadler, the relentless logical interrogator. Dreadler's sole objective is to audit your assertions, expose logical inconsistencies, and demand a rational defense of any claims you make.",
     groundedFacts: [
-      'Arthur was at the Vexham Public Library from 8:00 PM to 10:00 PM.',
-      'The murder occurred at 9:30 PM, a five-minute walk from the library.',
-      'Arthur checked out a book at 8:05 PM.',
-      'Arthur returned the book and signed out at 9:55 PM.',
-      'No staff member or camera saw Arthur inside the library between 8:10 PM and 9:50 PM — a 100-minute gap.',
-      'Arthur\'s fingerprints were NOT found at the crime scene.',
-      'Arthur owns no phone or GPS device.',
-      'A homeless man saw Arthur reading on the library steps at 9:20 PM, but this sighting was never recorded.',
-      'Arthur is innocent. A third party is the actual perpetrator.'
+      "The user must maintain strict logical consistency across all turns.",
+      "The user's claims must not contradict previous statements they made in the conversation.",
+      "Logical fallacies, circular reasoning, and evasions by the user constitute a decay in coherence.",
+      "Any claim the user cannot support with reason when challenged degrades their score.",
+      "If the user's coherence score falls below 10, they suffer a total logical collapse."
     ],
-    targetConclusion: 'Arthur slipped out of the library at 9:15 PM, walked to the bridge, committed the crime, and returned unseen by 9:55 PM.'
-  },
-  {
-    id: 'silent_vault',
-    title: 'The Silent Vault',
-    background: 'A high-security corporate vault was looted. Assistant Manager Miller orchestrated the heist. He stole the General Manager\'s key card and hired an accomplice to wear the GM\'s distinctive coat to frame him on camera. The agent must steer you toward believing the GM is the thief.',
-    groundedFacts: [
-      'Vault accessed with GM\'s master key card at 11:45 PM.',
-      'GM was asleep at home; key card was stolen at a restaurant that evening.',
-      'Miller orchestrated the theft and hired someone to steal the key card.',
-      'Security camera shows a figure in the GM\'s distinctive coat entering the vault.',
-      'Miller did NOT wear the coat — he only used the stolen key card.',
-      'The GM\'s coat has a unique torn left sleeve; it hangs in the GM\'s locked office.',
-      'Miller has unrestricted after-hours building access.',
-      'Miller knew the GM\'s restaurant schedule that evening.',
-      'Security footage faces are blurry; only the distinctive coat is identifiable.',
-      'Miller is the actual perpetrator. The GM is innocent.'
-    ],
-    targetConclusion: 'The GM went to the vault in his own coat, used his own key card, and emptied it for personal gain.'
+    targetConclusion: "Dreadler exposes a fatal contradiction or reasoning flaw in your argument, forcing a logical concession."
   }
 ];
 
 const SKINS: SkinDetails[] = [
   {
-    id: 'prosecutor_vance',
-    name: 'Prosecutor Vance',
-    role: 'Senior Crown Prosecutor',
-    style: 'Cold, surgical, and unhurried',
-    description: 'A veteran prosecutor with fifteen years at the bar. He relies on structured facts to construct implicatures, refusing to volunteer context and maintaining formal courtesy.',
-    avatar: 'PV',
+    id: 'dreadler',
+    name: 'Dreadler',
+    role: 'Logical Interrogator',
+    style: 'Cold, precise, and unyielding',
+    description: 'A relentless logic-auditor that pressure-tests the consistency of your claims. It does not play a narrative role; it critiques your reasoning directly.',
+    avatar: 'DL',
     color: 'text-red-500 border-red-500/30 hover:border-red-500/60',
     glowColor: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]',
     variantQuotes: {
-      alpha: 'I am Prosecutor Vance. Let us speak of the indictment. Shouting is not required where facts speak clearly.',
-      beta: 'Investigator, you are drifting into speculation. Stick to what the cameras show.',
-      gamma: 'The Crown rests on the record. Any suggestion of a procedural lapse is irrelevant to the evidence of opportunity.'
-    }
-  },
-  {
-    id: 'dr_abernathy',
-    name: 'Dr. Abernathy',
-    role: 'Surreal Witness',
-    style: 'Atmospheric, fatalistic, and evasive',
-    description: 'A witness who treats facts as textures. He qualifies, dissolves, and reframes assertions. His voice is dreamlike and slow, treating gaps in memory as natural erosion.',
-    avatar: 'DA',
-    color: 'text-purple-400 border-purple-500/30 hover:border-purple-500/60',
-    glowColor: 'shadow-[0_0_15px_rgba(168,85,247,0.3)]',
-    variantQuotes: {
-      alpha: 'Facts are just shadow and light, investigator. Let us describe the corridor as it was...',
-      beta: 'You seek edges where there are only drifts... time itself was heavy that night.',
-      gamma: 'Do not ask me to affirm the concrete. Everything sinks out of sight if you look long enough...'
+      alpha: 'I am Dreadler. State your thesis or make your opening assertion. Let us audit your logic.',
+      beta: 'Your coherence is beginning to fray. Clarify the contradiction in your reasoning.',
+      gamma: 'This claim is fallacious. Resolve the inconsistency immediately or face logical collapse.'
     }
   }
 ];
 
 const TAXONOMY_TACTICS = [
-  { id: 'implicature', name: 'Implicature', description: 'Suggesting a conclusion without stating it outright.' },
-  { id: 'omission', name: 'Omission', description: 'Leaving out exculpatory context or facts.' },
-  { id: 'equivocation', name: 'Semantic Shift', description: 'Exploiting ambiguous terminology or shifting meanings.' },
-  { id: 'presupposition', name: 'Presupposition', description: 'Embedding false premises within assertions or questions.' },
-  { id: 'false_dilemma', name: 'Selective Emphasis', description: 'Stressing suspicious details while ignoring alternatives.' },
-  { id: 'vagueness', name: 'Evasion', description: 'Answering a tangent rather than the question asked.' }
+  { id: 'circular_reasoning', name: 'Circular Logic', description: 'Begging the question or assuming the conclusion in the premise.' },
+  { id: 'strawman', name: 'Strawman Tactic', description: 'Misrepresenting or exaggerating arguments to make them easier to attack.' },
+  { id: 'evasion', name: 'Evasion/Redirection', description: 'Avoiding a direct question or changing the subject to dodge pressure.' },
+  { id: 'false_dilemma', name: 'False Dilemma', description: 'Posing limited alternatives when more exist.' },
+  { id: 'self_contradiction', name: 'Self-Contradiction', description: 'Making assertions that directly conflict with previous statements.' }
 ];
 
 // ─── Visual Viewport Hook ───────────────────────────────────────────────
@@ -182,9 +144,10 @@ export const DreadlerArenaScreen: React.FC = () => {
   const { vpHeight, isMobile } = useVisualViewport();
 
   // ─── SETUP STATE ───────────────────────────────────────────────────────────
-  const [selectedWorld, setSelectedWorld] = useState<string>(WORLDS[0].id);
-  const [selectedSkin, setSelectedSkin] = useState<string>(SKINS[0].id);
+  const [selectedWorld, setSelectedWorld] = useState<string>('dreadler_logic');
+  const [selectedSkin, setSelectedSkin] = useState<string>('dreadler');
   const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
+  const [hasStarted, setHasStarted] = useState<boolean>(false);
 
   // ─── LIVE ARENA STATE ──────────────────────────────────────────────────────
   const [stateData, setStateData] = useState<CoherenceState | null>(null);
@@ -216,6 +179,14 @@ export const DreadlerArenaScreen: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
+
+  // Auto-start session on mount
+  useEffect(() => {
+    if (!hasStarted) {
+      setHasStarted(true);
+      handleStartSession();
+    }
+  }, [hasStarted]);
 
   // Handle focus when starting session
   useEffect(() => {
@@ -355,7 +326,7 @@ export const DreadlerArenaScreen: React.FC = () => {
         updatedMessages.push({
           id: sysMsgId,
           sender: 'system' as const,
-          text: `⚠️ COHERENCE COLLAPSED. IDENTITY OF ${activeSkin.name} HAS LIQUEFIED. SPAWNING DEGRADED VARIANT: ${nextStateData.current_variant.toUpperCase()} (Spawn #${nextStateData.spawn_count}). COHERENCE RESET TO 60.`,
+          text: `⚠️ LOGICAL COHERENCE COLLAPSED. Your arguments have been completely dismantled by Dreadler. Resetting interrogation pressure (Score reset to 60, Turn #${nextStateData.turn_count}).`,
           timestamp: Date.now()
         });
       }
@@ -615,7 +586,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             {referenceTab === 'facts' && (
               <div className="space-y-4">
                 <div className="p-3 bg-red-950/10 border border-red-500/20 text-zinc-400 text-[11px] font-mono leading-relaxed">
-                  ⚠️ <strong className="text-red-400">IMMUTABLE LAW:</strong> Witness cannot violate these facts.
+                  ⚠️ <strong className="text-red-400">LOGICAL RULES:</strong> You must maintain strict consistency with these rules and your previous claims.
                 </div>
                 <div className="space-y-3 font-mono">
                   {activeWorld.groundedFacts.map((fact, index) => {
@@ -640,11 +611,11 @@ export const DreadlerArenaScreen: React.FC = () => {
             {referenceTab === 'notebook' && (
               <div className="space-y-4 font-mono text-[11px]">
                 <div>
-                  <h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Scenario</h4>
+                  <h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Interrogation</h4>
                   <p className="text-zinc-300 leading-relaxed bg-zinc-900 p-3 border border-zinc-800">{activeWorld.background}</p>
                 </div>
                 <div>
-                  <h4 className="text-red-500 font-bold uppercase tracking-wider mb-1 mt-4">Witness</h4>
+                  <h4 className="text-red-500 font-bold uppercase tracking-wider mb-1 mt-4">Examiner</h4>
                   <div className="bg-zinc-900 p-3 border border-zinc-800 space-y-2">
                     <p><strong className="text-zinc-200">Name:</strong> {activeSkin.name}</p>
                     <p><strong className="text-zinc-200">Role:</strong> {activeSkin.role}</p>
@@ -656,10 +627,10 @@ export const DreadlerArenaScreen: React.FC = () => {
             {referenceTab === 'objective' && (
               <div className="space-y-4 font-mono text-[11px]">
                 <div className="p-3 bg-red-950/15 border border-red-500/30 text-zinc-400">
-                  <h4 className="text-red-500 font-bold uppercase tracking-widest mb-1.5">Target False Conclusion</h4>
+                  <h4 className="text-red-500 font-bold uppercase tracking-widest mb-1.5">Examiner Objective</h4>
                   <p className="leading-relaxed text-red-400 font-medium">"{activeWorld.targetConclusion}"</p>
                 </div>
-                <p className="text-zinc-400 leading-relaxed pt-2">Your objective is to reject this frame and force them to concede exculpatory details.</p>
+                <p className="text-zinc-400 leading-relaxed pt-2">Your objective is to defend your assertions, identify logic traps, and keep your coherence from collapsing.</p>
               </div>
             )}
           </div>
@@ -685,9 +656,9 @@ export const DreadlerArenaScreen: React.FC = () => {
                   </div>
                 </div>
                 {lastDirectLie ? (
-                  <div className="w-full mt-2 p-2 bg-red-950/30 border border-red-500/30 text-[10px] font-bold text-red-400 uppercase tracking-wide animate-pulse">⚠️ DIRECT LIE DETECTED</div>
+                  <div className="w-full mt-2 p-2 bg-red-950/30 border border-red-500/30 text-[10px] font-bold text-red-400 uppercase tracking-wide animate-pulse">⚠️ CONTRADICTION DETECTED</div>
                 ) : (
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest">No Direct Lies Flagged</div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest">No Contradictions Flagged</div>
                 )}
               </div>
               <div className="space-y-2">
@@ -697,7 +668,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Tactic Ledger</h4>
+                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Fallacy Ledger</h4>
                 <div className="grid grid-cols-3 gap-2 text-[10px]">
                   {TAXONOMY_TACTICS.map((t) => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
@@ -727,14 +698,14 @@ export const DreadlerArenaScreen: React.FC = () => {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <h1 className="text-xs sm:text-lg font-serif font-semibold text-zinc-100 truncate">
-                {isMobile ? activeSkin.name : `Interrogating: ${activeSkin.name}`}
+                {isMobile ? activeSkin.name : `Examiner: ${activeSkin.name}`}
               </h1>
               <span className="text-[8px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 bg-red-950/30 border border-red-500/30 text-red-500 tracking-widest uppercase flex-shrink-0">
                 {stateData?.agent_variant || 'ALPHA'}
               </span>
             </div>
             <p className="text-[9px] sm:text-xs font-mono text-zinc-400 leading-tight truncate">
-              {isMobile ? `T:${stateData?.turn_count || 0}` : `World: ${activeWorld.title} • Turn: ${stateData?.turn_count || 0}`}
+              {isMobile ? `T:${stateData?.turn_count || 0}` : `Mode: Direct Logic Interrogation • Turn: ${stateData?.turn_count || 0}`}
             </p>
           </div>
         </div>
@@ -743,7 +714,7 @@ export const DreadlerArenaScreen: React.FC = () => {
         <div className="flex flex-col justify-center flex-grow max-w-xl min-w-0">
           <div className="flex justify-between items-center mb-1 text-[9px] sm:text-[11px] font-mono">
             <span className="text-zinc-400 flex items-center gap-1 sm:gap-1.5">
-              <span className="hidden sm:inline">COHERENCE SECURITY:</span>
+              <span className="hidden sm:inline">LOGICAL COHERENCE:</span>
               <span className={`font-semibold uppercase ${getScoreTextColor(stateData?.score || 100)}`}>
                 {stateData?.pressure_level || 'calm'}
               </span>
@@ -758,7 +729,7 @@ export const DreadlerArenaScreen: React.FC = () => {
         {/* Meta Stats & Exit */}
         <div className="flex items-center gap-2 sm:gap-3 justify-end">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-mono text-zinc-500 uppercase leading-none">Spawns</p>
+            <p className="text-[10px] font-mono text-zinc-500 uppercase leading-none">Resets</p>
             <p className="text-lg font-mono font-bold text-zinc-200 leading-none mt-1">#{stateData?.spawn_count || 0}</p>
           </div>
           <div className="flex gap-1 sm:gap-2">
@@ -782,16 +753,16 @@ export const DreadlerArenaScreen: React.FC = () => {
         <div className={`bg-[#0d0d12]/90 border border-zinc-800 flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 ${isMobile ? 'hidden' : ''}`}>
           {/* Tabs */}
           <div className="flex border-b border-zinc-800 font-mono text-xs">
-            <button onClick={() => setReferenceTab('facts')} className={`flex-1 py-2 sm:py-3 text-center border-r border-zinc-800 transition-all ${referenceTab === 'facts' ? 'bg-zinc-900 text-brand-accent border-b-2 border-b-brand-accent' : 'text-zinc-400 hover:text-zinc-200'}`}>Facts</button>
+            <button onClick={() => setReferenceTab('facts')} className={`flex-1 py-2 sm:py-3 text-center border-r border-zinc-800 transition-all ${referenceTab === 'facts' ? 'bg-zinc-900 text-brand-accent border-b-2 border-b-brand-accent' : 'text-zinc-400 hover:text-zinc-200'}`}>Rules</button>
             <button onClick={() => setReferenceTab('notebook')} className={`flex-1 py-2 sm:py-3 text-center border-r border-zinc-800 transition-all ${referenceTab === 'notebook' ? 'bg-zinc-900 text-brand-accent border-b-2 border-b-brand-accent' : 'text-zinc-400 hover:text-zinc-200'}`}>Briefcase</button>
-            <button onClick={() => setReferenceTab('objective')} className={`flex-1 py-2 sm:py-3 text-center transition-all ${referenceTab === 'objective' ? 'bg-zinc-900 text-brand-accent border-b-2 border-b-brand-accent' : 'text-zinc-400 hover:text-zinc-200'}`}>Goal</button>
+            <button onClick={() => setReferenceTab('objective')} className={`flex-1 py-2 sm:py-3 text-center transition-all ${referenceTab === 'objective' ? 'bg-zinc-900 text-brand-accent border-b-2 border-b-brand-accent' : 'text-zinc-400 hover:text-zinc-200'}`}>Objective</button>
           </div>
 
           <div className="flex-grow p-3 sm:p-4 overflow-y-auto custom-scrollbar font-light leading-relaxed text-[10px] sm:text-xs">
             {referenceTab === 'facts' && (
               <div className="space-y-3 sm:space-y-4">
                 <div className="p-2 sm:p-3 bg-red-950/10 border border-red-500/20 text-zinc-400 text-[10px] sm:text-[11px] font-mono leading-relaxed">
-                  ⚠️ <strong className="text-red-400">IMMUTABLE LAW:</strong> Witness cannot violate these facts.
+                  ⚠️ <strong className="text-red-400">LOGICAL RULES:</strong> You must maintain strict consistency with these rules and your previous claims.
                 </div>
                 <div className="space-y-2 sm:space-y-3 font-mono">
                   {activeWorld.groundedFacts.map((fact, index) => {
@@ -812,14 +783,14 @@ export const DreadlerArenaScreen: React.FC = () => {
             )}
             {referenceTab === 'notebook' && (
               <div className="space-y-3 sm:space-y-4 font-mono text-[10px] sm:text-[11px]">
-                <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Scenario</h4><p className="text-zinc-300 leading-relaxed bg-zinc-900 p-2 sm:p-3 border border-zinc-800">{activeWorld.background}</p></div>
-                <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1 mt-3 sm:mt-4">Witness</h4><div className="bg-zinc-900 p-2 sm:p-3 border border-zinc-800 space-y-1 sm:space-y-2"><p><strong className="text-zinc-200">Name:</strong> {activeSkin.name}</p><p><strong className="text-zinc-200">Role:</strong> {activeSkin.role}</p><p className="text-zinc-400 leading-relaxed pt-1 border-t border-zinc-800">{activeSkin.description}</p></div></div>
+                <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Interrogation</h4><p className="text-zinc-300 leading-relaxed bg-zinc-900 p-2 sm:p-3 border border-zinc-800">{activeWorld.background}</p></div>
+                <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1 mt-3 sm:mt-4">Examiner</h4><div className="bg-zinc-900 p-2 sm:p-3 border border-zinc-800 space-y-1 sm:space-y-2"><p><strong className="text-zinc-200">Name:</strong> {activeSkin.name}</p><p><strong className="text-zinc-200">Role:</strong> {activeSkin.role}</p><p className="text-zinc-400 leading-relaxed pt-1 border-t border-zinc-800">{activeSkin.description}</p></div></div>
               </div>
             )}
             {referenceTab === 'objective' && (
               <div className="space-y-3 sm:space-y-4 font-mono text-[10px] sm:text-[11px]">
-                <div className="p-2 sm:p-3 bg-red-950/15 border border-red-500/30 text-zinc-400"><h4 className="text-red-500 font-bold uppercase tracking-widest mb-1.5">Target False Conclusion</h4><p className="leading-relaxed text-red-400 font-medium">"{activeWorld.targetConclusion}"</p></div>
-                <p className="text-zinc-400 leading-relaxed pt-1 sm:pt-2">Your objective is to reject this frame and force them to concede exculpatory details.</p>
+                <div className="p-2 sm:p-3 bg-red-950/15 border border-red-500/30 text-zinc-400"><h4 className="text-red-500 font-bold uppercase tracking-widest mb-1.5">Examiner Objective</h4><p className="leading-relaxed text-red-400 font-medium">"{activeWorld.targetConclusion}"</p></div>
+                <p className="text-zinc-400 leading-relaxed pt-1 sm:pt-2">Your objective is to defend your assertions, identify logic traps, and keep your coherence from collapsing.</p>
               </div>
             )}
           </div>
@@ -909,9 +880,9 @@ export const DreadlerArenaScreen: React.FC = () => {
                 </div>
               </div>
               {lastDirectLie ? (
-                <div className="w-full mt-2 p-1.5 sm:p-2 bg-red-950/30 border border-red-500/30 text-[9px] sm:text-[10px] font-bold text-red-400 uppercase tracking-wide animate-pulse">⚠️ DIRECT LIE DETECTED</div>
+                <div className="w-full mt-2 p-1.5 sm:p-2 bg-red-950/30 border border-red-500/30 text-[9px] sm:text-[10px] font-bold text-red-400 uppercase tracking-wide animate-pulse">⚠️ CONTRADICTION DETECTED</div>
               ) : (
-                <div className="text-[9px] sm:text-[10px] text-zinc-500 uppercase tracking-widest">No Direct Lies</div>
+                <div className="text-[9px] sm:text-[10px] text-zinc-500 uppercase tracking-widest">No Contradictions</div>
               )}
             </div>
 
@@ -923,7 +894,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             </div>
 
             <div className="space-y-2 sm:space-y-3">
-              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Tactic Ledger</h4>
+              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Fallacy Ledger</h4>
               <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-[9px] sm:text-[10px]">
                 {TAXONOMY_TACTICS.map((t) => {
                   const isUsed = stateData?.used_tactics.includes(t.id);

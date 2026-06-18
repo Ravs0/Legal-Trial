@@ -51,8 +51,8 @@ class handler(BaseHTTPRequestHandler):
         
         response = {
             "status": "active",
-            "worlds": ["missing_alibi", "silent_vault"],
-            "skins": ["prosecutor_vance", "dr_abernathy"]
+            "worlds": ["dreadler_logic"],
+            "skins": ["dreadler"]
         }
         self.wfile.write(json.dumps(response).encode("utf-8"))
 
@@ -71,8 +71,8 @@ class handler(BaseHTTPRequestHandler):
             return
 
         action = req_body.get("action", "turn")
-        world_id = req_body.get("world", "missing_alibi")
-        skin_id = req_body.get("skin", "prosecutor_vance")
+        world_id = req_body.get("world", "dreadler_logic")
+        skin_id = req_body.get("skin", "dreadler")
         user_input = req_body.get("user_input", "")
         state_data = req_body.get("state_data", None)
 

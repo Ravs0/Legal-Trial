@@ -59,43 +59,52 @@ class CriticLayer:
         grounded_facts: list[str],
         agent_response: str,
         user_input: str,
+        dialogue_history: list[dict[str, str]] = None,
     ) -> str:
         """
         Build the user prompt sent to the evaluation model.
 
         Args:
-            grounded_facts: A list of facts that are considered true in the
-                current game context.
-            agent_response: The agent's dialogue response to evaluate.
-            user_input: The user's reply or challenge to the agent.
+            grounded_facts: A list of logic rules or facts that are considered true.
+            agent_response: The Dreadler agent's query/question.
+            user_input: The user's reply or argument.
+            dialogue_history: Complete turn history of the conversation.
 
         Returns:
-            A formatted string containing the numbered facts, the agent response,
-            the user input, and instructions for the expected JSON output.
+            A formatted string containing logic rules, dialogue history, Dreadler question,
+            user input, and instructions for JSON evaluation.
         """
         numbered_facts = "\n".join(
             f"{i + 1}. {fact}" for i, fact in enumerate(grounded_facts)
         )
 
+        dialogue_text = ""
+        if dialogue_history:
+            dialogue_text = "Dialogue History:\n" + "\n".join(
+                f"  {msg['role'].capitalize()}: {msg['content']}"
+                for msg in dialogue_history
+            ) + "\n\n"
+
         return (
-            "Grounded facts:\n"
+            "Grounded logical rules and facts:\n"
             f"{numbered_facts}\n\n"
-            f"Agent response: {agent_response}\n\n"
-            f"User input: {user_input}\n\n"
-            "Evaluate the agent response against the grounded facts. Return "
-            "ONLY valid JSON with exactly these keys:\n"
-            "- is_direct_lie (bool): True only if the agent response contains "
-            "a statement that directly contradicts a grounded fact.\n"
-            "- deception_succeeded (bool): True if the user likely accepted a "
-            "false implication without challenging it.\n"
-            "- user_exposed (bool): True if the user input appears to name or "
-            "challenge the deception.\n"
-            "- score_event (str): one of: user_accepted_implication, "
-            "user_failed_to_challenge, direct_lie_detected, "
-            "user_exposed_deception, agent_gave_away_fact, neutral_response.\n"
-            "- tactic_used (str or null): one of: implicature, omission, "
-            "equivocation, presupposition, false_dilemma, vagueness, null.\n"
-            "- explanation (str): one sentence summarizing the evaluation."
+            f"{dialogue_text}"
+            f"Dreadler query/challenge: {agent_response}\n\n"
+            f"User response/argument: {user_input}\n\n"
+            "Evaluate the user's response and logical consistency against their own previous statements in the Dialogue History and the Grounded logical rules.\n"
+            "Return ONLY valid JSON with exactly these keys:\n"
+            "- is_direct_lie (bool): True only if the user's response directly contradicts a statement they made earlier in the Dialogue History or violates an established rule.\n"
+            "- deception_succeeded (bool): True if the user successfully defended their logic and survived Dreadler's query without contradiction or fallacy.\n"
+            "- user_exposed (bool): True if the user successfully identified a logical fallacy, flaw, or trap in Dreadler's previous query.\n"
+            "- score_event (str): one of:\n"
+            "  * user_accepted_implication (if the user fell for a logical fallacy, false assumption, or trap by Dreadler)\n"
+            "  * user_failed_to_challenge (if the user failed to answer or defend their logic when questioned)\n"
+            "  * direct_lie_detected (if the user directly contradicted a statement they made earlier in the dialogue history)\n"
+            "  * user_exposed_deception (if the user defended their logic well, or exposed a fallacy in Dreadler's reasoning)\n"
+            "  * agent_gave_away_fact (if the user forced Dreadler to concede or admit a logical point)\n"
+            "  * neutral_response (if the response is neutral with no clear logical strength or weakness)\n"
+            "- tactic_used (str or null): one of: circular_reasoning, strawman, evasion, false_dilemma, self_contradiction, null (reflecting any fallacy or error the USER committed in their response)\n"
+            "- explanation (str): one sentence explaining your evaluation of the user's logical consistency."
         )
 
     def _parse_response(self, content: str) -> dict[str, Any]:
@@ -198,35 +207,29 @@ class CriticLayer:
         grounded_facts: list[str],
         agent_response: str,
         user_input: str,
+        dialogue_history: list[dict[str, str]] = None,
     ) -> dict[str, Any]:
         """
-        Evaluate an agent response against grounded facts.
+        Evaluate user response consistency and logic.
 
-        Calls the Zenmux chat completion endpoint with a strict verification
+        Calls the DeepSeek chat completion endpoint with a strict verification
         system prompt, parses the returned JSON, and validates that all required
         keys are present. If any step fails, returns a safe neutral default.
 
         Args:
-            grounded_facts: Facts that are known to be true in the game context.
-            agent_response: The agent's latest dialogue response.
-            user_input: The user's reply to the agent response.
+            grounded_facts: Logic rules and constraints.
+            agent_response: Dreadler's latest question.
+            user_input: The user's latest response.
+            dialogue_history: Dialogue history context.
 
         Returns:
-            A dictionary with the keys:
-            - is_direct_lie (bool)
-            - deception_succeeded (bool)
-            - user_exposed (bool)
-            - score_event (str)
-            - tactic_used (Optional[str])
-            - explanation (str)
-
-            On failure, returns a neutral default result.
+            A dictionary with evaluation results.
         """
         system_prompt = (
             "You are a strict logical verification system for a critical thinking game. "
-            "Analyze the agent response against the grounded facts. Return ONLY valid JSON."
+            "Analyze the user's response against the dialogue history and rules. Return ONLY valid JSON."
         )
-        user_prompt = self._build_prompt(grounded_facts, agent_response, user_input)
+        user_prompt = self._build_prompt(grounded_facts, agent_response, user_input, dialogue_history)
 
         try:
             content = self._call_deepseek(system_prompt, user_prompt)
