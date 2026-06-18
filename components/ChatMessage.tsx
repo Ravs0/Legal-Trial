@@ -22,6 +22,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   categoryId
 }) => {
   const [copied, setCopied] = useState(false);
+  const [showActions, setShowActions] = useState(false);
   const isUser = message.sender === 'user';
   const isJudge = message.sender === 'judge';
   const isOpposingCounsel = message.sender === 'opposingCounsel';
@@ -115,25 +116,38 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   return (
     <div className={`group relative flex flex-col ${alignment} mb-6 px-4 py-3 rounded-lg hover:bg-zinc-900/20 transition-all duration-300 ease-out animate-fadeInUp w-full`}>
-      {/* Floating actions menu (revealed on hover) */}
+      {/* Floating actions menu (hover on desktop, tap on mobile) */}
       {!isUser && (
-        <div className="absolute right-4 top-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center space-x-2 bg-zinc-950/80 border border-zinc-800/80 px-2 py-1 rounded-md shadow-sm z-10 text-[10px] font-mono">
+        <>
+          {/* Mobile tap trigger */}
           <button
-            onClick={() => handleSpeak(message.text)}
-            className={`${catColors.text} hover:opacity-85 transition-opacity font-semibold`}
-            title="Speak this statement"
+            onClick={() => setShowActions(prev => !prev)}
+            className="absolute right-4 top-3 md:hidden z-10 w-7 h-7 flex items-center justify-center rounded-full bg-zinc-900/70 border border-zinc-700/60 text-zinc-400 text-sm font-bold"
+            aria-label="Message actions"
           >
-            Listen
+            ⋯
           </button>
-          <span className="text-zinc-800">|</span>
-          <button
-            onClick={handleCopy}
-            className="text-zinc-400 hover:text-zinc-200 transition-colors font-semibold"
-            title="Copy message to clipboard"
-          >
-            {copied ? 'Copied' : 'Copy'}
-          </button>
-        </div>
+          {/* Actions dropdown (desktop: hover, mobile: tap) */}
+          <div className={`absolute right-4 top-10 transition-opacity duration-200 flex items-center space-x-2 bg-zinc-950/90 border border-zinc-800/80 px-2 py-1 rounded-md shadow-sm z-10 text-[10px] font-mono
+            ${showActions ? 'opacity-100' : 'md:opacity-0 md:group-hover:opacity-100 opacity-0 pointer-events-none md:pointer-events-auto'}
+          `}>
+            <button
+              onClick={() => handleSpeak(message.text)}
+              className={`${catColors.text} hover:opacity-85 transition-opacity font-semibold`}
+              title="Speak this statement"
+            >
+              Listen
+            </button>
+            <span className="text-zinc-800">|</span>
+            <button
+              onClick={handleCopy}
+              className="text-zinc-400 hover:text-zinc-200 transition-colors font-semibold"
+              title="Copy message to clipboard"
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        </>
       )}
 
       <div className={`flex ${isUser ? 'flex-row-reverse' : 'flex-row'} items-start w-full max-w-4xl mx-auto`}>

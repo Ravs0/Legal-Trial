@@ -19,23 +19,33 @@ const useVisualViewport = () => {
   const [vpHeight, setVpHeight] = useState(
     () => typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 800
   );
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setVpHeight(vv.height);
+    const update = () => {
+      setVpHeight(vv.height);
+      setIsMobile(window.innerWidth < 768);
+    };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
     return () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
     };
   }, []);
-  return vpHeight;
+  // On mobile, subtract Layout's top bar (56px) + padding (24px total)
+  const adjustedHeight = isMobile ? vpHeight - 80 : vpHeight;
+  return { vpHeight: adjustedHeight, isMobile };
 };
 
 const PracticeArena: React.FC = () => {
   const navigate = useNavigate();
-  const vpHeight = useVisualViewport();
+  const { vpHeight, isMobile } = useVisualViewport();
   const location = useLocation();
   const context = useContext(TrialSimContext);
 

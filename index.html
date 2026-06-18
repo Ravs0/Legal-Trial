@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>TrialSim — AI-Powered Mock Trial Simulator</title>
   <meta name="description"
     content="Sharpen your legal argumentation and drafting skills with AI-driven mock trials against legendary judges and opposing counsel.">
@@ -143,6 +143,10 @@
       font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
     }
 
     /* Premium scrollbar */

@@ -161,18 +161,25 @@ function useVisualViewport() {
   const [vpHeight, setVpHeight] = useState(
     () => window.visualViewport?.height ?? window.innerHeight
   );
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setVpHeight(vv.height);
+    const update = () => {
+      setVpHeight(vv.height);
+      setIsMobile(window.innerWidth < 768);
+    };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
     return () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
     };
   }, []);
-  return vpHeight;
+  const adjustedHeight = isMobile ? vpHeight - 80 : vpHeight - 112;
+  return { vpHeight: adjustedHeight, isMobile };
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -181,7 +188,7 @@ const AIPersonasScreen: React.FC = () => {
   const practiceMode = context?.practiceMode;
   
   const bridge = useConversationBridge();
-  const vpHeight = useVisualViewport();
+  const { vpHeight, isMobile } = useVisualViewport();
 
   // Tab State: 'historical' | 'sentient'
   const [activeTab, setActiveTab] = useState<'historical' | 'sentient'>('historical');
@@ -565,35 +572,82 @@ const AIPersonasScreen: React.FC = () => {
   return (
     <div 
       className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden border border-brand-text-primary/20 animate-fadeIn"
-      style={{ height: `${vpHeight - 112}px` }}
+      style={{ height: `${vpHeight}px` }}
     >
       {/* Top Header Tab Panel */}
-      <div className="flex items-center justify-between border-b border-brand-text-primary/20 bg-brand-bg-dark px-4 py-2 sm:py-3 flex-shrink-0">
+      <div className="flex items-center justify-between border-b border-brand-text-primary/20 bg-brand-bg-dark px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <div className="h-2 w-2 rounded-full bg-brand-accent animate-pulse"></div>
-          <span className="text-[11px] font-mono tracking-widest text-brand-text-secondary uppercase">Persona Consultation Suite</span>
+          <span className="text-[10px] sm:text-[11px] font-mono tracking-widest text-brand-text-secondary uppercase">Persona Suite</span>
         </div>
         
         {/* Tab Toggle buttons */}
         <div className="flex border border-brand-text-primary/30 p-0.5 bg-brand-bg-primary">
           <button
             onClick={() => { setActiveTab('historical'); setViewTab('info'); }}
-            className={`px-3 py-1 text-[10px] font-mono uppercase transition-all ${activeTab === 'historical' ? 'bg-brand-accent text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+            className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-all ${activeTab === 'historical' ? 'bg-brand-accent text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-white'}`}
           >
-            [ Historical Experts ]
+            [ Historical ]
           </button>
           <button
             onClick={() => { setActiveTab('sentient'); setViewTab('info'); }}
-            className={`px-3 py-1 text-[10px] font-mono uppercase transition-all ${activeTab === 'sentient' ? 'bg-brand-accent text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+            className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-all ${activeTab === 'sentient' ? 'bg-brand-accent text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-white'}`}
           >
-            [ Sentient Subjects ]
+            [ Sentient ]
           </button>
         </div>
       </div>
 
+      {/* ─── MOBILE: Horizontal Persona Selector ─── */}
+      <div className="md:hidden border-b border-brand-text-primary/10 bg-brand-bg-dark/30 flex-shrink-0">
+        <div className="flex overflow-x-auto gap-1.5 px-3 py-2 custom-scrollbar">
+          {activeTab === 'historical' ? (
+            HISTORICAL_PERSONAS.map(p => {
+              const isSelected = selectedHistorical.id === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => { setSelectedHistorical(p); setViewTab('info'); }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-[10px] font-mono whitespace-nowrap flex-shrink-0 transition-all
+                    ${isSelected ? 'bg-brand-accent/15 border-brand-accent text-brand-accent' : 'border-brand-text-primary/20 text-brand-text-secondary hover:border-brand-text-primary/40'}`}
+                >
+                  <span className={`h-5 w-5 border flex items-center justify-center text-[9px] font-bold ${isSelected ? 'border-brand-accent bg-brand-bg-primary' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
+                    {p.avatar}
+                  </span>
+                  <span className="font-semibold">{p.name.split(' ')[1]}</span>
+                </button>
+              );
+            })
+          ) : (
+            subjects.map(s => {
+              const isSelected = selectedSentient.id === s.id;
+              const score = insightScores[s.id] || 0;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => { setSelectedSentient(s); setViewTab('info'); }}
+                  className={`flex flex-col items-center gap-1 px-2 py-1.5 border text-center min-w-[56px] flex-shrink-0 transition-all
+                    ${isSelected ? 'bg-brand-accent/15 border-brand-accent' : 'border-brand-text-primary/20 hover:border-brand-text-primary/40'}`}
+                >
+                  <span className={`h-6 w-6 border flex items-center justify-center text-[10px] font-bold ${isSelected ? 'border-brand-accent bg-brand-bg-primary text-brand-accent' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
+                    {s.avatar}
+                  </span>
+                  <span className={`text-[8px] font-mono truncate w-full ${isSelected ? 'text-brand-accent font-bold' : 'text-brand-text-secondary'}`}>
+                    {s.name}
+                  </span>
+                  <div className="w-full h-0.5 bg-brand-bg-secondary border border-brand-text-primary/10 overflow-hidden">
+                    <div className="bg-brand-accent h-full transition-all" style={{ width: `${score}%` }}></div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Left Side: Select list */}
-        <div className="w-64 sm:w-80 border-r border-brand-text-primary/20 flex flex-col bg-brand-bg-dark/40 overflow-y-auto flex-shrink-0">
+        {/* ─── DESKTOP: Left Side Select list ─── */}
+        <div className="hidden md:flex w-64 sm:w-80 border-r border-brand-text-primary/20 flex-col bg-brand-bg-dark/40 overflow-y-auto flex-shrink-0">
           <div className="p-3 border-b border-brand-text-primary/10">
             <span className="text-[9px] font-mono tracking-wider text-brand-accent uppercase">Select Advisor</span>
           </div>
@@ -654,44 +708,44 @@ const AIPersonasScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side: Chat terminal console */}
+        {/* ─── Main Content Area ─── */}
         <div className="flex-1 flex flex-col bg-brand-bg-primary overflow-hidden">
           
           {/* Header character status */}
-          <div className="border-b border-brand-text-primary/10 bg-brand-bg-secondary/15 p-4 flex-shrink-0 flex items-center justify-between">
-            <div className="space-y-1">
-              <h2 className="text-sm font-serif font-bold text-brand-text-primary flex items-center space-x-2">
+          <div className="border-b border-brand-text-primary/10 bg-brand-bg-secondary/15 p-2 sm:p-4 flex-shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="space-y-0.5 sm:space-y-1">
+              <h2 className="text-xs sm:text-sm font-serif font-bold text-brand-text-primary flex items-center space-x-1.5 sm:space-x-2">
                 <span className={activePersonaColor}>●</span>
                 <span>{activePersonaName}</span>
                 {activeTab === 'sentient' && (
-                  <span className="text-[10px] font-mono bg-brand-accent/10 border border-brand-accent/25 px-1.5 py-0.2 ml-2 text-brand-accent">
-                    {selectedSentient.archetype} Archetype
+                  <span className="text-[9px] sm:text-[10px] font-mono bg-brand-accent/10 border border-brand-accent/25 px-1.5 py-0.2 text-brand-accent">
+                    {selectedSentient.archetype}
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-brand-text-secondary font-light italic">
+              <p className="text-[10px] sm:text-xs text-brand-text-secondary font-light italic line-clamp-1">
                 "{activeTab === 'historical' ? selectedHistorical.tagline : selectedSentient.tagline}"
               </p>
             </div>
 
             {/* Chat sub-tabs */}
-            <div className="flex border border-brand-text-primary/30 p-0.5 bg-brand-bg-primary text-[10px]">
+            <div className="flex border border-brand-text-primary/30 p-0.5 bg-brand-bg-primary text-[9px] sm:text-[10px]">
               <button
                 onClick={() => setViewTab('info')}
-                className={`px-3 py-1 font-mono uppercase ${viewTab === 'info' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                className={`px-2 sm:px-3 py-1 font-mono uppercase ${viewTab === 'info' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
               >
                 [ PROFILE ]
               </button>
               <button
                 onClick={() => setViewTab('chat')}
-                className={`px-3 py-1 font-mono uppercase ${viewTab === 'chat' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                className={`px-2 sm:px-3 py-1 font-mono uppercase ${viewTab === 'chat' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
               >
                 [ CHAT ]
               </button>
               {activeTab === 'sentient' && (
                 <button
                   onClick={() => setViewTab('codex')}
-                  className={`px-3 py-1 font-mono uppercase ${viewTab === 'codex' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                  className={`px-2 sm:px-3 py-1 font-mono uppercase ${viewTab === 'codex' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
                 >
                   [ CODEX ]
                 </button>
@@ -704,31 +758,31 @@ const AIPersonasScreen: React.FC = () => {
             
             {/* View 1: Profile */}
             {viewTab === 'info' && (
-              <div className="absolute inset-0 overflow-y-auto p-6 space-y-6 custom-scrollbar max-w-3xl mx-auto">
-                <div className="border border-brand-text-primary/20 p-6 bg-brand-bg-dark/30 space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className={`h-16 w-16 border-2 border-brand-text-primary/30 flex items-center justify-center font-mono text-3xl bg-brand-bg-dark ${activePersonaColor}`}>
+              <div className="absolute inset-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar max-w-3xl mx-auto">
+                <div className="border border-brand-text-primary/20 p-3 sm:p-6 bg-brand-bg-dark/30 space-y-3 sm:space-y-4">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
+                    <div className={`h-12 w-12 sm:h-16 sm:w-16 border-2 border-brand-text-primary/30 flex items-center justify-center font-mono text-xl sm:text-3xl bg-brand-bg-dark ${activePersonaColor}`}>
                       {activeTab === 'historical' ? selectedHistorical.avatar : selectedSentient.avatar}
                     </div>
                     <div>
-                      <h3 className="text-lg font-serif font-bold text-brand-text-primary">{activePersonaName}</h3>
-                      <p className="text-xs text-brand-accent font-mono uppercase tracking-wider">
+                      <h3 className="text-base sm:text-lg font-serif font-bold text-brand-text-primary">{activePersonaName}</h3>
+                      <p className="text-[10px] sm:text-xs text-brand-accent font-mono uppercase tracking-wider">
                         {activeTab === 'historical' ? selectedHistorical.role : selectedSentient.title}
                       </p>
                     </div>
                   </div>
 
-                  <div className="border-t border-brand-text-primary/10 pt-4">
-                    <h4 className="text-xs font-mono text-brand-text-secondary uppercase mb-2">System Instruction / Prompt</h4>
-                    <p className="text-xs leading-relaxed font-light text-brand-text-secondary">
+                  <div className="border-t border-brand-text-primary/10 pt-3 sm:pt-4">
+                    <h4 className="text-[10px] sm:text-xs font-mono text-brand-text-secondary uppercase mb-2">System Instruction / Prompt</h4>
+                    <p className="text-[10px] sm:text-xs leading-relaxed font-light text-brand-text-secondary">
                       {activeTab === 'historical' ? selectedHistorical.systemPrompt : selectedSentient.systemPrompt}
                     </p>
                   </div>
 
                   {activeTab === 'sentient' && (
-                    <div className="border-t border-brand-text-primary/10 pt-4 space-y-3">
-                      <h4 className="text-xs font-mono text-brand-text-secondary uppercase">Emotional Registers</h4>
-                      <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+                    <div className="border-t border-brand-text-primary/10 pt-3 sm:pt-4 space-y-2 sm:space-y-3">
+                      <h4 className="text-[10px] sm:text-xs font-mono text-brand-text-secondary uppercase">Emotional Registers</h4>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono">
                         <div>Cynicism: {Math.round(selectedSentient.emotionalRegisters.cynicism * 100)}%</div>
                         <div>Intensity: {Math.round(selectedSentient.emotionalRegisters.intensity * 100)}%</div>
                         <div>Empathy: {Math.round(selectedSentient.emotionalRegisters.empathy * 100)}%</div>
@@ -737,10 +791,10 @@ const AIPersonasScreen: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="pt-4 flex justify-center">
+                  <div className="pt-3 sm:pt-4 flex justify-center">
                     <button
                       onClick={() => setViewTab('chat')}
-                      className="px-6 py-2 border border-brand-accent text-brand-accent hover:bg-brand-accent/10 font-mono text-xs uppercase"
+                      className="px-4 sm:px-6 py-2 border border-brand-accent text-brand-accent hover:bg-brand-accent/10 font-mono text-[10px] sm:text-xs uppercase"
                     >
                       [ Establish Communion ]
                     </button>
@@ -751,35 +805,35 @@ const AIPersonasScreen: React.FC = () => {
 
             {/* View 2: Codex (Sentient Subjects only) */}
             {viewTab === 'codex' && activeTab === 'sentient' && (
-              <div className="absolute inset-0 overflow-y-auto p-6 space-y-6 custom-scrollbar max-w-4xl mx-auto">
-                <div className="space-y-4">
+              <div className="absolute inset-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar max-w-4xl mx-auto">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <h3 className="text-xl font-serif font-bold text-brand-text-primary">{selectedSentient.codex.name}</h3>
-                    <p className="text-xs text-brand-text-secondary mt-1">{selectedSentient.codex.description}</p>
+                    <h3 className="text-lg sm:text-xl font-serif font-bold text-brand-text-primary">{selectedSentient.codex.name}</h3>
+                    <p className="text-[10px] sm:text-xs text-brand-text-secondary mt-1">{selectedSentient.codex.description}</p>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 mt-6">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 mt-4 sm:mt-6">
                     {selectedSentient.codex.maxims.map(m => {
                       const isStudied = (studiedMaxims[selectedSentient.id] || []).includes(m.id);
                       return (
-                        <div key={m.id} className="border border-brand-text-primary/20 bg-brand-bg-dark/20 p-5 space-y-3 transition-colors hover:border-brand-accent/35">
-                          <div className="flex justify-between items-start">
+                        <div key={m.id} className="border border-brand-text-primary/20 bg-brand-bg-dark/20 p-3 sm:p-5 space-y-2 sm:space-y-3 transition-colors hover:border-brand-accent/35">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                             <div>
-                              <span className="text-[10px] font-mono text-brand-accent uppercase tracking-wider">{m.concept}</span>
-                              <h4 className="text-sm font-serif font-bold text-brand-text-primary mt-1">{m.name}</h4>
+                              <span className="text-[9px] sm:text-[10px] font-mono text-brand-accent uppercase tracking-wider">{m.concept}</span>
+                              <h4 className="text-xs sm:text-sm font-serif font-bold text-brand-text-primary mt-1">{m.name}</h4>
                             </div>
                             <button
                               onClick={() => handleStudy(m.id)}
                               disabled={isStudied}
-                              className={`px-3 py-1 border text-[10px] font-mono uppercase tracking-wider ${isStudied ? 'border-brand-emerald/40 text-brand-emerald bg-brand-emerald/5' : 'border-brand-accent text-brand-accent hover:bg-brand-accent/10'}`}
+                              className={`px-2.5 sm:px-3 py-1 border text-[9px] sm:text-[10px] font-mono uppercase tracking-wider flex-shrink-0 ${isStudied ? 'border-brand-emerald/40 text-brand-emerald bg-brand-emerald/5' : 'border-brand-accent text-brand-accent hover:bg-brand-accent/10'}`}
                             >
-                              {isStudied ? '[ Studied ]' : '[ Study Maxim ]'}
+                              {isStudied ? '[ Studied ]' : '[ Study ]'}
                             </button>
                           </div>
-                          <div className="p-3 bg-brand-bg-dark/40 border-l-2 border-brand-accent font-serif italic text-xs text-brand-text-primary/95 leading-relaxed">
+                          <div className="p-2 sm:p-3 bg-brand-bg-dark/40 border-l-2 border-brand-accent font-serif italic text-[10px] sm:text-xs text-brand-text-primary/95 leading-relaxed">
                             "{m.maxim}"
                           </div>
-                          <p className="text-xs text-brand-text-secondary leading-relaxed font-light">{m.explanation}</p>
+                          <p className="text-[10px] sm:text-xs text-brand-text-secondary leading-relaxed font-light">{m.explanation}</p>
                         </div>
                       );
                     })}
@@ -793,20 +847,20 @@ const AIPersonasScreen: React.FC = () => {
               <div className="absolute inset-0 flex flex-col justify-between">
                 
                 {/* Chat dialogue terminal panel */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar" ref={chatEndRef}>
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar" ref={chatEndRef}>
                   {messages.map(m => {
                     const isUser = m.sender === 'user';
                     const isInterjection = m.sender === 'interjection';
 
                     if (isInterjection) {
                       return (
-                        <div key={m.id} className="flex justify-center my-3 animate-fadeIn">
-                          <div className="border border-brand-accent/30 bg-brand-bg-dark/60 p-4 max-w-lg text-xs leading-relaxed space-y-2 border-l-4">
+                        <div key={m.id} className="flex justify-center my-2 sm:my-3 animate-fadeIn">
+                          <div className="border border-brand-accent/30 bg-brand-bg-dark/60 p-3 sm:p-4 max-w-lg text-[10px] sm:text-xs leading-relaxed space-y-2 border-l-4">
                             <div className="flex items-center space-x-2 border-b border-brand-text-primary/10 pb-1.5">
                               <span className={`h-5 w-5 border border-brand-text-primary/30 flex items-center justify-center font-mono text-[10px] bg-brand-bg-primary ${m.interjectorColor}`}>
                                 {m.interjectorAvatar}
                               </span>
-                              <span className="font-mono font-bold text-brand-accent uppercase">{m.interjectorName} Interjected:</span>
+                              <span className="font-mono font-bold text-brand-accent uppercase text-[9px] sm:text-[10px]">{m.interjectorName} Interjected:</span>
                             </div>
                             <p className="font-light italic text-brand-text-primary/95">"{m.text}"</p>
                           </div>
@@ -816,14 +870,14 @@ const AIPersonasScreen: React.FC = () => {
 
                     return (
                       <div key={m.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
-                        <div className={`flex items-start space-x-3 max-w-[85%] sm:max-w-[70%]`}>
+                        <div className={`flex items-start space-x-2 sm:space-x-3 max-w-[90%] sm:max-w-[70%]`}>
                           {!isUser && (
-                            <div className={`h-8 w-8 border border-brand-text-primary/20 flex items-center justify-center font-mono text-sm bg-brand-bg-dark flex-shrink-0 ${activePersonaColor}`}>
+                            <div className={`h-7 w-7 sm:h-8 sm:w-8 border border-brand-text-primary/20 flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark flex-shrink-0 ${activePersonaColor}`}>
                               {activeTab === 'historical' ? selectedHistorical.avatar : selectedSentient.avatar}
                             </div>
                           )}
                           
-                          <div className={`p-3 border leading-relaxed text-xs sm:text-sm ${isUser ? 'border-brand-accent/30 bg-brand-accent/5 text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
+                          <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-brand-accent/30 bg-brand-accent/5 text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
                             <div className="prose prose-invert prose-xs max-w-none">
                               <ReactMarkdown>
                                 {m.text}
@@ -832,7 +886,7 @@ const AIPersonasScreen: React.FC = () => {
                           </div>
 
                           {isUser && (
-                            <div className="h-8 w-8 border border-brand-accent/40 flex items-center justify-center font-mono text-sm bg-brand-bg-dark text-brand-accent flex-shrink-0">
+                            <div className="h-7 w-7 sm:h-8 sm:w-8 border border-brand-accent/40 flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark text-brand-accent flex-shrink-0">
                               U
                             </div>
                           )}
@@ -843,31 +897,31 @@ const AIPersonasScreen: React.FC = () => {
 
                   {/* Typing Indicator */}
                   {isTyping && (
-                    <div className="flex justify-start items-center space-x-2 p-2 text-xs font-mono text-brand-text-secondary">
+                    <div className="flex justify-start items-center space-x-2 p-2 text-[10px] sm:text-xs font-mono text-brand-text-secondary">
                       <div className="h-2 w-2 rounded-full bg-brand-accent animate-bounce" style={{ animationDelay: '0ms' }}></div>
                       <div className="h-2 w-2 rounded-full bg-brand-accent animate-bounce" style={{ animationDelay: '150ms' }}></div>
                       <div className="h-2 w-2 rounded-full bg-brand-accent animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      <span>{interjecting ? `${interjecting} overheard and is typing...` : `${activePersonaName} is thinking...`}</span>
+                      <span>{interjecting ? `${interjecting} typing...` : `${activePersonaName} thinking...`}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Footer Input Console bar */}
-                <div className="border-t border-brand-text-primary/10 bg-brand-bg-dark/30 p-3 flex-shrink-0 flex items-center space-x-3">
+                <div className="border-t border-brand-text-primary/10 bg-brand-bg-dark/30 p-2 sm:p-3 flex-shrink-0 flex items-center space-x-2 sm:space-x-3">
                   <input
                     type="text"
                     ref={inputRef}
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
-                    placeholder={`Type your legal query to ${activePersonaName}...`}
+                    placeholder={`Query ${activePersonaName}...`}
                     disabled={isTyping}
-                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2.5 text-xs sm:text-sm text-brand-text-primary focus:outline-none focus:border-brand-accent font-light"
+                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-brand-text-primary focus:outline-none focus:border-brand-accent font-light"
                   />
                   <button
                     onClick={handleSend}
                     disabled={isTyping || !input.trim()}
-                    className={`px-5 py-2.5 font-mono text-xs uppercase transition-all flex items-center space-x-1.5 ${isTyping || !input.trim() ? 'border border-brand-text-primary/20 text-brand-text-secondary cursor-not-allowed' : 'border border-brand-accent bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/25'}`}
+                    className={`px-3 sm:px-5 py-2 sm:py-2.5 font-mono text-[10px] sm:text-xs uppercase transition-all flex items-center space-x-1.5 ${isTyping || !input.trim() ? 'border border-brand-text-primary/20 text-brand-text-secondary cursor-not-allowed' : 'border border-brand-accent bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/25'}`}
                   >
                     <span>[ SEND ]</span>
                   </button>
@@ -884,27 +938,27 @@ const AIPersonasScreen: React.FC = () => {
       {/* Breakthrough Modal */}
       {breakthrough && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="max-w-md w-full border border-brand-accent bg-brand-bg-primary p-6 space-y-4 shadow-2xl relative">
+          <div className="max-w-md w-full border border-brand-accent bg-brand-bg-primary p-4 sm:p-6 space-y-3 sm:space-y-4 shadow-2xl relative">
             <div className="flex items-center space-x-3 text-brand-accent border-b border-brand-accent/20 pb-3">
               <span className="text-xl">⚔</span>
-              <h4 className="font-mono font-bold uppercase tracking-wider text-xs">COMMUNION BREAKTHROUGH</h4>
+              <h4 className="font-mono font-bold uppercase tracking-wider text-[10px] sm:text-xs">COMMUNION BREAKTHROUGH</h4>
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs text-brand-text-secondary leading-normal">
+              <p className="text-[10px] sm:text-xs text-brand-text-secondary leading-normal">
                 Your legal insight has expanded in this domain! You have ascended to:
               </p>
-              <h3 className={`text-lg font-serif font-bold ${breakthrough.color}`}>{breakthrough.realmName}</h3>
+              <h3 className={`text-base sm:text-lg font-serif font-bold ${breakthrough.color}`}>{breakthrough.realmName}</h3>
             </div>
 
-            <div className="p-4 bg-brand-bg-dark/60 border-l-2 border-brand-accent font-serif italic text-xs leading-relaxed text-brand-text-primary/90">
+            <div className="p-3 sm:p-4 bg-brand-bg-dark/60 border-l-2 border-brand-accent font-serif italic text-[10px] sm:text-xs leading-relaxed text-brand-text-primary/90">
               "{breakthrough.quote}"
             </div>
 
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setBreakthrough(null)}
-                className="px-4 py-1.5 border border-brand-accent text-brand-accent hover:bg-brand-accent/15 font-mono text-xs uppercase"
+                className="px-4 py-1.5 border border-brand-accent text-brand-accent hover:bg-brand-accent/15 font-mono text-[10px] sm:text-xs uppercase"
               >
                 [ Proceed ]
               </button>

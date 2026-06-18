@@ -421,18 +421,26 @@ function useVisualViewport() {
   const [vpHeight, setVpHeight] = useState(
     () => window.visualViewport?.height ?? window.innerHeight
   );
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setVpHeight(vv.height);
+    const update = () => {
+      setVpHeight(vv.height);
+      setIsMobile(window.innerWidth < 1024);
+    };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
     return () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
     };
   }, []);
-  return vpHeight;
+  // On mobile, subtract Layout's top bar (56px) + padding (24px)
+  const adjustedHeight = isMobile ? vpHeight - 80 : vpHeight;
+  return { vpHeight: adjustedHeight, isMobile };
 }
 
 export const StrategyRoomScreen: React.FC = () => {
@@ -809,7 +817,7 @@ export const StrategyRoomScreen: React.FC = () => {
   return (
     <div 
       className="w-full flex flex-col overflow-hidden animate-fadeIn"
-      style={{ height: `${vpHeight - 112}px` }}
+      style={{ height: `${vpHeight}px` }}
     >
       
       {/* ========================================================================= */}
@@ -817,13 +825,9 @@ export const StrategyRoomScreen: React.FC = () => {
       {/* ========================================================================= */}
       <div className="lg:hidden flex flex-col text-left relative h-full min-h-0">
         
-        {/* Dynamic Mode Tab Bar Selector */}
-        <div className="w-full flex flex-col gap-2 p-2.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-serif font-bold text-brand-text-primary/80">Deliberation Protocol</span>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-2 w-full select-none">
+        {/* Dynamic Mode Tab Bar Selector — compact for mobile */}
+        <div className="w-full flex flex-col gap-1 p-1.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-2">
+          <div className="grid grid-cols-3 gap-1 w-full select-none">
             {[
               { value: ChamberMode.ORACLE, title: 'Oracle', icon: '[ O ]' },
               { value: ChamberMode.COUNCIL, title: 'Council', icon: '[ C ]' },
@@ -835,7 +839,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   key={m.value}
                   type="button"
                   onClick={() => setActiveTab(m.value)}
-                  className={`px-2 py-2 rounded-none border text-[10px] font-medium font-serif flex items-center justify-center gap-1 
+                  className={`px-1.5 py-1.5 rounded-none border text-[9px] font-medium font-serif flex items-center justify-center gap-1 
                     ${isActive 
                       ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-semibold' 
                       : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
@@ -849,20 +853,20 @@ export const StrategyRoomScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Vertical Scroll for Persona Council */}
+        {/* Mobile Vertical Scroll for Persona Council — more compact */}
         {activeTab === ChamberMode.COUNCIL && (
-          <div className="w-full flex flex-col gap-1 mb-3">
-            <span className="text-xs font-serif font-bold text-brand-text-primary/80 block ml-1">Consult Jurist</span>
-            <div className="grid grid-cols-5 gap-2 select-none items-start w-full">
+          <div className="w-full flex flex-col gap-0.5 mb-2">
+            <span className="text-[8px] font-serif font-bold text-brand-text-primary/80 block ml-1">Consult Jurist</span>
+            <div className="grid grid-cols-5 gap-1.5 select-none items-start w-full">
               {PERSONAS.map((p) => {
                 const isSelected = selectedPersona.id === p.id;
                 return (
                   <button
                     key={p.id}
                     onClick={() => setSelectedPersona(p)}
-                    className="flex flex-col items-center gap-1 focus:outline-none min-w-0"
+                    className="flex flex-col items-center gap-0.5 focus:outline-none min-w-0"
                   >
-                    <div className={`w-11 h-11 rounded-none flex items-center justify-center text-xs font-mono font-bold border relative
+                    <div className={`w-9 h-9 rounded-none flex items-center justify-center text-[10px] font-mono font-bold border relative
                       ${isSelected 
                         ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent' 
                         : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary/80'
@@ -870,10 +874,10 @@ export const StrategyRoomScreen: React.FC = () => {
                     >
                       {p.avatar}
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[7px] font-bold">§</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[6px] font-bold">§</span>
                       )}
                     </div>
-                    <span className={`text-[8px] tracking-wide font-mono transition-colors text-center truncate w-full
+                    <span className={`text-[7px] tracking-wide font-mono transition-colors text-center truncate w-full
                       ${isSelected ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/60'}`}
                     >
                       {p.name.split(' ')[0]}
@@ -886,30 +890,30 @@ export const StrategyRoomScreen: React.FC = () => {
         )}
 
         {/* Chat Workspace (Mobile) */}
-        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle min-h-[200px]">
+        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle min-h-[150px]">
           {/* Chat Feed (Mobile) */}
-          <div className="flex-grow p-4 overflow-y-auto space-y-4 custom-scrollbar text-left relative z-10">
+          <div className="flex-grow p-3 overflow-y-auto space-y-3 custom-scrollbar text-left relative z-10">
             {activeHistory.length <= 1 && (
-              <div className="p-3 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none space-y-1.5 text-left mb-2">
-                <h4 className="text-xs font-serif font-bold text-shimmer flex items-center gap-1.5">
-                  <span className="font-serif font-bold border-r pr-2 mr-2">[ CHAMBER ]</span>
+              <div className="p-2 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none space-y-1 text-left mb-2">
+                <h4 className="text-[10px] font-serif font-bold text-shimmer flex items-center gap-1.5">
+                  <span className="font-serif font-bold border-r pr-1.5 mr-1.5">[ CHAMBER ]</span>
                   <span>
                     {activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
                   </span>
                 </h4>
-                <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed">
+                <p className="text-[9px] text-brand-text-secondary font-light leading-relaxed">
                   {activeTab === ChamberMode.ORACLE 
-                      ? 'Perform deep, multi-stage legal reasoning and critique to build defensive trial plans.'
+                      ? 'Deep multi-stage legal reasoning to build defensive trial plans.'
                       : activeTab === ChamberMode.COUNCIL
-                        ? `Consult tailored jurists. Tap any avatar bubble above to change selected persona.`
-                        : 'Deconstruct disputes, stress-test your legal positions, and synthesize litigation tactics.'}
+                        ? `Consult jurists. Tap avatar bubbles above to switch.`
+                        : 'Deconstruct disputes and synthesize litigation tactics.'}
                 </p>
               </div>
             )}
 
             {activeHistory.map((item) => (
               <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
-                <div className="flex items-center space-x-1.5 mb-1 text-[8px] font-mono">
+                <div className="flex items-center space-x-1.5 mb-0.5 text-[7px] font-mono">
                   {item.meta && (
                     <span className="text-brand-text-primary font-semibold bg-brand-accent/5 px-1.5 py-0.5 border border-brand-text-primary/30 rounded">
                       {item.meta}
@@ -921,25 +925,25 @@ export const StrategyRoomScreen: React.FC = () => {
                 </div>
 
                 <div
-                  className={`max-w-[90%] p-3.5 rounded-none text-[12px] leading-relaxed border  
+                  className={`max-w-[92%] p-2.5 rounded-none text-[11px] leading-relaxed border  
                     ${item.sender === 'user'
                       ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
-                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[11px]'
+                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[10px]'
                         : 'bg-brand-bg-primary border-white/5 text-brand-text-primary rounded-tl-none'
                     }`}
                 >
                   <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
                   
                   {item.trace && item.trace.length > 0 && (
-                    <details className="mt-3 pt-2.5 border-t border-white/10 text-[11px] font-light text-brand-text-secondary/80">
-                      <summary className="cursor-pointer text-[9px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
+                    <details className="mt-2 pt-2 border-t border-white/10 text-[10px] font-light text-brand-text-secondary/80">
+                      <summary className="cursor-pointer text-[8px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
                         ▶ View Trace Logs ({item.trace.length})
                       </summary>
-                      <div className="mt-2.5 space-y-3 font-sans text-[11px]">
+                      <div className="mt-2 space-y-2 font-sans text-[10px]">
                         {item.trace.map((tr, index) => (
-                          <div key={index} className="space-y-1 p-2 bg-brand-bg-primary/50 border border-white/5 rounded-none text-left">
-                            <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
+                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-none text-left">
+                            <h6 className="font-mono text-[8px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
                             <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap">{tr.content}</p>
@@ -951,16 +955,16 @@ export const StrategyRoomScreen: React.FC = () => {
                 </div>
 
                 {item.sender === 'assistant' && item.text && (
-                  <div className="flex space-x-2 mt-1.5 pl-1.5">
+                  <div className="flex space-x-1.5 mt-1 pl-1.5">
                     <button
                       onClick={() => handleSpeak(item.text)}
-                      className="px-2 py-1 border border-brand-text-primary/30 rounded bg-brand-bg-primary hover:bg-brand-text-primary text-brand-bg-primary text-[10px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold  cursor-pointer"
+                      className="px-1.5 py-0.5 border border-brand-text-primary/30 rounded bg-brand-bg-primary hover:bg-brand-text-primary text-brand-bg-primary text-[8px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
                     >
                       Speak
                     </button>
                     <button
                       onClick={() => navigator.clipboard.writeText(item.text)}
-                      className="px-2 py-1 border border-white/10 rounded bg-brand-bg-primary hover:bg-white/5 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary  cursor-pointer"
+                      className="px-1.5 py-0.5 border border-white/10 rounded bg-brand-bg-primary hover:bg-white/5 text-[8px] font-mono uppercase tracking-wide text-brand-text-secondary cursor-pointer"
                     >
                       Copy
                     </button>
@@ -970,41 +974,41 @@ export const StrategyRoomScreen: React.FC = () => {
             ))}
 
             {isProcessing && oracleStage && (
-              <div className="flex flex-col gap-3 items-start  max-w-sm w-full my-2">
-                <div className="w-full p-4 rounded-none bg-brand-navy border border-brand-text-primary/30   space-y-3 text-left">
-                  <div className="flex items-center justify-between border-b border-brand-text-primary/30 pb-2">
+              <div className="flex flex-col gap-3 items-start max-w-sm w-full my-2">
+                <div className="w-full p-3 rounded-none bg-brand-navy border border-brand-text-primary/30 space-y-2 text-left">
+                  <div className="flex items-center justify-between border-b border-brand-text-primary/30 pb-1.5">
                     <div className="flex items-center space-x-2">
-                      <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold " />
-                      <span className="text-[9px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
+                      <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold" />
+                      <span className="text-[8px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
                     </div>
                     <button 
                       onClick={handleCancel}
-                      className="text-[8px] font-mono uppercase px-2 py-0.5 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25  cursor-pointer font-bold"
+                      className="text-[7px] font-mono uppercase px-1.5 py-0.5 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25 cursor-pointer font-bold"
                     >
                       [Abort]
                     </button>
                   </div>
                   
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {((activeTab === ChamberMode.ORACLE ? [
-                      'Framing & Deconstruction',
-                      'Strategy Proposal',
-                      'Adversarial Critique',
-                      'Defensive Refinement',
-                      'Jurisprudential Reconciliation',
-                      'Final Polish'
+                      'Framing',
+                      'Proposal',
+                      'Critique',
+                      'Refinement',
+                      'Reconcile',
+                      'Polish'
                     ] : activeTab === ChamberMode.SYNTHESIS ? [
-                      'Systemic Matrix',
-                      'Adversarial Stress Test',
-                      'Adversarial Synthesis'
-                    ] : ['Processing Consultation'])).map((stg, idx) => {
+                      'Matrix',
+                      'Stress Test',
+                      'Synthesis'
+                    ] : ['Processing'])).map((stg, idx) => {
                       const isCompleted = idx < oracleTrace.length;
                       const isActive = idx === oracleTrace.length;
                       return (
-                        <div key={idx} className="flex items-center justify-between text-[9px] font-mono">
-                          <div className="flex items-center space-x-2">
-                            <span className={`w-3 h-3 rounded-none flex items-center justify-center border text-[7px] font-bold
-                              ${isCompleted ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' : isActive ? 'bg-amber-500/10 border-amber-500 text-amber-400 ' : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'}`}
+                        <div key={idx} className="flex items-center justify-between text-[8px] font-mono">
+                          <div className="flex items-center space-x-1.5">
+                            <span className={`w-2.5 h-2.5 rounded-none flex items-center justify-center border text-[6px] font-bold
+                              ${isCompleted ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' : isActive ? 'bg-amber-500/10 border-amber-500 text-amber-400' : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'}`}
                             >
                               {isCompleted ? '§' : idx + 1}
                             </span>
@@ -1023,33 +1027,33 @@ export const StrategyRoomScreen: React.FC = () => {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Bottom Input Composer (Mobile) */}
-          <div className="p-3 border-t border-brand-text-primary/30 bg-brand-bg-secondary/90  relative z-20">
+          {/* Bottom Input Composer (Mobile) — compact */}
+          <div className="p-2 border-t border-brand-text-primary/30 bg-brand-bg-secondary/90 relative z-20">
             {audioError && (
-              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-none  text-left">
+              <div className="p-1.5 mb-1.5 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[9px] rounded-none text-left">
                 [Error] {audioError}
               </div>
             )}
 
-            <form onSubmit={handleSend} className="flex gap-2 items-center">
+            <form onSubmit={handleSend} className="flex gap-1.5 items-center">
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`w-10 h-10 flex-shrink-0 rounded-none border flex items-center justify-center  focus:outline-none
+                className={`w-9 h-9 flex-shrink-0 rounded-none border flex items-center justify-center focus:outline-none
                   ${isRecording
                     ? 'bg-brand-error/20 border-brand-error text-brand-error'
-                    : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
+                    : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary'
                   }`}
                 title={isRecording ? 'Stop Recording' : 'Record voice'}
               >
                 {isRecording ? (
-                  <span className="w-2.5 h-2.5 bg-brand-error rounded-sm "></span>
+                  <span className="w-2 h-2 bg-brand-error rounded-sm"></span>
                 ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
                 )}
               </button>
 
-              <div className="relative flex-grow flex items-center bg-brand-bg-primary  rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent  ">
+              <div className="relative flex-grow flex items-center bg-brand-bg-primary rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent">
                 <input
                   type="text"
                   value={inputVal}
@@ -1060,18 +1064,16 @@ export const StrategyRoomScreen: React.FC = () => {
                       ? 'Ask Oracle...'
                       : activeTab === ChamberMode.COUNCIL
                         ? `Consult ${selectedPersona.name.split(' ')[0]}...`
-                        : activeTab === ChamberMode.SYNTHESIS
-                          ? 'Enter case dispute premise...'
-                          : 'Consult Council V4...'
+                        : 'Enter premise...'
                   }
-                  className="w-full pl-4 pr-10 py-2.5 bg-transparent text-brand-text-primary outline-none text-xs font-light placeholder-brand-text-secondary/30"
+                  className="w-full pl-2.5 pr-9 py-2 bg-transparent text-brand-text-primary outline-none text-[11px] font-light placeholder-brand-text-secondary/30"
                 />
                 
                 {isProcessing ? (
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-none border border-brand-error/30 bg-brand-error/15 text-brand-error  flex items-center justify-center font-bold"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-none border border-brand-error/30 bg-brand-error/15 text-brand-error flex items-center justify-center font-bold"
                     title="Abort consult"
                   >
                     x
@@ -1080,10 +1082,10 @@ export const StrategyRoomScreen: React.FC = () => {
                   <button
                     type="submit"
                     disabled={!inputVal.trim()}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7.5 h-7.5 rounded-none bg-brand-accent disabled:bg-brand-bg-primary text-brand-navy disabled:text-brand-text-secondary/30  flex items-center justify-center "
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-none bg-brand-accent disabled:bg-brand-bg-primary text-brand-navy disabled:text-brand-text-secondary/30 flex items-center justify-center"
                     title="Consult"
                   >
-                    <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
                   </button>
