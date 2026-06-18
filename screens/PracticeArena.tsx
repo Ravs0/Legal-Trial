@@ -15,8 +15,27 @@ import { GavelIcon } from '../components/icons/GavelIcon';
 import { Modal } from '../components/Modal';
 import { getCategoryColorClasses } from '../services/colorUtils';
 
+const useVisualViewport = () => {
+  const [vpHeight, setVpHeight] = useState(
+    () => typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 800
+  );
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVpHeight(vv.height);
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return vpHeight;
+};
+
 const PracticeArena: React.FC = () => {
   const navigate = useNavigate();
+  const vpHeight = useVisualViewport();
   const location = useLocation();
   const context = useContext(TrialSimContext);
 
@@ -676,7 +695,10 @@ const PracticeArena: React.FC = () => {
   const ocId = currentSessionSettings.opposingCounselPersonality.id;
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
+    <div 
+      className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden relative"
+      style={{ height: `${vpHeight}px` }}
+    >
 
       <div className="p-4 sm:p-6 bg-brand-bg-secondary/80 backdrop-blur-md border-b border-brand-text-primary/15 flex flex-row justify-between items-center sticky top-0 z-20 flex-shrink-0">
         <div className="text-left flex-grow max-w-3xl mr-2">

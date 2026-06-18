@@ -156,12 +156,32 @@ Keep it to 1-2 sentences max. Be punchy.`;
   }
 }
 
+// ─── Visual Viewport Hook ───────────────────────────────────────────────
+function useVisualViewport() {
+  const [vpHeight, setVpHeight] = useState(
+    () => window.visualViewport?.height ?? window.innerHeight
+  );
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVpHeight(vv.height);
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return vpHeight;
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 const AIPersonasScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   const practiceMode = context?.practiceMode;
   
   const bridge = useConversationBridge();
+  const vpHeight = useVisualViewport();
 
   // Tab State: 'historical' | 'sentient'
   const [activeTab, setActiveTab] = useState<'historical' | 'sentient'>('historical');
@@ -543,7 +563,10 @@ const AIPersonasScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-7rem)] bg-brand-bg-primary text-brand-text-primary overflow-hidden border border-brand-text-primary/20 animate-fadeIn">
+    <div 
+      className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden border border-brand-text-primary/20 animate-fadeIn"
+      style={{ height: `${vpHeight - 112}px` }}
+    >
       {/* Top Header Tab Panel */}
       <div className="flex items-center justify-between border-b border-brand-text-primary/20 bg-brand-bg-dark px-4 py-2 sm:py-3 flex-shrink-0">
         <div className="flex items-center space-x-2">

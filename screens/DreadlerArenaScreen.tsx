@@ -149,10 +149,30 @@ const TAXONOMY_TACTICS = [
   { id: 'vagueness', name: 'Evasion', description: 'Answering a tangent rather than the question asked.' }
 ];
 
+// ─── Visual Viewport Hook ───────────────────────────────────────────────
+function useVisualViewport() {
+  const [vpHeight, setVpHeight] = useState(
+    () => window.visualViewport?.height ?? window.innerHeight
+  );
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVpHeight(vv.height);
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return vpHeight;
+}
+
 export const DreadlerArenaScreen: React.FC = () => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
   const bridge = useConversationBridge();
+  const vpHeight = useVisualViewport();
 
   // ─── SETUP STATE ───────────────────────────────────────────────────────────
   const [selectedWorld, setSelectedWorld] = useState<string>(WORLDS[0].id);
@@ -538,7 +558,10 @@ export const DreadlerArenaScreen: React.FC = () => {
   );
 
   const renderArenaView = () => (
-    <div className="h-[calc(100vh-100px)] flex flex-col gap-4 animate-fadeIn">
+    <div 
+      className="flex flex-col gap-4 animate-fadeIn"
+      style={{ height: `${vpHeight - 100}px` }}
+    >
       {/* ─── SCREEN HEADER ─── */}
       <div className="flex flex-col lg:flex-row items-stretch justify-between gap-4 bg-[#0d0d12]/90 border border-brand-text-primary/20 p-4 relative overflow-hidden backdrop-blur-md">
         {/* Subtle decorative background indicator */}

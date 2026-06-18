@@ -416,10 +416,30 @@ const DeliberationBlueprint: React.FC<{
   return null;
 };
 
+// ─── Visual Viewport Hook ───────────────────────────────────────────────
+function useVisualViewport() {
+  const [vpHeight, setVpHeight] = useState(
+    () => window.visualViewport?.height ?? window.innerHeight
+  );
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVpHeight(vv.height);
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return vpHeight;
+}
+
 export const StrategyRoomScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   if (!context) throw new Error('TrialSimContext not found');
   const { practiceMode } = context;
+  const vpHeight = useVisualViewport();
 
   const renderMarkdown = (text: string) => {
     if (!text) return null;
@@ -787,12 +807,15 @@ export const StrategyRoomScreen: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col overflow-y-auto custom-scrollbar pb-10">
+    <div 
+      className="w-full flex flex-col overflow-hidden animate-fadeIn"
+      style={{ height: `${vpHeight - 112}px` }}
+    >
       
       {/* ========================================================================= */}
       {/* MOBILE APP-STYLE LAYOUT (Phones & Tablets < 1024px)                        */}
       {/* ========================================================================= */}
-      <div className="lg:hidden flex flex-col min-h-[calc(100dvh-130px)] text-left relative">
+      <div className="lg:hidden flex flex-col text-left relative h-full min-h-0">
         
         {/* Dynamic Mode Tab Bar Selector */}
         <div className="w-full flex flex-col gap-2 p-2.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-3">
@@ -1075,7 +1098,7 @@ export const StrategyRoomScreen: React.FC = () => {
       {/* ========================================================================= */}
       {/* LAPTOP HIGH-FIDELITY WAR ROOM DASHBOARD (Large Screens >= 1024px)          */}
       {/* ========================================================================= */}
-      <div className="hidden lg:grid grid-cols-12 gap-6 min-h-[calc(100vh-140px)] w-full text-left">
+      <div className="hidden lg:grid grid-cols-12 gap-6 w-full text-left h-full min-h-0">
         
         {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
         <div className="col-span-3 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
