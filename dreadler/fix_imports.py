@@ -50,11 +50,11 @@ STRICT REQUIREMENTS:
 2. Use RELATIVE imports: from .spawner import SpawnBase, from .state import CoherenceState, from .critic import CriticLayer
 3. All stdlib imports at the top: from __future__ import annotations, import os, ssl, json, sys, urllib.request, urllib.error, from typing import Any Dict List Optional
 
-ZENMUX API CALL FUNCTION (private, named _call_zenmux):
-  Signature: def _call_zenmux(messages: List[Dict], stream: bool = True) -> str
-  - Reads ZENMUX_API_KEY and ZENMUX_BASE_URL from env (default base: https://zenmux.ai/api/v1)
-  - Raises RuntimeError if ZENMUX_API_KEY not set
-  - _DEFAULT_MODEL = "z-ai/glm-5.2-free"
+DEEPSEEK API CALL FUNCTION (private, named _call_deepseek):
+  Signature: def _call_deepseek(messages: List[Dict], stream: bool = True) -> str
+  - Reads DEEPSEEK_API_KEY (or DEEPSEEK_CHAT_API_KEY, DEEPSEEK_REASONER_API_KEY) and DEEPSEEK_API_BASE from env (default base: https://api.deepseek.com/v1)
+  - Raises RuntimeError if API key is not set
+  - _DEFAULT_MODEL = "deepseek-chat"
   - Creates ssl context: ctx.check_hostname=False, ctx.verify_mode=ssl.CERT_NONE
   - POST to {base_url}/chat/completions with JSON body: {model, messages, stream}
   - Authorization: Bearer {api_key}, Content-Type: application/json
@@ -86,7 +86,7 @@ CLASS DreadlerAgent:
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(self.dialogue_history)
     messages.append({"role": "user", "content": user_input})
-    return _call_zenmux(messages, stream=True)
+    return _call_deepseek(messages, stream=True)
 
   def _classify_user_input(self, user_input: str) -> str:
     # Keyword classifier: check for challenge phrases
@@ -150,22 +150,22 @@ STRICT REQUIREMENTS:
 3. No relative imports needed — this module is self-contained except for stdlib.
 
 PURPOSE:
-CriticLayer calls the Zenmux API to evaluate whether an agent's dialogue response:
+CriticLayer calls the DeepSeek API to evaluate whether an agent's dialogue response:
 (a) contains a direct factual lie contradicting the grounded facts
 (b) successfully misled the user without lying
 (c) was exposed by the user
 
-ZENMUX API CALL (private helper inside the class or module-level):
-- Same pattern: ZENMUX_API_KEY, ZENMUX_BASE_URL env vars
+DEEPSEEK API CALL (private helper inside the class or module-level):
+- Reads DEEPSEEK_API_KEY (or DEEPSEEK_CHAT_API_KEY, DEEPSEEK_REASONER_API_KEY) and DEEPSEEK_API_BASE (default: https://api.deepseek.com/v1) env vars
 - ssl context with check_hostname=False, verify_mode=ssl.CERT_NONE
 - POST to /chat/completions with stream=False
-- model: z-ai/glm-5.2-free
+- model: deepseek-chat
 
 CLASS CriticLayer:
   def __init__(self): set up ssl context, store as self._ctx
 
   def evaluate(self, grounded_facts: list, agent_response: str, user_input: str) -> dict:
-    Calls Zenmux with this system prompt:
+    Calls DeepSeek with this system prompt:
       "You are a strict logical verification system for a critical thinking game.
        Analyze the agent response against the grounded facts. Return ONLY valid JSON."
     

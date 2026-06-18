@@ -40,14 +40,19 @@ class CriticLayer:
         Initialize the CriticLayer.
 
         Sets up an SSL context with ``check_hostname=False`` and
-        ``verify_mode=ssl.CERT_NONE``, and loads Zenmux credentials from the
+        ``verify_mode=ssl.CERT_NONE``, and loads DeepSeek credentials from the
         environment.
         """
         self._ctx = ssl.create_default_context()
         self._ctx.check_hostname = False
         self._ctx.verify_mode = ssl.CERT_NONE
-        self._api_key = os.environ.get("ZENMUX_API_KEY", "")
-        self._base_url = os.environ.get("ZENMUX_BASE_URL", "")
+        self._api_key = ""
+        for key in ["DEEPSEEK_API_KEY", "DEEPSEEK_CHAT_API_KEY", "DEEPSEEK_REASONER_API_KEY"]:
+            val = os.environ.get(key)
+            if val:
+                self._api_key = val
+                break
+        self._base_url = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1").rstrip("/")
 
     def _build_prompt(
         self,
@@ -137,9 +142,9 @@ class CriticLayer:
             "explanation": "Critic parse error — defaulting to neutral.",
         }
 
-    def _call_zenmux(self, system_prompt: str, user_prompt: str) -> str:
+    def _call_deepseek(self, system_prompt: str, user_prompt: str) -> str:
         """
-        Send a non-streaming chat completion request to the Zenmux API.
+        Send a non-streaming chat completion request to the DeepSeek API.
 
         Args:
             system_prompt: The system message instructing the model.
@@ -149,19 +154,19 @@ class CriticLayer:
             The raw content string from the model's response.
 
         Raises:
-            RuntimeError: If Zenmux credentials are not configured.
+            RuntimeError: If DeepSeek credentials are not configured.
             urllib.error.URLError: If the HTTP request fails.
             json.JSONDecodeError: If the response body is not valid JSON.
             KeyError: If the response structure is unexpected.
         """
         if not self._api_key or not self._base_url:
             raise RuntimeError(
-                "ZENMUX_API_KEY and ZENMUX_BASE_URL environment variables must be set"
+                "No DeepSeek API key configured. Add DEEPSEEK_API_KEY or DEEPSEEK_CHAT_API_KEY in environment variables."
             )
 
         url = f"{self._base_url.rstrip('/')}/chat/completions"
         payload = {
-            "model": "z-ai/glm-5.2-free",
+            "model": "deepseek-chat",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -224,7 +229,7 @@ class CriticLayer:
         user_prompt = self._build_prompt(grounded_facts, agent_response, user_input)
 
         try:
-            content = self._call_zenmux(system_prompt, user_prompt)
+            content = self._call_deepseek(system_prompt, user_prompt)
             result = self._parse_response(content)
 
             required_keys = [

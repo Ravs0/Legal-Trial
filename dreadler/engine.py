@@ -12,15 +12,21 @@ from .state import CoherenceState
 from .critic import CriticLayer
 
 
-_DEFAULT_MODEL = "z-ai/glm-5.2-free"
+_DEFAULT_MODEL = "deepseek-chat"
 
 
-def _call_zenmux(messages: List[Dict], stream: bool = True) -> str:
-    api_key = os.environ.get("ZENMUX_API_KEY")
+def _call_deepseek(messages: List[Dict], stream: bool = True) -> str:
+    api_key = None
+    for key in ["DEEPSEEK_API_KEY", "DEEPSEEK_CHAT_API_KEY", "DEEPSEEK_REASONER_API_KEY"]:
+        val = os.environ.get(key)
+        if val:
+            api_key = val
+            break
+
     if not api_key:
-        raise RuntimeError("ZENMUX_API_KEY environment variable not set")
+        raise RuntimeError("No DeepSeek API key configured. Add DEEPSEEK_API_KEY or DEEPSEEK_CHAT_API_KEY in environment variables.")
 
-    base_url = os.environ.get("ZENMUX_BASE_URL", "https://zenmux.ai/api/v1")
+    base_url = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1").rstrip("/")
 
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -45,7 +51,7 @@ def _call_zenmux(messages: List[Dict], stream: bool = True) -> str:
         response = urllib.request.urlopen(request, context=ctx)
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(f"ZenMux API error: {e.code} {e.reason}\n{error_body}")
+        raise RuntimeError(f"DeepSeek API error: {e.code} {e.reason}\n{error_body}")
 
     if stream:
         accumulated = ""
@@ -91,7 +97,7 @@ class DreadlerAgent:
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(self.dialogue_history)
         messages.append({"role": "user", "content": user_input})
-        return _call_zenmux(messages, stream=True)
+        return _call_deepseek(messages, stream=True)
 
     def _classify_user_input(self, user_input: str) -> str:
         # Keyword classifier: check for challenge phrases

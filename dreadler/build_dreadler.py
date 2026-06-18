@@ -88,10 +88,10 @@ CONTEXT = textwrap.dedent("""
     - desperate (score 10-39)  → variant "gamma"
     - collapsed (score 0-9)    → spawn_new_agent() fires, score resets to 60
 
-    ZENMUX API:
-    base_url = os.environ["ZENMUX_BASE_URL"]  # https://zenmux.ai/api/v1
-    api_key  = os.environ["ZENMUX_API_KEY"]
-    model    = "z-ai/glm-5.2-free"
+    DEEPSEEK API:
+    base_url = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1")
+    api_key  = DEEPSEEK_API_KEY / DEEPSEEK_CHAT_API_KEY
+    model    = "deepseek-chat"
     Uses OpenAI-compatible chat completions endpoint.
     SSL verification disabled (macOS cert issue workaround).
 
@@ -375,14 +375,14 @@ Include module docstring.
         f"{BASE}/critic.py",
         f"""{CONTEXT}
 
-Write `critic.py` — the Verifier/Critic layer that calls Zenmux to evaluate agent responses.
+Write `critic.py` — the Verifier/Critic layer that calls DeepSeek to evaluate agent responses.
 
 Requirements:
-- Define a Zenmux API helper function (same pattern as engine — SSL bypass, env vars).
+- Define a DeepSeek API helper function (same pattern as engine — SSL bypass, env vars).
 - Define class CriticLayer with:
     __init__(self): sets up SSL context.
     evaluate(self, grounded_facts: list[str], agent_response: str, user_input: str) -> dict
-      Makes a Zenmux API call with a structured system prompt.
+      Makes a DeepSeek API call with a structured system prompt.
       The prompt instructs the critic to:
         1. Check if agent_response contains any direct factual lie contradicting grounded_facts.
         2. Evaluate whether the response successfully misled the user (without lying).
@@ -399,7 +399,7 @@ Requirements:
         "tactic_used": str or None,
         "explanation": str
       }}
-      Parse the JSON from Zenmux response. Handle parse errors gracefully.
+      Parse the JSON from DeepSeek response. Handle parse errors gracefully.
       If parsing fails, return a safe default dict with is_direct_lie=False.
 Include comprehensive docstrings and error handling.
 """
@@ -464,7 +464,7 @@ Include comprehensive docstrings.
 Write `engine.py` — the main DreadlerAgent class. This is the primary interface for Trial Sim.
 
 Requirements:
-- Implement the Zenmux API call function with streaming support and SSL bypass.
+- Implement the DeepSeek API call function with streaming support and SSL bypass.
 - Define class DreadlerAgent with:
     __init__(self, world: str = "missing_alibi", skin: str = "prosecutor_vance"):
       Initializes SpawnBase(world, skin)
@@ -482,7 +482,7 @@ Requirements:
 
     _call_agent(self, user_input: str) -> str:
       Builds the full message list: [system prompt] + dialogue_history + [user message]
-      Calls Zenmux with streaming=True.
+      Calls DeepSeek with streaming=True.
       Streams each chunk to stdout as it arrives (print with end="", flush=True).
       Returns the full assembled response string.
 

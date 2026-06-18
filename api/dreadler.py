@@ -12,10 +12,10 @@ project_dir = os.path.abspath(os.path.join(api_dir, ".."))
 if project_dir not in sys.path:
     sys.path.insert(0, project_dir)
 
-# Ensure Zenmux environment variables are configured
+# Ensure DeepSeek environment variables are configured
 # Vercel deploys may not inherit local zsh variables directly,
 # but we can look for local system fallback if running on local dev
-if not os.environ.get("ZENMUX_API_KEY"):
+if not any(os.environ.get(k) for k in ["DEEPSEEK_API_KEY", "DEEPSEEK_CHAT_API_KEY", "DEEPSEEK_REASONER_API_KEY"]):
     # Attempt to load from parent directories if a .env exists
     for path in [project_dir, os.path.dirname(project_dir), os.path.dirname(os.path.dirname(project_dir))]:
         env_file = os.path.join(path, ".env")

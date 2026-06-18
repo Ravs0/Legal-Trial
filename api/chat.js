@@ -11,18 +11,7 @@ function corsHeaders(origin) {
 function getModelConfig(modelName) {
     const e = process.env;
 
-    // 1. Zenmux configuration (preferred)
-    const zenmuxKey = e.ZENMUX_API_KEY;
-    if (zenmuxKey) {
-        const baseUrl = (e.ZENMUX_BASE_URL || "https://zenmux.ai/api/v1").replace(/\/$/, "");
-        return {
-            url: `${baseUrl}/chat/completions`,
-            key: zenmuxKey,
-            model: "z-ai/glm-5.2-free",
-        };
-    }
-
-    // 2. DeepSeek configuration (fallback)
+    // Strict DeepSeek-only configuration
     const dsNative = e.DEEPSEEK_API_KEY || e.DEEPSEEK_CHAT_API_KEY || e.DEEPSEEK_REASONER_API_KEY;
     if (dsNative) {
         const isReasoner = modelName === "deepseek-reasoner" || modelName === "reasoner" || modelName === "deepseek-v4-pro" || modelName === "v4-pro" || modelName === "deepseek-reasoner-native";
@@ -55,7 +44,7 @@ export default async function handler(req, res) {
     const config = getModelConfig(model);
     if (!config) {
         return res.status(503).json({
-            error: "No AI API key configured. Add ZENMUX_API_KEY or DEEPSEEK_API_KEY in env vars.",
+            error: "No AI API key configured. Add DEEPSEEK_API_KEY or DEEPSEEK_CHAT_API_KEY in Vercel env vars.",
         });
     }
 
@@ -67,7 +56,6 @@ export default async function handler(req, res) {
 
     let upstream;
     try {
-        const isReasoner = config.model.includes("reasoner");
         upstream = await fetch(config.url, {
             method: "POST",
             headers: {
@@ -77,8 +65,8 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 model: config.model,
                 messages: allMessages,
-                temperature: isReasoner ? undefined : 0.6,
-                max_tokens: isReasoner ? undefined : 1000,
+                temperature: config.model === "deepseek-reasoner" ? undefined : 0.6,
+                max_tokens: config.model === "deepseek-reasoner" ? undefined : 1000,
                 stream: streamRequested,
             }),
         });
