@@ -104,6 +104,15 @@ const ChartIcon = () => (
   </svg>
 );
 
+const TargetIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" />
+    <circle cx="12" cy="12" r="6" stroke="currentColor" />
+    <circle cx="12" cy="12" r="2" stroke="currentColor" fill="currentColor" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M2 12h2m16 0h2" />
+  </svg>
+);
+
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
@@ -184,10 +193,20 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <nav className="flex-grow py-2 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
             <NavItem to={ROUTES.HOME} label="Dashboard" icon={<HomeIcon />} end={true} isSidebarOpen={isExpanded} />
 
-            {/* ─── AI MODULES ─────────────────────────────────────────── */}
-            <SectionLabel label="AI Modules" isOpen={isExpanded} />
-            <NavItem to={ROUTES.COUNCIL} label="Council Chamber" icon={<SparklesIcon />} badge="AI" isSidebarOpen={isExpanded} />
-            <NavItem to={ROUTES.SENTIENT_SUBJECTS} label="Sentient Subjects" icon={<BrainIcon />} badge="NEW" isSidebarOpen={isExpanded} />
+            {/* ─── AI ADVISORS ─────────────────────────────────────────── */}
+            <SectionLabel label="AI Advisors" isOpen={isExpanded} />
+            <NavItem to={ROUTES.PERSONAS} label="AI Personas" icon={<BrainIcon />} isSidebarOpen={isExpanded} />
+
+            {/* ─── AI STRATEGY ─────────────────────────────────────────── */}
+            <SectionLabel label="AI Strategy" isOpen={isExpanded} />
+            <NavItem to={ROUTES.STRATEGY} label="Strategy Room" icon={<SparklesIcon />} isSidebarOpen={isExpanded} />
+
+            {/* ─── DECEPTION ARENA ─────────────────────────────────────── */}
+            <SectionLabel label="Deception Arena" isOpen={isExpanded} />
+            <NavItem to={ROUTES.DREADLER} label="Deception Arena" icon={<TargetIcon />} badge="ARENA" isSidebarOpen={isExpanded} />
+
+            {/* ─── AI DRAFTING ─────────────────────────────────────────── */}
+            <SectionLabel label="AI Drafting" isOpen={isExpanded} />
             <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting Studio" icon={<QuillIcon />} isSidebarOpen={isExpanded} />
 
             {/* ─── PRACTICE ───────────────────────────────────────────── */}

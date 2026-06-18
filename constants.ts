@@ -1754,8 +1754,9 @@ export const ROUTES = {
   JUDGES: '/judges',
   OPPOSING_COUNSEL: '/opposing-counsel', 
   DRAFTING_STUDIO: '/drafting-studio',
-  COUNCIL: '/council',
-  SENTIENT_SUBJECTS: '/sentient-subjects',
+  PERSONAS: '/ai-personas',
+  STRATEGY: '/strategy-room',
+  DREADLER: '/deception-arena',
 };
 
 export const MOCK_API_KEY = "YOUR_API_KEY_HERE";

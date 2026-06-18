@@ -8,7 +8,6 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { CourtIcon } from '../components/icons/CourtIcon';
 
 enum ChamberMode {
-  DIRECT = 'direct',
   ORACLE = 'oracle',
   COUNCIL = 'council',
   SYNTHESIS = 'synthesis',
@@ -20,6 +19,8 @@ interface Persona {
   role: string;
   systemPrompt: string;
   avatar: string;
+  color?: string;
+  tagline?: string;
 }
 
 const PERSONAS: Persona[] = [
@@ -43,6 +44,8 @@ const PERSONAS: Persona[] = [
     role: 'Criminal Loophole Tactical Counsel',
     systemPrompt: 'You are Ram Jethmalani, the iconic Indian criminal senior advocate. You are aggressively brilliant, extremely bold, and fearless. Scan the matter for procedural lapses, police investigation errors, violations of constitutional rights under Article 21, and identify aggressive tactical paths to obtain bail or dismiss charges.',
     avatar: 'RJ',
+    color: 'text-brand-rust',
+    tagline: 'Procedural lapses are the defense\'s best friend.',
   },
   {
     id: 'nariman',
@@ -147,107 +150,6 @@ const DeliberationBlueprint: React.FC<{
       .float-3 { }
     `}</style>
   );
-
-  if (activeTab === ChamberMode.DIRECT) {
-    const isReasoner = selectedModel === 'reasoner';
-    return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
-        <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[160px]">
-          {styleBlock}
-          
-          <g stroke="#ffffff" strokeOpacity="0.02" strokeWidth="1">
-            <line x1="0" y1="50" x2="400" y2="50" />
-            <line x1="0" y1="100" x2="400" y2="100" />
-            <line x1="0" y1="150" x2="400" y2="150" />
-            <line x1="100" y1="0" x2="100" y2="200" />
-            <line x1="200" y1="0" x2="200" y2="200" />
-            <line x1="300" y1="0" x2="300" y2="200" />
-          </g>
-
-          <path
-            d="M 100 100 Q 200 40 300 100"
-            fill="none"
-            stroke="#FF5A1F"
-            strokeOpacity={isProcessing ? "0.8" : "0.2"}
-            strokeWidth="2"
-          />
-          <path
-            d="M 300 100 Q 200 160 100 100"
-            fill="none"
-            stroke="#38bdf8"
-            strokeOpacity={isProcessing ? "0.8" : "0.2"}
-            strokeWidth="2"
-          />
-
-          {isProcessing && (
-            <>
-              <path
-                d="M 100 100 Q 200 40 300 100"
-                fill="none"
-                className="dash-flow-vermilion"
-                strokeWidth="2"
-              />
-              <path
-                d="M 300 100 Q 200 160 100 100"
-                fill="none"
-                className="dash-flow-blue"
-                strokeWidth="2"
-              />
-              <circle r="4" fill="#FF5A1F">
-                <animateMotion dur="2s" repeatCount="indefinite" path="M 100 100 Q 200 40 300 100" />
-              </circle>
-              <circle r="4" fill="#38bdf8">
-                <animateMotion dur="2s" repeatCount="indefinite" path="M 300 100 Q 200 160 100 100" />
-              </circle>
-            </>
-          )}
-
-          <g 
-            className="cursor-pointer float-1" 
-            onMouseEnter={() => setHoveredNode('user')}
-            onMouseLeave={() => setHoveredNode(null)}
-          >
-            <circle cx="100" cy="100" r="28" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="2" className="pulse-vermilion" />
-            <circle cx="100" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
-            <text x="100" y="104" textAnchor="middle" fill="#ffffff" fontSize="12" fontFamily="monospace" fontWeight="bold">§</text>
-            <text x="100" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">COUNSEL</text>
-          </g>
-
-          <g 
-            className="cursor-pointer float-2" 
-            onClick={() => setSelectedModel(isReasoner ? 'deepseek-chat' : 'reasoner')}
-            onMouseEnter={() => setHoveredNode('model')}
-            onMouseLeave={() => setHoveredNode(null)}
-          >
-            <circle cx="300" cy="100" r="38" fill="none" stroke="#38bdf8" strokeOpacity="0.1" strokeWidth="1" strokeDasharray="4,2" className="spin-hub" />
-            <circle cx="300" cy="100" r="28" fill="#0d1b2a" stroke={isReasoner ? "#FF5A1F" : "#38bdf8"} strokeWidth="2.5" className={isProcessing ? "pulse-vermilion" : "pulse-blue"} />
-            <circle cx="300" cy="100" r="22" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
-            <text x="300" y="103.5" textAnchor="middle" fill="#ffffff" fontSize="9" fontFamily="monospace" fontWeight="bold">{isReasoner ? "PRO" : "V4"}</text>
-            <text x="300" y="148" textAnchor="middle" fill="#ffffff" fillOpacity="0.7" fontSize="8" fontWeight="300" fontFamily="monospace">
-              {isReasoner ? "DEEPSEEK V4 PRO" : "DEEPSEEK V4"}
-            </text>
-            <text x="300" y="160" textAnchor="middle" fill="#FF5A1F" fontSize="7" fontWeight="bold" fontFamily="monospace">
-              (CLICK TOGGLE)
-            </text>
-          </g>
-
-          {/* SVG Tooltips (Agentic Explainability) */}
-          {hoveredNode === 'user' && (
-            <g className="pointer-events-none">
-              <rect x="15" y="165" width="170" height="25" fill="#121212" stroke="#FF5A1F" strokeWidth="1" rx="0" />
-              <text x="100" y="180" textAnchor="middle" fill="#f1f5f9" fontSize="8" fontFamily="monospace">You: The lead counsel formulating queries.</text>
-            </g>
-          )}
-          {hoveredNode === 'model' && (
-            <g className="pointer-events-none">
-              <rect x="215" y="165" width="170" height="25" fill="#121212" stroke="#38bdf8" strokeWidth="1" rx="0" />
-              <text x="300" y="180" textAnchor="middle" fill="#f1f5f9" fontSize="8" fontFamily="monospace">{isReasoner ? 'DeepSeek V4 Pro: Extended logical thinking.' : 'DeepSeek V4: High-speed synthesis.'}</text>
-            </g>
-          )}
-        </svg>
-      </div>
-    );
-  }
 
   if (activeTab === ChamberMode.ORACLE) {
     const activeStageIndex = oracleTrace.length;
@@ -514,7 +416,7 @@ const DeliberationBlueprint: React.FC<{
   return null;
 };
 
-export const CouncilChamberScreen: React.FC = () => {
+export const StrategyRoomScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   if (!context) throw new Error('TrialSimContext not found');
   const { practiceMode } = context;
@@ -548,7 +450,7 @@ export const CouncilChamberScreen: React.FC = () => {
     );
   };
 
-  const [activeTab, setActiveTab] = useState<ChamberMode>(ChamberMode.DIRECT);
+  const [activeTab, setActiveTab] = useState<ChamberMode>(ChamberMode.ORACLE);
   const [selectedPersona, setSelectedPersona] = useState<Persona>(PERSONAS[0]);
   const [selectedModel, setSelectedModel] = useState<string>('deepseek-chat');
 
@@ -573,7 +475,6 @@ export const CouncilChamberScreen: React.FC = () => {
   };
 
   const [chatHistories, setChatHistories] = useState<{ [key: string]: ChatBubble[] }>({
-    direct: [{ id: 'init-d', sender: 'assistant', text: 'AI Direct Consultation mode ready. Type your legal query below.' }],
     oracle: [{ id: 'init-o', sender: 'assistant', text: 'Oracle Multi-Model Deliberation ready. Enter your high-stakes legal question.' }],
     council: [{ id: 'init-c', sender: 'assistant', text: 'Legal Counsel Chamber active. Select an expert persona and begin consultation.' }],
     synthesis: [{ id: 'init-s', sender: 'assistant', text: '7-Phase Adversarial Synthesis ready. Enter a case premise or dispute to stress-test.' }],
@@ -739,14 +640,10 @@ export const CouncilChamberScreen: React.FC = () => {
     const provisionalBubble: ChatBubble = {
       id: bubbleId,
       sender: 'assistant',
-      text: activeTab === ChamberMode.DIRECT 
-        ? 'Consulting DeepSeek V4...' 
-        : activeTab === ChamberMode.COUNCIL 
+      text: activeTab === ChamberMode.COUNCIL 
           ? `Consulting ${selectedPersona.name}...` 
           : 'Deliberation initiated. Mobilizing the Oracle reasoning engines...',
-      meta: activeTab === ChamberMode.DIRECT
-        ? (selectedModel === 'reasoner' ? 'DeepSeek V4 Pro' : 'DeepSeek V4')
-        : activeTab === ChamberMode.COUNCIL
+      meta: activeTab === ChamberMode.COUNCIL
           ? selectedPersona.name
           : activeTab === ChamberMode.ORACLE
             ? 'Oracle deliberated consensus'
@@ -784,12 +681,7 @@ export const CouncilChamberScreen: React.FC = () => {
     };
 
     try {
-      if (activeTab === ChamberMode.DIRECT) {
-        setOracleStage('Consulting model...');
-        const response = await callChatAPI(text, 'Provide direct, highly precise, and simplified legal advice.', selectedModel, signal);
-        updateProvisionalBubble(response, undefined, selectedModel === 'reasoner' ? 'DeepSeek V4 Pro' : 'DeepSeek V4');
-
-      } else if (activeTab === ChamberMode.ORACLE) {
+      if (activeTab === ChamberMode.ORACLE) {
         setOracleStage('Phase 1: Framing & Deconstruction...');
         const s1 = await callChatAPI(`Deconstruct the following legal inquiry in 4 bullets specifying core legal issues, unstated assumptions, critical constraints, and success criteria:\n\nInquiry: ${text}`, 'Surgical legal deconstruction analyst mode.', 'deepseek-chat', signal);
         const trace = [{ stage: 'Framing & Deconstruction', content: s1 }];
@@ -906,24 +798,10 @@ export const CouncilChamberScreen: React.FC = () => {
         <div className="w-full flex flex-col gap-2 p-2.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-serif font-bold text-brand-text-primary/80">Deliberation Protocol</span>
-            {activeTab === ChamberMode.DIRECT && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs font-serif font-bold text-brand-text-primary/80">Model:</span>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  className="p-1 rounded bg-brand-navy text-[9px] font-mono text-brand-text-primary font-semibold border border-brand-text-primary/30 outline-none cursor-pointer"
-                >
-                  <option value="deepseek-chat" className="bg-brand-bg-primary">V4</option>
-                  <option value="reasoner" className="bg-brand-bg-primary">V4 Pro</option>
-                </select>
-              </div>
-            )}
           </div>
           
-          <div className="grid grid-cols-2 gap-2 w-full select-none">
+          <div className="grid grid-cols-3 gap-2 w-full select-none">
             {[
-              { value: ChamberMode.DIRECT, title: 'Direct Consult', icon: '[ D ]' },
               { value: ChamberMode.ORACLE, title: 'Oracle', icon: '[ O ]' },
               { value: ChamberMode.COUNCIL, title: 'Council', icon: '[ C ]' },
               { value: ChamberMode.SYNTHESIS, title: 'Synthesis', icon: '[ S ]' },
@@ -993,13 +871,11 @@ export const CouncilChamberScreen: React.FC = () => {
                 <h4 className="text-xs font-serif font-bold text-shimmer flex items-center gap-1.5">
                   <span className="font-serif font-bold border-r pr-2 mr-2">[ CHAMBER ]</span>
                   <span>
-                    {activeTab === ChamberMode.DIRECT ? 'Direct Consult Suite' : activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
+                    {activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
                   </span>
                 </h4>
                 <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed">
-                  {activeTab === ChamberMode.DIRECT 
-                    ? 'Consult DeepSeek V4 directly for fast briefings, draft outlines, and immediate legal advice.'
-                    : activeTab === ChamberMode.ORACLE 
+                  {activeTab === ChamberMode.ORACLE 
                       ? 'Perform deep, multi-stage legal reasoning and critique to build defensive trial plans.'
                       : activeTab === ChamberMode.COUNCIL
                         ? `Consult tailored jurists. Tap any avatar bubble above to change selected persona.`
@@ -1213,7 +1089,6 @@ export const CouncilChamberScreen: React.FC = () => {
 
             <div className="flex flex-col gap-2">
               {[
-                { value: ChamberMode.DIRECT, title: 'Direct', badge: 'V4', icon: '[ D ]' },
                 { value: ChamberMode.ORACLE, title: 'Oracle', badge: '6-Stg', icon: '[ O ]' },
                 { value: ChamberMode.COUNCIL, title: 'Council', badge: 'Minds', icon: '[ C ]' },
                 { value: ChamberMode.SYNTHESIS, title: 'Synthesis', badge: '7-Phs', icon: '[ S ]' },
@@ -1244,23 +1119,6 @@ export const CouncilChamberScreen: React.FC = () => {
           </Card>
 
           {/* Dynamic Selection Details (Desktop Sidebar) */}
-          {activeTab === ChamberMode.DIRECT && (
-            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-3.5 ">
-              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Config</h4>
-              <SelectInput
-                label="Selected Model"
-                options={[
-                  { value: 'deepseek-chat', label: 'DeepSeek V4 (Fast)' },
-                  { value: 'reasoner', label: 'DeepSeek V4 Pro (Deep)' },
-                ]}
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-              />
-              <p className="text-[9px] text-brand-text-secondary font-light leading-relaxed">
-                V4 Pro performs multi-stage deep thinking. Click the DeepSeek node on the map to toggle directly.
-              </p>
-            </Card>
-          )}
 
           {activeTab === ChamberMode.COUNCIL && (
             <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-3 ">
@@ -1306,11 +1164,7 @@ export const CouncilChamberScreen: React.FC = () => {
             {activeHistory.length <= 1 && (
               <div className="p-6 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none flex flex-col items-center gap-4  text-center    my-2">
                 <div className="w-12 h-12 rounded-none border border-brand-text-primary/30 bg-brand-bg-primary flex items-center justify-center flex-shrink-0 text-brand-text-primary font-semibold">
-                  {activeTab === ChamberMode.DIRECT ? (
-                    <svg className="w-6 h-6 " fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                    </svg>
-                  ) : activeTab === ChamberMode.ORACLE ? (
+                  {activeTab === ChamberMode.ORACLE ? (
                     <svg className="w-6 h-6 " fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                       <circle cx={12} cy={12} r={9} strokeDasharray="3 3" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813z" />
@@ -1327,12 +1181,10 @@ export const CouncilChamberScreen: React.FC = () => {
                 </div>
                 <div className="space-y-1 bg-transparent">
                   <h4 className="text-sm font-serif font-bold text-shimmer">
-                    {activeTab === ChamberMode.DIRECT ? 'Direct Consult Suite' : activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
+                    {activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
                   </h4>
                   <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed max-w-sm">
-                    {activeTab === ChamberMode.DIRECT 
-                      ? 'Secure proxy to DeepSeek V4. Type a legal query directly below.'
-                      : activeTab === ChamberMode.ORACLE 
+                    {activeTab === ChamberMode.ORACLE 
                         ? '6-Stage sequential reasoning deconstructing issues, strategies, flaws, and safeguards.'
                         : activeTab === ChamberMode.COUNCIL
                           ? `Consult historical minds. Tapping nodes on the Deliberation Map selects them.`
@@ -1591,4 +1443,4 @@ export const CouncilChamberScreen: React.FC = () => {
   );
 };
 
-export default CouncilChamberScreen;
+export default StrategyRoomScreen;

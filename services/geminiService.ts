@@ -226,3 +226,14 @@ export const getFilingProcedureInfo = async (
   const system = `You are a Legal Procedural Guide for ${practiceMode} law. Provide bullet-point steps. Add a disclaimer at end.`;
   return callApi([{ role: 'user', content: `Filing procedure for ${draftType}.` }], system);
 };
+
+export const summarizeSearchResults = async (
+  query: string,
+  results: any[],
+  practiceMode: PracticeMode | 'common'
+): Promise<string> => {
+  const system = `You are a Legal Research Assistant specializing in ${practiceMode} law. Synthesize the provided search results to answer the query: "${query}". Be concise, structured, and cite sources.`;
+  const content = `Search query: "${query}"\n\nResults:\n${JSON.stringify(results)}`;
+  return callApi([{ role: 'user', content }], system);
+};
+

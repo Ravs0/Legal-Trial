@@ -66,18 +66,25 @@ export const CommandPalette: React.FC = () => {
         action: () => navigate(ROUTES.SETUP)
       },
       {
-        id: 'nav-council',
+        id: 'nav-personas',
         category: 'Navigation',
-        title: 'Consult AI Council Chamber',
-        description: 'Multi-model legal deliberation analysis.',
-        action: () => navigate(ROUTES.COUNCIL)
+        title: 'Consult AI Personas',
+        description: 'Talk to elite legal domain characters and experts.',
+        action: () => navigate(ROUTES.PERSONAS)
       },
       {
-        id: 'nav-subjects',
+        id: 'nav-strategy',
         category: 'Navigation',
-        title: 'Visit Sentient Subjects Commune',
-        description: 'Commune with anime personality-driven subjects.',
-        action: () => navigate(ROUTES.SENTIENT_SUBJECTS)
+        title: 'Open AI Strategy Room',
+        description: 'Run Oracle deconstruction and multi-agent debates.',
+        action: () => navigate(ROUTES.STRATEGY)
+      },
+      {
+        id: 'nav-dreadler',
+        category: 'Navigation',
+        title: 'Enter Deception Arena',
+        description: 'Interrogate witnesses under the Dreadler lie detector.',
+        action: () => navigate(ROUTES.DREADLER)
       },
       {
         id: 'nav-drafting',
