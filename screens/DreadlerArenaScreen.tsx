@@ -143,6 +143,35 @@ export const DreadlerArenaScreen: React.FC = () => {
   const bridge = useConversationBridge();
   const { vpHeight, isMobile } = useVisualViewport();
 
+  const renderMarkdown = (text: string) => {
+    if (!text) return null;
+    return (
+      <ReactMarkdown
+        components={{
+          strong: ({node, ...props}) => <strong className="text-red-400 font-bold" {...props} />,
+          em: ({node, ...props}) => <em className="font-serif italic text-zinc-200 opacity-95" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc pl-4 my-1.5 space-y-1 text-zinc-300" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal pl-4 my-1.5 space-y-1 text-zinc-300" {...props} />,
+          li: ({node, ...props}) => <li className="text-zinc-300" {...props} />,
+          h1: ({node, ...props}) => <h1 className="text-xs sm:text-sm font-serif font-bold text-white mt-3 mb-1 border-b border-zinc-800 pb-0.5 uppercase tracking-wide" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-[11px] sm:text-xs font-serif font-bold text-zinc-150 mt-2.5 mb-1" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-[10px] sm:text-[11px] font-serif font-bold text-zinc-200 mt-2 mb-0.5" {...props} />,
+          p: ({node, ...props}) => <p className="mb-1.5 last:mb-0 text-zinc-300 leading-relaxed" {...props} />,
+          code: ({node, className, children, ...props}) => {
+            const match = /language-(\w+)/.exec(className || '');
+            return !match ? (
+              <code className="bg-red-950/30 border border-red-500/20 px-1 py-0.5 rounded text-[9px] font-mono text-red-400" {...props}>{children}</code>
+            ) : (
+              <pre className="bg-[#0b0b0e] border border-zinc-800 p-2 rounded text-[9px] font-mono overflow-x-auto my-1.5"><code className="text-zinc-300" {...props}>{children}</code></pre>
+            );
+          }
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
+  };
+
   // ─── SETUP STATE ───────────────────────────────────────────────────────────
   const [selectedWorld, setSelectedWorld] = useState<string>('dreadler_logic');
   const [selectedSkin, setSelectedSkin] = useState<string>('dreadler');
@@ -663,8 +692,8 @@ export const DreadlerArenaScreen: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Critic Evaluation</h4>
-                <div className="bg-[#121217] p-3 border border-zinc-800 min-h-[90px] text-[11px] leading-relaxed text-zinc-400">
-                  {lastCriticLog ? <ReactMarkdown>{lastCriticLog}</ReactMarkdown> : <span className="italic text-zinc-600">Awaiting first user probe.</span>}
+                <div className="bg-[#121217] p-3 border border-zinc-800 min-h-[90px] text-[11px] leading-relaxed text-zinc-300">
+                  {lastCriticLog ? renderMarkdown(lastCriticLog) : <span className="italic text-zinc-500">Awaiting first user probe.</span>}
                 </div>
               </div>
               <div className="space-y-3">
@@ -674,7 +703,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
                     const isActiveNow = lastTacticFlagged === t.id;
                     return (
-                      <div key={t.id} className={`p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-350 bg-zinc-900/40' : 'border-zinc-800 text-zinc-600'}`} title={t.description}>
+                      <div key={t.id} className={`p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                         <div className="truncate">{t.name}</div>
                         <div className="text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Flagged' : isUsed ? 'Deployed' : 'Unused'}</div>
                       </div>
@@ -824,8 +853,18 @@ export const DreadlerArenaScreen: React.FC = () => {
                       </span>
                       {msg.variant && <span className="text-[7px] sm:text-[8px] font-mono px-1 py-0.5 bg-red-950/20 text-red-500 border border-red-500/20 uppercase leading-none">{msg.variant}</span>}
                     </div>
-                    <div className={`p-2.5 sm:p-4 border font-mono text-[10px] sm:text-xs leading-relaxed rounded-none select-text ${isCharacter ? 'bg-[#121217] border-red-500/20 text-zinc-200' : 'bg-brand-accent/5 border-brand-accent/30 text-zinc-200'}`}>
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    <div className={`p-2.5 sm:p-4 border font-mono text-[10px] sm:text-xs leading-relaxed rounded-none select-text ${isCharacter ? 'bg-[#121217] border-red-500/20 text-zinc-300' : 'bg-brand-accent/5 border-brand-accent/30 text-zinc-300'}`}>
+                      {renderMarkdown(msg.text)}
+                      {msg.thinkingLog && msg.thinkingLog !== "No cognitive verification block generated." && (
+                        <details className="mt-3 pt-2.5 border-t border-zinc-800 text-[9px] text-zinc-400 cursor-pointer select-text">
+                          <summary className="font-bold text-red-500/80 hover:text-red-400 uppercase tracking-wider mb-1.5 focus:outline-none">
+                            [ Mandatory Cognitive Verification Log ]
+                          </summary>
+                          <div className="pl-2 border-l border-zinc-800 whitespace-pre-wrap font-mono text-zinc-400 bg-zinc-950/40 p-2 overflow-x-auto text-[8px] leading-relaxed">
+                            {msg.thinkingLog}
+                          </div>
+                        </details>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -888,8 +927,8 @@ export const DreadlerArenaScreen: React.FC = () => {
 
             <div className="space-y-2">
               <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Critic Evaluation</h4>
-              <div className="bg-[#121217] p-2 sm:p-3 border border-zinc-800 min-h-[70px] sm:min-h-[90px] text-[10px] sm:text-[11px] leading-relaxed text-zinc-400">
-                {lastCriticLog ? <ReactMarkdown>{lastCriticLog}</ReactMarkdown> : <span className="italic text-zinc-600">Awaiting first probe.</span>}
+              <div className="bg-[#121217] p-2 sm:p-3 border border-zinc-800 min-h-[70px] sm:min-h-[90px] text-[10px] sm:text-[11px] leading-relaxed text-zinc-300">
+                {lastCriticLog ? renderMarkdown(lastCriticLog) : <span className="italic text-zinc-500">Awaiting first probe.</span>}
               </div>
             </div>
 
@@ -900,7 +939,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   const isUsed = stateData?.used_tactics.includes(t.id);
                   const isActiveNow = lastTacticFlagged === t.id;
                   return (
-                    <div key={t.id} className={`p-1.5 sm:p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold shadow-[0_0_8px_rgba(239,68,68,0.15)]' : isUsed ? 'border-zinc-700 text-zinc-350 bg-zinc-900/40' : 'border-zinc-800 text-zinc-600'}`} title={t.description}>
+                    <div key={t.id} className={`p-1.5 sm:p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold shadow-[0_0_8px_rgba(239,68,68,0.15)]' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                       <div className="truncate">{t.name}</div>
                       <div className="text-[7px] sm:text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Flagged' : isUsed ? 'Deployed' : 'Unused'}</div>
                     </div>

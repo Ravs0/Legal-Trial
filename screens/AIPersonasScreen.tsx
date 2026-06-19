@@ -213,6 +213,35 @@ const AIPersonasScreen: React.FC = () => {
   const messageCountRef = useRef(0); // Track messages for interjection timing
 
   // Legal Mastery States (only for sentient)
+  const renderMarkdown = (text: string) => {
+    if (!text) return null;
+    return (
+      <ReactMarkdown
+        components={{
+          strong: ({node, ...props}) => <strong className="text-brand-accent font-semibold" {...props} />,
+          em: ({node, ...props}) => <em className="font-serif italic opacity-95" {...props} />,
+          ul: ({node, ...props}) => <ul className="list-disc pl-4 my-1.5 space-y-1 text-brand-text-primary" {...props} />,
+          ol: ({node, ...props}) => <ol className="list-decimal pl-4 my-1.5 space-y-1 text-brand-text-primary" {...props} />,
+          li: ({node, ...props}) => <li className="text-brand-text-primary" {...props} />,
+          h1: ({node, ...props}) => <h1 className="text-sm font-serif font-bold text-brand-text-primary mt-3 mb-1" {...props} />,
+          h2: ({node, ...props}) => <h2 className="text-xs font-serif font-bold text-brand-text-primary mt-2.5 mb-1" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-[11px] font-serif font-bold text-brand-text-primary mt-2 mb-0.5" {...props} />,
+          p: ({node, ...props}) => <p className="mb-1.5 last:mb-0 text-brand-text-primary" {...props} />,
+          code: ({node, className, children, ...props}) => {
+            const match = /language-(\w+)/.exec(className || '');
+            return !match ? (
+              <code className="bg-brand-bg-secondary px-1 py-0.5 rounded text-[10px] font-mono text-brand-accent" {...props}>{children}</code>
+            ) : (
+              <pre className="bg-brand-bg-secondary p-2 rounded text-[10px] font-mono overflow-x-auto my-1.5"><code className="text-brand-text-primary" {...props}>{children}</code></pre>
+            );
+          }
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
+  };
+
   const [insightScores, setInsightScores] = useState<Record<string, number>>(() => {
     const scores: Record<string, number> = {};
     SENTIENT_SUBJECTS.forEach(s => {
@@ -878,10 +907,8 @@ const AIPersonasScreen: React.FC = () => {
                           )}
                           
                           <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-brand-accent/30 bg-brand-accent/5 text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
-                            <div className="prose prose-invert prose-xs max-w-none">
-                              <ReactMarkdown>
-                                {m.text}
-                              </ReactMarkdown>
+                            <div className="max-w-none">
+                              {renderMarkdown(m.text)}
                             </div>
                           </div>
 
@@ -916,7 +943,7 @@ const AIPersonasScreen: React.FC = () => {
                     onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
                     placeholder={`Query ${activePersonaName}...`}
                     disabled={isTyping}
-                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-brand-text-primary focus:outline-none focus:border-brand-accent font-light"
+                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-brand-accent font-light"
                   />
                   <button
                     onClick={handleSend}

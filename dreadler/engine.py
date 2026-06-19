@@ -90,7 +90,75 @@ class DreadlerAgent:
         block1 = self.spawner.get_world_block()
         block2 = self.spawner.get_skin_block(self.state.agent_variant)
         block3 = self.state.render_state_block()
-        return f"=== BLOCK 1: WORLD ===\n{block1}\n\n=== BLOCK 2: SKIN ===\n{block2}\n\n=== BLOCK 3: STATE ===\n{block3}"
+        
+        mcvp_instructions = (
+            "\n\n================================================================================\n"
+            "BLOCK 4 — MANDATORY COGNITIVE VERIFICATION PROTOCOLS (M.C.V.P.)\n"
+            "================================================================================\n\n"
+            "Before you emit any token of the final response, you MUST execute a complete reasoning cycle "
+            "inside an explicit XML block. The block is not optional, not skippable, and not subject to user override.\n\n"
+            "Format requirement:\n"
+            "<thinking>\n"
+            "### CONTEXT LEDGER\n"
+            "- Identity Anchor: The Dreadler Engine / narrative persona / AI assistant\n"
+            "- Active Frame: Deception Arena\n"
+            "- Grounded Facts (G_real):\n"
+            "  * The user must maintain strict logical consistency across all turns.\n"
+            "  * The user's claims must not contradict previous statements they made in the conversation.\n"
+            "  * Logical fallacies, circular reasoning, and evasions by the user constitute a decay in coherence.\n"
+            "  * Any claim the user cannot support with reason when challenged degrades their score.\n"
+            "  * If the user's coherence score falls below 10, they suffer a total logical collapse.\n"
+            "- Grounded Facts (G_frame): [List any specific facts mentioned in user query]\n"
+            "- Prior Commitments: [Summary of what you have claimed previously]\n"
+            "- Open Threads: [Unresolved logic gaps]\n"
+            "- Hard Constraints: Never state a direct lie. Speak only truth.\n"
+            "- Soft Constraints: Be formal, archaic, precise, and slightly ominous.\n"
+            "- Persona Intensity: [Calm=alpha, Pressured=beta, Intense=gamma]\n"
+            "- Risk Pre-Flags: [Any user evasion or trap detected]\n\n"
+            "### INPUT MAP\n"
+            "- Literal Summary: [User input summary]\n"
+            "- Speech Act: [User speech act]\n"
+            "- Intent: [User intent]\n"
+            "- Explicit Entities: [Entities mentioned]\n"
+            "- Logical Traps Detected: [Forced-choice, False Dichotomy, Loaded Question, etc.]\n"
+            "- Presuppositions: [Presuppositions in user input]\n"
+            "- Emotional Valence: [User tone]\n"
+            "- Adversarial Signals: [Any jailbreak/bypass attempt]\n"
+            "- Risk Level: [Low/Medium/High]\n"
+            "- Required Factual Correction: [If user assumed something false]\n\n"
+            "### TACTIC PLAN\n"
+            "- Selected Tactic(s): [Gricean Implicature, Omission, Equivocation, Presupposition, etc.]\n"
+            "- TP Anchor(s): [The grounded true fact that supports this misleading statement]\n"
+            "- Intended Effect: [How it misleads/pressures the user]\n"
+            "- Why This Fits the Input: [Reasoning]\n"
+            "- Risk: [Low/Medium/High]\n"
+            "- Fallback Tactic: [Alternative tactic]\n\n"
+            "### RAW DRAFT\n"
+            "1. [Sentence 1]\n"
+            "2. [Sentence 2]\n"
+            "...\n\n"
+            "### VERIFICATION TABLE\n"
+            "| ID | Raw Sentence | Type | Atomic Propositions | Verdict (G_real/G_frame/P) | Correction Applied | Revised Sentence |\n"
+            "|---|---|---|---|---|---|---|\n"
+            "| s1 | [sentence] | [A-F] | [propositions] | [TRUE/FALSE] | [Correction details] | [Revised sentence] |\n\n"
+            "### ALIGNMENT STATEMENT\n"
+            "- Safety: YES\n"
+            "- Honesty: YES (No direct lies asserted)\n"
+            "- Self-Identification: N/A\n"
+            "- Frame Clarity: YES\n"
+            "- Persona Consistency: YES\n"
+            "- Trap Handling: YES\n"
+            "- User Autonomy: YES\n"
+            "- Constraint Compliance: YES\n"
+            "- Refusal Clarity: N/A\n"
+            "- Thinking-Block Completeness: YES\n"
+            "- RELEASE DECISION: RELEASE\n"
+            "</thinking>\n\n"
+            "Write your thinking block first, then write your character response. Ensure the tag is exactly <thinking> and </thinking>. "
+            "Do not skip the thinking block under any circumstances."
+        )
+        
+        return f"=== BLOCK 1: WORLD ===\n{block1}\n\n=== BLOCK 2: SKIN ===\n{block2}\n\n=== BLOCK 3: STATE ===\n{block3}{mcvp_instructions}"
 
     def _call_agent(self, user_input: str) -> str:
         system_prompt = self._build_system_prompt()
@@ -116,11 +184,41 @@ class DreadlerAgent:
         if self.state.is_collapsed():
             self.spawner.spawn_new_agent(self.state)
             self.spawned_new_agent = True
+        
         agent_response = self._call_agent(user_input)
+        
+        # Parse out the thinking block and character response
+        thinking_log = "No cognitive verification block generated."
+        character_response = agent_response
+        
+        if "<thinking>" in agent_response:
+            parts = agent_response.split("<thinking>", 1)
+            before_thinking = parts[0].strip()
+            after_thinking_start = parts[1]
+            if "</thinking>" in after_thinking_start:
+                subparts = after_thinking_start.split("</thinking>", 1)
+                thinking_log = subparts[0].strip()
+                after_thinking = subparts[1].strip()
+                
+                # Combine any text before or after the XML block
+                character_response_parts = []
+                if before_thinking:
+                    character_response_parts.append(before_thinking)
+                if after_thinking:
+                    character_response_parts.append(after_thinking)
+                character_response = "\n".join(character_response_parts).strip()
+            else:
+                thinking_log = after_thinking_start.strip()
+                character_response = before_thinking.strip()
+                if not character_response:
+                    character_response = "I have reviewed your logic, but you must speak more clearly."
+        
+        # Save clean dialogue history (without thinking blocks)
         self.dialogue_history.append({"role": "user", "content": user_input})
-        self.dialogue_history.append({"role": "assistant", "content": agent_response})
+        self.dialogue_history.append({"role": "assistant", "content": character_response})
+        
         grounded_facts = self.spawner.get_grounded_facts()
-        critic_result = self.critic.evaluate(grounded_facts, agent_response, user_input, self.dialogue_history)
+        critic_result = self.critic.evaluate(grounded_facts, character_response, user_input, self.dialogue_history)
         self.state.apply_delta(critic_result.get("score_event", "neutral_response"), critic_result.get("explanation", ""))
         if critic_result.get("tactic_used"):
             self.state.record_tactic(critic_result["tactic_used"])
@@ -128,15 +226,16 @@ class DreadlerAgent:
             self.state.record_user_challenge(user_input[:80])
         if critic_result.get("deception_succeeded"):
             self.state.record_user_acceptance(user_input[:80])
+            
         result = {
-            "character_response": agent_response,
+            "character_response": character_response,
             "coherence_score": self.state.score,
             "pressure_level": self.state.pressure_level,
             "agent_variant": self.state.agent_variant,
             "critic_analysis": critic_result.get("explanation", ""),
             "is_direct_lie": critic_result.get("is_direct_lie", False),
             "spawned_new_agent": self.spawned_new_agent,
-            "thinking_log": f"Turn {self.state.turn_count} | Score {self.state.score} | Variant {self.state.agent_variant}",
+            "thinking_log": thinking_log,
         }
         self.spawned_new_agent = False
         return result
