@@ -189,6 +189,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
   const [showMobileVKDrawer, setShowMobileVKDrawer] = useState(false);
   const camera = useCameraStream();
+  const [selectedAlgo, setSelectedAlgo] = useState<'pos' | 'evm' | 'hsemotion' | 'physformer'>('pos');
   const bio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100, stateData?.agent_variant || 'alpha', lastTacticFlagged);
 
   const dominantEmotion = useMemo(() => {
@@ -960,7 +961,23 @@ export const DreadlerArenaScreen: React.FC = () => {
 
           <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-4 sm:space-y-6 custom-scrollbar text-[10px] sm:text-xs">
             {/* BIOMETRICS & RETINAL SENSORS */}
-            <div className="space-y-4">
+            <div className="space-y-3">
+              {/* Algorithm selector tabs */}
+              <div className="flex border border-zinc-800/80 font-mono text-[8px] bg-black/20 p-[1px]">
+                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => (
+                  <button
+                    key={algo}
+                    onClick={() => setSelectedAlgo(algo)}
+                    type="button"
+                    className={`flex-grow py-1 text-center font-bold transition-all uppercase ${
+                      selectedAlgo === algo ? 'bg-red-950/40 text-red-400 border border-red-500/20' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {algo}
+                  </button>
+                ))}
+              </div>
+
               {/* Retinal scanner camera / wireframe sweep */}
               <div className="relative w-full h-36 border border-zinc-800 bg-zinc-950/40 overflow-hidden">
                 <video
@@ -972,7 +989,15 @@ export const DreadlerArenaScreen: React.FC = () => {
                   style={{ transform: 'scaleX(-1)', display: camera.cameraOn ? 'block' : 'none' }}
                 />
                 <WireframeScanCanvas active={!camera.cameraOn || camera.loading} isDirectLie={lastDirectLie} />
-                {camera.cameraOn && <ScanCircleOverlay isDirectLie={lastDirectLie} bpm={bio.bpm} pupilMm={bio.pupilMm} />}
+                {camera.cameraOn && (
+                  <ScanCircleOverlay 
+                    isDirectLie={lastDirectLie} 
+                    bpm={bio.bpm} 
+                    pupilMm={bio.pupilMm} 
+                    selectedAlgo={selectedAlgo}
+                    emotions={bio.emotions}
+                  />
+                )}
                 
                 {/* HUD Overlay text */}
                 <div className="absolute top-1 left-2 text-[7px] text-zinc-500 font-mono tracking-widest uppercase">RETINAL BIOMETRICS</div>
@@ -1081,6 +1106,22 @@ export const DreadlerArenaScreen: React.FC = () => {
                 <button onClick={() => setShowMobileVKDrawer(false)} className="text-zinc-400 text-xs font-mono">[ Close ]</button>
               </div>
               
+              {/* Algorithm selector tabs */}
+              <div className="flex border border-zinc-800/80 font-mono text-[9px] bg-black/20 p-[1px] flex-shrink-0">
+                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => (
+                  <button
+                    key={algo}
+                    onClick={() => setSelectedAlgo(algo)}
+                    type="button"
+                    className={`flex-grow py-1.5 text-center font-bold transition-all uppercase ${
+                      selectedAlgo === algo ? 'bg-red-950/40 text-red-400 border border-red-500/20' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {algo}
+                  </button>
+                ))}
+              </div>
+
               {/* Ocular input camera feed / Wireframe */}
               <div className="relative w-full h-48 border border-zinc-800 bg-zinc-950 overflow-hidden">
                 <video
@@ -1092,7 +1133,15 @@ export const DreadlerArenaScreen: React.FC = () => {
                   style={{ transform: 'scaleX(-1)', display: camera.cameraOn ? 'block' : 'none' }}
                 />
                 <WireframeScanCanvas active={!camera.cameraOn || camera.loading} isDirectLie={lastDirectLie} />
-                {camera.cameraOn && <ScanCircleOverlay isDirectLie={lastDirectLie} bpm={bio.bpm} pupilMm={bio.pupilMm} />}
+                {camera.cameraOn && (
+                  <ScanCircleOverlay 
+                    isDirectLie={lastDirectLie} 
+                    bpm={bio.bpm} 
+                    pupilMm={bio.pupilMm} 
+                    selectedAlgo={selectedAlgo}
+                    emotions={bio.emotions}
+                  />
+                )}
                 
                 {!camera.cameraOn && !camera.loading && (
                   <button 
@@ -1923,10 +1972,14 @@ function ScanCircleOverlay({
   isDirectLie,
   bpm,
   pupilMm,
+  selectedAlgo = 'pos',
+  emotions = {},
 }: {
   isDirectLie: boolean;
   bpm: number;
   pupilMm: number;
+  selectedAlgo?: 'pos' | 'evm' | 'hsemotion' | 'physformer';
+  emotions?: Record<string, number>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -1959,23 +2012,35 @@ function ScanCircleOverlay({
       const cx = w / 2;
       const cy = h / 2;
       const radius = Math.min(w, h) * 0.28;
-      const color = isDirectLie ? '#ff3344' : '#ff5566';
 
-      // Outer ring
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      // Color scheme based on selected algorithm
+      let baseColor = '#ff5566';
+      if (isDirectLie) {
+        baseColor = '#ff3344';
+      } else {
+        switch (selectedAlgo) {
+          case 'pos': baseColor = '#10b981'; break; // Emerald
+          case 'evm': baseColor = '#ec4899'; break; // Pink/Magenta
+          case 'hsemotion': baseColor = '#3b82f6'; break; // Blue
+          case 'physformer': baseColor = '#f59e0b'; break; // Amber
+        }
+      }
+
+      // Outer targeting ring
+      ctx.strokeStyle = baseColor;
+      ctx.lineWidth = 1.5;
       ctx.globalAlpha = 0.85;
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.stroke();
 
       // Tick marks
-      ctx.globalAlpha = 0.5;
+      ctx.globalAlpha = 0.4;
       ctx.lineWidth = 1;
       for (let i = 0; i < 60; i++) {
         const angle = (i / 60) * Math.PI * 2;
-        const inner = radius + 4;
-        const outer = radius + (i % 5 === 0 ? 12 : 7);
+        const inner = radius + 3;
+        const outer = radius + (i % 5 === 0 ? 9 : 5);
         ctx.beginPath();
         ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
         ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
@@ -1983,40 +2048,40 @@ function ScanCircleOverlay({
       }
 
       // Rotating sweep arc
-      ctx.globalAlpha = 0.9;
-      ctx.lineWidth = 3;
-      const sweepAngle = t * 2.4;
+      ctx.globalAlpha = 0.8;
+      ctx.lineWidth = 2.5;
+      const sweepAngle = t * 2.0;
       const grad = ctx.createLinearGradient(
-        cx + Math.cos(sweepAngle - 0.6) * radius,
-        cy + Math.sin(sweepAngle - 0.6) * radius,
+        cx + Math.cos(sweepAngle - 0.5) * radius,
+        cy + Math.sin(sweepAngle - 0.5) * radius,
         cx + Math.cos(sweepAngle) * radius,
         cy + Math.sin(sweepAngle) * radius
       );
-      grad.addColorStop(0, 'rgba(255,80,100,0)');
-      grad.addColorStop(1, color);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, baseColor);
       ctx.strokeStyle = grad;
       ctx.beginPath();
-      ctx.arc(cx, cy, radius, sweepAngle - 0.6, sweepAngle);
+      ctx.arc(cx, cy, radius, sweepAngle - 0.5, sweepAngle);
       ctx.stroke();
 
-      // Crosshair
-      ctx.globalAlpha = 0.4;
-      ctx.strokeStyle = color;
+      // Crosshairs
+      ctx.globalAlpha = 0.25;
+      ctx.strokeStyle = baseColor;
       ctx.lineWidth = 1;
-      ctx.setLineDash([3, 5]);
+      ctx.setLineDash([4, 6]);
       ctx.beginPath();
-      ctx.moveTo(cx - radius - 20, cy);
-      ctx.lineTo(cx + radius + 20, cy);
-      ctx.moveTo(cx, cy - radius - 20);
-      ctx.lineTo(cx, cy + radius + 20);
+      ctx.moveTo(cx - radius - 15, cy);
+      ctx.lineTo(cx + radius + 15, cy);
+      ctx.moveTo(cx, cy - radius - 15);
+      ctx.lineTo(cx, cy + radius + 15);
       ctx.stroke();
       ctx.setLineDash([]);
 
       // Corner brackets
-      ctx.globalAlpha = 0.8;
-      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.7;
+      ctx.lineWidth = 1.5;
       const b = radius * 0.9;
-      const bl = 14;
+      const bl = 12;
       const corners = [
         [cx - b, cy - b, 1, 1],
         [cx + b, cy - b, -1, 1],
@@ -2031,11 +2096,256 @@ function ScanCircleOverlay({
         ctx.stroke();
       }
 
-      // HUD labels
+      // ───────────────────────────────────────────────────────────────────────
+      // ALGORITHM-SPECIFIC OVERLAYS
+      // ───────────────────────────────────────────────────────────────────────
+      
+      if (selectedAlgo === 'pos') {
+        // POS / pyVHR multi-ROI selection boxes (forehead and cheeks)
+        ctx.strokeStyle = baseColor;
+        ctx.lineWidth = 1;
+        ctx.fillStyle = baseColor;
+
+        // Forehead Box
+        ctx.globalAlpha = 0.2;
+        ctx.strokeRect(cx - radius * 0.35, cy - radius * 0.65, radius * 0.7, radius * 0.25);
+        ctx.globalAlpha = 0.04;
+        ctx.fillRect(cx - radius * 0.35, cy - radius * 0.65, radius * 0.7, radius * 0.25);
+        ctx.globalAlpha = 0.6;
+        ctx.font = '6px ui-monospace, monospace';
+        ctx.fillText('ROI_1: FOREHEAD', cx - radius * 0.32, cy - radius * 0.68);
+
+        // Left Cheek Box
+        ctx.globalAlpha = 0.2;
+        ctx.strokeRect(cx - radius * 0.55, cy + radius * 0.05, radius * 0.3, radius * 0.3);
+        ctx.globalAlpha = 0.04;
+        ctx.fillRect(cx - radius * 0.55, cy + radius * 0.05, radius * 0.3, radius * 0.3);
+        ctx.globalAlpha = 0.6;
+        ctx.fillText('ROI_2: L_CHEEK', cx - radius * 0.52, cy + radius * 0.02);
+
+        // Right Cheek Box
+        ctx.globalAlpha = 0.2;
+        ctx.strokeRect(cx + radius * 0.25, cy + radius * 0.05, radius * 0.3, radius * 0.3);
+        ctx.globalAlpha = 0.04;
+        ctx.fillRect(cx + radius * 0.25, cy + radius * 0.05, radius * 0.3, radius * 0.3);
+        ctx.globalAlpha = 0.6;
+        ctx.fillText('ROI_3: R_CHEEK', cx + radius * 0.28, cy + radius * 0.02);
+
+        // Telemetry details
+        ctx.font = '7px ui-monospace, monospace';
+        const snr = isDirectLie ? (6.4 + Math.sin(t * 3.5) * 0.6) : (12.2 + Math.sin(t * 1.5) * 0.2);
+        ctx.fillText(`POS SIGNAL STRENGTH: LOCKED`, cx - radius + 10, cy + radius + 12);
+        ctx.fillText(`SNR: +${snr.toFixed(1)} dB`, cx - radius + 10, cy + radius + 21);
+        ctx.fillText(`SKIN R_INDEX: 0.945`, cx - radius + 10, cy + radius + 30);
+      } 
+      else if (selectedAlgo === 'evm') {
+        // Eulerian Video Magnification pulsing blood-flow heatmap simulation
+        const pulse = 0.35 + 0.35 * Math.sin(t * (bpm / 60) * Math.PI * 2);
+        
+        ctx.fillStyle = baseColor;
+        // Pulse areas representing capillaries expanding
+        ctx.globalAlpha = pulse * 0.18;
+        
+        // Cheek heat circles
+        ctx.beginPath();
+        ctx.arc(cx - radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
+        ctx.arc(cx + radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
+        ctx.arc(cx, cy - radius * 0.5, radius * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = baseColor;
+        ctx.lineWidth = 0.5;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(cx - radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
+        ctx.arc(cx + radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Bandpass text
+        ctx.fillStyle = baseColor;
+        ctx.globalAlpha = 0.7;
+        ctx.font = '7px ui-monospace, monospace';
+        ctx.fillText(`BANDPASS: 0.75 - 2.50 Hz (CARDIAC BAND)`, cx - radius + 10, cy + radius + 12);
+        ctx.fillText(`AMPLIFICATION FACTOR: 45x`, cx - radius + 10, cy + radius + 21);
+        ctx.fillText(`BUTTERWORTH FILTER: STABLE`, cx - radius + 10, cy + radius + 30);
+      }
+      else if (selectedAlgo === 'hsemotion') {
+        // HSEmotion Facial Landmarks and Valence-Arousal Grid
+        ctx.strokeStyle = baseColor;
+        ctx.fillStyle = baseColor;
+        
+        // Draw eyes with dilation
+        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx - radius * 0.32, cy - radius * 0.15, 6, 0, Math.PI * 2); // left eye outline
+        ctx.arc(cx + radius * 0.32, cy - radius * 0.15, 6, 0, Math.PI * 2); // right eye outline
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.arc(cx - radius * 0.32, cy - radius * 0.15, pupilMm * 0.8, 0, Math.PI * 2); // left pupil
+        ctx.arc(cx + radius * 0.32, cy - radius * 0.15, pupilMm * 0.8, 0, Math.PI * 2); // right pupil
+        ctx.fill();
+
+        // Draw mouth curve depending on active expressions
+        const isHappy = (emotions.Happy ?? 0) > 0.3;
+        const isSad = (emotions.Sad ?? 0) > 0.3 || (emotions.Fear ?? 0) > 0.3;
+        const isSurprise = (emotions.Surprise ?? 0) > 0.3;
+        
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        if (isHappy) {
+          ctx.arc(cx, cy + radius * 0.25, 8, 0, Math.PI); // smile
+        } else if (isSad) {
+          ctx.arc(cx, cy + radius * 0.35, 8, Math.PI, 0); // frown
+        } else if (isSurprise) {
+          ctx.arc(cx, cy + radius * 0.3, 5, 0, Math.PI * 2); // open mouth
+        } else {
+          ctx.moveTo(cx - 10, cy + radius * 0.3); // neutral line
+          ctx.lineTo(cx + 10, cy + radius * 0.3);
+        }
+        ctx.stroke();
+
+        // Draw 2D Valence-Arousal Grid in the corner (approx size 60x60)
+        const gx = w - 70;
+        const gy_box = h - 70;
+        const gs = 50; // grid size
+        
+        ctx.globalAlpha = 0.2;
+        ctx.strokeRect(gx, gy_box, gs, gs);
+        ctx.globalAlpha = 0.05;
+        ctx.fillRect(gx, gy_box, gs, gs);
+
+        // Center lines
+        ctx.globalAlpha = 0.15;
+        ctx.beginPath();
+        ctx.moveTo(gx + gs / 2, gy_box);
+        ctx.lineTo(gx + gs / 2, gy_box + gs);
+        ctx.moveTo(gx, gy_box + gs / 2);
+        ctx.lineTo(gx + gs, gy_box + gs / 2);
+        ctx.stroke();
+
+        // Calculate Valence-Arousal from emotions
+        let val = 0.0;
+        let aro = 0.0;
+        const total = Object.values(emotions).reduce((a, b) => a + b, 0) || 1;
+        val = (
+          (emotions.Happy ?? 0) * 0.8 +
+          (emotions.Neutral ?? 0) * 0.0 +
+          (emotions.Surprise ?? 0) * 0.2 +
+          (emotions.Sad ?? 0) * -0.8 +
+          (emotions.Fear ?? 0) * -0.7 +
+          (emotions.Disgust ?? 0) * -0.6 +
+          (emotions.Anger ?? 0) * -0.7 +
+          (emotions.Contempt ?? 0) * -0.5
+        ) / total;
+        aro = (
+          (emotions.Happy ?? 0) * 0.3 +
+          (emotions.Neutral ?? 0) * -0.2 +
+          (emotions.Surprise ?? 0) * 0.8 +
+          (emotions.Sad ?? 0) * -0.4 +
+          (emotions.Fear ?? 0) * 0.9 +
+          (emotions.Disgust ?? 0) * 0.4 +
+          (emotions.Anger ?? 0) * 0.8 +
+          (emotions.Contempt ?? 0) * 0.4
+        ) / total;
+
+        // Map val (-1 to +1) to gx coordinate
+        const dotX = gx + (val + 1) * (gs / 2);
+        const dotY = gy_box + (1 - (aro + 1) / 2) * gs; // invert Y for grid coordinates
+
+        // Draw crosshair dot
+        ctx.fillStyle = '#ef4444';
+        ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Labels
+        ctx.fillStyle = baseColor;
+        ctx.globalAlpha = 0.7;
+        ctx.font = '6px ui-monospace, monospace';
+        ctx.fillText('VALENCE-AROUSAL', gx, gy_box - 4);
+        ctx.fillText(`V: ${val.toFixed(2)}`, gx, gy_box + gs + 8);
+        ctx.fillText(`A: ${aro.toFixed(2)}`, gx + gs - 22, gy_box + gs + 8);
+
+        ctx.font = '7px ui-monospace, monospace';
+        ctx.fillText('MODEL: HSEMOTION EFFICIENTNET-B0', cx - radius + 10, cy + radius + 12);
+        ctx.fillText(`VALENCE : ${val.toFixed(2)}`, cx - radius + 10, cy + radius + 21);
+        ctx.fillText(`AROUSAL : ${aro.toFixed(2)}`, cx - radius + 10, cy + radius + 30);
+      }
+      else if (selectedAlgo === 'physformer') {
+        // PhysFormer Transformer attention weights matrix simulation
+        ctx.fillStyle = baseColor;
+        ctx.strokeStyle = baseColor;
+
+        // Draw a matrix grid of temporal weight boxes
+        ctx.globalAlpha = 0.15;
+        ctx.lineWidth = 0.5;
+        const gridW = 5;
+        const gridH = 4;
+        const stepX = (radius * 1.2) / gridW;
+        const stepY = (radius * 1.2) / gridH;
+        const startX = cx - radius * 0.6;
+        const startY = cy - radius * 0.6;
+
+        for (let gx = 0; gx < gridW; gx++) {
+          for (let gy = 0; gy < gridH; gy++) {
+            const rx = startX + gx * stepX;
+            const ry = startY + gy * stepY;
+            ctx.strokeRect(rx, ry, stepX, stepY);
+            
+            // Random glowing nodes representing active attention coordinates
+            const glowVal = Math.sin(t * 5 + gx * 2.3 + gy * 1.1);
+            if (glowVal > 0.4) {
+              ctx.globalAlpha = glowVal * 0.3;
+              ctx.fillRect(rx + 2, ry + 2, stepX - 4, stepY - 4);
+              ctx.globalAlpha = 0.15;
+            }
+          }
+        }
+
+        // Draw temporal difference wave connections
+        ctx.globalAlpha = 0.4;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let gx = 0; gx < gridW; gx++) {
+          const rx = startX + gx * stepX + stepX / 2;
+          const ry = startY + (Math.sin(t * 4 + gx) * 0.3 + 0.5) * (radius * 1.2);
+          if (gx === 0) ctx.moveTo(rx, ry);
+          else ctx.lineTo(rx, ry);
+        }
+        ctx.stroke();
+
+        // Telemetry details
+        ctx.globalAlpha = 0.7;
+        ctx.font = '7px ui-monospace, monospace';
+        ctx.fillText('PIPELINE: PHYSFORMER++ (ICCV 22)', cx - radius + 10, cy + radius + 12);
+        ctx.fillText('TEMPORAL ATTENTION WEIGHTS: ACTIVE', cx - radius + 10, cy + radius + 21);
+        ctx.fillText('TD-CNN RESIDUAL: STABLE', cx - radius + 10, cy + radius + 30);
+      }
+
+      // HUD generic labels
       ctx.globalAlpha = 1;
-      ctx.fillStyle = color;
+      ctx.fillStyle = baseColor;
+      ctx.font = '9px ui-monospace, monospace';
+      ctx.fillText('TARGET LOCK', cx - 28, cy - radius - 20);
+      
+      // Real-time signal quality stats
+      ctx.font = '6px ui-monospace, monospace';
+      ctx.globalAlpha = 0.5;
+      ctx.fillText('30 FPS // 640x480', cx - 24, cy - radius - 12);
+      ctx.globalAlpha = 1;
+
       ctx.font = '10px ui-monospace, monospace';
-      ctx.fillText('TARGET LOCK', cx - 36, cy - radius - 24);
       ctx.fillText(`BPM ${bpm.toFixed(0)}`, cx - radius - 8, cy - radius - 8);
       ctx.fillText(`PUP ${pupilMm.toFixed(2)}mm`, cx + radius - 60, cy - radius - 8);
 
@@ -2047,7 +2357,7 @@ function ScanCircleOverlay({
       ro.disconnect();
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isDirectLie, bpm, pupilMm]);
+  }, [isDirectLie, bpm, pupilMm, selectedAlgo, emotions]);
 
   return (
     <canvas

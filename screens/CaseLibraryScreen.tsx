@@ -1,4 +1,4 @@
-import React, { useState, useContext, ChangeEvent, useEffect } from 'react';
+import React, { useState, useContext, ChangeEvent, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -119,6 +119,125 @@ const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty; categoryId?: strin
     >
       {difficulty}
     </span>
+  );
+};
+
+const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set dimensions
+    canvas.width = 300;
+    canvas.height = 140;
+
+    // Create simple nodes and links
+    // Center node is the caseTitle itself.
+    const nodes = [
+      { id: 'target', label: caseTitle.split(' v. ')[0] || 'Selected Case', x: 150, y: 70, size: 7, color: '#FF5A1F' },
+      { id: 'ref1', label: 'Rylands v. Fletcher', x: 60, y: 35, size: 4.5, color: '#3f51b5' },
+      { id: 'ref2', label: 'Donoghue v. Stevenson', x: 70, y: 105, size: 4.5, color: '#3f51b5' },
+      { id: 'ref3', label: 'Hadley v. Baxendale', x: 240, y: 40, size: 4.5, color: '#3f51b5' },
+      { id: 'ref4', label: 'Carlill v. Carbolic Smoke Ball', x: 230, y: 100, size: 4.5, color: '#3f51b5' },
+    ];
+
+    const links = [
+      { source: 'ref1', target: 'target' },
+      { source: 'ref2', target: 'target' },
+      { source: 'target', target: 'ref3' },
+      { source: 'target', target: 'ref4' },
+    ];
+
+    let t = 0;
+    let animId: number;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      t += 0.05;
+
+      // Draw background grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < canvas.width; i += 20) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+      for (let j = 0; j < canvas.height; j += 20) {
+        ctx.beginPath();
+        ctx.moveTo(0, j);
+        ctx.lineTo(canvas.width, j);
+        ctx.stroke();
+      }
+
+      // Draw links
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      for (const link of links) {
+        const sourceNode = nodes.find(n => n.id === link.source);
+        const targetNode = nodes.find(n => n.id === link.target);
+        if (sourceNode && targetNode) {
+          ctx.beginPath();
+          ctx.moveTo(sourceNode.x, sourceNode.y);
+          ctx.lineTo(targetNode.x, targetNode.y);
+          ctx.stroke();
+
+          // Draw an animated pulse particle moving along the link
+          const distFraction = (t % 2) / 2;
+          const px = sourceNode.x + (targetNode.x - sourceNode.x) * distFraction;
+          const py = sourceNode.y + (targetNode.y - sourceNode.y) * distFraction;
+          ctx.fillStyle = '#FF5A1F';
+          ctx.beginPath();
+          ctx.arc(px, py, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Draw nodes
+      for (const node of nodes) {
+        // Floating effect
+        const oy = Math.sin(t + node.x) * 2;
+        
+        ctx.fillStyle = node.color;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y + oy, node.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Node ring
+        ctx.strokeStyle = node.color;
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y + oy, node.size + 4 + Math.sin(t * 2) * 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+
+        // Label
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '6px ui-monospace, monospace';
+        ctx.fillText(node.label, node.x - 20, node.y + oy + node.size + 8);
+      }
+
+      animId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [caseTitle]);
+
+  return (
+    <div className="relative border border-brand-text-primary/20 bg-brand-bg-secondary p-3">
+      <div className="text-[7px] text-zinc-500 font-mono tracking-widest uppercase mb-1">Precedent Citation Graph</div>
+      <canvas ref={canvasRef} className="w-full h-[140px]" />
+    </div>
   );
 };
 
@@ -251,7 +370,18 @@ const CaseLibraryScreen: React.FC = () => {
   const modeDisplay = practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const searchResults = usePrecedentSearch(searchQuery, activeCases);
+  const [searchPipeline, setSearchPipeline] = useState<'bm25' | 'legal-bert' | 'haystack-hybrid'>('legal-bert');
+  const [weightSemantic, setWeightSemantic] = useState(0.5);
+  const [weightAuthority, setWeightAuthority] = useState(0.3);
+  const [weightRecency, setWeightRecency] = useState(0.2);
+  const [isTuningExpanded, setIsTuningExpanded] = useState(false);
+
+  const searchResults = usePrecedentSearch(
+    searchQuery,
+    activeCases,
+    searchPipeline,
+    { semantic: weightSemantic, authority: weightAuthority, recency: weightRecency }
+  );
 
 
 
@@ -321,6 +451,97 @@ const CaseLibraryScreen: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* Pipeline & Search Tuning button */}
+        <div className="mt-2 text-right max-w-xl mx-auto">
+          <button
+            onClick={() => setIsTuningExpanded(!isTuningExpanded)}
+            type="button"
+            className="text-[10px] font-mono text-brand-accent hover:text-brand-text-primary uppercase tracking-wider transition-colors"
+          >
+            {isTuningExpanded ? '[ Hide Search Settings ▲ ]' : '[ Open Search Settings ▼ ]'}
+          </button>
+        </div>
+
+        {/* Search Tuning Panel */}
+        {isTuningExpanded && (
+          <div className="mt-4 max-w-xl mx-auto p-4 bg-brand-bg-secondary border border-brand-text-primary/30 text-left font-mono text-xs space-y-4 animate-fadeIn">
+            <div>
+              <label className="block text-[10px] uppercase text-zinc-400 tracking-wider mb-2 font-bold">Search Pipeline (Haystack/CAP)</label>
+              <div className="flex border border-brand-text-primary/30 bg-black/20 p-[1px]">
+                {(['bm25', 'legal-bert', 'haystack-hybrid'] as const).map((pipe) => (
+                  <button
+                    key={pipe}
+                    type="button"
+                    onClick={() => setSearchPipeline(pipe)}
+                    className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase transition-all ${
+                      searchPipeline === pipe ? 'bg-brand-accent/20 text-brand-accent border border-brand-accent/30' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                  >
+                    {pipe === 'bm25' ? 'BM25 (Keyword)' : pipe === 'legal-bert' ? 'Legal-BERT' : 'Haystack Hybrid'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {searchPipeline === 'haystack-hybrid' && (
+              <div className="space-y-3 pt-2 border-t border-brand-text-primary/20">
+                <span className="block text-[10px] uppercase text-zinc-400 tracking-wider font-bold">Ranking Relevance Weights</span>
+                
+                {/* Semantic weight */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] text-zinc-400">
+                    <span>Semantic Similarity (BERT)</span>
+                    <span className="text-brand-accent">{(weightSemantic * 100).toFixed(0)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={weightSemantic}
+                    onChange={(e) => setWeightSemantic(parseFloat(e.target.value))}
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                  />
+                </div>
+
+                {/* Authority weight */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] text-zinc-400">
+                    <span>Precedent Authority / Court Tier</span>
+                    <span className="text-brand-accent">{(weightAuthority * 100).toFixed(0)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={weightAuthority}
+                    onChange={(e) => setWeightAuthority(parseFloat(e.target.value))}
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                  />
+                </div>
+
+                {/* Recency weight */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] text-zinc-400">
+                    <span>Decision Recency (Temporal)</span>
+                    <span className="text-brand-accent">{(weightRecency * 100).toFixed(0)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={weightRecency}
+                    onChange={(e) => setWeightRecency(parseFloat(e.target.value))}
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
 
@@ -650,6 +871,11 @@ const CaseLibraryScreen: React.FC = () => {
                 <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary/60">{modeDisplay} Arena</span>
               </div>
               <h3 className="text-2xl font-serif font-semibold text-brand-text-primary leading-tight">{selectedCaseForPractice.title}</h3>
+            </div>
+
+            {/* Precedent Citation Graph */}
+            <div className="space-y-2">
+              <CitationGraph caseTitle={selectedCaseForPractice.title} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">

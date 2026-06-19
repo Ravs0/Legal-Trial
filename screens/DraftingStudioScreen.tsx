@@ -88,7 +88,7 @@ const DraftingStudioScreen: React.FC = () => {
   const [isLoadingAiInteraction, setIsLoadingAiInteraction] = useState<boolean>(false);
   
   // Reference Panel States
-  const [activeRefTab, setActiveRefTab] = useState<'facts' | 'feedback' | 'procedure' | 'score' | 'course' | 'history'>('facts');
+  const [activeRefTab, setActiveRefTab] = useState<'facts' | 'feedback' | 'procedure' | 'score' | 'compliance' | 'course' | 'history'>('facts');
   const [snapshots, setSnapshots] = useState<{ id: string; timestamp: string; text: string }[]>([]);
   const [selectedSnapshotForDiff, setSelectedSnapshotForDiff] = useState<string | null>(null);
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
@@ -292,6 +292,52 @@ const DraftingStudioScreen: React.FC = () => {
   // Live scoring state
   const [scoringResult, setScoringResult] = useState<ScoringResult | null>(null);
   const scoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Real-time Pleadings Compliance Checker
+  const complianceMetrics = useMemo(() => {
+    const text = userDraft.toLowerCase();
+    const checks = [
+      {
+        id: 'jurisdiction',
+        name: 'Jurisdictional Statement',
+        satisfied: /\b(jurisdiction|venue|district court|court of|forum)\b/i.test(text),
+        tip: "Specify the court's authority over the parties and dispute (e.g., 'This Court has jurisdiction under Section...').",
+      },
+      {
+        id: 'causeOfAction',
+        name: 'Cause of Action / Claims',
+        satisfied: /\b(cause of action|claim|count|negligence|breach|liability|violation|damages)\b/i.test(text),
+        tip: "Clearly outline the legal counts or claims against the defendant (e.g., 'COUNT I: Breach of Contract').",
+      },
+      {
+        id: 'allegations',
+        name: 'Numbered Allegations / Facts',
+        satisfied: /(\b\d+\.\s+[a-z]|\ballegation|\bfacts\b)/i.test(text),
+        tip: "Structure your facts as separate, numbered allegations of fact to make them easy to admit or deny.",
+      },
+      {
+        id: 'relief',
+        name: 'Prayer for Relief',
+        satisfied: /\b(prayer|relief|wherefore|demand|judgment against|remedy|damages)\b/i.test(text),
+        tip: "Include a 'WHEREFORE' signature demand section detailing the damages or remedies you request.",
+      },
+      {
+        id: 'signature',
+        name: 'Signature Block & Attorney Info',
+        satisfied: /\b(signature|signed|attorney for|esq|counsel for|dated)\b/i.test(text),
+        tip: "Append an attorney signature block (e.g., 'Respectfully submitted, Attorney for Plaintiff...').",
+      },
+    ];
+
+    const passedCount = checks.filter(c => c.satisfied).length;
+    const score = Math.round((passedCount / checks.length) * 100);
+
+    return {
+      checks,
+      score,
+      verdict: score === 100 ? 'Compliant' : score >= 60 ? 'Substandard' : 'Deficient',
+    };
+  }, [userDraft]);
 
   // Voice Recording state for STT
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -1010,6 +1056,21 @@ Section 8.2 Limitation of Liability.
                                     )}
                                 </button>
                                 <button 
+                                    onClick={() => setActiveRefTab('compliance')}
+                                    className={`flex-1 flex flex-col items-center py-3 px-1 transition-all border-b-2 relative
+                                        ${activeRefTab === 'compliance' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
+                                >
+                                    <CheckCircleIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'compliance' ? 'text-brand-accent' : ''}`} />
+                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Rules</span>
+                                    <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-none border border-current flex items-center justify-center
+                                        ${complianceMetrics.score === 100 ? 'bg-emerald-500/20 text-emerald-400' :
+                                          complianceMetrics.score >= 60 ? 'bg-brand-accent/20 text-brand-accent' :
+                                          'bg-red-500/20 text-red-400'}
+                                    `}>
+                                        {complianceMetrics.score}
+                                    </span>
+                                </button>
+                                <button 
                                     onClick={() => { if(aiFeedback) setActiveRefTab('feedback'); }}
                                     className={`flex-1 flex flex-col items-center py-3 px-1 transition-all border-b-2 
                                         ${!aiFeedback ? 'opacity-30 cursor-not-allowed' : ''}
@@ -1078,6 +1139,66 @@ Section 8.2 Limitation of Liability.
                                                 </p>
                                             </div>
                                         )}
+                                    </div>
+                                )}
+
+                                {activeRefTab === 'compliance' && (
+                                    <div className="animate-fadeIn space-y-4">
+                                        <div className="flex items-center space-x-2 text-brand-accent mb-2">
+                                            <div className="h-px w-4 bg-brand-accent"></div>
+                                            <span className="text-[10px] font-mono uppercase tracking-widest">Pleading Rules Guidance</span>
+                                        </div>
+
+                                        {/* Score card summary */}
+                                        <div className="border border-brand-text-primary/30 p-4 bg-brand-bg-secondary font-mono flex flex-col items-center justify-center text-center">
+                                            <span className="text-[9px] text-brand-text-secondary uppercase tracking-widest mb-1">Pleadings Compliance</span>
+                                            <span className={`text-4xl font-bold ${
+                                                complianceMetrics.score === 100 ? 'text-emerald-400' :
+                                                complianceMetrics.score >= 60 ? 'text-brand-accent' :
+                                                'text-red-400'
+                                            }`}>
+                                                {complianceMetrics.score}%
+                                            </span>
+                                            <span className={`text-[10px] uppercase font-bold tracking-widest mt-2 px-2 py-0.5 border ${
+                                                complianceMetrics.score === 100 ? 'border-emerald-500/30 text-emerald-400 bg-emerald-950/20' :
+                                                complianceMetrics.score >= 60 ? 'border-brand-accent/30 text-brand-accent bg-brand-accent/10' :
+                                                'border-red-500/30 text-red-400 bg-red-950/20'
+                                            }`}>
+                                                {complianceMetrics.verdict}
+                                            </span>
+                                        </div>
+
+                                        {/* Rules checklist */}
+                                        <div className="space-y-3 font-mono text-xs">
+                                            {complianceMetrics.checks.map((check) => (
+                                                <div 
+                                                    key={check.id} 
+                                                    className={`p-3 border text-left transition-all ${
+                                                        check.satisfied 
+                                                            ? 'border-emerald-500/20 bg-emerald-950/5 text-zinc-300' 
+                                                            : 'border-brand-text-primary/10 text-zinc-500 bg-black/10'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <span className={`font-bold tracking-wide ${check.satisfied ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                                                            {check.satisfied ? '✓' : '✗'} {check.name}
+                                                        </span>
+                                                        <span className={`text-[8px] uppercase px-1 py-0.5 border leading-none ${
+                                                            check.satisfied 
+                                                                ? 'border-emerald-500/30 text-emerald-400' 
+                                                                : 'border-brand-text-primary/20 text-zinc-500'
+                                                        }`}>
+                                                            {check.satisfied ? 'PASSED' : 'MISSING'}
+                                                        </span>
+                                                    </div>
+                                                    {!check.satisfied && (
+                                                        <p className="text-[10px] text-zinc-400 leading-relaxed font-sans pl-3 border-l border-red-500/40">
+                                                            {check.tip}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 
