@@ -189,7 +189,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
   const [showMobileVKDrawer, setShowMobileVKDrawer] = useState(false);
   const camera = useCameraStream();
-  const bio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100);
+  const bio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100, stateData?.agent_variant || 'alpha', lastTacticFlagged);
 
   const dominantEmotion = useMemo(() => {
     let maxVal = -1;
@@ -403,7 +403,7 @@ export const DreadlerArenaScreen: React.FC = () => {
         {
           id: errId,
           sender: 'system',
-          text: `❌ Error communicating with Deception Engine: ${err.message || 'API Timeout'}. Verify 'ZENMUX_API_KEY' is configured.`,
+          text: `❌ Error communicating with Deception Engine: ${err.message || 'API Timeout'}. Verify 'DEEPSEEK_API_KEY' is configured.`,
           timestamp: Date.now()
         }
       ]);
@@ -1330,59 +1330,48 @@ interface BiometricTargets {
 function computeTargets(
   isDirectLie: boolean,
   isTyping: boolean,
-  coherence: number
+  coherence: number,
+  agentVariant: string
 ): BiometricTargets {
   let baseBpm: number;
   let basePupil: number;
   let emotions: EmotionSet;
 
-  if (isDirectLie) {
-    baseBpm = randInRange(105, 118);
-    basePupil = randInRange(6.4, 6.6);
+  // Base state depends on agentVariant (representing Dreadler's pressure level)
+  if (agentVariant === 'gamma' || coherence < 40) {
+    baseBpm = randInRange(92, 98);
+    basePupil = randInRange(5.4, 5.8);
     emotions = {
-      Neutral: 0.02,
-      Happy: 0.0,
-      Sad: 0.04,
-      Surprise: randInRange(0.85, 0.95),
-      Fear: randInRange(0.9, 0.99),
-      Disgust: 0.05,
-      Anger: 0.06,
-      Contempt: 0.03,
-    };
-  } else if (isTyping) {
-    baseBpm = randInRange(85, 92);
-    basePupil = randInRange(4.7, 4.9);
-    emotions = {
-      Neutral: 0.45,
-      Happy: 0.05,
-      Sad: 0.08,
-      Surprise: 0.12,
-      Fear: 0.08,
-      Disgust: 0.05,
-      Anger: 0.1,
-      Contempt: 0.07,
-    };
-  } else if (coherence < 40) {
-    baseBpm = randInRange(90, 95);
-    basePupil = randInRange(4.6, 5.0);
-    emotions = {
-      Neutral: 0.35,
-      Happy: 0.04,
-      Sad: 0.12,
+      Neutral: 0.25,
+      Happy: 0.02,
+      Sad: 0.15,
       Surprise: 0.15,
-      Fear: 0.15,
+      Fear: 0.25,
       Disgust: 0.08,
-      Anger: 0.07,
-      Contempt: 0.04,
+      Anger: 0.08,
+      Contempt: 0.02,
+    };
+  } else if (agentVariant === 'beta' || coherence < 70) {
+    baseBpm = randInRange(82, 88);
+    basePupil = randInRange(4.7, 5.1);
+    emotions = {
+      Neutral: 0.40,
+      Happy: 0.05,
+      Sad: 0.10,
+      Surprise: 0.15,
+      Fear: 0.10,
+      Disgust: 0.05,
+      Anger: 0.10,
+      Contempt: 0.05,
     };
   } else {
-    // Calm state
+    // alpha variant (calm baseline)
     baseBpm = randInRange(72, 76);
-    basePupil = randInRange(4.15, 4.25);
+    basePupil = randInRange(4.15, 4.35);
     emotions = {
-      Neutral: 0.78,
-      Happy: 0.08,
-      Sad: 0.04,
+      Neutral: 0.80,
+      Happy: 0.05,
+      Sad: 0.05,
       Surprise: 0.02,
       Fear: 0.02,
       Disgust: 0.02,
@@ -1391,22 +1380,48 @@ function computeTargets(
     };
   }
 
+  // Adjustments for action states
+  if (isDirectLie) {
+    // Overriding spike for contradictions
+    baseBpm = randInRange(108, 120);
+    basePupil = randInRange(6.4, 6.7);
+    emotions = {
+      Neutral: 0.01,
+      Happy: 0.0,
+      Sad: 0.04,
+      Surprise: randInRange(0.85, 0.95),
+      Fear: randInRange(0.90, 0.99),
+      Disgust: 0.03,
+      Anger: 0.01,
+      Contempt: 0.01,
+    };
+  } else if (isTyping) {
+    // Anticipation stress
+    baseBpm += 10;
+    basePupil += 0.5;
+    emotions.Neutral = Math.max(0.1, emotions.Neutral - 0.3);
+    emotions.Surprise = Math.min(0.9, emotions.Surprise + 0.2);
+    emotions.Fear = Math.min(0.9, emotions.Fear + 0.1);
+  }
+
   return { bpm: baseBpm, pupilMm: basePupil, emotions: normalizeEmotions(emotions) };
 }
 
 function useBiometrics(
   isDirectLie: boolean,
   isTyping: boolean,
-  coherence: number
+  coherence: number,
+  agentVariant: string = 'alpha',
+  lastTacticFlagged: string | null = null
 ) {
   const [state, setState] = useState<BiometricState>({
     bpm: 74,
     pupilMm: 4.2,
     coherence,
     emotions: {
-      Neutral: 0.78,
-      Happy: 0.08,
-      Sad: 0.04,
+      Neutral: 0.80,
+      Happy: 0.05,
+      Sad: 0.05,
       Surprise: 0.02,
       Fear: 0.02,
       Disgust: 0.02,
@@ -1417,25 +1432,67 @@ function useBiometrics(
   });
 
   const targetRef = useRef<BiometricTargets>(
-    computeTargets(isDirectLie, isTyping, coherence)
+    computeTargets(isDirectLie, isTyping, coherence, agentVariant)
   );
+  
+  // Track physiological spikes (panic)
+  const pulseSpikeRef = useRef<number>(0);
+  const pupilSpikeRef = useRef<number>(0);
+  
+  const prevLieRef = useRef<boolean>(isDirectLie);
+  const prevTacticRef = useRef<string | null>(lastTacticFlagged);
   const frameRef = useRef<number | null>(null);
 
+  // Detect transitions to trigger instant biometric panic spikes
   useEffect(() => {
-    targetRef.current = computeTargets(isDirectLie, isTyping, coherence);
-  }, [isDirectLie, isTyping, coherence]);
+    if (isDirectLie && !prevLieRef.current) {
+      // Instant massive panic spike!
+      pulseSpikeRef.current = 32;
+      pupilSpikeRef.current = 1.8;
+    }
+    prevLieRef.current = isDirectLie;
+  }, [isDirectLie]);
 
   useEffect(() => {
+    if (lastTacticFlagged && lastTacticFlagged !== prevTacticRef.current) {
+      // Tactic exposure logic stress spike
+      pulseSpikeRef.current = 16;
+      pupilSpikeRef.current = 0.8;
+    }
+    prevTacticRef.current = lastTacticFlagged;
+  }, [lastTacticFlagged]);
+
+  useEffect(() => {
+    targetRef.current = computeTargets(isDirectLie, isTyping, coherence, agentVariant);
+  }, [isDirectLie, isTyping, coherence, agentVariant]);
+
+  useEffect(() => {
+    const start = performance.now();
     const tick = () => {
+      const now = performance.now();
+      const elapsed = (now - start) / 1000;
+
       setState((prev) => {
         const target = targetRef.current;
-        const jitteredBpm = jitter(target.bpm, 1.5);
-        const jitteredPupil = jitter(target.pupilMm, 0.05);
+        
+        // Decay spike values organically over time
+        pulseSpikeRef.current *= 0.982;
+        pupilSpikeRef.current *= 0.978;
 
-        // Smooth approach with micro-fluctuation
-        const newBpm = lerp(prev.bpm, jitteredBpm, 0.08);
-        const newPupil = lerp(prev.pupilMm, jitteredPupil, 0.08);
-        const newEmotions = lerpEmotions(prev.emotions, target.emotions, 0.06);
+        // Respiratory Sinus Arrhythmia: micro-fluctuations simulating normal breathing rhythm
+        // Oscillates by +/- 2.2 BPM every 4.2 seconds
+        const breathingBpmOsc = Math.sin(elapsed * (2 * Math.PI / 4.2)) * 2.2;
+        // Minor noise jitter
+        const noiseBpm = (Math.random() * 2 - 1) * 0.4;
+        const noisePupil = (Math.random() * 2 - 1) * 0.02;
+
+        const currentTargetBpm = target.bpm + breathingBpmOsc + pulseSpikeRef.current + noiseBpm;
+        const currentTargetPupil = target.pupilMm + pupilSpikeRef.current + noisePupil;
+
+        // Smoothly interpolate to target values
+        const newBpm = lerp(prev.bpm, currentTargetBpm, 0.075);
+        const newPupil = lerp(prev.pupilMm, currentTargetPupil, 0.075);
+        const newEmotions = lerpEmotions(prev.emotions, target.emotions, 0.055);
 
         return {
           ...prev,
@@ -1447,6 +1504,7 @@ function useBiometrics(
       });
       frameRef.current = requestAnimationFrame(tick);
     };
+
     frameRef.current = requestAnimationFrame(tick);
     return () => {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
