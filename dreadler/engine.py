@@ -113,11 +113,15 @@ class DreadlerAgent:
 
         # The skin dictionary is private on ``SpawnBase`` but the spec
         # requires us to pull the alpha variant text directly from it.
-        character_style = (
+        character_style_val = (
             self.spawner._skin.get("variants", {}).get("alpha", "")
             if hasattr(self.spawner, "_skin")
             else ""
         )
+        if isinstance(character_style_val, dict):
+            character_style = character_style_val.get("system_prompt", "")
+        else:
+            character_style = character_style_val
 
         block = template.replace("[CHARACTER_NAME]", character_name or "")
         block = block.replace("[CHARACTER_STYLE_DESCRIPTION]", character_style)

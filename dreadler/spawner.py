@@ -158,7 +158,10 @@ class SpawnBase:
             )
             variant = "alpha"
 
-        return variants[variant]
+        val = variants[variant]
+        if isinstance(val, dict):
+            return val.get("system_prompt", "")
+        return val
 
     def spawn_new_agent(self, state: CoherenceState) -> dict[str, Any]:
         """
