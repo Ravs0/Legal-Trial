@@ -16,18 +16,19 @@ if project_dir not in sys.path:
 # Vercel deploys may not inherit local zsh variables directly,
 # but we can look for local system fallback if running on local dev
 if not any(os.environ.get(k) for k in ["DEEPSEEK_API_KEY", "DEEPSEEK_CHAT_API_KEY", "DEEPSEEK_REASONER_API_KEY"]):
-    # Attempt to load from parent directories if a .env exists
+    # Attempt to load from parent directories if a .env or .env.local exists
     for path in [project_dir, os.path.dirname(project_dir), os.path.dirname(os.path.dirname(project_dir))]:
-        env_file = os.path.join(path, ".env")
-        if os.path.exists(env_file):
-            try:
-                with open(env_file, "r") as f:
-                    for line in f:
-                        if line.strip() and not line.startswith("#"):
-                            k, v = line.strip().split("=", 1)
-                            os.environ[k.strip()] = v.strip().strip('"').strip("'")
-            except Exception:
-                pass
+        for env_name in [".env.local", ".env"]:
+            env_file = os.path.join(path, env_name)
+            if os.path.exists(env_file):
+                try:
+                    with open(env_file, "r") as f:
+                        for line in f:
+                            if line.strip() and not line.startswith("#"):
+                                k, v = line.strip().split("=", 1)
+                                os.environ[k.strip()] = v.strip().strip('"').strip("'")
+                except Exception:
+                    pass
 
 from dreadler import DreadlerAgent
 
