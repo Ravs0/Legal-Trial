@@ -417,6 +417,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
   const handleEndInterrogation = () => {
     if (window.confirm("Are you sure you want to end this interrogation? Current identity state will be lost.")) {
+      camera.stop();
       setIsSessionActive(false);
       setStateData(null);
       setMessages([]);
