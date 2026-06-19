@@ -191,6 +191,15 @@ export const DreadlerArenaScreen: React.FC = () => {
   const camera = useCameraStream();
   const [selectedAlgo, setSelectedAlgo] = useState<'pos' | 'evm' | 'hsemotion' | 'physformer'>('pos');
   const bio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100, stateData?.agent_variant || 'alpha', lastTacticFlagged);
+  const [realBpm, setRealBpm] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!camera.cameraOn) {
+      setRealBpm(null);
+    }
+  }, [camera.cameraOn]);
+
+  const displayBpm = (camera.cameraOn && realBpm !== null) ? realBpm : bio.bpm;
 
   const dominantEmotion = useMemo(() => {
     let maxVal = -1;
@@ -875,7 +884,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 
                 {/* BPM and Dominant Emotion badge */}
                 <div className="absolute bottom-1 left-0 right-0 text-center bg-black/70 py-0.5 pointer-events-none">
-                  <p className="text-[8px] font-mono text-red-400 font-bold leading-none">♥ {bio.bpm.toFixed(0)}</p>
+                  <p className="text-[8px] font-mono text-red-400 font-bold leading-none">♥ {displayBpm.toFixed(0)}</p>
                   <p className="text-[7px] font-mono text-zinc-400 leading-none uppercase truncate px-1">{dominantEmotion}</p>
                 </div>
               </div>
@@ -991,11 +1000,13 @@ export const DreadlerArenaScreen: React.FC = () => {
                 <WireframeScanCanvas active={!camera.cameraOn || camera.loading} isDirectLie={lastDirectLie} />
                 {camera.cameraOn && (
                   <ScanCircleOverlay 
+                    videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
-                    bpm={bio.bpm} 
+                    bpm={displayBpm} 
                     pupilMm={bio.pupilMm} 
                     selectedAlgo={selectedAlgo}
                     emotions={bio.emotions}
+                    onBpmUpdate={setRealBpm}
                   />
                 )}
                 
@@ -1028,14 +1039,14 @@ export const DreadlerArenaScreen: React.FC = () => {
 
               {/* PPG Waveform */}
               <div className="h-10 w-full border border-zinc-800/80 bg-black/40">
-                <PPGWaveformCanvas bpm={bio.bpm} />
+                <PPGWaveformCanvas bpm={displayBpm} />
               </div>
 
               {/* Digital readout stats */}
               <div className="grid grid-cols-2 gap-2 border border-zinc-800 p-2.5 bg-zinc-900/10 font-mono text-[10px]">
                 <div>
                   <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Heart Rate</span>
-                  <span className="font-bold text-red-400">♥ {bio.bpm.toFixed(0)} <span className="text-[7px] text-zinc-500 font-normal">BPM</span></span>
+                  <span className="font-bold text-red-400">♥ {displayBpm.toFixed(0)} <span className="text-[7px] text-zinc-500 font-normal">BPM</span></span>
                 </div>
                 <div>
                   <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
@@ -1135,11 +1146,13 @@ export const DreadlerArenaScreen: React.FC = () => {
                 <WireframeScanCanvas active={!camera.cameraOn || camera.loading} isDirectLie={lastDirectLie} />
                 {camera.cameraOn && (
                   <ScanCircleOverlay 
+                    videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
-                    bpm={bio.bpm} 
+                    bpm={displayBpm} 
                     pupilMm={bio.pupilMm} 
                     selectedAlgo={selectedAlgo}
                     emotions={bio.emotions}
+                    onBpmUpdate={setRealBpm}
                   />
                 )}
                 
@@ -1163,14 +1176,14 @@ export const DreadlerArenaScreen: React.FC = () => {
               
               {/* PPG wave */}
               <div className="h-16 w-full border border-zinc-800">
-                <PPGWaveformCanvas bpm={bio.bpm} />
+                <PPGWaveformCanvas bpm={displayBpm} />
               </div>
               
               {/* Biometric Stats */}
               <div className="grid grid-cols-2 gap-4 border border-zinc-800 p-3 bg-zinc-900/10 font-mono">
                 <div>
                   <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Heart Rate</span>
-                  <span className="text-lg font-bold text-red-400">♥ {bio.bpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
+                  <span className="text-lg font-bold text-red-400">♥ {displayBpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
                 </div>
                 <div>
                   <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Pupil Size</span>
@@ -1969,17 +1982,21 @@ function EmotionBars({ emotions }: { emotions: EmotionSet }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ScanCircleOverlay({
+  videoRef,
   isDirectLie,
   bpm,
   pupilMm,
   selectedAlgo = 'pos',
   emotions = {},
+  onBpmUpdate,
 }: {
+  videoRef?: React.RefObject<HTMLVideoElement | null>;
   isDirectLie: boolean;
   bpm: number;
   pupilMm: number;
   selectedAlgo?: 'pos' | 'evm' | 'hsemotion' | 'physformer';
   emotions?: Record<string, number>;
+  onBpmUpdate?: (bpm: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -1989,6 +2006,21 @@ function ScanCircleOverlay({
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Offscreen canvas for green channel averaging
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = 160;
+    offscreenCanvas.height = 120;
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+
+    // Signal processing states
+    const rawSignals: Array<{ t: number; val: number }> = [];
+    const filteredSignals: Array<{ t: number; val: number }> = [];
+    const processedSignals: Array<{ t: number; val: number }> = [];
+    const peakTimes: number[] = [];
+    let lastPeakTime = 0;
+    let currentBpm = bpm || 75;
+    let lastNotificationTime = 0;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -2003,7 +2035,8 @@ function ScanCircleOverlay({
 
     const start = performance.now();
     const draw = () => {
-      const t = (performance.now() - start) / 1000;
+      const nowMs = performance.now();
+      const t = (nowMs - start) / 1000;
       const rect = canvas.getBoundingClientRect();
       const w = rect.width;
       const h = rect.height;
@@ -2012,6 +2045,98 @@ function ScanCircleOverlay({
       const cx = w / 2;
       const cy = h / 2;
       const radius = Math.min(w, h) * 0.28;
+
+      // Extract real-time pixel data from the webcam video feed
+      const video = videoRef?.current;
+      if (video && video.readyState >= 2 && !video.paused && !video.ended) {
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (vw > 0 && vh > 0 && offscreenCtx) {
+          // Forehead ROI: top-center 15% width, 15% height
+          const cropW = Math.floor(vw * 0.15);
+          const cropH = Math.floor(vh * 0.15);
+          const cropX = Math.floor((vw - cropW) / 2);
+          const cropY = Math.floor(vh * 0.25);
+          
+          offscreenCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 160, 120);
+          const imgData = offscreenCtx.getImageData(0, 0, 160, 120);
+          const imgDataArr = imgData.data;
+          
+          let greenSum = 0;
+          let pixelCount = 0;
+          for (let i = 1; i < imgDataArr.length; i += 4) {
+            greenSum += imgDataArr[i];
+            pixelCount++;
+          }
+          const greenAvg = pixelCount > 0 ? greenSum / pixelCount : 0;
+          
+          if (greenAvg > 0) {
+            rawSignals.push({ t: nowMs, val: greenAvg });
+            if (rawSignals.length > 300) rawSignals.shift();
+
+            // High-pass filter (DC subtraction over 3 seconds / 90 frames)
+            const dcWindow = 90;
+            let sumVal = 0;
+            const startIdx = Math.max(0, rawSignals.length - dcWindow);
+            for (let i = startIdx; i < rawSignals.length; i++) {
+              sumVal += rawSignals[i].val;
+            }
+            const dcComponent = sumVal / (rawSignals.length - startIdx);
+            const acValue = greenAvg - dcComponent;
+
+            // Low-pass filter (Moving average of 3 frames)
+            filteredSignals.push({ t: nowMs, val: acValue });
+            if (filteredSignals.length > 300) filteredSignals.shift();
+
+            const lpWindow = 3;
+            let lpSum = 0;
+            const lpStart = Math.max(0, filteredSignals.length - lpWindow);
+            for (let i = lpStart; i < filteredSignals.length; i++) {
+              lpSum += filteredSignals[i].val;
+            }
+            const smoothedValue = lpSum / (filteredSignals.length - lpStart);
+
+            processedSignals.push({ t: nowMs, val: smoothedValue });
+            if (processedSignals.length > 300) processedSignals.shift();
+
+            // Peak detection: look for local maximum above a threshold
+            if (processedSignals.length >= 3) {
+              const prev2 = processedSignals[processedSignals.length - 3].val;
+              const prev1 = processedSignals[processedSignals.length - 2].val;
+              const curr = processedSignals[processedSignals.length - 1].val;
+              const time1 = processedSignals[processedSignals.length - 2].t;
+
+              if (prev1 > prev2 && prev1 > curr && prev1 > 0.03) {
+                const elapsedSinceLastPeak = time1 - lastPeakTime;
+                if (elapsedSinceLastPeak >= 333 && elapsedSinceLastPeak <= 1333) { // 45 to 180 BPM
+                  peakTimes.push(time1);
+                  if (peakTimes.length > 8) peakTimes.shift();
+                  lastPeakTime = time1;
+
+                  if (peakTimes.length >= 2) {
+                    let totalInterval = 0;
+                    let intervalCount = 0;
+                    for (let i = 1; i < peakTimes.length; i++) {
+                      totalInterval += (peakTimes[i] - peakTimes[i - 1]);
+                      intervalCount++;
+                    }
+                    const avgIntervalMs = totalInterval / intervalCount;
+                    const instantBpm = 60000 / avgIntervalMs;
+                    
+                    // Dampen changes
+                    currentBpm = currentBpm * 0.8 + instantBpm * 0.2;
+
+                    if (nowMs - lastNotificationTime > 500 && onBpmUpdate) {
+                      onBpmUpdate(Math.round(currentBpm));
+                      lastNotificationTime = nowMs;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
 
       // Color scheme based on selected algorithm
       let baseColor = '#ff5566';
@@ -2357,7 +2482,7 @@ function ScanCircleOverlay({
       ro.disconnect();
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [isDirectLie, bpm, pupilMm, selectedAlgo, emotions]);
+  }, [isDirectLie, bpm, pupilMm, selectedAlgo, emotions, videoRef, onBpmUpdate]);
 
   return (
     <canvas
