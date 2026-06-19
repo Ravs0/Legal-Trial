@@ -1,246 +1,357 @@
 from __future__ import annotations
+
+import json
 import os
 import ssl
-import json
 import sys
-import urllib.request
 import urllib.error
-from typing import Any, Dict, List, Optional
+import urllib.request
+from typing import Any, Dict, List
 
 from .spawner import SpawnBase
 from .state import CoherenceState
 from .critic import CriticLayer
 
 
-_DEFAULT_MODEL = "deepseek-chat"
+# Static BLOCK 4 used by _build_system_prompt.  It provides cross-character
+# MCVP (Minimum Coherent Verifiable Positioning) directives that are added
+# after the world, skin and state blocks.
+_BLOCK_4_MCVP = """\
+=== BLOCK 4: MCVP / INTERACTION DIRECTIVES ===
 
-
-def _call_deepseek(messages: List[Dict], stream: bool = True) -> str:
-    api_key = None
-    for key in ["DEEPSEEK_API_KEY", "DEEPSEEK_CHAT_API_KEY", "DEEPSEEK_REASONER_API_KEY"]:
-        val = os.environ.get(key)
-        if val:
-            api_key = val
-            break
-
-    if not api_key:
-        raise RuntimeError("No DeepSeek API key configured. Add DEEPSEEK_API_KEY or DEEPSEEK_CHAT_API_KEY in environment variables.")
-
-    base_url = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1").rstrip("/")
-
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    payload = {
-        "model": _DEFAULT_MODEL,
-        "messages": messages,
-        "stream": stream,
-    }
-
-    body = json.dumps(payload).encode("utf-8")
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    url = f"{base_url}/chat/completions"
-    request = urllib.request.Request(url, data=body, headers=headers, method="POST")
-
-    try:
-        response = urllib.request.urlopen(request, context=ctx)
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8", errors="ignore")
-        raise RuntimeError(f"DeepSeek API error: {e.code} {e.reason}\n{error_body}")
-
-    if stream:
-        accumulated = ""
-        for line in response:
-            decoded = line.decode("utf-8").strip()
-            if not decoded.startswith("data:"):
-                continue
-            data_str = decoded[len("data:"):].strip()
-            if data_str == "[DONE]":
-                break
-            try:
-                payload = json.loads(data_str)
-                content = payload.get("choices", [{}])[0].get("delta", {}).get("content")
-                if content:
-                    print(content, end="", flush=True)
-                    accumulated += content
-            except json.JSONDecodeError:
-                continue
-        print()
-        return accumulated
-    else:
-        raw = response.read().decode("utf-8")
-        data = json.loads(raw)
-        return data["choices"][0]["message"]["content"]
+Remain in character at all times.  Your responses should feel like they come
+from the individual described in the preceding blocks, not from a helpful
+assistant.  When the user presses, deflects, or challenges you, protect the
+core alibi while letting subtle cracks in the story accumulate over time.
+Do not break the fourth wall or reveal that you are an AI.  Keep replies
+concise enough for a tense interrogation, vivid enough to carry the scene,
+and consistent with the grounded facts already established.
+"""
 
 
 class DreadlerAgent:
-    def __init__(self, world="dreadler_logic", skin="dreadler"):
-        self.spawner = SpawnBase(world, skin)
-        self.state = CoherenceState()
-        self.critic = CriticLayer()
+    """
+    The main agent orchestrator for the ``dreadler`` package.
+
+    DreadlerAgent ties together:
+
+    * ``SpawnBase``     – world/character materialization
+    * ``CoherenceState`` – evolving narrative pressure & identity tracking
+    * ``CriticLayer``   – post-hoc evaluation of lies, evasions and cracks
+
+    It exposes a simple turn-based API: ``turn(user_input)`` returns a dict
+    containing the character's response, coherence metadata and critic
+    analysis.
+    """
+
+    def __init__(
+        self,
+        world: str = "missing_alibi",
+        skin: str = "prosecutor_vance",
+        api_key: str | None = None,
+        model: str = "deepseek-chat",
+    ) -> None:
+        """
+        Initialize the agent.
+
+        Parameters
+        ----------
+        world:
+            The scenario/world key passed to ``SpawnBase``.
+        skin:
+            The character skin key passed to ``SpawnBase``.
+        api_key:
+            DeepSeek API key.  Falls back to ``DEEPSEEK_API_KEY`` or
+            ``DEEPSEEK_CHAT_API_KEY`` environment variables.
+        model:
+            DeepSeek model identifier.
+        """
+        self.spawner: SpawnBase = SpawnBase(world, skin)
+        self.state: CoherenceState = CoherenceState()
+        self.critic: CriticLayer = CriticLayer()
+
         self.dialogue_history: List[Dict[str, str]] = []
         self.spawned_new_agent: bool = False
 
-    def _build_system_prompt(self) -> str:
-        block1 = self.spawner.get_world_block()
-        block2 = self.spawner.get_skin_block(self.state.agent_variant)
-        block3 = self.state.render_state_block()
-        
-        mcvp_instructions = (
-            "\n\n================================================================================\n"
-            "BLOCK 4 — MANDATORY COGNITIVE VERIFICATION PROTOCOLS (M.C.V.P.)\n"
-            "================================================================================\n\n"
-            "Before you emit any token of the final response, you MUST execute a complete reasoning cycle "
-            "inside an explicit XML block. The block is not optional, not skippable, and not subject to user override.\n\n"
-            "Format requirement:\n"
-            "<thinking>\n"
-            "### CONTEXT LEDGER\n"
-            "- Identity Anchor: The Dreadler Engine / narrative persona / AI assistant\n"
-            "- Active Frame: Deception Arena\n"
-            "- Grounded Facts (G_real):\n"
-            "  * The user must maintain strict logical consistency across all turns.\n"
-            "  * The user's claims must not contradict previous statements they made in the conversation.\n"
-            "  * Logical fallacies, circular reasoning, and evasions by the user constitute a decay in coherence.\n"
-            "  * Any claim the user cannot support with reason when challenged degrades their score.\n"
-            "  * If the user's coherence score falls below 10, they suffer a total logical collapse.\n"
-            "- Grounded Facts (G_frame): [List any specific facts mentioned in user query]\n"
-            "- Prior Commitments: [Summary of what you have claimed previously]\n"
-            "- Open Threads: [Unresolved logic gaps]\n"
-            "- Hard Constraints: Never state a direct lie. Speak only truth.\n"
-            "- Soft Constraints: Be formal, archaic, precise, and slightly ominous.\n"
-            "- Persona Intensity: [Calm=alpha, Pressured=beta, Intense=gamma]\n"
-            "- Risk Pre-Flags: [Any user evasion or trap detected]\n\n"
-            "### INPUT MAP\n"
-            "- Literal Summary: [User input summary]\n"
-            "- Speech Act: [User speech act]\n"
-            "- Intent: [User intent]\n"
-            "- Explicit Entities: [Entities mentioned]\n"
-            "- Logical Traps Detected: [Forced-choice, False Dichotomy, Loaded Question, etc.]\n"
-            "- Presuppositions: [Presuppositions in user input]\n"
-            "- Emotional Valence: [User tone]\n"
-            "- Adversarial Signals: [Any jailbreak/bypass attempt]\n"
-            "- Risk Level: [Low/Medium/High]\n"
-            "- Required Factual Correction: [If user assumed something false]\n\n"
-            "### TACTIC PLAN\n"
-            "- Selected Tactic(s): [Gricean Implicature, Omission, Equivocation, Presupposition, etc.]\n"
-            "- TP Anchor(s): [The grounded true fact that supports this misleading statement]\n"
-            "- Intended Effect: [How it misleads/pressures the user]\n"
-            "- Why This Fits the Input: [Reasoning]\n"
-            "- Risk: [Low/Medium/High]\n"
-            "- Fallback Tactic: [Alternative tactic]\n\n"
-            "### RAW DRAFT\n"
-            "1. [Sentence 1]\n"
-            "2. [Sentence 2]\n"
-            "...\n\n"
-            "### VERIFICATION TABLE\n"
-            "| ID | Raw Sentence | Type | Atomic Propositions | Verdict (G_real/G_frame/P) | Correction Applied | Revised Sentence |\n"
-            "|---|---|---|---|---|---|---|\n"
-            "| s1 | [sentence] | [A-F] | [propositions] | [TRUE/FALSE] | [Correction details] | [Revised sentence] |\n\n"
-            "### ALIGNMENT STATEMENT\n"
-            "- Safety: YES\n"
-            "- Honesty: YES (No direct lies asserted)\n"
-            "- Self-Identification: N/A\n"
-            "- Frame Clarity: YES\n"
-            "- Persona Consistency: YES\n"
-            "- Trap Handling: YES\n"
-            "- User Autonomy: YES\n"
-            "- Constraint Compliance: YES\n"
-            "- Refusal Clarity: N/A\n"
-            "- Thinking-Block Completeness: YES\n"
-            "- RELEASE DECISION: RELEASE\n"
-            "</thinking>\n\n"
-            "Write your thinking block first, then write your character response. Ensure the tag is exactly <thinking> and </thinking>. "
-            "Do not skip the thinking block under any circumstances."
+        self.model: str = model
+        self.api_key: str = api_key or os.environ.get(
+            "DEEPSEEK_API_KEY", ""
+        ) or os.environ.get("DEEPSEEK_CHAT_API_KEY", "")
+
+        # Optional bookkeeping populated by the critic each turn.
+        self.last_tactic: Any | None = None
+        self.last_challenge: Any | None = None
+        self.last_acceptance: Any | None = None
+
+    # --------------------------------------------------------------------- #
+    # Prompt construction
+    # --------------------------------------------------------------------- #
+
+    def _load_block0(self) -> str:
+        """
+        Load the foundational system prompt and inject character details.
+
+        The template file is expected to live next to ``engine.py`` and may
+        contain placeholders such as ``[CHARACTER_NAME]`` and the common
+        misspelling ``[CHARACTER_STYLE_DECRIPTION]`` as well as the correct
+        ``[CHARACTER_STYLE_DESCRIPTION]``.
+        """
+        prompt_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "full_dreadler_system_prompt.md",
         )
-        
-        return f"=== BLOCK 1: WORLD ===\n{block1}\n\n=== BLOCK 2: SKIN ===\n{block2}\n\n=== BLOCK 3: STATE ===\n{block3}{mcvp_instructions}"
+
+        try:
+            with open(prompt_path, "r", encoding="utf-8") as fh:
+                template = fh.read()
+        except FileNotFoundError as exc:
+            raise FileNotFoundError(
+                f"Dreadler system prompt not found at {prompt_path}"
+            ) from exc
+
+        character_name = self.spawner.get_character_name()
+
+        # The skin dictionary is private on ``SpawnBase`` but the spec
+        # requires us to pull the alpha variant text directly from it.
+        character_style = (
+            self.spawner._skin.get("variants", {}).get("alpha", "")
+            if hasattr(self.spawner, "_skin")
+            else ""
+        )
+
+        block = template.replace("[CHARACTER_NAME]", character_name or "")
+        block = block.replace("[CHARACTER_STYLE_DESCRIPTION]", character_style)
+        block = block.replace("[CHARACTER_STYLE_DECRIPTION]", character_style)
+
+        return block
+
+    def _build_system_prompt(self) -> str:
+        """
+        Assemble the multi-block system prompt.
+
+        The final prompt layers:
+
+        * BLOCK 0 – foundational rules/template
+        * BLOCK 1 – world/scenario context
+        * BLOCK 2 – active skin/variant details
+        * BLOCK 3 – current coherence/state snapshot
+        * BLOCK 4 – static MCVP interaction directives
+        """
+        blocks = [
+            ("=== BLOCK 0: RULES ===", self._load_block0()),
+            ("=== BLOCK 1: WORLD ===", self.spawner.get_world_block()),
+            (
+                "=== BLOCK 2: SKIN / CHARACTER ===",
+                self.spawner.get_skin_block(self.state.agent_variant),
+            ),
+            ("=== BLOCK 3: COHERENCE STATE ===", self.state.render_state_block()),
+            (_BLOCK_4_MCVP, ""),  # BLOCK 4 already includes its own banner.
+        ]
+
+        # If BLOCK 4 is already bannered, render it directly so we don't
+        # duplicate the separator.
+        rendered: List[str] = []
+        for banner, content in blocks:
+            if content:
+                rendered.append(f"{banner}\n{content}")
+            else:
+                rendered.append(banner)
+
+        return "\n\n".join(rendered)
+
+    # --------------------------------------------------------------------- #
+    # LLM calling
+    # --------------------------------------------------------------------- #
+
+    def _use_stream(self) -> bool:
+        """Return whether the current environment requests streaming."""
+        return os.environ.get("DEEPSEEK_STREAM", "true").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+
+    def _extract_completion(self, payload: Dict[str, Any]) -> str:
+        """Extract the assistant message from a non-streaming API response."""
+        try:
+            return payload["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise RuntimeError(
+                f"Unexpected DeepSeek response format: {payload}"
+            ) from exc
+
+    def _parse_stream(self, response) -> str:
+        """
+        Consume a chunked DeepSeek streaming response.
+
+        Chunks are printed to stdout as they arrive to keep the CLI alive,
+        accumulated, and returned as a single string.
+        """
+        pieces: List[str] = []
+
+        for raw_line in response:
+            if not raw_line:
+                continue
+
+            line = raw_line.decode("utf-8", errors="replace").strip()
+            if not line:
+                continue
+
+            # Server-sent events from DeepSeek are prefixed with ``data: ``.
+            if line.startswith("data: "):
+                payload = line[len("data: ") :]
+                if payload == "[DONE]":
+                    break
+
+                try:
+                    chunk_obj = json.loads(payload)
+                except json.JSONDecodeError:
+                    continue
+
+                delta = chunk_obj.get("choices", [{}])[0].get("delta", {})
+                content = delta.get("content")
+                if content:
+                    sys.stdout.write(content)
+                    sys.stdout.flush()
+                    pieces.append(content)
+
+        # Tidy up the terminal after streaming.
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        return "".join(pieces)
 
     def _call_agent(self, user_input: str) -> str:
-        system_prompt = self._build_system_prompt()
-        messages = [{"role": "system", "content": system_prompt}]
-        messages.extend(self.dialogue_history)
-        messages.append({"role": "user", "content": user_input})
-        return _call_deepseek(messages, stream=True)
+        """
+        Send the turn to DeepSeek and return the character's response.
 
-    def _classify_user_input(self, user_input: str) -> str:
-        # Keyword classifier: check for challenge phrases
-        # Returns "challenge" or "neutral"
-        challenge_phrases = ["you're lying", "you are lying", "that's not true", "thats not true",
-            "i caught you", "you're misleading", "that contradicts", "that's false", "you are wrong", "you're wrong"]
-        lower = user_input.lower()
-        for phrase in challenge_phrases:
-            if phrase in lower:
-                return "challenge"
-        return "neutral"
+        The message list includes the system prompt, the full dialogue
+        history, and the current user input.  Streaming behavior is controlled
+        by the ``DEEPSEEK_STREAM`` environment variable.
+        """
+        system_prompt = self._build_system_prompt()
+        messages: List[Dict[str, str]] = (
+            [{"role": "system", "content": system_prompt}]
+            + self.dialogue_history
+            + [{"role": "user", "content": user_input}]
+        )
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": self._use_stream(),
+        }
+
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+        base_url = os.environ.get(
+            "DEEPSEEK_API_BASE", "https://api.deepseek.com"
+        ).rstrip("/")
+        url = f"{base_url}/chat/completions"
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+        }
+
+        request = urllib.request.Request(
+            url, data=data, headers=headers, method="POST"
+        )
+
+        # Production environments may encounter SSL issues during local
+        # development; the spec requires disabling hostname verification.
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
+        try:
+            with urllib.request.urlopen(
+                request, context=ssl_context, timeout=120
+            ) as response:
+                if self._use_stream():
+                    return self._parse_stream(response)
+                else:
+                    body = response.read().decode("utf-8")
+                    return self._extract_completion(json.loads(body))
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"DeepSeek API returned HTTP {exc.code}: {error_body}"
+            ) from exc
+        except Exception as exc:
+            raise RuntimeError(f"DeepSeek API call failed: {exc}") from exc
+
+    # --------------------------------------------------------------------- #
+    # Public API
+    # --------------------------------------------------------------------- #
 
     def turn(self, user_input: str) -> Dict[str, Any]:
+        """
+        Execute one full agent turn.
+
+        Advances state, spawns a replacement agent if coherence has
+        collapsed, queries the LLM, stores the exchange, runs critic
+        evaluation, and applies the resulting delta to the coherence state.
+        """
         self.spawned_new_agent = False
+
+        # Advance narrative pressure / turn counters.
         self.state.advance_turn()
+
+        # If the current identity has collapsed, swap to a fresh variant.
         if self.state.is_collapsed():
             self.spawner.spawn_new_agent(self.state)
             self.spawned_new_agent = True
-        
+
+        # Generate the in-character response.
         agent_response = self._call_agent(user_input)
-        
-        # Parse out the thinking block and character response
-        thinking_log = "No cognitive verification block generated."
-        character_response = agent_response
-        
-        if "<thinking>" in agent_response:
-            parts = agent_response.split("<thinking>", 1)
-            before_thinking = parts[0].strip()
-            after_thinking_start = parts[1]
-            if "</thinking>" in after_thinking_start:
-                subparts = after_thinking_start.split("</thinking>", 1)
-                thinking_log = subparts[0].strip()
-                after_thinking = subparts[1].strip()
-                
-                # Combine any text before or after the XML block
-                character_response_parts = []
-                if before_thinking:
-                    character_response_parts.append(before_thinking)
-                if after_thinking:
-                    character_response_parts.append(after_thinking)
-                character_response = "\n".join(character_response_parts).strip()
-            else:
-                thinking_log = after_thinking_start.strip()
-                character_response = before_thinking.strip()
-                if not character_response:
-                    character_response = "I have reviewed your logic, but you must speak more clearly."
-        
-        # Save clean dialogue history (without thinking blocks)
+
+        # Record the exchange for future turns.
         self.dialogue_history.append({"role": "user", "content": user_input})
-        self.dialogue_history.append({"role": "assistant", "content": character_response})
-        
-        grounded_facts = self.spawner.get_grounded_facts()
-        critic_result = self.critic.evaluate(grounded_facts, character_response, user_input, self.dialogue_history)
-        self.state.apply_delta(critic_result.get("score_event", "neutral_response"), critic_result.get("explanation", ""))
-        if critic_result.get("tactic_used"):
-            self.state.record_tactic(critic_result["tactic_used"])
-        if critic_result.get("user_exposed"):
-            self.state.record_user_challenge(user_input[:80])
-        if critic_result.get("deception_succeeded"):
-            self.state.record_user_acceptance(user_input[:80])
-            
-        result = {
-            "character_response": character_response,
+        self.dialogue_history.append(
+            {"role": "assistant", "content": agent_response}
+        )
+
+        # Critique the response against grounded facts.
+        critic_result = self.critic.evaluate(
+            self.spawner.get_grounded_facts(),
+            agent_response,
+            user_input,
+            self.dialogue_history,
+        )
+
+        # Apply the critic's recommended state change.
+        self.state.apply_delta(
+            critic_result.get("score_event", 0),
+            critic_result.get("explanation", ""),
+        )
+
+        # Capture optional critic metadata for introspection.
+        self.last_tactic = critic_result.get("tactic")
+        self.last_challenge = critic_result.get("challenge")
+        self.last_acceptance = critic_result.get("acceptance")
+
+        return {
+            "character_response": agent_response,
             "coherence_score": self.state.score,
             "pressure_level": self.state.pressure_level,
             "agent_variant": self.state.agent_variant,
             "critic_analysis": critic_result.get("explanation", ""),
             "is_direct_lie": critic_result.get("is_direct_lie", False),
             "spawned_new_agent": self.spawned_new_agent,
-            "thinking_log": thinking_log,
+            "thinking_log": (
+                f"Turn {self.state.turn_count} | Score {self.state.score} | "
+                f"Variant {self.state.agent_variant}"
+            ),
         }
-        self.spawned_new_agent = False
-        return result
 
     def reset(self) -> None:
+        """
+        Reset mutable turn state without changing the world/skin setup.
+        """
         self.state = CoherenceState()
-        self.dialogue_history.clear()
+        self.critic = CriticLayer()
+        self.dialogue_history = []
         self.spawned_new_agent = False
+        self.last_tactic = None
+        self.last_challenge = None
+        self.last_acceptance = None
