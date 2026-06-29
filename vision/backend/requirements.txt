@@ -1,0 +1,12 @@
+# Vision backend deps for the mobile (streamed) path.
+# Install into the persistent host's venv:
+#   pip install -r vision/backend/requirements.txt
+fastapi>=0.110
+uvicorn[standard]>=0.29
+numpy>=1.26
+scipy>=1.11
+opencv-python>=4.9
+# HSEmotion inference. Optional in code but required for emotions:
+onnxruntime>=1.17
+# websockets ships with uvicorn[standard]; listed for clarity:
+websockets>=12.0

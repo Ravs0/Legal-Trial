@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { useConversationBridge } from '../components/ConversationBridge';
 import { ROUTES } from '../constants';
+import { useRealBiometrics } from '../vision/useRealBiometrics';
 
 // ─── TYPES & INTERFACES ──────────────────────────────────────────────────────
 
@@ -190,16 +191,27 @@ export const DreadlerArenaScreen: React.FC = () => {
   const [showMobileVKDrawer, setShowMobileVKDrawer] = useState(false);
   const camera = useCameraStream();
   const [selectedAlgo, setSelectedAlgo] = useState<'pos' | 'evm' | 'hsemotion' | 'physformer'>('pos');
-  const bio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100, stateData?.agent_variant || 'alpha', lastTacticFlagged);
+  const simulatedBio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100, stateData?.agent_variant || 'alpha', lastTacticFlagged);
+  // Real biometrics pipeline: laptop runs POS+HSEmotion in-browser; phone
+  // streams frames to the Python backend. Same shape as simulatedBio, so we
+  // swap the source only when the camera is live.
+  const realBio = useRealBiometrics(camera.videoRef, isMobile, stateData?.score ?? 100);
+  const bio = camera.cameraOn ? realBio.reading : simulatedBio;
   const [realBpm, setRealBpm] = useState<number | null>(null);
 
   useEffect(() => {
     if (!camera.cameraOn) {
       setRealBpm(null);
+    } else if (realBio.reading.bpm !== null && realBio.reading.bpm !== undefined) {
+      setRealBpm(realBio.reading.bpm);
     }
-  }, [camera.cameraOn]);
+  }, [camera.cameraOn, realBio.reading.bpm]);
 
-  const displayBpm = (camera.cameraOn && realBpm !== null) ? realBpm : bio.bpm;
+  // displayBpm must always be a number for the UI (toFixed, waveform). When the
+  // real pipeline has no confident reading yet, fall back to the simulated value
+  // so the readout never goes blank mid-session.
+  const realBpmValue = (camera.cameraOn && realBpm !== null) ? realBpm : null;
+  const displayBpm: number = realBpmValue ?? (bio.bpm ?? simulatedBio.bpm);
 
   const dominantEmotion = useMemo(() => {
     let maxVal = -1;
