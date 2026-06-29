@@ -40,7 +40,7 @@ const NavItem: React.FC<{
   const location = useLocation();
 
   const navLinkClass = (isActive: boolean): string =>
-    `flex items-center px-3 py-2.5 rounded-none text-[12px] font-medium transition-all group relative overflow-hidden
+    `flex items-center px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all group relative overflow-hidden
      ${isActive
       ? 'bg-brand-accent/15 text-brand-accent border-l-2 border-l-brand-accent border-y border-r border-y-brand-accent/20 border-r-brand-accent/20'
       : 'text-white/60 border border-transparent hover:bg-white/8 hover:text-white/90'
@@ -58,7 +58,7 @@ const NavItem: React.FC<{
         <span className="text-[8px] font-mono px-1.5 py-0.5 bg-brand-accent/15 text-brand-accent border border-brand-accent/30 tracking-wider uppercase ml-auto flex-shrink-0">{badge}</span>
       )}
       {!isSidebarOpen && (
-        <span className="absolute left-full ml-4 px-2 py-1 text-[11px] font-medium text-brand-bg-primary bg-brand-accent rounded-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none md:block hidden">
+        <span className="absolute left-full ml-4 px-2 py-1 text-[11px] font-medium text-brand-bg-primary bg-brand-accent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none md:block hidden">
           {label}
         </span>
       )}
@@ -185,7 +185,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             <button
               onClick={() => isMobileOpen ? toggleMobileSidebar() : toggleDesktopSidebar()}
-              className={`p-1.5 rounded-none hover:bg-white/10 text-white/50 hover:text-white/90 transition-colors ${!isExpanded ? 'mx-auto' : ''}`}
+              className={`p-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-white/90 transition-colors ${!isExpanded ? 'mx-auto' : ''}`}
             >
               {isMobileOpen ? <XMarkIcon className="h-5 w-5" /> : (isSidebarOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />)}
             </button>

@@ -219,7 +219,7 @@ export const CommandPalette: React.FC = () => {
       onClick={() => setIsOpen(false)}
     >
       <div 
-        className="w-full max-w-2xl bg-brand-bg-primary border-2 border-brand-accent rounded-none shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col max-h-[480px] overflow-hidden"
+        className="w-full max-w-2xl bg-brand-bg-primary border-2 border-brand-accent rounded-xl shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col max-h-[480px] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Input */}
@@ -252,7 +252,7 @@ export const CommandPalette: React.FC = () => {
                     setIsOpen(false);
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`w-full text-left px-3.5 py-2.5 flex items-start justify-between border transition-all rounded-none
+                  className={`w-full text-left px-3.5 py-2.5 flex items-start justify-between border transition-all rounded-xl
                     ${isSelected 
                       ? 'bg-brand-accent/10 border-brand-accent text-brand-text-primary' 
                       : 'bg-transparent border-transparent text-brand-text-secondary'

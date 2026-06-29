@@ -16,7 +16,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   placeholder,
   ...props
 }) => {
-  const baseInputStyle = `block w-full bg-brand-bg-primary rounded-none py-3 px-4 
+  const baseInputStyle = `block w-full bg-brand-bg-primary rounded-xl py-3 px-4 
                           border border-brand-text-primary/30 focus:outline-none focus:ring-1 focus:ring-brand-accent 
                           text-brand-text-primary text-sm sm:text-base hover:border-brand-text-primary/60
                           transition-colors duration-300`;

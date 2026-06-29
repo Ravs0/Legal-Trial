@@ -665,7 +665,7 @@ const DraftingStudioScreen: React.FC = () => {
           <div className="space-y-4 text-xs font-light leading-relaxed">
             <p>Drafting does not begin with writing prose; it begins with mapping the commercial transaction. A contract translates business deal points into a binding, structured document.</p>
             <div className="font-semibold text-brand-text-primary">1.1 Structural Anatomy</div>
-            <div className="bg-brand-bg-secondary p-2.5 rounded-none border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-normal">
+            <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-normal">
               1. Introductory Provisions (Preamble & Recitals)<br/>
               2. Definitions Glossary<br/>
               3. Core Transactional Clauses (Price/Payment)<br/>
@@ -681,7 +681,7 @@ const DraftingStudioScreen: React.FC = () => {
             
             <div className="space-y-2">
               <p className="font-mono text-[9px] uppercase tracking-wider text-brand-accent">Red-Pen Overhaul:</p>
-              <div className="border border-brand-text-primary/30 rounded-none overflow-hidden text-[10px]">
+              <div className="border border-brand-text-primary/30 rounded-xl overflow-hidden text-[10px]">
                 <div className="bg-brand-bg-secondary p-2 border-b border-brand-text-primary/30 font-bold grid grid-cols-2 gap-2">
                   <div>Old Legalese</div>
                   <div>Modern Professional</div>
@@ -705,7 +705,7 @@ const DraftingStudioScreen: React.FC = () => {
         content: (
           <div className="space-y-4 text-xs font-light leading-relaxed">
             <p>In <em>A Manual of Style for Contract Drafting</em>, Kenneth Adams establishes six core categories of contract language. Failing to distinguish them creates massive ambiguity.</p>
-            <div className="bg-brand-bg-secondary p-3 rounded-none border border-brand-text-primary/30 space-y-1.5">
+            <div className="bg-brand-bg-secondary p-3 rounded-xl border border-brand-text-primary/30 space-y-1.5">
               <p><strong>1. Obligation (Covenants):</strong> Party's duty to act. Verb: <em>shall / must</em>.</p>
               <p><strong>2. Factual Assertion (Reps):</strong> Past/present state of fact. Verb: <em>represents / warrants</em>.</p>
               <p><strong>3. Discretionary Authority (Rights):</strong> Option to act. Verb: <em>may</em>.</p>
@@ -713,14 +713,14 @@ const DraftingStudioScreen: React.FC = () => {
               <p><strong>5. Condition:</strong> Trigger event. Verb: <em>must / is a condition to</em>.</p>
             </div>
             
-            <div className="bg-brand-bg-secondary border border-brand-text-primary/30 p-2.5 rounded-none text-[11px]">
+            <div className="bg-brand-bg-secondary border border-brand-text-primary/30 p-2.5 rounded-xl text-[11px]">
               <strong className="text-brand-accent block mb-1">[ Rule ] The Adams Rule for "Shall"</strong>
               Use <em>shall</em> <strong>only</strong> to impose a duty on a subject who is a party to the agreement. Do not use for policies, third parties, or conditions.
             </div>
  
             <div className="space-y-2">
               <p className="font-mono text-[9px] uppercase tracking-wider text-brand-accent">Red-Pen Overhaul:</p>
-              <div className="border border-brand-text-primary/30 rounded-none overflow-hidden text-[10px]">
+              <div className="border border-brand-text-primary/30 rounded-xl overflow-hidden text-[10px]">
                 <div className="bg-brand-bg-secondary p-2 border-b border-brand-text-primary/30 font-bold grid grid-cols-2 gap-2">
                   <div>Misused Verb</div>
                   <div>Correct Verb (Category)</div>
@@ -748,7 +748,7 @@ const DraftingStudioScreen: React.FC = () => {
         content: (
           <div className="space-y-4 text-xs font-light leading-relaxed">
             <p>Mechanical errors and sentence structures are heavily parsed. Modifier ambiguity occurs when relative clauses could apply to one or multiple elements in a list.</p>
-            <div className="bg-brand-bg-secondary p-3 rounded-none border border-brand-text-primary/30 space-y-2">
+            <div className="bg-brand-bg-secondary p-3 rounded-xl border border-brand-text-primary/30 space-y-2">
               <p className="text-red-400/90 font-mono text-[10px] leading-normal">Ambiguous Clause:<br/>"The Company shall not hire employees or independent contractors who reside in California."</p>
               <p className="text-[10px] text-brand-text-secondary">Does "who reside in California" modify employees, or only independent contractors?</p>
               <p className="text-green-400/90 font-mono text-[10px] leading-normal">Option A (Both):<br/>"The Company shall not hire any individual residing in California, whether as an employee or as an independent contractor."</p>
@@ -757,7 +757,7 @@ const DraftingStudioScreen: React.FC = () => {
             <div className="font-semibold text-brand-text-primary">3.2 Tabulation Rules</div>
             <p>Use numbered lists for dense provisions. The introductory phrase must flow grammatically into every tabulated item.</p>
             
-            <div className="border border-brand-text-primary/30 rounded-none p-3 bg-brand-bg-secondary space-y-2">
+            <div className="border border-brand-text-primary/30 rounded-xl p-3 bg-brand-bg-secondary space-y-2">
               <p className="font-bold text-[10px] uppercase tracking-wider text-brand-accent">Modern Tabulated Clause:</p>
               <p className="text-[10.5px] leading-relaxed">
                 The Receiving Party may disclose Confidential Information to its representatives who:<br/>
@@ -775,7 +775,7 @@ const DraftingStudioScreen: React.FC = () => {
         content: (
           <div className="space-y-4 text-xs font-light leading-relaxed">
             <p>Operational clarity is everything. Know the exact meanings in modern risk allocation:</p>
-            <div className="bg-brand-bg-secondary p-2.5 rounded-none border border-brand-text-primary/30 text-[10.5px] space-y-1">
+            <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10.5px] space-y-1">
               <p><strong>Indemnify:</strong> Compensate for direct losses/judgments.</p>
               <p><strong>Defend:</strong> Pay legal fees and handle active third-party lawsuits.</p>
               <p><strong>Hold Harmless:</strong> Release the other party from liability between signatories.</p>
@@ -786,12 +786,12 @@ const DraftingStudioScreen: React.FC = () => {
                 <span className="font-semibold text-brand-text-primary text-[10.5px]">Template: Indemnification & Cap</span>
                 <button
                   onClick={() => handleCopySnippet(0, `Section 8.1 Indemnification. The Consultant shall indemnify, defend, and hold harmless the Client and its officers against all third-party claims, losses, and reasonable legal fees arising out of the Consultant's gross negligence or willful misconduct in performing the Services.\n\nSection 8.2 Limitation of Liability.\n(a) Waiver. Neither party is liable to the other for any indirect, incidental, or consequential damages arising out of this Agreement, even if advised of the possibility of such damages.\n(b) Cap. Except for breaches of Section 5 (Confidentiality), each party's aggregate liability under this Agreement is capped at the total fees paid by the Client to the Consultant in the 12 months preceding the claim.`)}
-                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[9px] rounded-none hover:bg-brand-accent/10 transition-colors uppercase font-mono"
+                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[9px] rounded-xl hover:bg-brand-accent/10 transition-colors uppercase font-mono"
                 >
                   {copiedSnippetIndex === 0 ? "Copied!" : "Quick Copy"}
                 </button>
               </div>
-              <pre className="bg-brand-bg-secondary p-2.5 rounded-none border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-relaxed overflow-x-auto">
+              <pre className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-relaxed overflow-x-auto">
 {`Section 8.1 Indemnification. The Consultant shall indemnify, defend, and hold harmless...
 Section 8.2 Limitation of Liability.
 (a) Waiver. Neither party is liable to...
@@ -804,12 +804,12 @@ Section 8.2 Limitation of Liability.
                 <span className="font-semibold text-brand-text-primary text-[10.5px]">Template: IP Assignment</span>
                 <button
                   onClick={() => handleCopySnippet(1, `Section 6.1 Work Product Ownership. The Developer hereby assigns to the Client all right, title, and interest in and to the Work Product, including all intellectual property rights. The Developer shall cooperate with the Client and execute any additional documents necessary to perfect the Client's ownership of the Work Product.`)}
-                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[9px] rounded-none hover:bg-brand-accent/10 transition-colors uppercase font-mono"
+                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[9px] rounded-xl hover:bg-brand-accent/10 transition-colors uppercase font-mono"
                 >
                   {copiedSnippetIndex === 1 ? "Copied!" : "Quick Copy"}
                 </button>
               </div>
-              <pre className="bg-brand-bg-secondary p-2.5 rounded-none border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-relaxed overflow-x-auto">
+              <pre className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-relaxed overflow-x-auto">
 {`Section 6.1 Work Product Ownership. The Developer hereby assigns to the Client all right, title, and interest...`}
               </pre>
             </div>
@@ -824,13 +824,13 @@ Section 8.2 Limitation of Liability.
             <p>Contracts are interpreted using established judicial canons. Write defensively to avoid the common law traps.</p>
             <div className="space-y-2.5">
               <p><strong>Ejusdem Generis ("Of the same kind"):</strong> General terms following a list are limited to similar items.</p>
-              <div className="bg-brand-bg-secondary p-2.5 rounded-none border border-brand-text-primary/30 text-[10px]">
+              <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
                 <span className="text-red-400 font-mono">Trap:</span> "Tenant shall not keep dogs, cats, birds, or other animals." (Tiger might be excluded by a court as not a household pet).<br/>
                 <span className="text-green-400 font-mono">Fix:</span> "...or other animals, whether domestic or wild."
               </div>
               
               <p><strong>Expressio Unius ("Exclusion of others"):</strong> Mentioning one implies excluding the other.</p>
-              <div className="bg-brand-bg-secondary p-2.5 rounded-none border border-brand-text-primary/30 text-[10px]">
+              <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
                 <span className="text-red-400 font-mono">Trap:</span> "Seller represents that IP does not infringe US patents." (Implies no representation for foreign patents or trademarks).<br/>
                 <span className="text-green-400 font-mono">Fix:</span> "...any intellectual property right globally."
               </div>
@@ -851,7 +851,7 @@ Section 8.2 Limitation of Liability.
     return (
       <div className="animate-fadeIn space-y-6">
         {/* Antigravity Audit Checklist */}
-        <div className="bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none p-4 space-y-3">
+        <div className="bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl p-4 space-y-3">
           <div className="flex items-center space-x-2 text-brand-accent">
             <CheckCircleIcon className="w-5.5 h-5.5 text-brand-accent" />
             <h4 className="text-xs uppercase font-mono tracking-wider font-bold">Audit Checklist</h4>
@@ -870,7 +870,7 @@ Section 8.2 Limitation of Liability.
                     next[idx] = !next[idx];
                     setChecklistChecked(next);
                   }}
-                  className="mt-0.5 rounded-none border-brand-text-primary/30 text-brand-accent bg-brand-bg-secondary focus:ring-brand-accent cursor-pointer h-3.5 w-3.5"
+                  className="mt-0.5 rounded-xl border-brand-text-primary/30 text-brand-accent bg-brand-bg-secondary focus:ring-brand-accent cursor-pointer h-3.5 w-3.5"
                 />
                 <span className={`leading-snug transition-all ${checklistChecked[idx] ? 'line-through text-brand-text-secondary/50' : 'group-hover:text-brand-accent'}`}>
                   {item}
@@ -891,7 +891,7 @@ Section 8.2 Limitation of Liability.
             {modules.map((m, idx) => {
               const isOpen = openModule === idx;
               return (
-                <div key={idx} className="border border-brand-text-primary/30 rounded-none overflow-hidden bg-brand-bg-secondary transition-all">
+                <div key={idx} className="border border-brand-text-primary/30 rounded-xl overflow-hidden bg-brand-bg-secondary transition-all">
                   <button
                     onClick={() => setOpenModule(isOpen ? null : idx)}
                     className="w-full p-3.5 flex justify-between items-center text-left hover:bg-brand-accent/5 transition-all"
@@ -925,7 +925,7 @@ Section 8.2 Limitation of Liability.
             <div className="flex items-center justify-center lg:justify-start space-x-2 lg:space-x-3 mb-1 lg:mb-2">
                 <QuillIcon className="h-5 w-5 lg:h-6 lg:w-6 text-brand-accent" />
                 <h1 className="text-lg lg:text-3xl font-serif font-bold text-shimmer tracking-tight">Drafting Studio</h1>
-                <span className="text-[8px] lg:text-[10px] font-mono text-brand-accent border border-brand-text-primary/30 px-1.5 lg:px-2 py-0.5 rounded-none uppercase tracking-widest">{modeDisplay}</span>
+                <span className="text-[8px] lg:text-[10px] font-mono text-brand-accent border border-brand-text-primary/30 px-1.5 lg:px-2 py-0.5 rounded-xl uppercase tracking-widest">{modeDisplay}</span>
             </div>
             <p className="text-xs lg:text-sm text-brand-text-secondary font-light max-w-xl mx-auto lg:mx-0">
                 AI-powered legal instrument synthesis and procedural validation.
@@ -937,7 +937,7 @@ Section 8.2 Limitation of Liability.
             {steps.map((step, idx) => (
                 <React.Fragment key={step.id}>
                     <div className="flex flex-col items-center group">
-                        <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-none flex items-center justify-center text-[10px] lg:text-xs font-bold transition-all duration-300
+                        <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-xl flex items-center justify-center text-[10px] lg:text-xs font-bold transition-all duration-300
                             ${idx <= currentStepIndex ? 'bg-brand-accent text-brand-bg-primary scale-110' : 'bg-brand-bg-secondary border border-brand-text-primary/30 text-brand-text-secondary/50'}
                         `}>
                             {idx < currentStepIndex ? <CheckCircleIcon className="w-4 h-4 lg:w-5 lg:h-5" /> : idx + 1}
@@ -964,7 +964,7 @@ Section 8.2 Limitation of Liability.
                     {stage === 'task_selection' ? (
                         <div className="space-y-8 relative z-10">
                             <div className="text-center">
-                                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
                                     <ClipboardIcon className="w-6 h-6 lg:w-8 lg:h-8 text-brand-accent" />
                                 </div>
                                 <h3 className="text-base lg:text-xl font-serif font-semibold text-brand-text-primary">Choose your Practice Area</h3>
@@ -986,7 +986,7 @@ Section 8.2 Limitation of Liability.
 
                             <div className="grid grid-cols-2 gap-4">
                                 {['Plaints', 'Petitions', 'Contracts', 'Legal Notices'].map(type => (
-                                    <div key={type} className="p-4 rounded-none border border-brand-text-primary/30 bg-brand-bg-secondary text-center">
+                                    <div key={type} className="p-4 rounded-xl border border-brand-text-primary/30 bg-brand-bg-secondary text-center">
                                         <span className="text-[10px] font-mono text-brand-text-secondary uppercase tracking-widest">{type}</span>
                                     </div>
                                 ))}
@@ -1003,7 +1003,7 @@ Section 8.2 Limitation of Liability.
         ) : (
             <>
                 {/* Reference Sidebar (Left/Collapsible) */}
-                <aside className={`flex-shrink-0 transition-all duration-500 ease-in-out border border-brand-text-primary/30 bg-brand-bg-primary rounded-none overflow-hidden flex flex-col
+                <aside className={`flex-shrink-0 transition-all duration-500 ease-in-out border border-brand-text-primary/30 bg-brand-bg-primary rounded-xl overflow-hidden flex flex-col
                     ${isFocusMode ? 'hidden' : ''}
                     ${isRefPanelOpen ? 'w-full lg:w-[380px] h-full lg:h-auto' : 'w-full lg:w-16 h-10 lg:h-auto'}
                 `}>
@@ -1018,7 +1018,7 @@ Section 8.2 Limitation of Liability.
                         )}
                         <button 
                             onClick={() => setIsRefPanelOpen(!isRefPanelOpen)}
-                            className="p-1.5 lg:p-2 rounded-none hover:bg-brand-bg-secondary text-brand-text-secondary hover:text-brand-accent transition-all lg:mx-0"
+                            className="p-1.5 lg:p-2 rounded-xl hover:bg-brand-bg-secondary text-brand-text-secondary hover:text-brand-accent transition-all lg:mx-0"
                             title={isRefPanelOpen ? "Minimize" : "Expand"}
                         >
                             {isRefPanelOpen ? <XMarkIcon className="w-4 h-4 lg:w-5 lg:h-5" /> : <Bars3Icon className="w-4 h-4 lg:w-5 lg:h-5" />}
@@ -1045,7 +1045,7 @@ Section 8.2 Limitation of Liability.
                                     <ChartBarIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'score' ? 'text-brand-accent' : ''}`} />
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Score</span>
                                     {scoringResult && (
-                                        <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-none border border-current flex items-center justify-center
+                                        <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
                                             ${scoringResult.verdictTier === 'excellent' ? 'bg-emerald-500/20 text-emerald-400' :
                                               scoringResult.verdictTier === 'good' ? 'bg-brand-accent/20 text-brand-accent' :
                                               scoringResult.verdictTier === 'fair' ? 'bg-amber-500/20 text-amber-400' :
@@ -1062,7 +1062,7 @@ Section 8.2 Limitation of Liability.
                                 >
                                     <CheckCircleIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'compliance' ? 'text-brand-accent' : ''}`} />
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Rules</span>
-                                    <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-none border border-current flex items-center justify-center
+                                    <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
                                         ${complianceMetrics.score === 100 ? 'bg-emerald-500/20 text-emerald-400' :
                                           complianceMetrics.score >= 60 ? 'bg-brand-accent/20 text-brand-accent' :
                                           'bg-red-500/20 text-red-400'}
@@ -1222,7 +1222,7 @@ Section 8.2 Limitation of Liability.
                                                     <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                         <button
                                                             onClick={() => handleSpeak(aiFeedback)}
-                                                            className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-none bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
+                                                            className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
                                                             title="Speak this feedback"
                                                         >
                                                             [ Read Aloud ]
@@ -1246,7 +1246,7 @@ Section 8.2 Limitation of Liability.
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                     <button
                                                         onClick={() => handleSpeak(filingProcedure)}
-                                                        className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-none bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
+                                                        className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
                                                         title="Speak this protocol"
                                                     >
                                                         [ Read Aloud ]
@@ -1263,7 +1263,7 @@ Section 8.2 Limitation of Liability.
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex justify-between items-center border-b border-brand-text-primary/30 pb-2">
                                             <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">Snapshots ({snapshots.length})</span>
-                                            <Button size="sm" variant="primary" onClick={saveSnapshot} className="px-2 py-1 text-[9px] font-mono rounded-none uppercase tracking-wider">
+                                            <Button size="sm" variant="primary" onClick={saveSnapshot} className="px-2 py-1 text-[9px] font-mono rounded-xl uppercase tracking-wider">
                                                 [ Snapshot ]
                                             </Button>
                                         </div>
@@ -1275,7 +1275,7 @@ Section 8.2 Limitation of Liability.
                                         ) : (
                                             <div className="space-y-3">
                                                 {snapshots.map((snap) => (
-                                                    <div key={snap.id} className="bg-brand-bg-secondary border border-brand-text-primary/30 p-3 rounded-none flex flex-col space-y-2 text-left">
+                                                    <div key={snap.id} className="bg-brand-bg-secondary border border-brand-text-primary/30 p-3 rounded-xl flex flex-col space-y-2 text-left">
                                                         <div className="flex justify-between items-start">
                                                             <span className="text-[10px] font-mono text-brand-text-primary font-semibold">{snap.timestamp}</span>
                                                             <span className="text-[9px] font-mono text-brand-text-secondary/60">({snap.text.length} chars)</span>
@@ -1324,7 +1324,7 @@ Section 8.2 Limitation of Liability.
                 </aside>
 
                 {/* Editor Area (Right/Main) */}
-                <main className="flex-grow flex flex-col min-h-[300px] lg:min-h-0 overflow-hidden bg-brand-bg-primary border border-brand-text-primary/30 rounded-none relative">
+                <main className="flex-grow flex flex-col min-h-[300px] lg:min-h-0 overflow-hidden bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl relative">
                     
                     {/* Editor Toolbar */}
                     <div className="flex-shrink-0 p-2.5 lg:p-4 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between z-10 gap-2">
@@ -1348,11 +1348,11 @@ Section 8.2 Limitation of Liability.
                                 onClick={() => setIsFocusMode(!isFocusMode)}
                                 variant="outline"
                                 size="sm"
-                                className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-none flex-shrink-0"
+                                className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-xl flex-shrink-0"
                             >
                                 {isFocusMode ? 'Exit Focus' : 'Focus Mode'}
                             </Button>
-                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-none flex-shrink-0 hidden sm:flex">
+                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-xl flex-shrink-0 hidden sm:flex">
                                 Reset
                             </Button>
                         </div>
@@ -1362,14 +1362,14 @@ Section 8.2 Limitation of Liability.
                         {stage === 'task_details_display' ? (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 lg:p-8 text-center bg-brand-bg-primary/95 group">
                                 <Card className="max-w-md p-5 lg:p-8 border-brand-text-primary/30 bg-brand-bg-secondary transition-transform duration-500">
-                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-brand-bg-primary rounded-none flex items-center justify-center mx-auto mb-3 lg:mb-4 border border-brand-text-primary/30">
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-brand-bg-primary rounded-xl flex items-center justify-center mx-auto mb-3 lg:mb-4 border border-brand-text-primary/30">
                                         <QuillIcon className="w-5 h-5 lg:w-6 lg:h-6 text-brand-accent" />
                                     </div>
                                     <h4 className="text-base lg:text-lg font-serif font-bold text-brand-text-primary mb-1.5 lg:mb-2">Scenario Ready</h4>
                                     <p className="text-xs lg:text-sm text-brand-text-secondary font-light mb-4 lg:mb-6 leading-relaxed">
                                         Review the <span className="text-brand-accent font-medium">Facts</span> in the reference panel, then open the editor to draft your <span className="text-brand-accent font-medium">{currentTask?.type}</span>.
                                     </p>
-                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="md" className="uppercase tracking-wider text-[10px] lg:text-xs rounded-none border border-brand-accent hover:bg-brand-accent hover:text-brand-navy">
+                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="md" className="uppercase tracking-wider text-[10px] lg:text-xs rounded-xl border border-brand-accent hover:bg-brand-accent hover:text-brand-navy">
                                         Commence Drafting
                                     </Button>
                                 </Card>
@@ -1392,7 +1392,7 @@ Section 8.2 Limitation of Liability.
                         <div className="flex items-center justify-between mb-2 lg:mb-0 lg:inline-flex lg:mr-4">
                             <div className="flex items-center space-x-3">
                                 <div className="flex items-center space-x-1.5">
-                                    <div className={`w-1.5 h-1.5 rounded-none ${userDraft.length > 0 ? 'bg-green-500' : 'bg-brand-text-secondary/30'}`}></div>
+                                    <div className={`w-1.5 h-1.5 rounded-xl ${userDraft.length > 0 ? 'bg-green-500' : 'bg-brand-text-secondary/30'}`}></div>
                                     <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-secondary">{userDraft.length} chars</span>
                                 </div>
                                 <span className={`text-[9px] font-mono text-brand-accent transition-opacity duration-300 ${showAutoSave ? 'opacity-100' : 'opacity-0'}`}>
@@ -1402,7 +1402,7 @@ Section 8.2 Limitation of Liability.
                             {scoringResult && (
                                 <button
                                     onClick={() => { setActiveRefTab('score'); if(!isRefPanelOpen) setIsRefPanelOpen(true); }}
-                                    className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-none border transition-all cursor-pointer
+                                    className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-xl border transition-all cursor-pointer
                                         ${scoringResult.verdictTier === 'excellent' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
                                           scoringResult.verdictTier === 'good' ? 'border-brand-accent/30 bg-brand-accent/10 text-brand-accent' :
                                           scoringResult.verdictTier === 'fair' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
@@ -1421,7 +1421,7 @@ Section 8.2 Limitation of Liability.
                               type="button"
                               onClick={isRecording ? stopRecording : startRecording}
                               disabled={isLoading || stage === 'task_details_display'}
-                              className={`w-8 h-8 lg:w-10 lg:h-10 flex-shrink-0 rounded-none border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
+                              className={`w-8 h-8 lg:w-10 lg:h-10 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
                                 ${isRecording
                                   ? 'bg-brand-error/20 border-brand-error text-brand-error animate-pulse'
                                   : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary hover:bg-brand-bg-primary'
@@ -1444,7 +1444,7 @@ Section 8.2 Limitation of Liability.
                                 variant="ghost"
                                 size="sm"
                                 disabled={!userDraft}
-                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-none uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                             >
                                 {isCopied ? 'Copied!' : 'Copy'}
                             </Button>
@@ -1455,7 +1455,7 @@ Section 8.2 Limitation of Liability.
                                     variant="outline"
                                     size="sm"
                                     disabled={isLoading}
-                                    className="text-[8px] lg:text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-none uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                    className="text-[8px] lg:text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                                 >
                                     Filing
                                 </Button>
@@ -1466,7 +1466,7 @@ Section 8.2 Limitation of Liability.
                                 variant="primary"
                                 size="sm"
                                 disabled={isLoading || userDraft.length < 10 || stage === 'task_details_display'}
-                                className="flex-1 min-w-0 rounded-none transition-all text-[9px] lg:text-xs uppercase tracking-wider h-8 lg:h-10 border border-brand-accent"
+                                className="flex-1 min-w-0 rounded-xl transition-all text-[9px] lg:text-xs uppercase tracking-wider h-8 lg:h-10 border border-brand-accent"
                             >
                                 {isLoadingAiInteraction ? 'Reviewing...' : (aiFeedback ? 'Re-Submit' : 'Submit')}
                             </Button>

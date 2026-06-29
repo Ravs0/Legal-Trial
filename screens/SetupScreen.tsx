@@ -207,13 +207,13 @@ const SetupScreen: React.FC = () => {
           {selectedCaseDetails && (
             <Card className="flex flex-col h-full bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
               <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
-                <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
+                <div className="w-12 h-12 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
                   <DocumentTextIcon className={`h-6 w-6 ${catColors.text}`} />
                 </div>
                 <h4 className="font-semibold text-brand-text-primary text-xl font-serif">Selected Case</h4>
               </div>
               <p className="font-semibold text-brand-text-primary text-lg mb-2">{selectedCaseDetails.title}</p>
-              <div className="inline-block px-2.5 py-1 rounded-none border border-brand-text-primary/30 bg-brand-bg-secondary self-start mb-4">
+              <div className="inline-block px-2.5 py-1 rounded-xl border border-brand-text-primary/30 bg-brand-bg-secondary self-start mb-4">
                 <span className="text-xs font-mono text-brand-text-primary uppercase tracking-wider">{selectedCaseDetails.difficulty}</span>
               </div>
               <p className="text-brand-text-secondary text-sm mb-6 flex-grow leading-relaxed font-light">{selectedCaseDetails.briefFacts}</p>
@@ -229,7 +229,7 @@ const SetupScreen: React.FC = () => {
               </ul>
 
               <h5 className="font-medium text-brand-text-primary mb-2 text-sm uppercase tracking-wider font-mono">{practiceMode === 'indian' ? "Articles/Sections" : "Instruments/Principles"}</h5>
-              <p className="text-brand-text-secondary text-sm font-light p-3 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30">{selectedCaseDetails.relevantArticlesSections}</p>
+              <p className="text-brand-text-secondary text-sm font-light p-3 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30">{selectedCaseDetails.relevantArticlesSections}</p>
             </Card>
           )}
 
@@ -237,7 +237,7 @@ const SetupScreen: React.FC = () => {
             {selectedJudgeDetails && (
               <Card className="flex flex-col flex-1 bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
                 <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
-                  <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
+                  <div className="w-12 h-12 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
                     <GavelIcon className={`h-6 w-6 ${catColors.text}`} />
                   </div>
                   <h4 className="font-semibold text-brand-text-primary text-xl font-serif">The Bench</h4>
@@ -249,7 +249,7 @@ const SetupScreen: React.FC = () => {
             {selectedOpposingCounselDetails && (
               <Card className="flex flex-col flex-1 bg-brand-bg-primary hover:bg-brand-bg-secondary transition-colors">
                 <div className="flex items-center mb-4 pb-4 border-b border-brand-text-primary/30">
-                  <div className="w-12 h-12 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
+                  <div className="w-12 h-12 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center mr-4">
                     <BriefcaseIcon className={`h-6 w-6 ${catColors.text}`} />
                   </div>
                   <h4 className="font-semibold text-brand-text-primary text-xl font-serif">Opposing Counsel</h4>

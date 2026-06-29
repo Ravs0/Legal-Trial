@@ -115,7 +115,7 @@ const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty; categoryId?: strin
 
   return (
     <span
-      className={`px-3 py-1.5 text-[10px] font-mono tracking-widest uppercase border ${borderColor} ${textColor} ${bgColor} rounded-none transition-colors duration-300`}
+      className={`px-3 py-1.5 text-[10px] font-mono tracking-widest uppercase border ${borderColor} ${textColor} ${bgColor} rounded-xl transition-colors duration-300`}
     >
       {difficulty}
     </span>
@@ -422,7 +422,7 @@ const CaseLibraryScreen: React.FC = () => {
   return (
     <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-16 animate-fadeIn pb-12 overflow-x-hidden relative">
       <div className="text-center pt-4 lg:pt-8 relative z-10 max-w-4xl mx-auto px-4">
-        <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-4 lg:mb-6">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mx-auto mb-4 lg:mb-6">
           <DocumentTextIcon className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-brand-accent" />
         </div>
         <div className="inline-flex items-center justify-center space-x-2 mb-2 lg:mb-3 opacity-80">
@@ -440,7 +440,7 @@ const CaseLibraryScreen: React.FC = () => {
             placeholder="Search docket precedents (e.g. copyright, contract, negligence)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+            className="w-full p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
           />
           {searchQuery && (
             <button 
@@ -571,7 +571,7 @@ const CaseLibraryScreen: React.FC = () => {
 
         {isCustomSimExpanded && (
           <div className="mt-4 animate-fadeIn">
-            <Card className="p-6 sm:p-8 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none relative overflow-hidden">
+            <Card className="p-6 sm:p-8 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl relative overflow-hidden">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-text-primary/30 pb-4 mb-6 gap-4">
                 <div className="space-y-1 text-left">
                   <h3 className="text-base sm:text-xl lg:text-2xl font-serif font-bold text-brand-text-primary flex items-center">
@@ -584,7 +584,7 @@ const CaseLibraryScreen: React.FC = () => {
                 </div>
                 
                 <div className="flex-shrink-0">
-                  <label className="inline-flex items-center px-4 py-2 border border-brand-text-primary/30 rounded-none bg-brand-bg-secondary text-xs font-mono text-brand-text-primary hover:bg-brand-bg-primary cursor-pointer transition-all">
+                  <label className="inline-flex items-center px-4 py-2 border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary text-xs font-mono text-brand-text-primary hover:bg-brand-bg-primary cursor-pointer transition-all">
                     <span>[ Import .txt, .md, .json ]</span>
                     <input 
                       type="file" 
@@ -597,13 +597,13 @@ const CaseLibraryScreen: React.FC = () => {
               </div>
 
               {fileUploadError && (
-                <div className="p-3 mb-5 bg-brand-error/15 border border-brand-error/30 text-brand-error rounded-none text-xs text-left animate-fadeIn">
+                <div className="p-3 mb-5 bg-brand-error/15 border border-brand-error/30 text-brand-error rounded-xl text-xs text-left animate-fadeIn">
                   [ Error ] {fileUploadError}
                 </div>
               )}
 
               {fileUploadSuccess && (
-                <div className="p-3 mb-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-none text-xs text-left animate-fadeIn">
+                <div className="p-3 mb-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs text-left animate-fadeIn">
                   [ Success ] {fileUploadSuccess}
                 </div>
               )}
@@ -617,7 +617,7 @@ const CaseLibraryScreen: React.FC = () => {
                       value={customTitle}
                       onChange={(e) => setCustomTitle(e.target.value)}
                       placeholder="e.g. State of Karnataka v. Ramesh Kumar"
-                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
                     />
                   </div>
 
@@ -627,7 +627,7 @@ const CaseLibraryScreen: React.FC = () => {
                       <select
                         value={customCategoryId}
                         onChange={(e) => setCustomCategoryId(e.target.value)}
-                        className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
+                        className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
                       >
                         {activeCaseCategories.map(cat => (
                           <option key={cat.id} value={cat.id} className="bg-brand-bg-secondary text-brand-text-primary">{cat.name}</option>
@@ -640,7 +640,7 @@ const CaseLibraryScreen: React.FC = () => {
                       <select
                         value={customDifficulty}
                         onChange={(e) => setCustomDifficulty(e.target.value as CaseDifficulty)}
-                        className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
+                        className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-xs text-brand-text-primary font-mono"
                       >
                         <option value={CaseDifficulty.BEGINNER} className="bg-brand-bg-secondary text-brand-text-primary">Beginner</option>
                         <option value={CaseDifficulty.INTERMEDIATE} className="bg-brand-bg-secondary text-brand-text-primary">Intermediate</option>
@@ -656,7 +656,7 @@ const CaseLibraryScreen: React.FC = () => {
                       value={customRelevantLaws}
                       onChange={(e) => setCustomRelevantLaws(e.target.value)}
                       placeholder="e.g. Section 138 of NI Act; Article 14 of Constitution"
-                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
                     />
                   </div>
 
@@ -667,7 +667,7 @@ const CaseLibraryScreen: React.FC = () => {
                       value={customLegalIssues}
                       onChange={(e) => setCustomLegalIssues(e.target.value)}
                       placeholder="e.g. Burden of proof, validity of notice, signature dispute"
-                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+                      className="w-full p-3.5 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
                     />
                   </div>
                 </div>
@@ -679,7 +679,7 @@ const CaseLibraryScreen: React.FC = () => {
                       value={customBriefFacts}
                       onChange={(e) => setCustomBriefFacts(e.target.value)}
                       placeholder="Paste or write the absolute facts of your custom dispute here..."
-                      className="w-full flex-grow p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light resize-none min-h-[160px] custom-scrollbar"
+                      className="w-full flex-grow p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light resize-none min-h-[160px] custom-scrollbar"
                       required
                     />
                   </div>
@@ -688,7 +688,7 @@ const CaseLibraryScreen: React.FC = () => {
                     <button
                       type="submit"
                       disabled={!customBriefFacts.trim()}
-                      className="w-full py-4 text-xs tracking-widest font-mono uppercase bg-brand-accent hover:bg-brand-accent-hover text-brand-navy font-bold rounded-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-4 text-xs tracking-widest font-mono uppercase bg-brand-accent hover:bg-brand-accent-hover text-brand-navy font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Configure Custom Simulation
                     </button>
@@ -723,7 +723,7 @@ const CaseLibraryScreen: React.FC = () => {
                   return (
                     <Card
                       key={caseItem.id}
-                      className={`flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 ${catColors.accentGlow} hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer`}
+                      className={`flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 ${catColors.accentGlow} hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-xl cursor-pointer`}
                       onClick={() => handlePracticeCase(caseItem)}
                     >
                       <div className="p-6 pb-0 flex-grow">
@@ -731,7 +731,7 @@ const CaseLibraryScreen: React.FC = () => {
                           <DifficultyBadge difficulty={caseItem.difficulty} categoryId={caseItem.categoryId} />
                           <div className="flex items-center space-x-2">
                             <span className={`text-[10px] font-mono ${catColors.text} bg-brand-bg-secondary px-2 py-1 border ${catColors.border}/25`}>Score: {score}</span>
-                            <div className="w-8 h-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="w-8 h-8 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               <svg className={`w-4 h-4 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </div>
                           </div>
@@ -776,7 +776,7 @@ const CaseLibraryScreen: React.FC = () => {
                 })}
               </div>
             ) : (
-              <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-none bg-brand-bg-secondary flex items-center justify-center">
+              <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary flex items-center justify-center">
                 <p className="text-brand-text-secondary font-light">No precedents match your search query.</p>
               </div>
             )}
@@ -806,13 +806,13 @@ const CaseLibraryScreen: React.FC = () => {
                     {categoryCases.map((caseDetail: CaseDetail) => (
                       <Card
                         key={caseDetail.id}
-                        className={`flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 ${catColors.accentGlow} hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-none cursor-pointer`}
+                        className={`flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 ${catColors.accentGlow} hover:bg-brand-bg-secondary transition-all duration-300 bg-brand-bg-primary p-0 rounded-xl cursor-pointer`}
                         onClick={() => handlePracticeCase(caseDetail)}
                       >
                         <div className="p-6 pb-0 flex-grow">
                           <div className="flex justify-between items-start mb-5">
                             <DifficultyBadge difficulty={caseDetail.difficulty} categoryId={caseDetail.categoryId} />
-                            <div className="w-8 h-8 rounded-none bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="w-8 h-8 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               <svg className={`w-4 h-4 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </div>
                           </div>
@@ -846,7 +846,7 @@ const CaseLibraryScreen: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-none bg-brand-bg-secondary flex items-center justify-center">
+                  <div className="p-12 border border-dashed border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary flex items-center justify-center">
                     <p className="text-brand-text-secondary font-light">No cases currently available in this docket for {modeDisplay} mode.</p>
                   </div>
                 )}
@@ -865,7 +865,7 @@ const CaseLibraryScreen: React.FC = () => {
           size="xl"
         >
           <div className="space-y-8">
-            <div className="bg-brand-bg-secondary p-5 rounded-none border border-brand-text-primary/30">
+            <div className="bg-brand-bg-secondary p-5 rounded-xl border border-brand-text-primary/30">
               <div className="flex items-center space-x-3 mb-2">
                 <DifficultyBadge difficulty={selectedCaseForPractice.difficulty} categoryId={selectedCaseForPractice.categoryId} />
                 <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary/60">{modeDisplay} Arena</span>
@@ -890,7 +890,7 @@ const CaseLibraryScreen: React.FC = () => {
                   }}
                   containerClassName="mb-1"
                 />
-                <div className="p-4 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none min-h-[140px] flex flex-col">
+                <div className="p-4 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl min-h-[140px] flex flex-col">
                   <h5 className="font-semibold text-brand-accent text-sm mb-1">{selectedJudge.name}</h5>
                   <p className="text-xs font-light text-brand-text-secondary leading-relaxed line-clamp-4 flex-grow">{selectedJudge.description}</p>
                 </div>
@@ -907,7 +907,7 @@ const CaseLibraryScreen: React.FC = () => {
                   }}
                   containerClassName="mb-1"
                 />
-                <div className="p-4 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none min-h-[140px] flex flex-col">
+                <div className="p-4 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl min-h-[140px] flex flex-col">
                   <div className="mb-1">
                     <h5 className="font-semibold text-brand-accent text-sm inline-block mr-2">{selectedOpposingCounsel.name}</h5>
                     <span className="text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">({selectedOpposingCounsel.specialty})</span>

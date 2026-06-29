@@ -570,7 +570,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-none border flex items-center justify-center font-mono text-xs font-bold bg-zinc-900
+                      <div className={`w-8 h-8 rounded-xl border flex items-center justify-center font-mono text-xs font-bold bg-zinc-900
                         ${isSelected ? 'border-red-500 text-red-500' : 'border-zinc-700 text-zinc-400'}`}>
                         {s.avatar}
                       </div>
@@ -604,7 +604,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           variant="primary"
           size="lg"
           onClick={handleStartSession}
-          className="w-full sm:w-[320px] bg-red-600 border-red-600 hover:bg-red-700 text-white font-mono uppercase tracking-widest py-4 text-sm font-semibold rounded-none shadow-[0_4px_20px_rgba(220,38,38,0.25)] hover:shadow-[0_4px_30px_rgba(220,38,38,0.4)] transition-all duration-300"
+          className="w-full sm:w-[320px] bg-red-600 border-red-600 hover:bg-red-700 text-white font-mono uppercase tracking-widest py-4 text-sm font-semibold rounded-xl shadow-[0_4px_20px_rgba(220,38,38,0.25)] hover:shadow-[0_4px_30px_rgba(220,38,38,0.4)] transition-all duration-300"
         >
           [ Enter Deception Arena ]
         </Button>
@@ -794,7 +794,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             </span>
             <span className="text-zinc-200 font-bold">{stateData?.score || 100}{!isMobile && '/100'}</span>
           </div>
-          <div className="w-full h-2 sm:h-3 bg-zinc-900 border border-zinc-800 p-[1px] rounded-none">
+          <div className="w-full h-2 sm:h-3 bg-zinc-900 border border-zinc-800 p-[1px] rounded-xl">
             <div className={`h-full transition-all duration-500 ease-out ${getScoreColor(stateData?.score ?? 100)}`} style={{ width: `${stateData?.score ?? 100}%` }}></div>
           </div>
         </div>
@@ -918,7 +918,7 @@ export const DreadlerArenaScreen: React.FC = () => {
               const isCharacter = msg.sender === 'character';
               return (
                 <div key={msg.id} className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-[85%] ${isCharacter ? 'mr-auto text-left' : 'ml-auto flex-row-reverse text-right'} animate-fadeIn`}>
-                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-none border flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold flex-shrink-0 ${isCharacter ? 'border-red-500/40 text-red-400 bg-red-950/20' : 'border-zinc-700 text-zinc-400 bg-zinc-900'}`}>
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl border flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold flex-shrink-0 ${isCharacter ? 'border-red-500/40 text-red-400 bg-red-950/20' : 'border-zinc-700 text-zinc-400 bg-zinc-900'}`}>
                     {isCharacter ? activeSkin.avatar : 'C'}
                   </div>
                   <div className="space-y-1 min-w-0">
@@ -928,7 +928,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                       </span>
                       {msg.variant && <span className="text-[7px] sm:text-[8px] font-mono px-1 py-0.5 bg-red-950/20 text-red-500 border border-red-500/20 uppercase leading-none">{msg.variant}</span>}
                     </div>
-                    <div className={`p-2.5 sm:p-4 border font-mono text-[10px] sm:text-xs leading-relaxed rounded-none select-text ${isCharacter ? 'bg-[#121217] border-red-500/20 text-zinc-300' : 'bg-brand-accent/5 border-brand-accent/30 text-zinc-300'}`}>
+                    <div className={`p-2.5 sm:p-4 border font-mono text-[10px] sm:text-xs leading-relaxed rounded-xl select-text ${isCharacter ? 'bg-[#121217] border-red-500/20 text-zinc-300' : 'bg-brand-accent/5 border-brand-accent/30 text-zinc-300'}`}>
                       {renderMarkdown(msg.text)}
                       {msg.thinkingLog && msg.thinkingLog !== "No cognitive verification block generated." && (
                         <details className="mt-3 pt-2.5 border-t border-zinc-800 text-[9px] text-zinc-400 cursor-pointer select-text">
@@ -947,7 +947,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             })}
             {isTyping && (
               <div className="flex gap-2 sm:gap-3 max-w-[80%] mr-auto text-left items-center">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-none border border-red-500/40 text-red-400 bg-red-950/20 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold animate-pulse">{activeSkin.avatar}</div>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-red-500/40 text-red-400 bg-red-950/20 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold animate-pulse">{activeSkin.avatar}</div>
                 <div className="px-3 sm:px-4 py-2 sm:py-3 bg-[#121217] border border-red-500/20 flex items-center gap-1.5 sm:gap-2">
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>

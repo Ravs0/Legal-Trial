@@ -23,7 +23,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const catColors = categoryId ? getCategoryColorClasses(categoryId) : null;
 
-  const baseStyles = `font-medium rounded-none focus:outline-none focus:ring-1 ${
+  const baseStyles = `font-medium rounded-xl focus:outline-none focus:ring-1 ${
     catColors ? `focus:ring-${catColors.text.replace('text-', '')}` : 'focus:ring-brand-accent'
   } disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 
                       flex items-center justify-center relative overflow-hidden group min-h-[44px] sm:min-h-[0]`;

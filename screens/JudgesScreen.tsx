@@ -25,7 +25,7 @@ const JudgesScreen: React.FC = () => {
   return (
     <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-16 animate-fadeIn pb-12 overflow-x-hidden relative">
       <div className="text-center pt-8 relative z-10 max-w-4xl mx-auto px-4">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mx-auto mb-6">
           <GavelIcon className="h-8 w-8 sm:h-10 sm:w-10 text-brand-accent" />
         </div>
         <div className="inline-flex items-center justify-center space-x-2 mb-3 opacity-80">
@@ -48,7 +48,7 @@ const JudgesScreen: React.FC = () => {
               onClick={() => setSelectedProfile(judge)}
             >
               <div className="p-8 pb-0 flex-grow relative">
-                <div className="w-14 h-14 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-none flex items-center justify-center mb-6">
+                <div className="w-14 h-14 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mb-6">
                   <GavelIcon className="w-7 h-7 text-brand-accent" />
                 </div>
 
@@ -71,7 +71,7 @@ const JudgesScreen: React.FC = () => {
             </Card>
           ))}
           {judgesToDisplay.length === 0 && (
-            <div className="col-span-full p-12 border border-dashed border-brand-text-primary/30 rounded-none bg-brand-bg-secondary flex flex-col items-center justify-center">
+            <div className="col-span-full p-12 border border-dashed border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary flex flex-col items-center justify-center">
               <GavelIcon className="h-12 w-12 text-brand-text-secondary/30 mb-4" />
               <p className="text-brand-text-secondary font-light">No judicial profiles currently authorized for the {practiceMode} jurisdiction.</p>
             </div>

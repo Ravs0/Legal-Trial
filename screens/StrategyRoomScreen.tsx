@@ -826,7 +826,7 @@ export const StrategyRoomScreen: React.FC = () => {
       <div className="lg:hidden flex flex-col text-left relative h-full min-h-0">
         
         {/* Dynamic Mode Tab Bar Selector — compact for mobile */}
-        <div className="w-full flex flex-col gap-1 p-1.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none mb-2">
+        <div className="w-full flex flex-col gap-1 p-1.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-xl mb-2">
           <div className="grid grid-cols-3 gap-1 w-full select-none">
             {[
               { value: ChamberMode.ORACLE, title: 'Oracle', icon: '[ O ]' },
@@ -839,7 +839,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   key={m.value}
                   type="button"
                   onClick={() => setActiveTab(m.value)}
-                  className={`px-1.5 py-1.5 rounded-none border text-[9px] font-medium font-serif flex items-center justify-center gap-1 
+                  className={`px-1.5 py-1.5 rounded-xl border text-[9px] font-medium font-serif flex items-center justify-center gap-1 
                     ${isActive 
                       ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-semibold' 
                       : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
@@ -866,7 +866,7 @@ export const StrategyRoomScreen: React.FC = () => {
                     onClick={() => setSelectedPersona(p)}
                     className="flex flex-col items-center gap-0.5 focus:outline-none min-w-0"
                   >
-                    <div className={`w-9 h-9 rounded-none flex items-center justify-center text-[10px] font-mono font-bold border relative
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-mono font-bold border relative
                       ${isSelected 
                         ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent' 
                         : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary/80'
@@ -874,7 +874,7 @@ export const StrategyRoomScreen: React.FC = () => {
                     >
                       {p.avatar}
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-brand-accent text-brand-navy rounded-none border border-brand-navy flex items-center justify-center text-[6px] font-bold">§</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-brand-accent text-brand-navy rounded-xl border border-brand-navy flex items-center justify-center text-[6px] font-bold">§</span>
                       )}
                     </div>
                     <span className={`text-[7px] tracking-wide font-mono transition-colors text-center truncate w-full
@@ -890,11 +890,11 @@ export const StrategyRoomScreen: React.FC = () => {
         )}
 
         {/* Chat Workspace (Mobile) */}
-        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle min-h-[150px]">
+        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl overflow-hidden relative shadow-inner-subtle min-h-[150px]">
           {/* Chat Feed (Mobile) */}
           <div className="flex-grow p-3 overflow-y-auto space-y-3 custom-scrollbar text-left relative z-10">
             {activeHistory.length <= 1 && (
-              <div className="p-2 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none space-y-1 text-left mb-2">
+              <div className="p-2 border border-brand-text-primary/30 bg-brand-bg-primary rounded-xl space-y-1 text-left mb-2">
                 <h4 className="text-[10px] font-serif font-bold text-shimmer flex items-center gap-1.5">
                   <span className="font-serif font-bold border-r pr-1.5 mr-1.5">[ CHAMBER ]</span>
                   <span>
@@ -925,7 +925,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 </div>
 
                 <div
-                  className={`max-w-[92%] p-2.5 rounded-none text-[11px] leading-relaxed border  
+                  className={`max-w-[92%] p-2.5 rounded-xl text-[11px] leading-relaxed border  
                     ${item.sender === 'user'
                       ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
@@ -942,7 +942,7 @@ export const StrategyRoomScreen: React.FC = () => {
                       </summary>
                       <div className="mt-2 space-y-2 font-sans text-[10px]">
                         {item.trace.map((tr, index) => (
-                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-none text-left">
+                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-xl text-left">
                             <h6 className="font-mono text-[8px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
@@ -975,7 +975,7 @@ export const StrategyRoomScreen: React.FC = () => {
 
             {isProcessing && oracleStage && (
               <div className="flex flex-col gap-3 items-start max-w-sm w-full my-2">
-                <div className="w-full p-3 rounded-none bg-brand-navy border border-brand-text-primary/30 space-y-2 text-left">
+                <div className="w-full p-3 rounded-xl bg-brand-navy border border-brand-text-primary/30 space-y-2 text-left">
                   <div className="flex items-center justify-between border-b border-brand-text-primary/30 pb-1.5">
                     <div className="flex items-center space-x-2">
                       <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold" />
@@ -1007,7 +1007,7 @@ export const StrategyRoomScreen: React.FC = () => {
                       return (
                         <div key={idx} className="flex items-center justify-between text-[8px] font-mono">
                           <div className="flex items-center space-x-1.5">
-                            <span className={`w-2.5 h-2.5 rounded-none flex items-center justify-center border text-[6px] font-bold
+                            <span className={`w-2.5 h-2.5 rounded-xl flex items-center justify-center border text-[6px] font-bold
                               ${isCompleted ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' : isActive ? 'bg-amber-500/10 border-amber-500 text-amber-400' : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'}`}
                             >
                               {isCompleted ? '§' : idx + 1}
@@ -1030,7 +1030,7 @@ export const StrategyRoomScreen: React.FC = () => {
           {/* Bottom Input Composer (Mobile) — compact */}
           <div className="p-2 border-t border-brand-text-primary/30 bg-brand-bg-secondary/90 relative z-20">
             {audioError && (
-              <div className="p-1.5 mb-1.5 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[9px] rounded-none text-left">
+              <div className="p-1.5 mb-1.5 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[9px] rounded-xl text-left">
                 [Error] {audioError}
               </div>
             )}
@@ -1039,7 +1039,7 @@ export const StrategyRoomScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`w-9 h-9 flex-shrink-0 rounded-none border flex items-center justify-center focus:outline-none
+                className={`w-9 h-9 flex-shrink-0 rounded-xl border flex items-center justify-center focus:outline-none
                   ${isRecording
                     ? 'bg-brand-error/20 border-brand-error text-brand-error'
                     : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary'
@@ -1053,7 +1053,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 )}
               </button>
 
-              <div className="relative flex-grow flex items-center bg-brand-bg-primary rounded-none border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent">
+              <div className="relative flex-grow flex items-center bg-brand-bg-primary rounded-xl border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent">
                 <input
                   type="text"
                   value={inputVal}
@@ -1073,7 +1073,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-none border border-brand-error/30 bg-brand-error/15 text-brand-error flex items-center justify-center font-bold"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-xl border border-brand-error/30 bg-brand-error/15 text-brand-error flex items-center justify-center font-bold"
                     title="Abort consult"
                   >
                     x
@@ -1082,7 +1082,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   <button
                     type="submit"
                     disabled={!inputVal.trim()}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-none bg-brand-accent disabled:bg-brand-bg-primary text-brand-navy disabled:text-brand-text-secondary/30 flex items-center justify-center"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-xl bg-brand-accent disabled:bg-brand-bg-primary text-brand-navy disabled:text-brand-text-secondary/30 flex items-center justify-center"
                     title="Consult"
                   >
                     <svg className="w-3 h-3 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
@@ -1438,7 +1438,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   showReasoningLogs && (
                     <div className="space-y-3 animate-fadeIn">
                       {oracleTrace.map((tr, index) => (
-                        <div key={index} className="space-y-1 p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
+                        <div key={index} className="space-y-1 p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl ">
                           <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5 flex items-center justify-between">
                             <span>Stage {index + 1}: {tr.stage}</span>
                             <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">READY</span>
@@ -1449,7 +1449,7 @@ export const StrategyRoomScreen: React.FC = () => {
                     </div>
                   )
                 ) : !isProcessing ? (
-                  <div className="p-4 border border-white/5 bg-brand-bg-primary rounded-none space-y-2 text-center text-brand-text-secondary font-light">
+                  <div className="p-4 border border-white/5 bg-brand-bg-primary rounded-xl space-y-2 text-center text-brand-text-secondary font-light">
                     <span className="text-2xl "></span>
                     <h5 className="text-xs font-serif font-bold text-brand-text-primary">Cognitive Engines Standby</h5>
                     <p className="text-[9px] leading-relaxed max-w-[200px] mx-auto text-brand-text-secondary/70">

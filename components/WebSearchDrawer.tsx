@@ -279,7 +279,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search cases, statutes, compliance rules..."
                 aria-label="Search query"
-                className="w-full pl-9 pr-4 py-2 text-sm bg-brand-bg-dark-secondary border border-white/8 text-white/90 focus:border-brand-accent focus:outline-none transition-colors rounded-none placeholder-white/40"
+                className="w-full pl-9 pr-4 py-2 text-sm bg-brand-bg-dark-secondary border border-white/8 text-white/90 focus:border-brand-accent focus:outline-none transition-colors rounded-xl placeholder-white/40"
               />
               <span className="absolute left-3 top-2.5 text-white/30">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
@@ -290,7 +290,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
             <button 
               type="submit"
               disabled={isSearching}
-              className="px-4 py-2 text-sm bg-brand-accent/20 border border-brand-accent text-brand-accent hover:bg-brand-accent/30 transition-colors font-medium rounded-none disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-brand-accent/20 border border-brand-accent text-brand-accent hover:bg-brand-accent/30 transition-colors font-medium rounded-xl disabled:opacity-50"
             >
               {isSearching ? 'Search...' : 'Search'}
             </button>

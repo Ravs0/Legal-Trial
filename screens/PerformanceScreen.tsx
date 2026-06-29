@@ -171,8 +171,8 @@ const PerformanceScreen: React.FC = () => {
               {performanceMetrics.improvementAreas && performanceMetrics.improvementAreas.length > 0 && !performanceMetrics.improvementAreas[0].toLowerCase().includes("error") ? (
                 <ul className="space-y-4">
                   {performanceMetrics.improvementAreas.map((area, index) => (
-                    <li key={index} className="flex items-start p-4 bg-brand-bg-secondary rounded-none border border-brand-text-primary/30 transition-colors group">
-                      <div className="mt-0.5 mr-4 bg-brand-bg-primary rounded-none p-1 group-hover:bg-brand-bg-secondary transition-colors">
+                    <li key={index} className="flex items-start p-4 bg-brand-bg-secondary rounded-xl border border-brand-text-primary/30 transition-colors group">
+                      <div className="mt-0.5 mr-4 bg-brand-bg-primary rounded-xl p-1 group-hover:bg-brand-bg-secondary transition-colors">
                         <CheckCircleIcon className="h-5 w-5 text-brand-accent" />
                       </div>
                       <span className="text-brand-text-primary/90 font-light leading-relaxed">{area}</span>
@@ -180,7 +180,7 @@ const PerformanceScreen: React.FC = () => {
                   ))}
                 </ul>
               ) : (
-                <p className="text-brand-text-secondary font-light italic px-4 py-3 bg-brand-bg-secondary rounded-none border border-brand-text-primary/30">{performanceMetrics.improvementAreas[0] || "No specific improvement areas identified by the bench."}</p>
+                <p className="text-brand-text-secondary font-light italic px-4 py-3 bg-brand-bg-secondary rounded-xl border border-brand-text-primary/30">{performanceMetrics.improvementAreas[0] || "No specific improvement areas identified by the bench."}</p>
               )}
             </div>
           </Card>
@@ -190,7 +190,7 @@ const PerformanceScreen: React.FC = () => {
       <Card className="mt-10 p-0 overflow-hidden">
         <div className="p-6 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex justify-between items-center">
           <h3 className="text-xl font-serif font-semibold text-brand-text-primary">Official Transcript</h3>
-          <span className="text-xs font-mono text-brand-text-secondary uppercase tracking-widest bg-brand-bg-primary/50 px-3 py-1 rounded-none border border-brand-text-primary/30">Record</span>
+          <span className="text-xs font-mono text-brand-text-secondary uppercase tracking-widest bg-brand-bg-primary/50 px-3 py-1 rounded-xl border border-brand-text-primary/30">Record</span>
         </div>
         <div className="max-h-[600px] overflow-y-auto p-6 bg-brand-bg-primary space-y-6 custom-scrollbar">
           {sessionRecord.transcript.map(msg => {
@@ -209,7 +209,7 @@ const PerformanceScreen: React.FC = () => {
                 <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary mb-1.5 opacity-70">
                   {senderName}
                 </span>
-                <div className={`p-4 rounded-none max-w-[85%] sm:max-w-[75%] font-light leading-relaxed text-sm sm:text-base border ${isUser
+                <div className={`p-4 rounded-xl max-w-[85%] sm:max-w-[75%] font-light leading-relaxed text-sm sm:text-base border ${isUser
                     ? 'bg-brand-bg-secondary border-brand-accent text-brand-text-primary'
                     : (msg.sender === 'judge'
                       ? 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary'
