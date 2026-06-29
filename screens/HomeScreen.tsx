@@ -37,8 +37,14 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
     role={onClick && !isHero ? "button" : undefined}
   >
     {icon && !isHero && (
-      <div className="w-12 h-12 rounded-xl bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-5 transition-all duration-300 group-hover:border-brand-accent/30 group-hover:bg-brand-bg-secondary">
-        <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-5 w-5 lg:h-6 lg:w-6" })}</div>
+      <div className="w-12 h-12 rounded-xl bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-5 transition-all duration-300 group-hover:border-brand-accent/30 group-hover:bg-brand-bg-secondary overflow-hidden">
+        {React.isValidElement(icon) && icon.type === 'img' ? (
+          icon
+        ) : (
+          <div className="text-brand-accent">
+            {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-5 w-5 lg:h-6 lg:w-6" })}
+          </div>
+        )}
       </div>
     )}
 
