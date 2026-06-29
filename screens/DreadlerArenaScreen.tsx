@@ -853,6 +853,20 @@ export const DreadlerArenaScreen: React.FC = () => {
         
         {/* PANEL 1: CASE BRIEFCASE / NOTEBOOK (Hidden on mobile, toggled via drawer) */}
         <div className={`bg-[#0d0d12]/90 border border-zinc-800 flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 ${isMobile ? 'hidden' : ''}`}>
+          {/* Dreadler portrait banner at top of panel */}
+          <div className="relative h-32 flex-shrink-0 overflow-hidden">
+            <img
+              src={dreadlerPortrait}
+              alt="Dreadler"
+              className="absolute inset-0 w-full h-full object-cover object-top"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-[#0d0d12]" />
+            <div className="absolute bottom-3 left-3">
+              <p className="text-[9px] font-mono uppercase tracking-widest text-red-400">Examiner</p>
+              <p className="text-sm font-serif font-bold text-zinc-100">{activeSkin.name}</p>
+              <p className="text-[9px] font-mono text-zinc-400">{activeSkin.role}</p>
+            </div>
+          </div>
           {/* Tabs */}
           <div className="flex border-b border-zinc-800 font-mono text-xs">
             <button onClick={() => setReferenceTab('facts')} className={`flex-1 py-2 sm:py-3 text-center border-r border-zinc-800 transition-all ${referenceTab === 'facts' ? 'bg-zinc-900 text-brand-accent border-b-2 border-b-brand-accent' : 'text-zinc-400 hover:text-zinc-200'}`}>Rules</button>
@@ -899,10 +913,21 @@ export const DreadlerArenaScreen: React.FC = () => {
         </div>
 
         {/* PANEL 2: MAIN INTERROGATION STREAM (Full on mobile) */}
-        <div className={`bg-[#0b0b0e]/95 border border-zinc-800 flex flex-col overflow-hidden relative ${isMobile ? 'lg:col-span-2 col-span-1' : 'lg:col-span-2'}`}>
+        <div className={`border border-zinc-800 flex flex-col overflow-hidden relative ${isMobile ? 'lg:col-span-2 col-span-1' : 'lg:col-span-2'}`}>
+          {/* Cinematic arena room background */}
+          <img
+            src={dreadlerArenaRoom}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
+            aria-hidden
+          />
+          {/* Heavy dark overlay so chat remains readable */}
+          <div className="absolute inset-0 bg-black/88 pointer-events-none" />
+          {/* Red left vignette */}
+          <div className="absolute inset-0 bg-gradient-to-r from-red-950/20 to-transparent pointer-events-none" />
           
           {/* Chat Feed */}
-          <div className="flex-grow p-2 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4 custom-scrollbar relative">
+          <div className="flex-grow p-2 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4 custom-scrollbar relative z-10">
             {/* FLOATING VOIGHT-KAMPFF SCOPE FOR MOBILE */}
             {isMobile && (
               <div 
@@ -947,8 +972,15 @@ export const DreadlerArenaScreen: React.FC = () => {
               const isCharacter = msg.sender === 'character';
               return (
                 <div key={msg.id} className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-[85%] ${isCharacter ? 'mr-auto text-left' : 'ml-auto flex-row-reverse text-right'} animate-fadeIn`}>
-                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl border flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold flex-shrink-0 ${isCharacter ? 'border-red-500/40 text-red-400 bg-red-950/20' : 'border-zinc-700 text-zinc-400 bg-zinc-900'}`}>
-                    {isCharacter ? activeSkin.avatar : 'C'}
+                <div className={`w-7 h-7 sm:w-9 sm:h-9 border flex-shrink-0 overflow-hidden ${
+                    isCharacter 
+                      ? 'border-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.2)]' 
+                      : 'border-zinc-700 bg-zinc-900 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold text-zinc-400'
+                  }`}>
+                    {isCharacter 
+                      ? <img src={dreadlerPortrait} alt={activeSkin.name} className="w-full h-full object-cover object-top" />
+                      : 'C'
+                    }
                   </div>
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-1.5 sm:gap-2">
@@ -988,7 +1020,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           </div>
 
           {/* Bottom Input */}
-          <form onSubmit={handleSendMessage} className="border-t border-zinc-800 bg-zinc-950/60 p-2 sm:p-3 flex gap-1.5 sm:gap-2">
+          <form onSubmit={handleSendMessage} className="border-t border-zinc-800 bg-zinc-950/80 backdrop-blur-sm p-2 sm:p-3 flex gap-1.5 sm:gap-2 relative z-10">
             <input
               ref={inputRef}
               type="text"
