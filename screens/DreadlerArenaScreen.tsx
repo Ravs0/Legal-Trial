@@ -7,6 +7,9 @@ import { Card } from '../components/Card';
 import { useConversationBridge } from '../components/ConversationBridge';
 import { ROUTES } from '../constants';
 import { useRealBiometrics } from '../vision/useRealBiometrics';
+import dreadlerPortrait from '../assets/dreadler_portrait.jpg';
+import dreadlerArenaRoom from '../assets/dreadler_arena_room.jpg';
+import dreadlerLogicWorld from '../assets/dreadler_logic_world.jpg';
 
 // ─── TYPES & INTERFACES ──────────────────────────────────────────────────────
 
@@ -483,18 +486,29 @@ export const DreadlerArenaScreen: React.FC = () => {
 
   const renderSetupView = () => (
     <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn pb-12">
-      {/* Hero Header */}
-      <div className="text-center space-y-3 pt-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-950/40 border border-red-500/20 text-red-500 font-mono text-xs uppercase tracking-widest">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-          Interrogation Core
+      {/* Hero Header — full-bleed interrogation room */}
+      <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: '220px' }}>
+        <img
+          src={dreadlerArenaRoom}
+          alt="Interrogation Arena"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
+        {/* Red vignette left */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-950/40 to-transparent" />
+        <div className="relative z-10 text-center space-y-3 pt-10 pb-12 px-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-950/60 border border-red-500/40 text-red-400 font-mono text-xs uppercase tracking-widest backdrop-blur-sm">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+            Interrogation Core
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-serif font-bold tracking-tight text-zinc-100 drop-shadow-lg">
+            Deception Arena
+          </h1>
+          <p className="text-sm lg:text-base text-zinc-300 max-w-2xl mx-auto font-light leading-relaxed drop-shadow">
+            Challenge witnesses who are bound by truth but engineered to mislead. Spot semantic shifts, implicatures, and omissions. Keep pressure high to break their coherence.
+          </p>
         </div>
-        <h1 className="text-4xl lg:text-5xl font-serif font-bold tracking-tight text-zinc-200">
-          Deception Arena
-        </h1>
-        <p className="text-sm lg:text-base text-zinc-400 max-w-2xl mx-auto font-light leading-relaxed">
-          Challenge witnesses who are bound by truth but engineered to mislead. Spot semantic shifts, implicatures, and omissions. Keep pressure high to break their coherence.
-        </p>
       </div>
 
       {/* Grid Selection */}
@@ -509,40 +523,45 @@ export const DreadlerArenaScreen: React.FC = () => {
             {WORLDS.map(w => {
               const isSelected = selectedWorld === w.id;
               return (
-                <div
+              <div
                   key={w.id}
                   onClick={() => setSelectedWorld(w.id)}
-                  className={`p-6 border transition-all duration-300 cursor-pointer text-left flex flex-col justify-between h-[190px] relative overflow-hidden group
+                  className={`border transition-all duration-300 cursor-pointer relative overflow-hidden group
                     ${isSelected 
-                      ? 'bg-red-950/20 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.15)]' 
-                      : 'bg-[#0d0d12] border-zinc-800 hover:border-zinc-700'
+                      ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' 
+                      : 'border-zinc-800 hover:border-zinc-600'
                     }`}
+                  style={{ minHeight: '190px' }}
                 >
-                  {/* Subtle Background Target Ring Grid for Selected */}
-                  {isSelected && (
-                    <div className="absolute right-[-20px] bottom-[-20px] w-32 h-32 border border-red-500/10 rounded-full flex items-center justify-center pointer-events-none">
-                      <div className="w-20 h-20 border border-red-500/15 rounded-full flex items-center justify-center">
-                        <div className="w-8 h-8 bg-red-500/5 rounded-full" />
-                      </div>
-                    </div>
-                  )}
+                  {/* Background image */}
+                  <img
+                    src={dreadlerLogicWorld}
+                    alt={w.title}
+                    className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                  />
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/40" />
+                  {isSelected && <div className="absolute inset-0 bg-red-950/25 mix-blend-multiply" />}
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className={`font-serif text-lg font-semibold ${isSelected ? 'text-red-500' : 'text-zinc-200'}`}>
-                        {w.title}
-                      </h3>
-                      <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">{w.id}</span>
+                  {/* Content */}
+                  <div className="relative z-10 p-6 flex flex-col justify-between h-full" style={{ minHeight: '190px' }}>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h3 className={`font-serif text-lg font-semibold drop-shadow ${isSelected ? 'text-red-400' : 'text-zinc-100'}`}>
+                          {w.title}
+                        </h3>
+                        <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest">{w.id}</span>
+                      </div>
+                      <p className="text-xs font-light text-zinc-300 leading-relaxed line-clamp-3">
+                        {w.background}
+                      </p>
                     </div>
-                    <p className="text-xs font-light text-zinc-400 leading-relaxed line-clamp-3">
-                      {w.background}
-                    </p>
-                  </div>
-                  <div className="pt-2 text-[10px] font-mono text-zinc-500 flex items-center justify-between border-t border-zinc-800">
-                    <span>Truth-bound elements: {w.groundedFacts.length}</span>
-                    <span className={isSelected ? 'text-red-500 font-bold' : 'group-hover:text-zinc-200'}>
-                      {isSelected ? '[ ACTIVE ]' : '[ SELECT ]'}
-                    </span>
+                    <div className="pt-2 text-[10px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
+                      <span>Truth-bound elements: {w.groundedFacts.length}</span>
+                      <span className={isSelected ? 'text-red-400 font-bold' : 'group-hover:text-zinc-100'}>
+                        {isSelected ? '[ ACTIVE ]' : '[ SELECT ]'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -559,37 +578,45 @@ export const DreadlerArenaScreen: React.FC = () => {
             {SKINS.map(s => {
               const isSelected = selectedSkin === s.id;
               return (
-                <div
+              <div
                   key={s.id}
                   onClick={() => setSelectedSkin(s.id)}
-                  className={`p-6 border transition-all duration-300 cursor-pointer text-left flex flex-col justify-between h-[190px] relative overflow-hidden group
+                  className={`border transition-all duration-300 cursor-pointer relative overflow-hidden group
                     ${isSelected 
-                      ? 'bg-red-950/20 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.15)]' 
-                      : 'bg-[#0d0d12] border-zinc-800 hover:border-zinc-700'
+                      ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' 
+                      : 'border-zinc-800 hover:border-zinc-600'
                     }`}
+                  style={{ minHeight: '190px' }}
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-xl border flex items-center justify-center font-mono text-xs font-bold bg-zinc-900
-                        ${isSelected ? 'border-red-500 text-red-500' : 'border-zinc-700 text-zinc-400'}`}>
-                        {s.avatar}
-                      </div>
-                      <div>
-                        <h3 className={`font-serif text-lg font-semibold ${isSelected ? 'text-red-500' : 'text-zinc-200'}`}>
-                          {s.name}
-                        </h3>
-                        <p className="text-[10px] font-mono text-zinc-400 leading-none">{s.role} • {s.style}</p>
+                  {/* Dreadler portrait background */}
+                  <img
+                    src={dreadlerPortrait}
+                    alt={s.name}
+                    className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                  />
+                  {/* Dark gradient — heavier at bottom for text */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+                  {isSelected && <div className="absolute inset-0 bg-red-950/20 mix-blend-multiply" />}
+
+                  {/* Content */}
+                  <div className="relative z-10 p-6 flex flex-col justify-between h-full" style={{ minHeight: '190px' }}>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[9px] font-mono px-2 py-0.5 uppercase tracking-widest border backdrop-blur-sm ${
+                        isSelected ? 'border-red-500/60 text-red-400 bg-red-950/40' : 'border-zinc-600 text-zinc-300 bg-black/40'
+                      }`}>{s.role}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className={`font-serif text-xl font-bold drop-shadow-lg ${isSelected ? 'text-red-400' : 'text-zinc-100'}`}>
+                        {s.name}
+                      </h3>
+                      <p className="text-[10px] font-mono text-zinc-300">{s.style}</p>
+                      <div className="pt-2 text-[10px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
+                        <span>Pressure Variants: α / β / γ</span>
+                        <span className={isSelected ? 'text-red-400 font-bold' : 'group-hover:text-zinc-100'}>
+                          {isSelected ? '[ ENGAGED ]' : '[ MATCH ]'}
+                        </span>
                       </div>
                     </div>
-                    <p className="text-xs font-light text-zinc-400 leading-relaxed line-clamp-3 pt-1">
-                      {s.description}
-                    </p>
-                  </div>
-                  <div className="pt-2 text-[10px] font-mono text-zinc-500 flex items-center justify-between border-t border-zinc-800">
-                    <span>Pressure Variants: alpha / beta / gamma</span>
-                    <span className={isSelected ? 'text-red-500 font-bold' : 'group-hover:text-zinc-200'}>
-                      {isSelected ? '[ ENGAGED ]' : '[ MATCH ]'}
-                    </span>
                   </div>
                 </div>
               );
@@ -765,8 +792,10 @@ export const DreadlerArenaScreen: React.FC = () => {
         <div className="absolute top-0 right-0 w-24 h-[1px] bg-red-500/40"></div>
         
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="w-8 h-8 sm:w-11 sm:h-11 border border-red-500 flex items-center justify-center font-mono text-sm sm:text-lg font-bold text-red-500 bg-red-950/20 shadow-[0_0_10px_rgba(239,68,68,0.15)] flex-shrink-0">
-            {activeSkin.avatar}
+          {/* Portrait avatar */}
+          <div className="w-10 h-10 sm:w-12 sm:h-12 border border-red-500/60 overflow-hidden relative flex-shrink-0 shadow-[0_0_12px_rgba(239,68,68,0.2)]">
+            <img src={dreadlerPortrait} alt={activeSkin.name} className="w-full h-full object-cover object-top" />
+            <div className="absolute inset-0 bg-red-950/20" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2">
