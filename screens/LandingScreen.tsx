@@ -169,31 +169,31 @@ const LandingScreen: React.FC = () => {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
             <a
-              href="https://contracting-trainer.vercel.app"
+              href="https://asia-legal-dossier.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
             >
               <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
-              <span className="text-[11px] font-mono tracking-wide">Contract Drafting Trainer</span>
+              <span className="text-[11px] font-mono tracking-wide">Asia Legal Dossier</span>
             </a>
             <a
-              href="https://legal-research-platform.vercel.app"
+              href="https://repo-ccp-learning.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
             >
               <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
-              <span className="text-[11px] font-mono tracking-wide">Legal Research Platform</span>
+              <span className="text-[11px] font-mono tracking-wide">CCP Learning</span>
             </a>
             <a
-              href="https://ai-council.vercel.app"
+              href="https://what-cardinal-said.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
             >
               <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
-              <span className="text-[11px] font-mono tracking-wide">AI Council</span>
+              <span className="text-[11px] font-mono tracking-wide">What Cardinal Said</span>
             </a>
           </div>
         </div>
