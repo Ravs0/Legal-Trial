@@ -18,21 +18,14 @@ interface BentoItemProps {
   buttonText?: string;
   className?: string;
   isHero?: boolean;
-  colorClasses?: {
-    borderHover?: string;
-    iconColor?: string;
-    titleHover?: string;
-    buttonText?: string;
-    iconBgHover?: string;
-  };
 }
 
-const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick, buttonText, className = '', isHero = false, colorClasses }) => (
+const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick, buttonText, className = '', isHero = false }) => (
   <div
-    className={`bg-brand-bg-secondary border border-brand-border flex flex-col rounded-none p-4 sm:p-6 lg:p-8 transition-all duration-300 ease-out group -ml-px -mt-px
-    ${onClick && !isHero ? 'cursor-pointer hover:bg-brand-bg-primary hover:shadow-card-hover focus-ring' : ''}
-    ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-8 sm:py-12 lg:py-16 relative overflow-hidden bg-brand-bg-primary border-brand-border' : ''}
-    ${onClick && !isHero ? (colorClasses?.borderHover || 'hover:border-brand-accent/30') : ''}
+    className={`bg-brand-bg-secondary border border-brand-border flex flex-col rounded-2xl p-6 lg:p-8 transition-all duration-300 ease-out group
+    ${onClick && !isHero ? 'cursor-pointer hover:bg-brand-bg-primary hover:shadow-card hover:-translate-y-1 focus-ring' : ''}
+    ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-10 sm:py-16 lg:py-20 relative overflow-hidden bg-brand-bg-primary rounded-2xl border-brand-border shadow-sm' : ''}
+    ${onClick && !isHero ? 'hover:border-brand-accent/40' : ''}
     ${className}`}
     onClick={!isHero && onClick ? onClick : undefined}
     tabIndex={onClick && !isHero ? 0 : undefined}
@@ -40,19 +33,19 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
     role={onClick && !isHero ? "button" : undefined}
   >
     {icon && !isHero && (
-      <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-none bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-4 lg:mb-5 transition-all duration-300 ${colorClasses?.iconBgHover || 'group-hover:border-brand-accent/30'}`}>
-        <div className={colorClasses?.iconColor || 'text-brand-accent'}>{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-5 w-5 lg:h-6 lg:w-6" })}</div>
+      <div className="w-12 h-12 rounded-xl bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-5 transition-all duration-300 group-hover:border-brand-accent/30 group-hover:bg-brand-bg-secondary">
+        <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-5 w-5 lg:h-6 lg:w-6" })}</div>
       </div>
     )}
 
     {icon && isHero && (
-      <div className="relative z-10 w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-none bg-brand-bg-secondary border border-brand-border flex items-center justify-center mb-5 lg:mb-8 transition-all duration-300 group-hover:border-brand-accent/30">
+      <div className="relative z-10 w-20 h-20 rounded-2xl bg-brand-bg-secondary border border-brand-border flex items-center justify-center mb-6 transition-all duration-300 group-hover:border-brand-accent/30">
         <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12" })}</div>
       </div>
     )}
 
     <div className="relative z-10 w-full flex-grow flex flex-col">
-      <h3 className={`font-serif mb-2 lg:mb-3 ${isHero ? 'text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight text-brand-text-primary' : `text-base lg:text-xl font-semibold text-brand-text-primary ${colorClasses?.titleHover || 'group-hover:text-brand-accent'} transition-colors duration-300`}`}>{title}</h3>
+      <h3 className={`font-serif mb-2 lg:mb-3 ${isHero ? 'text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight text-brand-text-primary' : 'text-base lg:text-xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300'}`}>{title}</h3>
       <div className={`font-light flex-grow leading-relaxed ${isHero ? 'text-sm sm:text-base lg:text-xl text-brand-text-secondary/90 max-w-3xl mx-auto mb-5 lg:mb-8' : 'text-xs lg:text-sm text-brand-text-secondary mb-4 lg:mb-6'}`}>{description}</div>
 
       {buttonText && !isHero && (
@@ -60,7 +53,7 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
           <Button
             variant="ghost"
             size="sm"
-            className={`w-full justify-between px-2 ${colorClasses?.buttonText || 'text-brand-accent hover:text-brand-accent-hover'} transition-all`}
+            className="w-full justify-between px-2 text-brand-accent hover:text-brand-accent-hover transition-all"
           >
             <span>[ {buttonText} ]</span>
             <span className="transform transition-transform group-hover:translate-x-1">→</span>
@@ -105,7 +98,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-0 animate-fadeIn relative">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
         <BentoItem
           isHero
           title={`Elevate Your ${modeDisplay} Legal Skills`}
@@ -127,13 +120,6 @@ const HomeScreen: React.FC = () => {
           onClick={() => navigate(ROUTES.PERSONAS)}
           buttonText="Select Persona"
           className="md:col-span-1"
-          colorClasses={{
-            borderHover: 'hover:border-brand-amber/50',
-            iconBgHover: 'group-hover:border-brand-amber/50 group-hover:bg-brand-amber/5',
-            iconColor: 'text-brand-amber',
-            titleHover: 'group-hover:text-brand-amber',
-            buttonText: 'text-brand-amber hover:text-brand-amber/80'
-          }}
         />
 
         <BentoItem
@@ -147,13 +133,6 @@ const HomeScreen: React.FC = () => {
           onClick={() => navigate(ROUTES.STRATEGY)}
           buttonText="Enter Strategy Room"
           className="md:col-span-1"
-          colorClasses={{
-            borderHover: 'hover:border-brand-cobalt/50',
-            iconBgHover: 'group-hover:border-brand-cobalt/50 group-hover:bg-brand-cobalt/5',
-            iconColor: 'text-brand-cobalt',
-            titleHover: 'group-hover:text-brand-cobalt',
-            buttonText: 'text-brand-cobalt hover:text-brand-cobalt/80'
-          }}
         />
 
         <BentoItem
@@ -170,13 +149,6 @@ const HomeScreen: React.FC = () => {
           onClick={() => navigate(ROUTES.DREADLER)}
           buttonText="Enter Arena"
           className="md:col-span-1"
-          colorClasses={{
-            borderHover: 'hover:border-red-500/50',
-            iconBgHover: 'group-hover:border-red-500/50 group-hover:bg-red-500/5',
-            iconColor: 'text-red-500',
-            titleHover: 'group-hover:text-red-500',
-            buttonText: 'text-red-500 hover:text-red-500/80'
-          }}
         />
 
         <BentoItem
@@ -186,13 +158,6 @@ const HomeScreen: React.FC = () => {
           onClick={() => navigate(ROUTES.DRAFTING_STUDIO)}
           buttonText="Enter Studio"
           className="md:col-span-1"
-          colorClasses={{
-            borderHover: 'hover:border-brand-cobalt/50',
-            iconBgHover: 'group-hover:border-brand-cobalt/50 group-hover:bg-brand-cobalt/5',
-            iconColor: 'text-brand-cobalt',
-            titleHover: 'group-hover:text-brand-cobalt',
-            buttonText: 'text-brand-cobalt hover:text-brand-cobalt/80'
-          }}
         />
 
         <BentoItem
@@ -201,13 +166,6 @@ const HomeScreen: React.FC = () => {
           icon={<DocumentTextIcon />}
           onClick={() => navigate(ROUTES.LIBRARY)}
           buttonText="Browse Cases"
-          colorClasses={{
-            borderHover: 'hover:border-brand-emerald/50',
-            iconBgHover: 'group-hover:border-brand-emerald/50 group-hover:bg-brand-emerald/5',
-            iconColor: 'text-brand-emerald',
-            titleHover: 'group-hover:text-brand-emerald',
-            buttonText: 'text-brand-emerald hover:text-brand-emerald/80'
-          }}
         />
 
         <BentoItem
@@ -216,13 +174,6 @@ const HomeScreen: React.FC = () => {
           icon={<GavelIcon />}
           onClick={() => navigate(ROUTES.JUDGES)}
           buttonText="View Judges"
-          colorClasses={{
-            borderHover: 'hover:border-brand-rust/50',
-            iconBgHover: 'group-hover:border-brand-rust/50 group-hover:bg-brand-rust/5',
-            iconColor: 'text-brand-rust',
-            titleHover: 'group-hover:text-brand-rust',
-            buttonText: 'text-brand-rust hover:text-brand-rust/80'
-          }}
         />
 
         <BentoItem
@@ -232,13 +183,6 @@ const HomeScreen: React.FC = () => {
           onClick={() => navigate(ROUTES.OPPOSING_COUNSEL)}
           buttonText="View Counsel"
           className="md:col-span-1 lg:col-span-1"
-          colorClasses={{
-            borderHover: 'hover:border-brand-terracotta/50',
-            iconBgHover: 'group-hover:border-brand-terracotta/50 group-hover:bg-brand-terracotta/5',
-            iconColor: 'text-brand-terracotta',
-            titleHover: 'group-hover:text-brand-terracotta',
-            buttonText: 'text-brand-terracotta hover:text-brand-terracotta/80'
-          }}
         />
       </div>
 

@@ -75,25 +75,19 @@ const LandingScreen: React.FC = () => {
         </div>
 
         {/* Jurisdiction selection cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 w-full max-w-3xl mx-auto animate-fadeInUp" style={{ animationDelay: '0.15s' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full max-w-3xl mx-auto animate-fadeInUp" style={{ animationDelay: '0.15s' }}>
 
           {/* Indian Legal Practice */}
           <div
             onClick={() => handleModeSelection('indian')}
-            className="group relative bg-brand-bg-secondary border border-brand-border p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
-              hover:bg-brand-bg-primary hover:border-brand-accent/30 hover:shadow-card-hover focus-ring"
+            className="group relative bg-brand-bg-secondary border border-brand-border rounded-2xl p-8 sm:p-10 cursor-pointer transition-all duration-400 ease-out shadow-sm
+              hover:bg-brand-bg-primary hover:border-brand-accent/40 hover:shadow-card hover:-translate-y-1 focus-ring"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('indian'); } }}
           >
-            {/* Corner accent */}
-            <div className="absolute top-0 left-0 w-6 h-6">
-              <div className="absolute top-0 left-0 w-full h-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
-              <div className="absolute top-0 left-0 h-full w-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
-            </div>
-
             <div className="flex flex-col h-full">
-              <div className="w-12 h-12 border border-brand-border flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-primary transition-all duration-300">
+              <div className="w-12 h-12 border border-brand-border rounded-xl flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-secondary transition-all duration-300">
                 <GavelMinimalIcon className="h-5 w-5 text-brand-accent" />
               </div>
 
@@ -123,20 +117,14 @@ const LandingScreen: React.FC = () => {
           {/* International Law Practice */}
           <div
             onClick={() => handleModeSelection('international')}
-            className="group relative bg-brand-bg-secondary border border-brand-border -mt-px md:mt-0 md:-ml-px p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
-              hover:bg-brand-bg-primary hover:border-brand-accent/30 hover:shadow-card-hover focus-ring"
+            className="group relative bg-brand-bg-secondary border border-brand-border rounded-2xl p-8 sm:p-10 cursor-pointer transition-all duration-400 ease-out shadow-sm
+              hover:bg-brand-bg-primary hover:border-brand-accent/40 hover:shadow-card hover:-translate-y-1 focus-ring"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('international'); } }}
           >
-            {/* Corner accent */}
-            <div className="absolute top-0 right-0 w-6 h-6">
-              <div className="absolute top-0 right-0 w-full h-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
-              <div className="absolute top-0 right-0 h-full w-px bg-brand-accent/40 group-hover:bg-brand-accent/70 transition-colors" />
-            </div>
-
             <div className="flex flex-col h-full">
-              <div className="w-12 h-12 border border-brand-border flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-primary transition-all duration-300">
+              <div className="w-12 h-12 border border-brand-border rounded-xl flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-secondary transition-all duration-300">
                 <GlobeMinimalIcon className="h-5 w-5 text-brand-accent" />
               </div>
 
