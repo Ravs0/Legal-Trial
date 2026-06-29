@@ -564,13 +564,16 @@ const PracticeArena: React.FC = () => {
           <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/15 pb-1 flex items-center`}>
             <BriefcaseIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Active Case Brief
           </h4>
-          <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 space-y-3 shadow-card">
+          <div className="bg-brand-bg-secondary/60 border border-brand-border rounded-xl p-4 space-y-3 shadow-card hover:shadow-[0_4px_20px_rgba(214,186,145,0.06)] hover:border-brand-accent/30 transition-all duration-500 group">
             <h5 className="text-sm font-semibold text-brand-text-primary font-serif">{currentSessionSettings.caseDetail.title}</h5>
-            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
-              <p className="font-semibold text-brand-text-primary">Brief Facts:</p>
-              <p className="leading-relaxed font-light">{currentSessionSettings.caseDetail.briefFacts}</p>
+            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1 group-hover:text-brand-text-primary transition-colors duration-300">
+              <p className="font-semibold text-brand-text-primary flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
+                Brief Facts:
+              </p>
+              <p className="leading-relaxed font-light pl-2.5 border-l border-brand-border group-hover:border-brand-accent/30 transition-colors duration-300">{currentSessionSettings.caseDetail.briefFacts}</p>
             </div>
-            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2.5 border-t border-brand-text-primary/15">
+            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2.5 border-t border-brand-border">
               <p className="font-semibold text-brand-text-primary">Relevant Law / Precedents:</p>
               <p className={`font-mono text-[10px] ${catColors.text} leading-relaxed`}>{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
             </div>

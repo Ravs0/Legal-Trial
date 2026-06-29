@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ROUTES, APP_NAME } from '../constants';
 import { CourtIcon } from '../components/icons/CourtIcon';
-import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
 import { UsersIcon } from '../components/icons/UsersIcon';
 import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
 import { QuillIcon } from '../components/icons/QuillIcon';
+import { SealIcon } from '../components/icons/SealIcon';
+import { AstrolabeIcon } from '../components/icons/AstrolabeIcon';
+import { DaggerIcon } from '../components/icons/DaggerIcon';
+import { FolioIcon } from '../components/icons/FolioIcon';
 import { TrialSimContext } from '../App';
 
 interface BentoItemProps {
@@ -112,11 +115,7 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="AI Personas"
           description="Consult directly with elite historical legal strategists (Samuel Leibowitz, Cardinal Richelieu) or engage sentient legal domains personified as Ren (Kuudere), Kira (Yandere), Aldric, Hana, and Sora."
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
-            </svg>
-          }
+          icon={<SealIcon />}
           onClick={() => navigate(ROUTES.PERSONAS)}
           buttonText="Select Persona"
           className="md:col-span-1"
@@ -125,11 +124,7 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="AI Strategy Room"
           description="Convene multi-agent expert debates, run the 6-stage Oracle deconstruction, or execute a 7-phase Adversarial Case Synthesis to stress-test your strategy."
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813zM18 10.5l-.562-3.563L14 6.5l3.438-.437L18 2.5l.438 3.563L22 6.5l-3.562.438L18 10.5z" />
-            </svg>
-          }
+          icon={<AstrolabeIcon />}
           onClick={() => navigate(ROUTES.STRATEGY)}
           buttonText="Enter Strategy Room"
           className="md:col-span-1"
@@ -138,14 +133,7 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Deception Arena"
           description="Interrogate witnesses and suspects powered by the Dreadler deception engine. Spot strategic omissions, evasions, and implicatures. Maintain pressure to expose the truth."
-          icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" />
-              <circle cx="12" cy="12" r="6" stroke="currentColor" />
-              <circle cx="12" cy="12" r="2" stroke="currentColor" fill="currentColor" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M2 12h2m16 0h2" />
-            </svg>
-          }
+          icon={<DaggerIcon />}
           onClick={() => navigate(ROUTES.DREADLER)}
           buttonText="Enter Arena"
           className="md:col-span-1"
@@ -163,7 +151,7 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Case Library"
           description={`Explore diverse legal scenarios and precedents within the ${modeDisplay.toLowerCase()} framework to prepare for rigorous mock trials.`}
-          icon={<DocumentTextIcon />}
+          icon={<FolioIcon />}
           onClick={() => navigate(ROUTES.LIBRARY)}
           buttonText="Browse Cases"
         />

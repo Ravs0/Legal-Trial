@@ -12,41 +12,41 @@
     tailwind.config = {
       theme: {
         extend: {
-           colors: {
-            'brand-bg-primary': '#FCFAF6',
-            'brand-bg-secondary': '#F3EFE7',
-            'brand-bg-tertiary': '#EBE6DA',
-            'brand-bg-dark': '#111616',
-            'brand-bg-dark-secondary': '#181F1F',
-            'brand-text-primary': '#111616',
-            'brand-text-secondary': '#495351',
+            colors: {
+            'brand-bg-primary': '#080D0C',
+            'brand-bg-secondary': '#0E1513',
+            'brand-bg-tertiary': '#16211E',
+            'brand-bg-dark': '#060A09',
+            'brand-bg-dark-secondary': '#090E0D',
+            'brand-text-primary': '#EAE6DF',
+            'brand-text-secondary': '#A0AFA9',
 
-            'brand-accent': '#846E4E',
-            'brand-accent-hover': '#6A5538',
-            'brand-accent-text': '#FCFAF6',
-            'brand-accent-muted': 'rgba(132, 110, 78, 0.08)',
+            'brand-accent': '#D6BA91',
+            'brand-accent-hover': '#BCA177',
+            'brand-accent-text': '#080D0C',
+            'brand-accent-muted': 'rgba(214, 186, 145, 0.08)',
 
-            'brand-gradient-from': '#846E4E',
-            'brand-gradient-mid': '#A58F72',
-            'brand-gradient-to': '#6A5538',
+            'brand-gradient-from': '#D6BA91',
+            'brand-gradient-mid': '#E5D4BC',
+            'brand-gradient-to': '#BCA177',
 
-            'brand-border': 'rgba(17, 22, 22, 0.08)',
-            'brand-border-light': 'rgba(17, 22, 22, 0.16)',
+            'brand-border': '#2F3C38',
+            'brand-border-light': '#455651',
 
-            'brand-error': '#B85450',
-            'brand-success': '#5A8A5E',
+            'brand-error': '#CF6679',
+            'brand-success': '#81C784',
 
-            'brand-navy': '#111616',
-            'brand-navy-light': '#181F1F',
+            'brand-navy': '#080D0C',
+            'brand-navy-light': '#0E1513',
 
-            // Curated 7-Color Premium Palette (slightly deeper for contrast)
-            'brand-amber': '#9E7D4A',       // Aged Gold
-            'brand-rust': '#8E6150',        // Clay
-            'brand-emerald': '#5E7F64',     // Forest Sage
-            'brand-terracotta': '#9E6A6A',  // Muted Rose
-            'brand-cobalt': '#516E8A',      // Slate Blue
-            'brand-sage': '#6B8A6D',        // Moss Green
-            'brand-concrete': '#7A8790',    // Cool Stone
+            // Curated Palette mapped to natural organic PNW shades
+            'brand-amber': '#D6BA91',       // Aged Brass
+            'brand-rust': '#A76D56',        // Clay
+            'brand-emerald': '#4E7255',     // Pine Needles
+            'brand-terracotta': '#C88B8B',  // Muted Rose
+            'brand-cobalt': '#6E8A9E',      // Pacific Fog
+            'brand-sage': '#8EA38C',        // Forest Moss
+            'brand-concrete': '#8C9A9C',    // Mist Stone
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -138,8 +138,8 @@
     }
 
     body {
-      background-color: #FCFAF6;
-      color: #111616;
+      background-color: #080D0C;
+      color: #EAE6DF;
       font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -192,15 +192,15 @@
 
     /* Glass card */
     .glass-card {
-      background: rgba(246, 243, 237, 0.70);
+      background: rgba(14, 21, 19, 0.70);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(17, 22, 22, 0.08);
+      border: 1px solid rgba(214, 186, 145, 0.12);
     }
 
     /* Bronze shimmer text effect */
     .text-shimmer {
-      background: linear-gradient(90deg, #846E4E, #A58F72, #846E4E, #6A5538, #846E4E);
+      background: linear-gradient(90deg, #D6BA91, #E5D4BC, #D6BA91, #BCA177, #D6BA91);
       background-size: 200% auto;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -249,8 +249,8 @@
     /* Select styling */
     select option[value^="__optgroup__"] {
       font-weight: bold;
-      color: #846E4E;
-      background-color: #F3EFE7;
+      color: #D6BA91;
+      background-color: #0E1513;
       padding-top: 0.5rem;
       padding-bottom: 0.25rem;
       font-style: italic;
@@ -258,8 +258,8 @@
 
     select option:not([value^="__optgroup__"]) {
       padding-left: 1rem;
-      background-color: #FCFAF6;
-      color: #111616;
+      background-color: #0E1513;
+      color: #EAE6DF;
     }
 
     /* Shadow top for footers */

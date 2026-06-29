@@ -25,6 +25,11 @@ const LandingScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-primary text-brand-text-primary relative overflow-hidden noise-overlay">
+      {/* Background vignette of courtroom */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-[0.06] mix-blend-luminosity pointer-events-none" 
+        style={{ backgroundImage: "url('/assets/courtroom_luxury.jpg')" }}
+      />
 
       {/* Decorative geometric elements */}
       <div className="absolute top-0 left-0 right-0 h-px bg-brand-accent/15" />
