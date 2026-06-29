@@ -1,7 +1,7 @@
 
 import { JudgePersonality, CaseCategory, CaseDetail, CaseCategoryId, JudgePersonalityId, CaseDifficulty, SessionType, OpposingCounselPersonality, OpposingCounselPersonalityId, PracticeMode, DraftingTask } from './types';
 
-export const APP_NAME = "TrialSim";
+export const APP_NAME = "LexForge";
 
 // --- INDIAN JUDGES --- (Target: 30)
 // Fix: Separated Indian judges into their own array

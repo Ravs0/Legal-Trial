@@ -47,7 +47,7 @@ const LandingScreen: React.FC = () => {
             <div className="w-2 h-2 bg-brand-accent" />
           </div>
           <span className="text-[10px] font-mono text-brand-text-secondary tracking-[0.25em] uppercase">
-            Legal Simulation Platform
+            LexForge Legal Platform
           </span>
         </div>
         <span className="text-[10px] font-mono text-brand-text-secondary/50 tracking-widest hidden sm:block">
@@ -77,8 +77,8 @@ const LandingScreen: React.FC = () => {
           <div className="h-px w-24 bg-brand-accent/30 mx-auto mb-6" />
 
           <p className="text-base sm:text-lg text-brand-text-secondary font-light leading-relaxed max-w-xl mx-auto">
-            Sharpen your legal argumentation through AI-driven mock trials.
-            Choose your jurisdiction to begin.
+            Sharpen your legal skills with AI-driven mock trials, drafting practice,
+            case research &amp; strategy — for Indian &amp; international law.
           </p>
         </div>
 
@@ -161,10 +161,48 @@ const LandingScreen: React.FC = () => {
         </div>
       </main>
 
+      {/* Ecosystem section */}
+      <section className="relative z-10 px-6 sm:px-12 lg:px-24 py-8 border-t border-brand-border/30 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+        <div className="max-w-3xl mx-auto">
+          <p className="text-[9px] font-mono text-brand-text-secondary/40 tracking-[0.3em] uppercase mb-5 text-center">
+            LexForge Ecosystem
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+            <a
+              href="https://contracting-trainer.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
+            >
+              <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
+              <span className="text-[11px] font-mono tracking-wide">Contract Drafting Trainer</span>
+            </a>
+            <a
+              href="https://legal-research-platform.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
+            >
+              <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
+              <span className="text-[11px] font-mono tracking-wide">Legal Research Platform</span>
+            </a>
+            <a
+              href="https://ai-council.vercel.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
+            >
+              <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
+              <span className="text-[11px] font-mono tracking-wide">AI Council</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="relative z-10 flex items-center justify-between px-6 sm:px-12 lg:px-24 py-6">
         <span className="text-[10px] font-mono text-brand-text-secondary/40 tracking-wider">
-          &copy; 2026 TrialSim Technologies
+          &copy; 2026 LexForge Technologies
         </span>
         <span className="text-[10px] font-mono text-brand-text-secondary/40 tracking-wider hidden sm:block">
           AI-Powered Legal Training

@@ -1,6 +1,6 @@
 {
-  "name": "TrialSim - Mock Trial Simulator",
-  "description": "A mock trial simulator where users can practice legal arguments with an AI judge. Select judge personalities, case categories, and receive performance feedback.",
+  "name": "LexForge - AI-Powered Indian Legal Skills Platform",
+  "description": "LexForge is your complete legal skills OS — AI mock trials, contract drafting practice, case library research, strategy analysis and more, for Indian and international law.",
   "requestFramePermissions": [],
   "prompt": ""
 }

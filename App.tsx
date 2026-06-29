@@ -22,7 +22,9 @@ import { OversightSpirit } from './components/OversightSpirit';
 import { ConversationBridgeProvider } from './components/ConversationBridge';
 import { CommandPalette } from './components/CommandPalette';
 
-export const TrialSimContext = createContext<TrialSimContextType | null>(null);
+export const LexForgeContext = createContext<TrialSimContextType | null>(null);
+/** @deprecated Use LexForgeContext instead */
+export const TrialSimContext = LexForgeContext;
 
 const GlobalErrorDisplay: React.FC<{ message: string; onDismiss: () => void }> = ({ message, onDismiss }) => (
   <div className="fixed top-5 right-5 bg-red-700 text-white p-4 rounded-md shadow-lg z-[100] max-w-sm animate-fadeIn border border-red-500">
@@ -121,7 +123,7 @@ function App() {
   }), [currentSessionSettings, activeChatJudge, activeChatOpposingCounsel, isLoading, error, practiceMode, isFactGenerating]);
 
   return (
-    <TrialSimContext.Provider value={contextValue}>
+    <LexForgeContext.Provider value={contextValue}>
       <ConversationBridgeProvider>
       <HashRouter>
         {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-80 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
@@ -146,7 +148,7 @@ function App() {
         </Routes>
       </HashRouter>
       </ConversationBridgeProvider>
-    </TrialSimContext.Provider>
+    </LexForgeContext.Provider>
   );
 }
 
