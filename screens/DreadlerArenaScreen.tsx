@@ -212,6 +212,10 @@ export const DreadlerArenaScreen: React.FC = () => {
   // so the readout never goes blank mid-session.
   const realBpmValue = (camera.cameraOn && realBpm !== null) ? realBpm : null;
   const displayBpm: number = realBpmValue ?? (bio.bpm ?? simulatedBio.bpm);
+  // POS recovers heart rate only — it never yields a pupil measurement, so the
+  // real reading's pupilMm stays null until (never) we add pupillometry.
+  // Cascade to the simulated value so .toFixed() in the HUD never hits null.
+  const displayPupilMm: number = bio.pupilMm ?? simulatedBio.pupilMm;
 
   const dominantEmotion = useMemo(() => {
     let maxVal = -1;
@@ -1015,7 +1019,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
                     bpm={displayBpm} 
-                    pupilMm={bio.pupilMm} 
+                    pupilMm={displayPupilMm} 
                     selectedAlgo={selectedAlgo}
                     emotions={bio.emotions}
                     onBpmUpdate={setRealBpm}
@@ -1067,7 +1071,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
-                  <span className="font-bold text-red-400">👁 {bio.pupilMm.toFixed(2)} <span className="text-[7px] text-zinc-500 font-normal">MM</span></span>
+                  <span className="font-bold text-red-400">👁 {displayPupilMm.toFixed(2)} <span className="text-[7px] text-zinc-500 font-normal">MM</span></span>
                 </div>
               </div>
             </div>
@@ -1166,7 +1170,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
                     bpm={displayBpm} 
-                    pupilMm={bio.pupilMm} 
+                    pupilMm={displayPupilMm} 
                     selectedAlgo={selectedAlgo}
                     emotions={bio.emotions}
                     onBpmUpdate={setRealBpm}
@@ -1209,7 +1213,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Pupil Size</span>
-                  <span className="text-lg font-bold text-red-400">👁 {bio.pupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
+                  <span className="text-lg font-bold text-red-400">👁 {displayPupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
                 </div>
               </div>
               

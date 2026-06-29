@@ -141,7 +141,7 @@ function App() {
           <Route path={ROUTES.DRAFTING_STUDIO} element={<Layout><ErrorBoundary fallbackMessage="Drafting Studio encountered an error."><ModeSpecificRoute element={<DraftingStudioScreen />} /></ErrorBoundary></Layout>} />
           <Route path={ROUTES.PERSONAS} element={<Layout><ModeSpecificRoute element={<AIPersonasScreen />} /></Layout>} />
           <Route path={ROUTES.STRATEGY} element={<Layout><ModeSpecificRoute element={<StrategyRoomScreen />} /></Layout>} />
-          <Route path={ROUTES.DREADLER} element={<Layout><ModeSpecificRoute element={<DreadlerArenaScreen />} /></Layout>} />
+          <Route path={ROUTES.DREADLER} element={<Layout><ErrorBoundary fallbackMessage="Dreadler Arena encountered an error."><ModeSpecificRoute element={<DreadlerArenaScreen />} /></ErrorBoundary></Layout>} />
           <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
         </Routes>
       </HashRouter>
