@@ -1,9 +1,20 @@
-
 import React from 'react';
 
 export const CourtIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
-    <path d="M12.25 4.25a.75.75 0 00-1.5 0v1.463A7.505 7.505 0 005.34 7.84L4.146 6.646a.75.75 0 00-1.06 1.06l1.193 1.194A7.504 7.504 0 003 12.75c0 2.09.854 3.976 2.25 5.336V21a.75.75 0 001.5 0v-2.097A7.505 7.505 0 0011.5 20.25a7.5 7.5 0 007.5-7.5c0-2.548-1.28-4.81-3.25-6.138V4.25zM4.5 12.75a6 6 0 015.25-5.95V10.5a.75.75 0 001.5 0V6.8a6.002 6.002 0 015.25 5.95 6 6 0 01-6 6H10.5a6 6 0 01-6-6z" />
-    <path d="M8.742 20.086a.75.75 0 01.023-1.06L10.5 17.285V15H9.75a.75.75 0 010-1.5h4.5a.75.75 0 010 1.5H13.5v2.285l1.734 1.741a.75.75 0 11-1.06 1.06L12.5 18.355V21a.75.75 0 01-1.5 0v-2.645l-1.734-1.741a.75.75 0 01-1.023.023.75.75 0 01.5-1.273L8.742 20.086zM12 1.75a3.75 3.75 0 00-3.75 3.75V6a.75.75 0 001.5 0V5.5A2.25 2.25 0 0112 3.25a2.25 2.25 0 012.25 2.25V6a.75.75 0 001.5 0V5.5A3.75 3.75 0 0012 1.75z" />
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    {/* Center pillar */}
+    <line x1="12" y1="3" x2="12" y2="21" strokeWidth="1.75" />
+    {/* Base */}
+    <line x1="7" y1="21" x2="17" y2="21" strokeWidth="1.75" />
+    {/* Balance beam */}
+    <line x1="3" y1="7" x2="21" y2="7" strokeWidth="1.75" />
+    
+    {/* Left Scale Pan */}
+    <line x1="6" y1="7" x2="6" y2="14" strokeWidth="1" />
+    <path d="M 3 14 C 3 16.5, 9 16.5, 9 14 Z" strokeWidth="1" fill="none" />
+    
+    {/* Right Scale Pan */}
+    <line x1="18" y1="7" x2="18" y2="14" strokeWidth="1" />
+    <path d="M 15 14 C 15 16.5, 21 16.5, 21 14 Z" strokeWidth="1" fill="none" />
   </svg>
 );
