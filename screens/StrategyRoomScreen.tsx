@@ -1107,7 +1107,7 @@ export const StrategyRoomScreen: React.FC = () => {
           <Card className="p-5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col gap-4 relative overflow-hidden group">
             <div className="space-y-0.5">
               <h3 className="text-base font-serif font-bold text-shimmer flex items-center gap-1.5">
-                <CourtIcon className="h-4.5 w-4.5 text-brand-text-primary font-semibold" /> Protocols
+                <CourtIcon className="h-5 w-5 text-brand-text-primary" /> Protocols
               </h3>
               <p className="text-[10px] text-brand-text-secondary font-light">Select deliberation protocol.</p>
             </div>

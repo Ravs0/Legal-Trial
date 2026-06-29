@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ROUTES, APP_NAME } from '../constants';
 import { CourtIcon } from '../components/icons/CourtIcon';
+import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
 import { TrialSimContext } from '../App';
 import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
 import personaSeal from '../assets/persona_seal.jpg';
@@ -22,67 +23,82 @@ interface BentoItemProps {
   isHero?: boolean;
 }
 
-const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick, buttonText, className = '', isHero = false }) => (
-  <div
-    className={`bg-brand-bg-secondary border border-brand-border flex flex-col rounded-2xl p-6 lg:p-8 transition-all duration-300 ease-out group
-    ${onClick && !isHero ? 'cursor-pointer hover:bg-brand-bg-primary hover:shadow-card hover:-translate-y-1 focus-ring' : ''}
-    ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-10 sm:py-16 lg:py-20 relative overflow-hidden bg-brand-bg-primary rounded-2xl border-brand-border shadow-sm' : ''}
-    ${onClick && !isHero ? 'hover:border-brand-accent/40' : ''}
-    ${className}`}
-    onClick={!isHero && onClick ? onClick : undefined}
-    tabIndex={onClick && !isHero ? 0 : undefined}
-    onKeyDown={(e) => { if (onClick && !isHero && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
-    role={onClick && !isHero ? "button" : undefined}
-  >
-    {icon && !isHero && (
-      <div className="w-12 h-12 rounded-xl bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-5 transition-all duration-300 group-hover:border-brand-accent/30 group-hover:bg-brand-bg-secondary overflow-hidden">
-        {React.isValidElement(icon) && icon.type === 'img' ? (
-          icon
-        ) : (
-          <div className="text-brand-accent">
-            {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-5 w-5 lg:h-6 lg:w-6" })}
+const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick, buttonText, className = '', isHero = false }) => {
+  const isImgIcon = React.isValidElement(icon) && icon.type === 'img';
+  const imgElement = isImgIcon ? (icon as React.ReactElement<React.ImgHTMLAttributes<HTMLImageElement>>) : null;
+  const imgSrc = imgElement ? imgElement.props.src : null;
+
+  return (
+    <div
+      className={`relative overflow-hidden flex flex-col rounded-2xl border transition-all duration-500 ease-out group
+      ${onClick && !isHero ? 'cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:-translate-y-1 focus-ring hover:border-brand-accent/50' : ''}
+      ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-10 sm:py-16 lg:py-20 bg-brand-bg-primary border-brand-border shadow-sm' : 'bg-brand-bg-secondary border-brand-border'}
+      ${className}`}
+      onClick={!isHero && onClick ? onClick : undefined}
+      tabIndex={onClick && !isHero ? 0 : undefined}
+      onKeyDown={(e) => { if (onClick && !isHero && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+      role={onClick && !isHero ? "button" : undefined}
+    >
+      {/* Background Image for Card */}
+      {imgSrc && !isHero && (
+        <>
+          <img 
+            src={imgSrc} 
+            alt={title} 
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 opacity-70 group-hover:opacity-90"
+          />
+          {/* Subtle gradient vignette to overlay readable text */}
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-dark/95 via-brand-bg-dark/85 to-brand-bg-dark/50" />
+        </>
+      )}
+
+      {/* Actual Content Wrapper */}
+      <div className="relative z-10 w-full h-full flex-grow flex flex-col p-6 lg:p-8">
+        {icon && !isHero && !imgSrc && (
+          <div className="w-12 h-12 rounded-xl bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-5 transition-all duration-300 group-hover:border-brand-accent/30 group-hover:bg-brand-bg-secondary overflow-hidden">
+            <div className="text-brand-accent">
+              {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-5 w-5 lg:h-6 lg:w-6" })}
+            </div>
           </div>
         )}
-      </div>
-    )}
 
-    {icon && isHero && (
-      <div className="relative z-10 w-20 h-20 rounded-2xl bg-brand-bg-secondary border border-brand-border flex items-center justify-center mb-6 transition-all duration-300 group-hover:border-brand-accent/30">
-        <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12" })}</div>
-      </div>
-    )}
+        {icon && isHero && (
+          <div className="relative z-10 w-20 h-20 rounded-2xl bg-brand-bg-secondary border border-brand-border flex items-center justify-center mb-6 transition-all duration-300 group-hover:border-brand-accent/30">
+            <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12" })}</div>
+          </div>
+        )}
 
-    <div className="relative z-10 w-full flex-grow flex flex-col">
-      <h3 className={`font-serif mb-2 lg:mb-3 ${isHero ? 'text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight text-brand-text-primary' : 'text-base lg:text-xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300'}`}>{title}</h3>
-      <div className={`font-light flex-grow leading-relaxed ${isHero ? 'text-sm sm:text-base lg:text-xl text-brand-text-secondary/90 max-w-3xl mx-auto mb-5 lg:mb-8' : 'text-xs lg:text-sm text-brand-text-secondary mb-4 lg:mb-6'}`}>{description}</div>
+        <h3 className={`font-serif mb-2 lg:mb-3 ${isHero ? 'text-2xl sm:text-3xl lg:text-5xl font-bold tracking-tight text-brand-text-primary' : 'text-base lg:text-xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300'}`}>{title}</h3>
+        <div className={`font-light flex-grow leading-relaxed ${isHero ? 'text-sm sm:text-base lg:text-xl text-brand-text-secondary/90 max-w-3xl mx-auto mb-5 lg:mb-8' : 'text-xs lg:text-sm text-brand-text-secondary/85 mb-4 lg:mb-6 group-hover:text-brand-text-primary transition-colors duration-300'}`}>{description}</div>
 
-      {buttonText && !isHero && (
-        <div className="mt-auto w-full pt-4 border-t border-brand-border">
+        {buttonText && !isHero && (
+          <div className="mt-auto w-full pt-4 border-t border-brand-border/40">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-between px-2 text-brand-accent hover:text-brand-accent-hover transition-all bg-brand-bg-dark/40 backdrop-blur-sm border border-brand-border/20 rounded-xl py-1.5"
+            >
+              <span>[ {buttonText} ]</span>
+              <span className="transform transition-transform group-hover:translate-x-1">→</span>
+            </Button>
+          </div>
+        )}
+
+        {buttonText && isHero && onClick && (
           <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-between px-2 text-brand-accent hover:text-brand-accent-hover transition-all"
+            variant="primary"
+            size="lg"
+            onClick={onClick}
+            className="mt-2 mx-auto px-6 lg:px-10 py-3 lg:py-4 text-sm lg:text-lg font-medium transition-transform duration-300"
           >
-            <span>[ {buttonText} ]</span>
-            <span className="transform transition-transform group-hover:translate-x-1">→</span>
+            <PlusCircleIcon className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3 opacity-90" />
+            {buttonText}
           </Button>
-        </div>
-      )}
-
-      {buttonText && isHero && onClick && (
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={onClick}
-          className="mt-2 mx-auto px-6 lg:px-10 py-3 lg:py-4 text-sm lg:text-lg font-medium transition-transform duration-300"
-        >
-          <PlusCircleIcon className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3 opacity-90" />
-          {buttonText}
-        </Button>
-      )}
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 
 const HomeScreen: React.FC = () => {
