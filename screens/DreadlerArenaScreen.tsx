@@ -255,13 +255,7 @@ export const DreadlerArenaScreen: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Auto-start session on mount
-  useEffect(() => {
-    if (!hasStarted) {
-      setHasStarted(true);
-      handleStartSession();
-    }
-  }, [hasStarted]);
+  // Setup screen is shown first — session starts only when user clicks "Enter"
 
   // Handle focus when starting session
   useEffect(() => {
