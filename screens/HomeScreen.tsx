@@ -12,6 +12,7 @@ import { AstrolabeIcon } from '../components/icons/AstrolabeIcon';
 import { DaggerIcon } from '../components/icons/DaggerIcon';
 import { FolioIcon } from '../components/icons/FolioIcon';
 import { TrialSimContext } from '../App';
+import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
 
 interface BentoItemProps {
   title: string;
@@ -124,7 +125,13 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="AI Strategy Room"
           description="Convene multi-agent expert debates, run the 6-stage Oracle deconstruction, or execute a 7-phase Adversarial Case Synthesis to stress-test your strategy."
-          icon={<AstrolabeIcon />}
+          icon={
+            <img 
+              src={strategyAstrolabe} 
+              alt="Astrolabe Strategy" 
+              className="h-12 w-12 object-cover rounded-xl border border-brand-border-light group-hover:border-brand-accent/40 group-hover:scale-105 transition-all duration-300 shadow-sm"
+            />
+          }
           onClick={() => navigate(ROUTES.STRATEGY)}
           buttonText="Enter Strategy Room"
           className="md:col-span-1"
