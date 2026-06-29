@@ -124,12 +124,12 @@ const DeliberationBlueprint: React.FC<{
         }
       }
       .dash-flow-vermilion {
-        stroke: #FF5A1F;
+        stroke: #D6BA91;
         stroke-dasharray: 6, 6;
         animation: dashoffset-flow 1.2s linear infinite;
       }
       .dash-flow-blue {
-        stroke: #38bdf8;
+        stroke: #8EA38C;
         stroke-dasharray: 6, 6;
         animation: dashoffset-flow 1.2s linear infinite;
       }
@@ -163,11 +163,11 @@ const DeliberationBlueprint: React.FC<{
     ];
 
     return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
+      <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
         <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[170px]">
           {styleBlock}
           
-          <circle cx="200" cy="100" r="50" fill="none" stroke="#FF5A1F" strokeOpacity="0.03" strokeWidth="1" strokeDasharray="8,8" className="spin-hub" />
+          <circle cx="200" cy="100" r="50" fill="none" stroke="#D6BA91" strokeOpacity="0.03" strokeWidth="1" strokeDasharray="8,8" className="spin-hub" />
 
           {nodes.map((n, i) => {
             const nextNode = nodes[(i + 1) % nodes.length];
@@ -181,7 +181,7 @@ const DeliberationBlueprint: React.FC<{
                   y1={n.cy}
                   x2={nextNode.cx}
                   y2={nextNode.cy}
-                  stroke={isCompleted ? "#FF5A1F" : "#1b263b"}
+                  stroke={isCompleted ? "#D6BA91" : "#2F3C38"}
                   strokeWidth="2"
                   strokeOpacity={isCompleted ? "0.8" : "0.25"}
                 />
@@ -215,24 +215,24 @@ const DeliberationBlueprint: React.FC<{
                   cx={n.cx}
                   cy={n.cy}
                   r="18"
-                  fill={isCompleted ? "#FF5A1F" : "#0d1b2a"}
+                  fill={isCompleted ? "#D6BA91" : "#0E1513"}
                   fillOpacity={isCompleted ? "0.15" : "0.9"}
-                  stroke={isActive ? "#FF7643" : isCompleted ? "#FF5A1F" : "#1b263b"}
+                  stroke={isActive ? "#E5D4BC" : isCompleted ? "#D6BA91" : "#2F3C38"}
                   strokeWidth={isActive ? "2.5" : "1.5"}
                   className={isActive ? "pulse-vermilion" : ""}
                 />
                 
                 {isCompleted ? (
-                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#FF5A1F" fontSize="9" fontFamily="monospace" fontWeight="bold">§</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#D6BA91" fontSize="9" fontFamily="monospace" fontWeight="bold">§</text>
                 ) : (
-                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill={isPending ? "#555" : "#ffffff"} fontSize="9" fontFamily="serif" fontWeight="bold">{n.icon}</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill={isPending ? "#455651" : "#EAE6DF"} fontSize="9" fontFamily="serif" fontWeight="bold">{n.icon}</text>
                 )}
 
                 <text
                   x={n.cx}
                   y={n.cy + 28}
                   textAnchor="middle"
-                  fill={isActive ? "#FF5A1F" : isCompleted ? "#ffffff" : "#666"}
+                  fill={isActive ? "#D6BA91" : isCompleted ? "#EAE6DF" : "#8EA38C"}
                   fontSize="7"
                   fontWeight={isActive ? "bold" : "normal"}
                   fontFamily="monospace"
@@ -244,8 +244,8 @@ const DeliberationBlueprint: React.FC<{
           })}
 
           <g transform="translate(200, 100)" className={isProcessing ? "spin-hub" : ""}>
-            <circle cx="0" cy="0" r="12" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
-            <text x="0" y="3.5" textAnchor="middle" fill="#FF5A1F" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="9" fontFamily="mono" fontWeight="bold">Ω</text>
+            <circle cx="0" cy="0" r="12" fill="#0E1513" stroke="#D6BA91" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
+            <text x="0" y="3.5" textAnchor="middle" fill="#D6BA91" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="9" fontFamily="mono" fontWeight="bold">Ω</text>
           </g>
         </svg>
       </div>
@@ -263,7 +263,7 @@ const DeliberationBlueprint: React.FC<{
     ];
 
     return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
+      <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
         <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[180px]">
           {styleBlock}
           
@@ -277,7 +277,7 @@ const DeliberationBlueprint: React.FC<{
                   y1={center.y}
                   x2={j.cx}
                   y2={j.cy}
-                  stroke={isSelected ? "#FF5A1F" : "#1b263b"}
+                  stroke={isSelected ? "#D6BA91" : "#2F3C38"}
                   strokeWidth={isSelected ? "3" : "1.5"}
                   strokeOpacity={isSelected ? "0.9" : "0.2"}
                 />
@@ -292,7 +292,7 @@ const DeliberationBlueprint: React.FC<{
                       className="dash-flow-vermilion"
                       strokeWidth="2"
                     />
-                    <circle r="4" fill="#FF5A1F">
+                    <circle r="4" fill="#D6BA91">
                       <animateMotion 
                          dur="1.5s" 
                         repeatCount="indefinite" 
@@ -306,9 +306,9 @@ const DeliberationBlueprint: React.FC<{
           })}
 
           <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
-            <circle cx="0" cy="0" r="20" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="2" className="pulse-vermilion" />
-            <circle cx="0" cy="0" r="15" fill="#1b263b" stroke="#ffffff" strokeOpacity="0.05" />
-            <text x="0" y="3.5" textAnchor="middle" fill="#FF5A1F" fontSize="10" fontFamily="mono" fontWeight="bold">§</text>
+            <circle cx="0" cy="0" r="20" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
+            <circle cx="0" cy="0" r="15" fill="#2F3C38" stroke="#EAE6DF" strokeOpacity="0.05" />
+            <text x="0" y="3.5" textAnchor="middle" fill="#D6BA91" fontSize="10" fontFamily="mono" fontWeight="bold">§</text>
           </g>
 
           {jurists.map((j) => {
@@ -327,20 +327,20 @@ const DeliberationBlueprint: React.FC<{
                   cx={j.cx}
                   cy={j.cy}
                   r="18"
-                  fill={isSelected ? "#FF5A1F" : "#0d1b2a"}
+                  fill={isSelected ? "#D6BA91" : "#0E1513"}
                   fillOpacity={isSelected ? "0.15" : "0.9"}
-                  stroke={isSelected ? "#FF5A1F" : "#1b263b"}
+                  stroke={isSelected ? "#D6BA91" : "#2F3C38"}
                   strokeWidth={isSelected ? "2.5" : "1.5"}
                   className={isSelected ? "pulse-vermilion" : ""}
                 />
                 
-                <text x={j.cx} y={j.cy + 3.5} textAnchor="middle" fill={isSelected ? "#FF5A1F" : "#ffffff"} fontSize="9" fontFamily="mono" fontWeight="bold">{j.avatar}</text>
+                <text x={j.cx} y={j.cy + 3.5} textAnchor="middle" fill={isSelected ? "#D6BA91" : "#EAE6DF"} fontSize="9" fontFamily="mono" fontWeight="bold">{j.avatar}</text>
                 
                 <text
                   x={j.cx}
                   y={j.cy + 27}
                   textAnchor="middle"
-                  fill={isSelected ? "#FF5A1F" : "#777"}
+                  fill={isSelected ? "#D6BA91" : "#8EA38C"}
                   fontSize="7"
                   fontWeight={isSelected ? "bold" : "normal"}
                   fontFamily="monospace"
@@ -357,56 +357,56 @@ const DeliberationBlueprint: React.FC<{
 
   if (activeTab === ChamberMode.SYNTHESIS) {
     return (
-      <div className="w-full flex flex-col items-center justify-center p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none ">
+      <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
         <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[180px]">
           {styleBlock}
 
-          <path d="M 200 45 L 85 120 L 315 120 Z" fill="none" stroke="#1b263b" strokeWidth="1.2" />
-          <path d="M 85 120 L 200 175 L 315 120" fill="none" stroke="#1b263b" strokeWidth="1.2" />
+          <path d="M 200 45 L 85 120 L 315 120 Z" fill="none" stroke="#2F3C38" strokeWidth="1.2" />
+          <path d="M 85 120 L 200 175 L 315 120" fill="none" stroke="#2F3C38" strokeWidth="1.2" />
           
-          <line x1="200" y1="45" x2="200" y2="175" stroke="#38bdf8" strokeWidth="1.2" strokeOpacity="0.25" />
-          <line x1="85" y1="120" x2="200" y2="175" stroke="#FF5A1F" strokeWidth="1.5" strokeOpacity="0.3" />
-          <line x1="315" y1="120" x2="200" y2="175" stroke="#ef4444" strokeWidth="1.5" strokeOpacity="0.3" />
+          <line x1="200" y1="45" x2="200" y2="175" stroke="#8EA38C" strokeWidth="1.2" strokeOpacity="0.25" />
+          <line x1="85" y1="120" x2="200" y2="175" stroke="#D6BA91" strokeWidth="1.5" strokeOpacity="0.3" />
+          <line x1="315" y1="120" x2="200" y2="175" stroke="#A76D56" strokeWidth="1.5" strokeOpacity="0.3" />
 
           {isProcessing && (
             <>
-              <circle r="3.5" fill="#FF5A1F">
+              <circle r="3.5" fill="#D6BA91">
                 <animateMotion dur="2s" repeatCount="indefinite" path="M 85 120 L 200 175" />
               </circle>
-              <circle r="3.5" fill="#ef4444">
+              <circle r="3.5" fill="#A76D56">
                 <animateMotion dur="1.8s" repeatCount="indefinite" path="M 315 120 L 200 175" />
               </circle>
-              <circle r="4" fill="#38bdf8">
+              <circle r="4" fill="#8EA38C">
                 <animateMotion dur="2.2s" repeatCount="indefinite" path="M 200 45 L 200 175" />
               </circle>
             </>
           )}
 
           <g className="float-1">
-            <circle cx="200" cy="45" r="15" fill="#0d1b2a" stroke="#38bdf8" strokeWidth="1.2" className="pulse-blue" />
-            <text x="200" y="48.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">CP</text>
-            <text x="200" y="24" textAnchor="middle" fill="#38bdf8" fontSize="7" fontWeight="bold" fontFamily="monospace">CASE PREMISE</text>
+            <circle cx="200" cy="45" r="15" fill="#0E1513" stroke="#8EA38C" strokeWidth="1.2" className="pulse-blue" />
+            <text x="200" y="48.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">CP</text>
+            <text x="200" y="24" textAnchor="middle" fill="#8EA38C" fontSize="7" fontWeight="bold" fontFamily="monospace">CASE PREMISE</text>
           </g>
 
           <g className="float-2">
-            <circle cx="85" cy="120" r="18" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="1.5" className="pulse-vermilion" />
-            <text x="85" y="123.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">SH</text>
-            <text x="85" y="93" textAnchor="middle" fill="#FF5A1F" fontSize="7" fontWeight="bold" fontFamily="monospace">24 STAKEHOLDERS</text>
+            <circle cx="85" cy="120" r="18" fill="#0E1513" stroke="#D6BA91" strokeWidth="1.5" className="pulse-vermilion" />
+            <text x="85" y="123.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">SH</text>
+            <text x="85" y="93" textAnchor="middle" fill="#D6BA91" fontSize="7" fontWeight="bold" fontFamily="monospace">24 STAKEHOLDERS</text>
           </g>
 
           <g className="float-3">
-            <circle cx="315" cy="120" r="18" fill="#0d1b2a" stroke="#ef4444" strokeWidth="1.5" className="pulse-red" />
-            <text x="315" y="123.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">VS</text>
-            <text x="315" y="93" textAnchor="middle" fill="#ef4444" fontSize="7" fontWeight="bold" fontFamily="monospace">PROSECUTION stress</text>
+            <circle cx="315" cy="120" r="18" fill="#0E1513" stroke="#A76D56" strokeWidth="1.5" className="pulse-red" />
+            <text x="315" y="123.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">VS</text>
+            <text x="315" y="93" textAnchor="middle" fill="#A76D56" fontSize="7" fontWeight="bold" fontFamily="monospace">PROSECUTION STRESS</text>
           </g>
 
           <g className="float-1">
-            <circle cx="200" cy="175" r="22" fill="#0d1b2a" stroke="#FF5A1F" strokeWidth="2" className="pulse-vermilion" />
+            <circle cx="200" cy="175" r="22" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
             {isProcessing && (
-              <circle cx="200" cy="175" r="25" fill="none" stroke="#FF5A1F" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" className="spin-hub" />
+              <circle cx="200" cy="175" r="25" fill="none" stroke="#D6BA91" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" className="spin-hub" />
             )}
-            <text x="200" y="179.5" textAnchor="middle" fill="#ffffff" fontSize="8" fontFamily="mono" fontWeight="bold">SC</text>
-            <text x="200" y="207" textAnchor="middle" fill="#FF5A1F" fontSize="7" fontWeight="bold" fontFamily="monospace">SYNTHESIS CORE</text>
+            <text x="200" y="179.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">SC</text>
+            <text x="200" y="207" textAnchor="middle" fill="#D6BA91" fontSize="7" fontWeight="bold" fontFamily="monospace">SYNTHESIS CORE</text>
           </g>
         </svg>
       </div>
@@ -1104,7 +1104,7 @@ export const StrategyRoomScreen: React.FC = () => {
         
         {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
         <div className="col-span-3 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
-          <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-4 relative overflow-hidden group">
+          <Card className="p-5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col gap-4 relative overflow-hidden group">
             <div className="space-y-0.5">
               <h3 className="text-base font-serif font-bold text-shimmer flex items-center gap-1.5">
                 <CourtIcon className="h-4.5 w-4.5 text-brand-text-primary font-semibold" /> Protocols
@@ -1123,10 +1123,10 @@ export const StrategyRoomScreen: React.FC = () => {
                   <button
                     key={m.value}
                     onClick={() => setActiveTab(m.value)}
-                    className={`w-full p-3.5 rounded-none border text-left flex items-center gap-3 relative overflow-hidden group/btn transition-all
+                    className={`w-full p-3.5 rounded-xl border text-left flex items-center gap-3 relative overflow-hidden group/btn transition-all
                       ${isActive 
                         ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-semibold scale-[1.01]' 
-                        : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:bg-brand-accent/5 hover:text-brand-text-primary'
+                        : 'bg-brand-bg-primary border-brand-border text-brand-text-secondary hover:border-brand-accent/40 hover:bg-brand-accent/5 hover:text-brand-text-primary'
                       }`}
                   >
                     <span className="font-mono text-xs font-semibold flex-shrink-0 whitespace-nowrap">{m.icon}</span>
@@ -1146,8 +1146,8 @@ export const StrategyRoomScreen: React.FC = () => {
           {/* Dynamic Selection Details (Desktop Sidebar) */}
 
           {activeTab === ChamberMode.COUNCIL && (
-            <Card className="p-5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col gap-3 ">
-              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary uppercase tracking-widest border-b border-brand-text-primary/30 pb-1">Expert Advisor Minds</h4>
+            <Card className="p-5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col gap-3 ">
+              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary uppercase tracking-widest border-b border-brand-border pb-1">Expert Advisor Minds</h4>
               <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto custom-scrollbar pr-0.5">
                 {PERSONAS.map((p) => {
                   const isSelected = selectedPersona.id === p.id;
@@ -1155,10 +1155,10 @@ export const StrategyRoomScreen: React.FC = () => {
                     <button
                       key={p.id}
                       onClick={() => setSelectedPersona(p)}
-                      className={`p-2.5 rounded-none border text-left flex items-center gap-2.5 transition-all min-w-0
+                      className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all min-w-0
                         ${isSelected
                           ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent scale-[1.01]'
-                          : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:bg-brand-accent/5 hover:text-brand-text-primary'
+                          : 'bg-brand-bg-primary border-brand-border text-brand-text-secondary hover:border-brand-accent/40 hover:bg-brand-accent/5 hover:text-brand-text-primary'
                         }`}
                     >
                       <span className={`w-7 h-7 flex-shrink-0 flex items-center justify-center border font-mono text-xs font-bold transition-all
@@ -1181,14 +1181,14 @@ export const StrategyRoomScreen: React.FC = () => {
         </div>
 
         {/* Columns 4-9: Interactive Workbench (Chat Feed & Input) */}
-        <div className="col-span-6 flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-none overflow-hidden relative shadow-inner-subtle h-full min-h-0">
+        <div className="col-span-6 flex flex-col bg-brand-bg-secondary border border-brand-border rounded-2xl overflow-hidden relative shadow-inner-subtle h-full min-h-0">
           
           {/* Chat Feed */}
           <div className="flex-grow p-5 overflow-y-auto space-y-5 custom-scrollbar text-left relative z-10">
             
             {activeHistory.length <= 1 && (
-              <div className="p-6 border border-brand-text-primary/30 bg-brand-bg-primary  rounded-none flex flex-col items-center gap-4  text-center    my-2">
-                <div className="w-12 h-12 rounded-none border border-brand-text-primary/30 bg-brand-bg-primary flex items-center justify-center flex-shrink-0 text-brand-text-primary font-semibold">
+              <div className="p-6 border border-brand-border bg-brand-bg-primary/30 rounded-xl flex flex-col items-center gap-4 text-center my-2">
+                <div className="w-12 h-12 rounded-xl border border-brand-border bg-brand-bg-secondary flex items-center justify-center flex-shrink-0 text-brand-text-primary font-semibold">
                   {activeTab === ChamberMode.ORACLE ? (
                     <svg className="w-6 h-6 " fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                       <circle cx={12} cy={12} r={9} strokeDasharray="3 3" />
@@ -1223,7 +1223,7 @@ export const StrategyRoomScreen: React.FC = () => {
               <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
                 <div className="flex items-center space-x-1.5 mb-1">
                   {item.meta && (
-                    <span className="text-xs font-serif font-bold text-brand-text-primary font-semibold bg-brand-accent/5 px-1.5 py-0.5 border border-brand-text-primary/30 rounded">
+                    <span className="text-xs font-serif font-bold text-brand-text-primary font-semibold bg-brand-accent/5 px-1.5 py-0.5 border border-brand-border rounded-lg">
                       {item.meta}
                     </span>
                   )}
@@ -1233,11 +1233,11 @@ export const StrategyRoomScreen: React.FC = () => {
                 </div>
 
                 <div
-                  className={`max-w-[90%] p-3.5 rounded-none text-[12px] leading-relaxed border  
+                  className={`max-w-[90%] p-3.5 rounded-2xl text-[12px] leading-relaxed border  
                     ${item.sender === 'user'
-                      ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
+                      ? 'bg-brand-accent/15 border-brand-border text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
-                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[11px]'
+                        ? 'bg-brand-error/10 border-brand-error text-brand-error rounded-tl-none font-mono text-[11px]'
                         : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
                     }`}
                 >
@@ -1248,13 +1248,13 @@ export const StrategyRoomScreen: React.FC = () => {
                   <div className="flex space-x-2 mt-1.5 pl-1">
                     <button
                       onClick={() => handleSpeak(item.text)}
-                      className="px-2 py-1 border border-brand-text-primary/30 rounded bg-brand-bg-primary hover:bg-brand-text-primary text-brand-bg-primary text-[9px]  text-brand-text-primary font-semibold font-mono uppercase tracking-wide cursor-pointer"
+                      className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[9px] text-brand-text-primary font-semibold font-mono uppercase tracking-wide cursor-pointer"
                     >
                       Speak
                     </button>
                     <button
                       onClick={() => navigator.clipboard.writeText(item.text)}
-                      className="px-2 py-1 border border-white/10 rounded bg-brand-bg-primary hover:bg-white/5 text-[9px] text-brand-text-secondary hover:text-brand-text-primary  font-mono uppercase tracking-wide cursor-pointer"
+                      className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[9px] text-brand-text-secondary hover:text-brand-text-primary  font-mono uppercase tracking-wide cursor-pointer"
                     >
                       Copy
                     </button>
@@ -1267,9 +1267,9 @@ export const StrategyRoomScreen: React.FC = () => {
           </div>
 
           {/* Bottom Input Composer */}
-          <div className="p-3 border-t border-brand-text-primary/30 bg-brand-bg-secondary/80  relative z-20">
+          <div className="p-3 border-t border-brand-border bg-brand-bg-secondary/90 relative z-20">
             {audioError && (
-              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[10px] rounded-none text-left ">
+              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error text-brand-error text-[10px] rounded-xl text-left ">
                 [Error] {audioError}
               </div>
             )}
@@ -1278,10 +1278,10 @@ export const StrategyRoomScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`w-10 h-10 flex-shrink-0 rounded-none border flex items-center justify-center  focus:outline-none
+                className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center focus:outline-none
                   ${isRecording
                     ? 'bg-brand-error/25 border-brand-error text-brand-error '
-                    : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
+                    : 'bg-brand-bg-primary border-brand-border text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
                   }`}
                 title={isRecording ? 'Stop Recording' : 'Speak'}
               >
@@ -1313,7 +1313,7 @@ export const StrategyRoomScreen: React.FC = () => {
                         ? 'Enter dispute premise...'
                         : 'Consult V4...'
                 }
-                className="flex-grow p-2.5 bg-brand-bg-primary border border-brand-text-primary/30 rounded-none focus:ring-1 focus:ring-brand-accent focus:outline-none text-[12px] text-brand-text-primary placeholder-brand-text-secondary/35 font-light resize-none min-h-[42px] max-h-[140px] custom-scrollbar"
+                className="flex-grow p-2.5 bg-brand-bg-primary border border-brand-border rounded-xl focus:ring-1 focus:ring-brand-accent focus:outline-none text-[12px] text-brand-text-primary placeholder-brand-text-secondary/35 font-light resize-none min-h-[42px] max-h-[140px] custom-scrollbar"
                 rows={1}
               />
 
@@ -1321,7 +1321,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 border border-brand-error/40 rounded-none bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[10px] font-mono uppercase tracking-wider flex-shrink-0  font-semibold"
+                  className="px-4 border border-brand-error/40 rounded-xl bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[10px] font-mono uppercase tracking-wider flex-shrink-0  font-semibold"
                 >
                   Cancel
                 </button>
@@ -1341,8 +1341,8 @@ export const StrategyRoomScreen: React.FC = () => {
 
         {/* Columns 9-12: Real-time Deliberation Blueprint & Trace Console (Right Panel) */}
         <div className="col-span-3 flex flex-col gap-5 h-full overflow-hidden min-h-0">
-          <Card className="p-4.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-none flex flex-col h-full overflow-hidden ">
-            <div className="space-y-1 border-b border-brand-text-primary/30 pb-3">
+          <Card className="p-4.5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col h-full overflow-hidden ">
+            <div className="space-y-1 border-b border-brand-border pb-3">
               <h3 className="text-sm font-serif font-bold text-shimmer flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4  text-brand-text-primary font-semibold" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -1350,7 +1350,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   </svg>
                   Holographic Deliberation Blueprint
                 </span>
-                <span className="text-[8px] font-mono border border-brand-text-primary/30 text-brand-text-primary font-semibold px-1.5 py-0.5 rounded bg-brand-navy/80 uppercase">
+                <span className="text-[8px] font-mono border border-brand-border text-brand-text-primary font-semibold px-1.5 py-0.5 rounded bg-brand-bg-primary uppercase">
                   {isProcessing ? 'Active' : 'Standby'}
                 </span>
               </h3>
@@ -1372,7 +1372,7 @@ export const StrategyRoomScreen: React.FC = () => {
             </div>
 
             {/* Scrollable Trace Logs or System Status Archive */}
-            <div className="flex-grow flex flex-col min-h-0 border-t border-brand-text-primary/30 pt-3">
+            <div className="flex-grow flex flex-col min-h-0 border-t border-brand-border pt-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-serif font-bold text-brand-text-primary/80 font-semibold block">
                   {isProcessing ? `Live Trace: ${oracleStage}` : 'Process Log Archive'}
@@ -1380,7 +1380,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 {oracleTrace.length > 0 && (
                   <button 
                     onClick={() => setShowReasoningLogs(!showReasoningLogs)}
-                    className="text-[9px] font-mono border border-brand-text-primary/30 px-2 py-0.5 hover:text-brand-accent transition-colors uppercase"
+                    className="text-[9px] font-mono border border-brand-border rounded-lg px-2 py-0.5 hover:text-brand-accent transition-colors uppercase"
                   >
                     {showReasoningLogs ? 'Hide Reasoning' : 'Show Reasoning'}
                   </button>
@@ -1389,7 +1389,7 @@ export const StrategyRoomScreen: React.FC = () => {
 
               <div className="flex-grow overflow-y-auto custom-scrollbar space-y-3 pr-0.5 text-left">
                 {isProcessing && oracleStage && (
-                  <div className="p-3.5 rounded-none border border-brand-text-primary/30 bg-brand-bg-primary  space-y-3 ">
+                  <div className="p-3.5 rounded-xl border border-brand-border bg-brand-bg-primary  space-y-3 ">
                     <div className="flex items-center space-x-2">
                       <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold " />
                       <span className="text-[9px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
@@ -1413,7 +1413,7 @@ export const StrategyRoomScreen: React.FC = () => {
                         return (
                           <div key={idx} className="flex items-center justify-between text-[9px] font-mono">
                             <div className="flex items-center space-x-2">
-                              <span className={`w-3.5 h-3.5 rounded-none flex items-center justify-center border text-[7px] font-bold
+                              <span className={`w-3.5 h-3.5 rounded-lg flex items-center justify-center border border-brand-border text-[7px] font-bold
                                 ${isCompleted 
                                   ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' 
                                   : isActive 
