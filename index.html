@@ -13,31 +13,31 @@
       theme: {
         extend: {
            colors: {
-            'brand-bg-primary': '#F5F1EB',
-            'brand-bg-secondary': '#EBE5DB',
-            'brand-bg-tertiary': '#E0D8CC',
-            'brand-bg-dark': '#2A2520',
-            'brand-bg-dark-secondary': '#363029',
-            'brand-text-primary': '#2A2520',
-            'brand-text-secondary': '#6B635A',
+            'brand-bg-primary': '#FCFAF6',
+            'brand-bg-secondary': '#F3EFE7',
+            'brand-bg-tertiary': '#EBE6DA',
+            'brand-bg-dark': '#111616',
+            'brand-bg-dark-secondary': '#181F1F',
+            'brand-text-primary': '#111616',
+            'brand-text-secondary': '#495351',
 
-            'brand-accent': '#8B7355',
-            'brand-accent-hover': '#6E5A42',
-            'brand-accent-text': '#F5F1EB',
-            'brand-accent-muted': 'rgba(139, 115, 85, 0.10)',
+            'brand-accent': '#846E4E',
+            'brand-accent-hover': '#6A5538',
+            'brand-accent-text': '#FCFAF6',
+            'brand-accent-muted': 'rgba(132, 110, 78, 0.08)',
 
-            'brand-gradient-from': '#8B7355',
-            'brand-gradient-mid': '#A68B6B',
-            'brand-gradient-to': '#6E5A42',
+            'brand-gradient-from': '#846E4E',
+            'brand-gradient-mid': '#A58F72',
+            'brand-gradient-to': '#6A5538',
 
-            'brand-border': 'rgba(42, 37, 32, 0.12)',
-            'brand-border-light': 'rgba(42, 37, 32, 0.20)',
+            'brand-border': 'rgba(17, 22, 22, 0.08)',
+            'brand-border-light': 'rgba(17, 22, 22, 0.16)',
 
             'brand-error': '#B85450',
             'brand-success': '#5A8A5E',
 
-            'brand-navy': '#2A2520',
-            'brand-navy-light': '#363029',
+            'brand-navy': '#111616',
+            'brand-navy-light': '#181F1F',
 
             // Curated 7-Color Premium Palette (slightly deeper for contrast)
             'brand-amber': '#9E7D4A',       // Aged Gold
@@ -138,8 +138,8 @@
     }
 
     body {
-      background-color: #F5F1EB;
-      color: #2A2520;
+      background-color: #FCFAF6;
+      color: #111616;
       font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -160,12 +160,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(139, 115, 85, 0.20);
+      background: rgba(132, 110, 78, 0.20);
       border-radius: 10px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(139, 115, 85, 0.35);
+      background: rgba(132, 110, 78, 0.35);
     }
 
     .custom-scrollbar {
@@ -182,25 +182,25 @@
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: rgba(139, 115, 85, 0.15);
+      background: rgba(132, 110, 78, 0.15);
       border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: rgba(139, 115, 85, 0.30);
+      background: rgba(132, 110, 78, 0.30);
     }
 
     /* Glass card */
     .glass-card {
-      background: rgba(240, 235, 227, 0.7);
+      background: rgba(246, 243, 237, 0.70);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(44, 40, 37, 0.08);
+      border: 1px solid rgba(17, 22, 22, 0.08);
     }
 
     /* Bronze shimmer text effect */
     .text-shimmer {
-      background: linear-gradient(90deg, #8B7355, #A68B6B, #8B7355, #6E5A42, #8B7355);
+      background: linear-gradient(90deg, #846E4E, #A58F72, #846E4E, #6A5538, #846E4E);
       background-size: 200% auto;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -249,8 +249,8 @@
     /* Select styling */
     select option[value^="__optgroup__"] {
       font-weight: bold;
-      color: #8B7355;
-      background-color: #F0EBE3;
+      color: #846E4E;
+      background-color: #F3EFE7;
       padding-top: 0.5rem;
       padding-bottom: 0.25rem;
       font-style: italic;
@@ -258,8 +258,8 @@
 
     select option:not([value^="__optgroup__"]) {
       padding-left: 1rem;
-      background-color: #FAF7F2;
-      color: #2C2825;
+      background-color: #FCFAF6;
+      color: #111616;
     }
 
     /* Shadow top for footers */
@@ -280,7 +280,7 @@
 
     /* Focus ring */
     .focus-ring:focus-visible {
-      outline: 2px solid rgba(139, 115, 85, 0.45);
+      outline: 2px solid rgba(132, 110, 78, 0.45);
       outline-offset: 2px;
     }
 
@@ -295,7 +295,7 @@
       inset: 0;
       border-radius: inherit;
       padding: 1px;
-      background: linear-gradient(135deg, rgba(139, 115, 85, 0.25), transparent 50%, rgba(139, 115, 85, 0.08));
+      background: linear-gradient(135deg, rgba(132, 110, 78, 0.25), transparent 50%, rgba(132, 110, 78, 0.08));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;

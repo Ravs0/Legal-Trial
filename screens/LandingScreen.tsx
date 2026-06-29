@@ -24,7 +24,7 @@ const LandingScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-brand-bg-primary text-brand-text-primary relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-brand-bg-primary text-brand-text-primary relative overflow-hidden noise-overlay">
 
       {/* Decorative geometric elements */}
       <div className="absolute top-0 left-0 right-0 h-px bg-brand-accent/15" />
@@ -80,8 +80,8 @@ const LandingScreen: React.FC = () => {
           {/* Indian Legal Practice */}
           <div
             onClick={() => handleModeSelection('indian')}
-            className="group relative bg-brand-bg-secondary border border-brand-text-primary/10 p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
-              hover:bg-brand-bg-tertiary/60 hover:border-brand-accent/25 focus-ring"
+            className="group relative bg-brand-bg-secondary border border-brand-border p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
+              hover:bg-brand-bg-primary hover:border-brand-accent/30 hover:shadow-card-hover focus-ring"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('indian'); } }}
@@ -93,7 +93,7 @@ const LandingScreen: React.FC = () => {
             </div>
 
             <div className="flex flex-col h-full">
-              <div className="w-12 h-12 border border-brand-text-primary/10 flex items-center justify-center mb-6 group-hover:border-brand-accent/30 transition-colors">
+              <div className="w-12 h-12 border border-brand-border flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-primary transition-all duration-300">
                 <GavelMinimalIcon className="h-5 w-5 text-brand-accent" />
               </div>
 
@@ -109,7 +109,7 @@ const LandingScreen: React.FC = () => {
                 Constitutional, criminal, and corporate laws of India. Practice advocacy under the CPC, IPC, BNSS, and Indian precedents.
               </p>
 
-              <div className="flex items-center justify-between pt-4 border-t border-brand-text-primary/8">
+              <div className="flex items-center justify-between pt-4 border-t border-brand-border">
                 <span className="text-[10px] font-mono text-brand-text-secondary/60 tracking-wider group-hover:text-brand-accent/70 transition-colors">
                   Select to enter
                 </span>
@@ -123,8 +123,8 @@ const LandingScreen: React.FC = () => {
           {/* International Law Practice */}
           <div
             onClick={() => handleModeSelection('international')}
-            className="group relative bg-brand-bg-secondary border border-brand-text-primary/10 -mt-px md:mt-0 md:-ml-px p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
-              hover:bg-brand-bg-tertiary/60 hover:border-brand-accent/25 focus-ring"
+            className="group relative bg-brand-bg-secondary border border-brand-border -mt-px md:mt-0 md:-ml-px p-8 sm:p-10 lg:p-12 cursor-pointer transition-all duration-400 ease-out
+              hover:bg-brand-bg-primary hover:border-brand-accent/30 hover:shadow-card-hover focus-ring"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('international'); } }}
@@ -136,7 +136,7 @@ const LandingScreen: React.FC = () => {
             </div>
 
             <div className="flex flex-col h-full">
-              <div className="w-12 h-12 border border-brand-text-primary/10 flex items-center justify-center mb-6 group-hover:border-brand-accent/30 transition-colors">
+              <div className="w-12 h-12 border border-brand-border flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-primary transition-all duration-300">
                 <GlobeMinimalIcon className="h-5 w-5 text-brand-accent" />
               </div>
 
@@ -152,7 +152,7 @@ const LandingScreen: React.FC = () => {
                 Public international law, humanitarian law, ICJ disputes, and conventions. Master cross-border arbitration and international covenants.
               </p>
 
-              <div className="flex items-center justify-between pt-4 border-t border-brand-text-primary/8">
+              <div className="flex items-center justify-between pt-4 border-t border-brand-border">
                 <span className="text-[10px] font-mono text-brand-text-secondary/60 tracking-wider group-hover:text-brand-accent/70 transition-colors">
                   Select to enter
                 </span>

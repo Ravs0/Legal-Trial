@@ -144,7 +144,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const isExpanded = isSidebarOpen || isMobileOpen;
 
   return (
-    <div className="h-dvh flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
+    <div className="h-dvh flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative noise-overlay">
 
       {/* Mobile Top Bar */}
       {showSidebar && (
