@@ -12,6 +12,7 @@ import draftingPen from '../assets/drafting_pen.jpg';
 import libraryBooks from '../assets/library_books.jpg';
 import judgeGavel from '../assets/judge_gavel.jpg';
 import counselScales from '../assets/counsel_scales.jpg';
+import heroCourtroom from '../assets/hero_courtroom.jpg';
 
 interface BentoItemProps {
   title: string;
@@ -31,21 +32,23 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
   return (
     <div
       className={`relative overflow-hidden flex flex-col rounded-2xl border transition-all duration-500 ease-out group
-      ${onClick && !isHero ? 'cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:-translate-y-1 focus-ring hover:border-brand-accent/50' : ''}
-      ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-10 sm:py-16 lg:py-20 bg-brand-bg-primary border-brand-border shadow-sm' : 'bg-brand-bg-secondary border-brand-border'}
+      ${onClick ? 'cursor-pointer focus-ring' : ''}
+      ${onClick && !isHero ? 'hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:-translate-y-1 hover:border-brand-accent/50' : ''}
+      ${onClick && isHero ? 'hover:border-brand-accent/30 hover:shadow-[0_12px_40px_rgba(0,0,0,0.6)]' : ''}
+      ${isHero ? 'items-center text-center md:col-span-2 lg:col-span-3 justify-center py-10 sm:py-16 lg:py-20 bg-brand-bg-secondary border-brand-border shadow-sm' : 'bg-brand-bg-secondary border-brand-border'}
       ${className}`}
-      onClick={!isHero && onClick ? onClick : undefined}
-      tabIndex={onClick && !isHero ? 0 : undefined}
-      onKeyDown={(e) => { if (onClick && !isHero && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
-      role={onClick && !isHero ? "button" : undefined}
+      onClick={onClick}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+      role={onClick ? "button" : undefined}
     >
       {/* Background Image for Card */}
-      {imgSrc && !isHero && (
+      {imgSrc && (
         <>
           <img 
             src={imgSrc} 
             alt={title} 
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110 opacity-70 group-hover:opacity-90"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-55 group-hover:opacity-75"
           />
           {/* Subtle gradient vignette to overlay readable text */}
           <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-dark/95 via-brand-bg-dark/85 to-brand-bg-dark/50" />
@@ -53,7 +56,7 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
       )}
 
       {/* Actual Content Wrapper */}
-      <div className="relative z-10 w-full h-full flex-grow flex flex-col p-6 lg:p-8">
+      <div className={`relative z-10 w-full h-full flex-grow flex flex-col p-6 lg:p-8 ${isHero ? 'items-center justify-center text-center' : ''}`}>
         {icon && !isHero && !imgSrc && (
           <div className="w-12 h-12 rounded-xl bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-5 transition-all duration-300 group-hover:border-brand-accent/30 group-hover:bg-brand-bg-secondary overflow-hidden">
             <div className="text-brand-accent">
@@ -62,7 +65,7 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
           </div>
         )}
 
-        {icon && isHero && (
+        {icon && isHero && !imgSrc && (
           <div className="relative z-10 w-20 h-20 rounded-2xl bg-brand-bg-secondary border border-brand-border flex items-center justify-center mb-6 transition-all duration-300 group-hover:border-brand-accent/30">
             <div className="text-brand-accent">{React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12" })}</div>
           </div>
@@ -88,7 +91,7 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
           <Button
             variant="primary"
             size="lg"
-            onClick={onClick}
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
             className="mt-2 mx-auto px-6 lg:px-10 py-3 lg:py-4 text-sm lg:text-lg font-medium transition-transform duration-300"
           >
             <PlusCircleIcon className="h-5 w-5 lg:h-6 lg:w-6 mr-2 lg:mr-3 opacity-90" />
@@ -127,7 +130,13 @@ const HomeScreen: React.FC = () => {
           isHero
           title={`Elevate Your ${modeDisplay} Legal Skills`}
           description={heroDescription}
-          icon={<CourtIcon />}
+          icon={
+            <img 
+              src={heroCourtroom} 
+              alt="Hero Courtroom background" 
+              className="w-full h-full object-cover"
+            />
+          }
           onClick={() => navigate(ROUTES.SETUP)}
           buttonText={`Start New ${modeDisplay} Trial Session`}
           className="min-h-[280px] lg:min-h-[400px]"
