@@ -3,16 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ROUTES, APP_NAME } from '../constants';
 import { CourtIcon } from '../components/icons/CourtIcon';
-import { GavelIcon } from '../components/icons/GavelIcon';
-import { UsersIcon } from '../components/icons/UsersIcon';
-import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
-import { QuillIcon } from '../components/icons/QuillIcon';
-import { SealIcon } from '../components/icons/SealIcon';
-import { AstrolabeIcon } from '../components/icons/AstrolabeIcon';
-import { DaggerIcon } from '../components/icons/DaggerIcon';
-import { FolioIcon } from '../components/icons/FolioIcon';
 import { TrialSimContext } from '../App';
 import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
+import personaSeal from '../assets/persona_seal.jpg';
+import deceptionKey from '../assets/deception_key.jpg';
+import draftingPen from '../assets/drafting_pen.jpg';
+import libraryBooks from '../assets/library_books.jpg';
+import judgeGavel from '../assets/judge_gavel.jpg';
+import counselScales from '../assets/counsel_scales.jpg';
 
 interface BentoItemProps {
   title: string;
@@ -122,7 +120,13 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="AI Personas"
           description="Consult directly with elite historical legal strategists (Samuel Leibowitz, Cardinal Richelieu) or engage sentient legal domains personified as Ren (Kuudere), Kira (Yandere), Aldric, Hana, and Sora."
-          icon={<SealIcon />}
+          icon={
+            <img 
+              src={personaSeal} 
+              alt="AI Personas" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          }
           onClick={() => navigate(ROUTES.PERSONAS)}
           buttonText="Select Persona"
           className="md:col-span-1"
@@ -134,8 +138,8 @@ const HomeScreen: React.FC = () => {
           icon={
             <img 
               src={strategyAstrolabe} 
-              alt="Astrolabe Strategy" 
-              className="h-12 w-12 object-cover rounded-xl border border-brand-border-light group-hover:border-brand-accent/40 group-hover:scale-105 transition-all duration-300 shadow-sm"
+              alt="Strategy Astrolabe" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           }
           onClick={() => navigate(ROUTES.STRATEGY)}
@@ -146,7 +150,13 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Deception Arena"
           description="Interrogate witnesses and suspects powered by the Dreadler deception engine. Spot strategic omissions, evasions, and implicatures. Maintain pressure to expose the truth."
-          icon={<DaggerIcon />}
+          icon={
+            <img 
+              src={deceptionKey} 
+              alt="Deception Arena" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          }
           onClick={() => navigate(ROUTES.DREADLER)}
           buttonText="Enter Arena"
           className="md:col-span-1"
@@ -155,7 +165,13 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Drafting Practice Studio"
           description={draftingDescription}
-          icon={<QuillIcon />}
+          icon={
+            <img 
+              src={draftingPen} 
+              alt="Drafting Pen" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          }
           onClick={() => navigate(ROUTES.DRAFTING_STUDIO)}
           buttonText="Enter Studio"
           className="md:col-span-1"
@@ -164,7 +180,13 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Case Library"
           description={`Explore diverse legal scenarios and precedents within the ${modeDisplay.toLowerCase()} framework to prepare for rigorous mock trials.`}
-          icon={<FolioIcon />}
+          icon={
+            <img 
+              src={libraryBooks} 
+              alt="Case Library" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          }
           onClick={() => navigate(ROUTES.LIBRARY)}
           buttonText="Browse Cases"
         />
@@ -172,7 +194,13 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Meet the Judges"
           description={`Familiarize yourself with AI Judge personalities, their judicial philosophies, and expectations relevant to ${modeDisplay.toLowerCase()} practice.`}
-          icon={<GavelIcon />}
+          icon={
+            <img 
+              src={judgeGavel} 
+              alt="Judge Gavel" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          }
           onClick={() => navigate(ROUTES.JUDGES)}
           buttonText="View Judges"
         />
@@ -180,7 +208,13 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Opposing Counsel"
           description={`Analyze the specialized AI Opposing Counsel you'll face in the ${modeDisplay.toLowerCase()} arena. Understand their tactical approaches.`}
-          icon={<UsersIcon />}
+          icon={
+            <img 
+              src={counselScales} 
+              alt="Opposing Counsel Scales" 
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          }
           onClick={() => navigate(ROUTES.OPPOSING_COUNSEL)}
           buttonText="View Counsel"
           className="md:col-span-1 lg:col-span-1"
