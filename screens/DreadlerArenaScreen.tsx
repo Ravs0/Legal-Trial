@@ -1027,6 +1027,11 @@ export const DreadlerArenaScreen: React.FC = () => {
                 <div className="absolute top-1 right-2 text-[8px] font-mono text-zinc-500 uppercase">
                   {camera.cameraOn ? '● Live' : camera.loading ? '◌ Acquiring' : '○ Offline'}
                 </div>
+                {camera.error && (
+                  <div className="absolute inset-x-1 top-6 bg-red-950/80 border border-red-500/40 px-1.5 py-1 text-[8px] font-mono text-red-300 leading-tight">
+                    ⚠ {camera.error}
+                  </div>
+                )}
                 
                 {/* RequestRetinal link */}
                 {!camera.cameraOn && !camera.loading && (
@@ -1168,6 +1173,11 @@ export const DreadlerArenaScreen: React.FC = () => {
                   />
                 )}
                 
+                {camera.error && (
+                  <div className="absolute inset-x-2 top-2 bg-red-950/85 border border-red-500/40 px-2 py-1.5 text-[10px] font-mono text-red-300 leading-tight">
+                    ⚠ {camera.error}
+                  </div>
+                )}
                 {!camera.cameraOn && !camera.loading && (
                   <button 
                     onClick={camera.requestPermission}
@@ -1314,6 +1324,12 @@ function useCameraStream() {
     setLoading(true);
     setError(null);
     try {
+      // Secure-context guard: getUserMedia only exists on https/localhost.
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          'Camera needs HTTPS. This page is not in a secure context.',
+        );
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' },
         audio: false,
@@ -1325,9 +1341,7 @@ function useCameraStream() {
       }
       setCameraOn(true);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Camera access denied';
-      setError(message);
+      setError(humanizeCameraError(err));
       setCameraOn(false);
     } finally {
       setLoading(false);
@@ -1355,6 +1369,25 @@ function useCameraStream() {
   }, []);
 
   return { videoRef, cameraOn, loading, error, requestPermission, stop };
+}
+
+/** Turn a getUserMedia failure into a short, actionable message for the HUD. */
+function humanizeCameraError(err: unknown): string {
+  const name = (err as { name?: string })?.name;
+  switch (name) {
+    case 'NotAllowedError':
+    case 'SecurityError':
+      return 'Permission denied. Allow camera access in your browser.';
+    case 'NotFoundError':
+    case 'OverconstrainedError':
+      return 'No camera found on this device.';
+    case 'NotReadableError':
+      return 'Camera in use by another app. Close it and retry.';
+    default:
+      return err instanceof Error && err.message
+        ? err.message
+        : 'Camera access failed.';
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
