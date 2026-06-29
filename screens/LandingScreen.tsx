@@ -5,6 +5,7 @@ import { ROUTES, APP_NAME } from '../constants';
 import { GavelMinimalIcon } from '../components/icons/GavelMinimalIcon';
 import { GlobeMinimalIcon } from '../components/icons/GlobeMinimalIcon';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
+import { BackgroundGeometry } from '../components/BackgroundGeometry';
 
 const LandingScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const LandingScreen: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-primary text-brand-text-primary relative overflow-hidden noise-overlay">
+      <BackgroundGeometry />
       {/* Background vignette of courtroom */}
       <div 
         className="absolute inset-0 bg-cover bg-center opacity-[0.06] mix-blend-luminosity pointer-events-none" 

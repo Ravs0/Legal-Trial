@@ -14,6 +14,7 @@ import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
 import { Modal } from '../components/Modal';
 import { getCategoryColorClasses } from '../services/colorUtils';
+import { BackgroundGeometry } from '../components/BackgroundGeometry';
 
 const useVisualViewport = () => {
   const [vpHeight, setVpHeight] = useState(
@@ -712,6 +713,7 @@ const PracticeArena: React.FC = () => {
       className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden relative"
       style={{ height: `${vpHeight}px` }}
     >
+      <BackgroundGeometry />
 
       <div className="p-4 sm:p-6 bg-brand-bg-secondary/80 backdrop-blur-md border-b border-brand-text-primary/15 flex flex-row justify-between items-center sticky top-0 z-20 flex-shrink-0">
         <div className="text-left flex-grow max-w-3xl mr-2">

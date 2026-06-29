@@ -11,6 +11,7 @@ import { UsersIcon } from './icons/UsersIcon';
 import { QuillIcon } from './icons/QuillIcon';
 import { Bars3Icon } from './icons/Bars3Icon';
 import { XMarkIcon } from './icons/XMarkIcon';
+import { BackgroundGeometry } from './BackgroundGeometry';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -145,6 +146,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="h-dvh flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative noise-overlay">
+      <BackgroundGeometry />
 
       {/* Mobile Top Bar */}
       {showSidebar && (
