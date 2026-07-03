@@ -355,63 +355,84 @@ const DeliberationBlueprint: React.FC<{
     );
   }
 
-  if (activeTab === ChamberMode.SYNTHESIS) {
-    return (
-      <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
-        <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[180px]">
-          {styleBlock}
+	  if (activeTab === ChamberMode.SYNTHESIS) {
+	    // 7 nodes arranged in a circle around (200, 105), radius 72.
+	    const center = { x: 200, y: 105 };
+	    const nodes = [
+	      { id: 1, label: 'SYSTEMIC MATRIX', icon: 'SM', cx: 200, cy: 33 },
+	      { id: 2, label: 'PRECEDENT SCAN',  icon: 'PS', cx: 266, cy: 62 },
+	      { id: 3, label: 'STRESS TEST',     icon: 'ST', cx: 273, cy: 105 },
+	      { id: 4, label: 'ADVERS. SYNTH',   icon: 'AS', cx: 242, cy: 147 },
+	      { id: 5, label: 'CITATION AUDIT',  icon: 'CA', cx: 158, cy: 147 },
+	      { id: 6, label: 'RISK ANALYSIS',   icon: 'RA', cx: 127, cy: 105 },
+	      { id: 7, label: 'FINAL DRAFT',     icon: 'FD', cx: 134, cy: 62 },
+	    ];
+	    const activeStageIndex = oracleTrace.length;
 
-          <path d="M 200 45 L 85 120 L 315 120 Z" fill="none" stroke="#2F3C38" strokeWidth="1.2" />
-          <path d="M 85 120 L 200 175 L 315 120" fill="none" stroke="#2F3C38" strokeWidth="1.2" />
-          
-          <line x1="200" y1="45" x2="200" y2="175" stroke="#8EA38C" strokeWidth="1.2" strokeOpacity="0.25" />
-          <line x1="85" y1="120" x2="200" y2="175" stroke="#D6BA91" strokeWidth="1.5" strokeOpacity="0.3" />
-          <line x1="315" y1="120" x2="200" y2="175" stroke="#A76D56" strokeWidth="1.5" strokeOpacity="0.3" />
+	    return (
+	      <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
+	        <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[170px]">
+	          {styleBlock}
 
-          {isProcessing && (
-            <>
-              <circle r="3.5" fill="#D6BA91">
-                <animateMotion dur="2s" repeatCount="indefinite" path="M 85 120 L 200 175" />
-              </circle>
-              <circle r="3.5" fill="#A76D56">
-                <animateMotion dur="1.8s" repeatCount="indefinite" path="M 315 120 L 200 175" />
-              </circle>
-              <circle r="4" fill="#8EA38C">
-                <animateMotion dur="2.2s" repeatCount="indefinite" path="M 200 45 L 200 175" />
-              </circle>
-            </>
-          )}
+	          {/* Ring */}
+	          <circle cx={center.x} cy={center.y} r="50" fill="none" stroke="#8EA38C" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,6" className="spin-hub" />
 
-          <g className="float-1">
-            <circle cx="200" cy="45" r="15" fill="#0E1513" stroke="#8EA38C" strokeWidth="1.2" className="pulse-blue" />
-            <text x="200" y="48.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">CP</text>
-            <text x="200" y="24" textAnchor="middle" fill="#8EA38C" fontSize="7" fontWeight="bold" fontFamily="monospace">CASE PREMISE</text>
-          </g>
+	          {/* Connection edges — ring + chord to center */}
+	          {nodes.map((n, i) => {
+	            const nextNode = nodes[(i + 1) % nodes.length];
+	            const segDone = i + 1 < activeStageIndex;
+	            return (
+	              <g key={`ring-${n.id}`}>
+	                <line x1={n.cx} y1={n.cy} x2={nextNode.cx} y2={nextNode.cy}
+	                  stroke={segDone ? "#D6BA91" : "#2F3C38"}
+	                  strokeWidth="1.5" strokeOpacity={segDone ? "0.7" : "0.2"} />
+	                {isProcessing && i <= activeStageIndex && (
+	                  <line x1={n.cx} y1={n.cy} x2={nextNode.cx} y2={nextNode.cy}
+	                    className="dash-flow-vermilion" strokeWidth="1.5" />
+	                )}
+	              </g>
+	            );
+	          })}
 
-          <g className="float-2">
-            <circle cx="85" cy="120" r="18" fill="#0E1513" stroke="#D6BA91" strokeWidth="1.5" className="pulse-vermilion" />
-            <text x="85" y="123.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">SH</text>
-            <text x="85" y="93" textAnchor="middle" fill="#D6BA91" fontSize="7" fontWeight="bold" fontFamily="monospace">24 STAKEHOLDERS</text>
-          </g>
+	          {/* Center hub */}
+	          <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
+	            <circle cx="0" cy="0" r="18" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
+	            <circle cx="0" cy="0" r="12" fill="#2F3C38" stroke="#EAE6DF" strokeOpacity="0.05" />
+	            <text x="0" y="4" textAnchor="middle" fill="#D6BA91" fontSize="9" fontFamily="mono" fontWeight="bold">7Φ</text>
+	            {isProcessing && (
+	              <circle cx="0" cy="0" r="23" fill="none" stroke="#D6BA91" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" />
+	            )}
+	          </g>
 
-          <g className="float-3">
-            <circle cx="315" cy="120" r="18" fill="#0E1513" stroke="#A76D56" strokeWidth="1.5" className="pulse-red" />
-            <text x="315" y="123.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">VS</text>
-            <text x="315" y="93" textAnchor="middle" fill="#A76D56" fontSize="7" fontWeight="bold" fontFamily="monospace">PROSECUTION STRESS</text>
-          </g>
-
-          <g className="float-1">
-            <circle cx="200" cy="175" r="22" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
-            {isProcessing && (
-              <circle cx="200" cy="175" r="25" fill="none" stroke="#D6BA91" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" className="spin-hub" />
-            )}
-            <text x="200" y="179.5" textAnchor="middle" fill="#EAE6DF" fontSize="8" fontFamily="mono" fontWeight="bold">SC</text>
-            <text x="200" y="207" textAnchor="middle" fill="#D6BA91" fontSize="7" fontWeight="bold" fontFamily="monospace">SYNTHESIS CORE</text>
-          </g>
-        </svg>
-      </div>
-    );
-  }
+	          {/* Nodes */}
+	          {nodes.map((n, i) => {
+	            const completed = i < activeStageIndex;
+	            const active = isProcessing && i === activeStageIndex;
+	            const pending = i > activeStageIndex;
+	            return (
+	              <g key={`node-${n.id}`}
+	                className={n.id <= 5 ? "float-1" : "float-2"}>
+	                <circle cx={n.cx} cy={n.cy} r="14"
+	                  fill={completed ? "#D6BA91" : "#0E1513"}
+	                  fillOpacity={completed ? "0.15" : "0.9"}
+	                  stroke={active ? "#E5D4BC" : completed ? "#D6BA91" : "#2F3C38"}
+	                  strokeWidth={active ? "2.5" : "1.2"}
+	                  className={active ? "pulse-vermilion" : ""} />
+	                <text x={n.cx} y={n.cy + 3} textAnchor="middle"
+	                  fill={completed || active ? "#D6BA91" : "#455651"}
+	                  fontSize="8" fontFamily="monospace" fontWeight="bold">{completed ? '§' : n.icon}</text>
+	                <text x={n.cx} y={n.cy - 17} textAnchor="middle"
+	                  fill={active ? "#D6BA91" : completed ? "#EAE6DF" : "#8EA38C"}
+	                  fontSize="6" fontWeight={active ? "bold" : "normal"} fontFamily="monospace">
+	                  {n.label}
+	                </text>
+	              </g>
+	            );
+	          })}
+	        </svg>
+	      </div>
+	    );
+	  }
 
   return null;
 };
@@ -758,25 +779,54 @@ export const StrategyRoomScreen: React.FC = () => {
         updateProvisionalBubble(response, undefined, selectedPersona.name);
 
       } else if (activeTab === ChamberMode.SYNTHESIS) {
-        setOracleStage('Phase 1: Mobilizing 24 expert legal personas...');
-        const deconstruct = await callChatAPI(`Map the 24 conflicting interests and legal forces in play for this dispute:\n\nDispute facts: ${text}`, 'Comprehensive systemic legal auditor.', 'deepseek-chat', signal);
-        const trace = [{ stage: 'Systemic Matrix', content: deconstruct }];
-        setOracleTrace([...trace]);
-        updateProvisionalBubble('Mapping conflicting systemic forces and stakeholder interest matrices...', [...trace]);
+	        const jurisLabel = practiceMode === 'indian' ? 'INDIAN' : 'INTERNATIONAL';
+	        const jurisInstruction = practiceMode === 'indian'
+	          ? 'CRITICAL: You operate in the INDIAN legal system. ONLY cite Indian Supreme Court, High Court, or Tribunal judgments. NEVER reference international, foreign, or comparative jurisdiction case law.'
+	          : 'CRITICAL: You operate in the INTERNATIONAL legal system. ONLY cite international tribunals (ICJ, ICC, WTO, ICSID, etc.) or foreign domestic courts appropriate to the case jurisdiction. NEVER reference Indian judgments or Indian legal principles.';
 
-        setOracleStage('Phase 2: Stress-testing adversarial arguments...');
-        const stressTest = await callChatAPI(`Matrix of interests:\n${deconstruct}\n\nClient premise: ${text}\n\nGenerate the absolute most damaging counter-argument that opposing counsel could raise to destroy this case.`, 'Adversarial prosecuting general.', 'reasoner', signal);
-        trace.push({ stage: 'Adversarial Stress Test', content: stressTest });
-        setOracleTrace([...trace]);
-        updateProvisionalBubble('Simulating high-stakes opposition rebuttals and counterclaims...', [...trace]);
+	        setOracleStage('Phase 1/7: Systemic Matrix — mapping stakeholders & forces...');
+	        const s1 = await callChatAPI(`Map the 24 conflicting interests and legal forces in play for this dispute. ${jurisInstruction}\n\nDispute facts: ${text}`, 'Comprehensive systemic legal auditor.', 'deepseek-chat', signal);
+	        const trace = [{ stage: 'Systemic Matrix', content: s1 }];
+	        setOracleTrace([...trace]);
+	        updateProvisionalBubble('Mapping conflicting systemic forces and stakeholder interest matrices...', [...trace]);
 
-        setOracleStage('Phase 3: Synthesizing unbreakable court strategy...');
-        const synthesis = await callChatAPI(`Client premise: ${text}\n\nAdversarial counter-arguments:\n${stressTest}\n\nFormulate a unified, unbreakable litigation strategy and motion draft plan to inoculate the client against these specific attacks.`, 'Senior advocate and strategic synthesis master.', 'reasoner', signal);
-        trace.push({ stage: 'Adversarial Synthesis', content: synthesis });
-        setOracleTrace([...trace]);
-        
-        updateProvisionalBubble(synthesis, [...trace], 'Synthesized Adversarial Memo');
-      }
+	        setOracleStage('Phase 2/7: Jurisdictional Precedent Scan — scanning case law...');
+	        const s2 = await callChatAPI(`${jurisLabel} jurisdiction.\n\nDispute facts: ${text}\n\nSystemic matrix:\n${s1}\n\n${jurisInstruction}\n\nIdentify and summarize 8-12 landmark precedents from the ${jurisLabel} jurisdiction relevant to this dispute. For each precedent, provide the full case name, neutral citation, ratio decidendi, and why it applies.`, `${jurisLabel} legal precedent researcher.`, 'deepseek-chat', signal);
+	        trace.push({ stage: 'Jurisdictional Precedent Scan', content: s2 });
+	        setOracleTrace([...trace]);
+	        updateProvisionalBubble('Scanning relevant case law and judicial precedents...', [...trace]);
+
+	        setOracleStage('Phase 3/7: Adversarial Stress Test — simulating opposition...');
+	        const s3 = await callChatAPI(`Relevant precedents:\n${s2}\n\n${jurisInstruction}\n\nClient premise: ${text}\n\nGenerate the absolute most damaging counter-argument that opposing counsel could raise to destroy this case, citing adverse precedent where possible.`, 'Adversarial prosecuting general.', 'reasoner', signal);
+	        trace.push({ stage: 'Adversarial Stress Test', content: s3 });
+	        setOracleTrace([...trace]);
+	        updateProvisionalBubble('Simulating high-stakes opposition rebuttals and counterclaims...', [...trace]);
+
+	        setOracleStage('Phase 4/7: Adversarial Synthesis — crafting unified strategy...');
+	        const s4 = await callChatAPI(`Client premise: ${text}\n\n${jurisInstruction}\n\nRelevant precedents:\n${s2}\n\nAdversarial counter-arguments:\n${s3}\n\nFormulate a unified, unbreakable litigation strategy and motion draft plan that inoculates the client against these specific attacks and leverages the identified precedents.`, 'Senior advocate and strategic synthesis master.', 'reasoner', signal);
+	        trace.push({ stage: 'Adversarial Synthesis', content: s4 });
+	        setOracleTrace([...trace]);
+	        updateProvisionalBubble('Synthesizing unified litigation strategy with precedent support...', [...trace]);
+
+	        setOracleStage('Phase 5/7: Judgment Validation & Citation Audit...');
+	        const s5 = await callChatAPI(`Litigation strategy and motion draft:\n${s4}\n\n${jurisInstruction}\n\nExtract EVERY specific case or judgment cited in the above strategy. For each, determine:\n1. Has this judgment been overruled, reversed, or overruled in part?\n2. Has it been cited, affirmed, distinguished, or followed in subsequent cases?\n3. Is it still binding / precedential in the ${jurisLabel} jurisdiction?\n4. Are there any conflicting judgments on the same point of law?\n\nOutput a validation table with columns: Case Name | Citation | Current Status | Cited/Followed By | Risk Level (High/Medium/Low)`, `${jurisLabel} citation validation clerk.`, 'reasoner', signal);
+	        trace.push({ stage: 'Judgment Validation & Citation Audit', content: s5 });
+	        setOracleTrace([...trace]);
+	        updateProvisionalBubble('Validating cited judgments for overruling, distinguishing, and good-law status...', [...trace]);
+
+	        setOracleStage('Phase 6/7: Risk & Vulnerability Analysis...');
+	        const s6 = await callChatAPI(`Litigation strategy:\n${s4}\n\n${jurisInstruction}\n\nCitation audit:\n${s5}\n\nPerform a comprehensive ${jurisLabel} risk analysis covering:\n1. Procedural risks (limitation periods, jurisdiction bars, maintainability)\n2. Evidentiary vulnerabilities\n3. Adverse-precedent risk flagged in the citation audit\n4. Counter-party strategy risks\n5. Proposed mitigation strategies for each identified risk`, `${jurisLabel} litigation risk auditor.`, 'deepseek-chat', signal);
+	        trace.push({ stage: 'Risk & Vulnerability Analysis', content: s6 });
+	        setOracleTrace([...trace]);
+	        updateProvisionalBubble('Performing comprehensive risk and vulnerability audit...', [...trace]);
+
+	        setOracleStage('Phase 7/7: Final Motion Draft — polishing deliverable...');
+	        const s7 = await callChatAPI(`Full analysis:\nPrecedents: ${s2}\nStrategy: ${s4}\nCitation audit: ${s5}\nRisk analysis: ${s6}\n\n${jurisInstruction}\n\nProduce the final, court-ready advisory memorandum and motion draft. Structure it as:\n1. Case Overview & Material Facts\n2. Points of Determination / Issues\n3. Arguments (with ${jurisLabel} precedent citations from the scan)\n4. Citation Appendix (with validation-status note per case from the audit)\n5. Risk Register & Mitigations\n6. Proposed Motion / Pleading Draft\n\nRemove all meta-commentary, stage labels, and introductory summaries. Output only the polished legal deliverable.`, 'Master litigator and senior judicial clerk.', 'deepseek-chat', signal);
+	        trace.push({ stage: 'Final Motion Draft', content: s7 });
+	        setOracleTrace([...trace]);
+
+	        updateProvisionalBubble(s7, [...trace], 'Synthesized Adversarial Memo');
+	      }
     } catch (err: any) {
       if (err.name === 'AbortError') {
         updateProvisionalBubble('[Cancelled] Deliberation cancelled by user.');
@@ -998,9 +1048,13 @@ export const StrategyRoomScreen: React.FC = () => {
                       'Reconcile',
                       'Polish'
                     ] : activeTab === ChamberMode.SYNTHESIS ? [
-                      'Matrix',
+                      'Systemic Matrix',
+                      'Precedent Scan',
                       'Stress Test',
-                      'Synthesis'
+                      'Synthesis',
+                      'Citation Audit',
+                      'Risk Analysis',
+                      'Final Draft'
                     ] : ['Processing'])).map((stg, idx) => {
                       const isCompleted = idx < oracleTrace.length;
                       const isActive = idx === oracleTrace.length;
@@ -1405,8 +1459,12 @@ export const StrategyRoomScreen: React.FC = () => {
                         'Final Polish'
                       ] : activeTab === ChamberMode.SYNTHESIS ? [
                         'Systemic Matrix',
+                        'Jurisdictional Precedent Scan',
                         'Adversarial Stress Test',
-                        'Adversarial Synthesis'
+                        'Adversarial Synthesis',
+                        'Judgment Validation & Citation Audit',
+                        'Risk & Vulnerability Analysis',
+                        'Final Motion Draft'
                       ] : ['Processing Consultation'])).map((stg, idx) => {
                         const isCompleted = idx < oracleTrace.length;
                         const isActive = idx === oracleTrace.length;
