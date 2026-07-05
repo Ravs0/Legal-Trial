@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     }
     if (!body) return res.status(400).json({ error: "Empty body" });
 
-    const { messages, system, model } = body;
+    const { messages, system, model, temperature, max_tokens } = body;
     if (!Array.isArray(messages)) return res.status(400).json({ error: "'messages' array required" });
 
     const config = getModelConfig(model);
@@ -65,8 +65,15 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 model: config.model,
                 messages: allMessages,
-                temperature: config.model === "deepseek-reasoner" ? undefined : 0.6,
-                max_tokens: config.model === "deepseek-reasoner" ? undefined : 1000,
+                // Reasoner ignores sampling params upstream. For chat we honour
+                // client overrides, falling back to the original 0.6 / 1000
+                // defaults so existing callers behave unchanged.
+                temperature: config.model === "deepseek-reasoner"
+                    ? undefined
+                    : (typeof temperature === "number" ? temperature : 0.6),
+                max_tokens: config.model === "deepseek-reasoner"
+                    ? undefined
+                    : (typeof max_tokens === "number" ? max_tokens : 1000),
                 stream: streamRequested,
             }),
         });

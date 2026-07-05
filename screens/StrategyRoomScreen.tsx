@@ -3,15 +3,244 @@ import ReactMarkdown from 'react-markdown';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { TrialSimContext } from '../App';
-import { SelectInput } from '../components/SelectInput';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { CourtIcon } from '../components/icons/CourtIcon';
+import { CitationIcon } from '../components/icons/CitationIcon';
+import { searchCaselaw, CaselawResult, CITATION_EXTRACTOR_SYSTEM } from '../services/caselawService';
 
 enum ChamberMode {
   ORACLE = 'oracle',
   COUNCIL = 'council',
   SYNTHESIS = 'synthesis',
 }
+
+// ─── 7-Phase Synthesis stage table ────────────────────────────────────────────
+//
+// One source of truth for the Synthesis chamber's prompts, model routing,
+// sampling params, display labels, trace keys, and the abbreviated SVG node
+// labels. The trace panels (mobile + desktop), the DeliberationBlueprint SVG,
+// and the per-stage execution loop all read from this table — so the three
+// previously-divergent label spellings ("Judgment Validation & Citation
+// Audit" vs "CITATION AUDIT" vs "Citation Audit") now align by construction.
+//
+// `buildPrompt` is called with a SynthesisContext that is mutated stage-by-
+// stage as outputs accumulate (`stages[k] = output`), plus a verification
+// block Stage 5 consumes (assembled from real /api/caselaw lookups prior to
+// invoking the audit prompt).
+
+interface JurisdictionInfo {
+  label: string;
+  instruction: string;
+}
+
+interface SynthesisContext {
+  dispute: string;
+  stages: Record<string, string>;
+  retrievedPrecedents: CaselawResult[];
+  retrievalAvailable: boolean;
+  verificationBlock: string;
+}
+
+interface SynthesisStage {
+  key: string;
+  label: string;          // canonical — trace panels
+  svgLabel: string;        // abbreviated — DeliberationBlueprint SVG node
+  icon: string;            // two-letter SVG node glyph
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  system: (juris: JurisdictionInfo) => string;
+  buildPrompt: (ctx: SynthesisContext, juris: JurisdictionInfo) => string;
+  interimBubble: string;    // status line shown while the stage runs
+}
+
+const SYNTHESIS_STAGES: SynthesisStage[] = [
+  {
+    key: 'systemic-matrix',
+    label: 'Systemic Matrix',
+    svgLabel: 'SYSTEMIC MATRIX',
+    icon: 'SM',
+    model: 'deepseek-chat',
+    temperature: 0.5,
+    maxTokens: 1200,
+    system: () => 'Comprehensive systemic legal auditor.',
+    buildPrompt: (_ctx, juris) =>
+      `Map the 24 conflicting interests and legal forces in play for this dispute. ${juris.instruction}\n\nDispute facts: ${_ctx.dispute}`,
+    interimBubble: 'Mapping conflicting systemic forces and stakeholder interest matrices...',
+  },
+  {
+    key: 'precedent-scan',
+    label: 'Jurisdictional Precedent Scan',
+    svgLabel: 'PRECEDENT SCAN',
+    icon: 'PS',
+    model: 'deepseek-chat',
+    temperature: 0.4,
+    maxTokens: 2000,
+    system: (juris) => `${juris.label} legal precedent researcher.`,
+    buildPrompt: (ctx, juris) => {
+      // Stage 2 is the one that consumes real retrieval. The directive below
+      // is strict: cite ONLY from the retrieved block; if empty, fall back to
+      // widely-accepted black-letter principles and say so explicitly. This
+      // is what stops the model from hallucinating neutral citations.
+      const retrievedBlock = ctx.retrievedPrecedents.length > 0
+        ? ctx.retrievedPrecedents.map((p, i) => (
+            `  (${i + 1}) Title: ${p.title}\n` +
+            `      Citation: ${p.citation || '(not recorded)'}\n` +
+            `      Court: ${p.court || '(not recorded)'}\n` +
+            `      Date: ${p.date || '(not recorded)'}\n` +
+            `      URL: ${p.url || '(none)'}\n` +
+            `      Snippet: ${p.snippet || ''}`
+          )).join('\n')
+        : '(no precedents were retrieved — see note below)';
+
+      const retrievalNote = !ctx.retrievalAvailable
+        ? 'NOTE: Real-time case-law lookup is currently unavailable. Do not invent citations; identify only widely-accepted black-letter principles by name and explain each clearly.'
+        : ctx.retrievedPrecedents.length === 0
+          ? 'NOTE: The case-law lookup returned zero hits for this dispute. Identify only widely-accepted black-letter principles by name and explain each clearly. Do NOT invent citations.'
+          : 'NOTE: You are GIVEN real retrieved precedents above. ONLY cite cases from this block. For each, give the official citation as retrieved, summarise the ratio from the snippet, and explain applicability to the dispute. Do NOT invent or interpolate citations.';
+
+      return (
+        `${juris.label} jurisdiction.\n\n` +
+        `Dispute facts: ${ctx.dispute}\n\n` +
+        `Systemic matrix:\n${ctx.stages['systemic-matrix']}\n\n` +
+        `${juris.instruction}\n\n` +
+        `## RETRIEVED PRECEDENTS (verified source)\n${retrievedBlock}\n\n` +
+        `${retrievalNote}\n\n` +
+        `Using the above precedents, summarise at most 12 of the most relevant entries. ` +
+        `For each, give: Case Name | Citation | Court | Date | Ratio (inferred from snippet) | ` +
+        `Why it applies to this dispute. If the retrieval block is empty, list 3-6 widely-` +
+        `accepted black-letter principles instead, clearly labelled as principles (not cases).`
+      );
+    },
+    interimBubble: 'Scanning real case law and judicial precedents...',
+  },
+  {
+    key: 'stress-test',
+    label: 'Adversarial Stress Test',
+    svgLabel: 'STRESS TEST',
+    icon: 'ST',
+    model: 'reasoner',
+    temperature: 0.5,
+    maxTokens: 2000,
+    system: () => 'Adversarial prosecuting general.',
+    buildPrompt: (ctx, juris) =>
+      `Relevant precedents:\n${ctx.stages['precedent-scan']}\n\n${juris.instruction}\n\n` +
+      `Client premise: ${ctx.dispute}\n\n` +
+      `Generate the absolute most damaging counter-argument that opposing counsel could ` +
+      `raise to destroy this case, citing adverse precedent where possible (only from the ` +
+      `retrieved precedents above).`,
+    interimBubble: 'Simulating high-stakes opposition rebuttals and counterclaims...',
+  },
+  {
+    key: 'adversarial-synthesis',
+    label: 'Adversarial Synthesis',
+    svgLabel: 'ADVERS. SYNTH',
+    icon: 'AS',
+    model: 'reasoner',
+    temperature: 0.5,
+    maxTokens: 2500,
+    system: () => 'Senior advocate and strategic synthesis master.',
+    buildPrompt: (ctx, juris) =>
+      `Client premise: ${ctx.dispute}\n\n${juris.instruction}\n\n` +
+      `Relevant precedents:\n${ctx.stages['precedent-scan']}\n\n` +
+      `Adversarial counter-arguments:\n${ctx.stages['stress-test']}\n\n` +
+      `Formulate a unified, unbreakable litigation strategy and motion draft plan ` +
+      `that inoculates the client against these specific attacks and leverages the ` +
+      `identified precedents (cite them as presented in the precedent scan; do not ` +
+      `invent new citations).`,
+    interimBubble: 'Synthesizing unified litigation strategy with precedent support...',
+  },
+  {
+    key: 'citation-audit',
+    label: 'Judgment Validation & Citation Audit',
+    svgLabel: 'CITATION AUDIT',
+    icon: 'CA',
+    model: 'reasoner',
+    temperature: 0.4,
+    maxTokens: 2500,
+    system: (juris) => `${juris.label} citation validation clerk.`,
+    buildPrompt: (ctx, juris) => {
+      // The verification block is assembled by the orchestrator before this
+      // stage runs — it contains real treatment-status rows from /api/caselaw
+      // lookups of each candidate case extracted from the Stage 4 strategy.
+      // When retrieval was unavailable, every cited case is auto-marked
+      // UNVERIFIED so the audit table never fabricates a "good law" verdict.
+      const verification = ctx.verificationBlock
+        ? `## VERIFICATION BLOCK (real lookup results)\n${ctx.verificationBlock}\n\n`
+        : `## VERIFICATION BLOCK\nReal lookup was unavailable for this jurisdiction. ` +
+          `Mark EVERY cited case as "UNVERIFIED — manual check required" in the audit table.\n\n`;
+
+      return (
+        `Litigation strategy and motion draft:\n${ctx.stages['adversarial-synthesis']}\n\n` +
+        `${juris.instruction}\n\n` +
+        verification +
+        `Extract EVERY specific case or judgment cited in the above strategy. For each, ` +
+        `determine:\n` +
+        `1. Cross-reference the case against the VERIFICATION BLOCK above to confirm status. ` +
+        `2. Has this judgment been overruled, reversed, or overruled in part (only if the ` +
+        `verification block states so — otherwise mark UNVERIFIED)?\n` +
+        `3. Is it still binding / precedential in the ${juris.label} jurisdiction?\n` +
+        `4. Are there any conflicting judgments on the same point of law?\n\n` +
+        `Output a validation table with columns: Case Name | Citation | Current Status | ` +
+        `Cited/Followed By | Risk Level (High/Medium/Low/UNVERIFIED). ` +
+        `Any case NOT present in the VERIFICATION BLOCK must be marked UNVERIFIED.`
+      );
+    },
+    interimBubble: 'Validating cited judgments against real lookup results...',
+  },
+  {
+    key: 'risk-analysis',
+    label: 'Risk & Vulnerability Analysis',
+    svgLabel: 'RISK ANALYSIS',
+    icon: 'RA',
+    model: 'deepseek-chat',
+    temperature: 0.4,
+    maxTokens: 2000,
+    system: (juris) => `${juris.label} litigation risk auditor.`,
+    buildPrompt: (ctx, juris) =>
+      `Litigation strategy:\n${ctx.stages['adversarial-synthesis']}\n\n${juris.instruction}\n\n` +
+      `Citation audit:\n${ctx.stages['citation-audit']}\n\n` +
+      `Perform a comprehensive ${juris.label} risk analysis covering:\n` +
+      `1. Procedural risks (limitation periods, jurisdiction bars, maintainability)\n` +
+      `2. Evidentiary vulnerabilities\n` +
+      `3. Adverse-precedent risk flagged in the citation audit (especially UNVERIFIED rows)\n` +
+      `4. Counter-party strategy risks\n` +
+      `5. Proposed mitigation strategies for each identified risk`,
+    interimBubble: 'Performing comprehensive risk and vulnerability audit...',
+  },
+  {
+    key: 'final-draft',
+    label: 'Final Motion Draft',
+    svgLabel: 'FINAL DRAFT',
+    icon: 'FD',
+    model: 'deepseek-chat',
+    temperature: 0.4,
+    maxTokens: 4096, // Memo must NOT truncate at the old server cap of 1000.
+    system: () => 'Master litigator and senior judicial clerk.',
+    buildPrompt: (ctx, juris) =>
+      `Full analysis:\n` +
+      `Precedents: ${ctx.stages['precedent-scan']}\n` +
+      `Strategy: ${ctx.stages['adversarial-synthesis']}\n` +
+      `Citation audit: ${ctx.stages['citation-audit']}\n` +
+      `Risk analysis: ${ctx.stages['risk-analysis']}\n\n` +
+      `${juris.instruction}\n\n` +
+      `Produce the final, court-ready advisory memorandum and motion draft. Structure it as:\n` +
+      `1. Case Overview & Material Facts\n` +
+      `2. Points of Determination / Issues\n` +
+      `3. Arguments (with ${juris.label} precedent citations from the scan — only those present in the citation audit's verified rows)\n` +
+      `4. Citation Appendix (with validation-status note per case from the audit; UNVERIFIED cases flagged)\n` +
+      `5. Risk Register & Mitigations\n` +
+      `6. Proposed Motion / Pleading Draft\n\n` +
+      `Remove all meta-commentary, stage labels, and introductory summaries. ` +
+      `Output only the polished legal deliverable.`,
+    interimBubble: 'Polishing final court-ready motion draft...',
+  },
+];
+
+// Index by stage.key for O(1) lookup during execution + UI trace rendering.
+const SYNTHESIS_BY_KEY: Record<string, SynthesisStage> = Object.fromEntries(
+  SYNTHESIS_STAGES.map(s => [s.key, s])
+);
 
 interface Persona {
   id: string;
@@ -69,6 +298,23 @@ interface ChatBubble {
   text: string;
   meta?: string;
   trace?: { stage: string; content: string }[];
+  // Citations actually retrieved for Stage 2 — surfaced inline in the bubble
+  // so the user can audit the model's claims against the real source.
+  citations?: CaselawResult[];
+  // Treatment-status evidence backing Stage 5's audit table. Empty for any
+  // non-Synthesis assistant bubble.
+  verification?: VerificationRow[];
+  // Footnote about retrieval health, shown bottom-right of the bubble.
+  retrievalNote?: string;
+}
+
+interface VerificationRow {
+  caseName: string;
+  citation: string;
+  status: string;       // e.g. "Verified — located via IndianKanoon"
+  url?: string;
+  dates?: string;
+  court?: string;
 }
 
 const DeliberationBlueprint: React.FC<{
@@ -77,8 +323,6 @@ const DeliberationBlueprint: React.FC<{
   oracleStage: string;
   oracleTrace: { stage: string; content: string }[];
   selectedPersona: Persona;
-  selectedModel: string;
-  setSelectedModel: (model: string) => void;
   setSelectedPersona: (p: Persona) => void;
 }> = ({
   activeTab,
@@ -86,8 +330,6 @@ const DeliberationBlueprint: React.FC<{
   oracleStage,
   oracleTrace,
   selectedPersona,
-  selectedModel,
-  setSelectedModel,
   setSelectedPersona,
 }) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -355,84 +597,88 @@ const DeliberationBlueprint: React.FC<{
     );
   }
 
-	  if (activeTab === ChamberMode.SYNTHESIS) {
-	    // 7 nodes arranged in a circle around (200, 105), radius 72.
-	    const center = { x: 200, y: 105 };
-	    const nodes = [
-	      { id: 1, label: 'SYSTEMIC MATRIX', icon: 'SM', cx: 200, cy: 33 },
-	      { id: 2, label: 'PRECEDENT SCAN',  icon: 'PS', cx: 266, cy: 62 },
-	      { id: 3, label: 'STRESS TEST',     icon: 'ST', cx: 273, cy: 105 },
-	      { id: 4, label: 'ADVERS. SYNTH',   icon: 'AS', cx: 242, cy: 147 },
-	      { id: 5, label: 'CITATION AUDIT',  icon: 'CA', cx: 158, cy: 147 },
-	      { id: 6, label: 'RISK ANALYSIS',   icon: 'RA', cx: 127, cy: 105 },
-	      { id: 7, label: 'FINAL DRAFT',     icon: 'FD', cx: 134, cy: 62 },
-	    ];
-	    const activeStageIndex = oracleTrace.length;
+		  if (activeTab === ChamberMode.SYNTHESIS) {
+		    // Nodes read from the SYNTHESIS_STAGES table — same labels, icons, model
+		    // badges that the trace panels and pipeline use, so all three always agree.
+		    // Coordinates are hand-placed for a balanced 7-node wheel.
+		    const center = { x: 200, y: 105 };
+		    const nodePositions = [
+		      { cx: 200, cy: 33 },   // systemic-matrix
+		      { cx: 266, cy: 62 },   // precedent-scan
+		      { cx: 273, cy: 105 },  // stress-test
+		      { cx: 242, cy: 147 },  // adversarial-synthesis
+		      { cx: 158, cy: 147 },  // citation-audit
+		      { cx: 127, cy: 105 },  // risk-analysis
+		      { cx: 134, cy: 62 },   // final-draft
+		    ];
+		    const activeStageIndex = oracleTrace.length;
 
-	    return (
-	      <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
-	        <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[170px]">
-	          {styleBlock}
+		    return (
+		      <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
+		        <svg viewBox="0 0 400 210" className="w-full h-auto max-h-[170px]">
+		          {styleBlock}
 
-	          {/* Ring */}
-	          <circle cx={center.x} cy={center.y} r="50" fill="none" stroke="#8EA38C" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,6" className="spin-hub" />
+		          {/* Ring */}
+		          <circle cx={center.x} cy={center.y} r="50" fill="none" stroke="#8EA38C" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,6" className="spin-hub" />
 
-	          {/* Connection edges — ring + chord to center */}
-	          {nodes.map((n, i) => {
-	            const nextNode = nodes[(i + 1) % nodes.length];
-	            const segDone = i + 1 < activeStageIndex;
-	            return (
-	              <g key={`ring-${n.id}`}>
-	                <line x1={n.cx} y1={n.cy} x2={nextNode.cx} y2={nextNode.cy}
-	                  stroke={segDone ? "#D6BA91" : "#2F3C38"}
-	                  strokeWidth="1.5" strokeOpacity={segDone ? "0.7" : "0.2"} />
-	                {isProcessing && i <= activeStageIndex && (
-	                  <line x1={n.cx} y1={n.cy} x2={nextNode.cx} y2={nextNode.cy}
-	                    className="dash-flow-vermilion" strokeWidth="1.5" />
-	                )}
-	              </g>
-	            );
-	          })}
+		          {/* Connection edges — ring + chord to center */}
+		          {SYNTHESIS_STAGES.map((stg, i) => {
+		            const n = nodePositions[i];
+		            const nextIdx = (i + 1) % SYNTHESIS_STAGES.length;
+		            const nextPos = nodePositions[nextIdx];
+		            const segDone = i + 1 < activeStageIndex;
+		            return (
+		              <g key={`ring-${stg.key}`}>
+		                <line x1={n.cx} y1={n.cy} x2={nextPos.cx} y2={nextPos.cy}
+		                  stroke={segDone ? "#D6BA91" : "#2F3C38"}
+		                  strokeWidth="1.5" strokeOpacity={segDone ? "0.7" : "0.2"} />
+		                {isProcessing && i <= activeStageIndex && (
+		                  <line x1={n.cx} y1={n.cy} x2={nextPos.cx} y2={nextPos.cy}
+		                    className="dash-flow-vermilion" strokeWidth="1.5" />
+		                )}
+		              </g>
+		            );
+		          })}
 
-	          {/* Center hub */}
-	          <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
-	            <circle cx="0" cy="0" r="18" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
-	            <circle cx="0" cy="0" r="12" fill="#2F3C38" stroke="#EAE6DF" strokeOpacity="0.05" />
-	            <text x="0" y="4" textAnchor="middle" fill="#D6BA91" fontSize="9" fontFamily="mono" fontWeight="bold">7Φ</text>
-	            {isProcessing && (
-	              <circle cx="0" cy="0" r="23" fill="none" stroke="#D6BA91" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" />
-	            )}
-	          </g>
+		          {/* Center hub */}
+		          <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
+		            <circle cx="0" cy="0" r="18" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
+		            <circle cx="0" cy="0" r="12" fill="#2F3C38" stroke="#EAE6DF" strokeOpacity="0.05" />
+		            <text x="0" y="4" textAnchor="middle" fill="#D6BA91" fontSize="9" fontFamily="mono" fontWeight="bold">7Φ</text>
+		            {isProcessing && (
+		              <circle cx="0" cy="0" r="23" fill="none" stroke="#D6BA91" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" />
+		            )}
+		          </g>
 
-	          {/* Nodes */}
-	          {nodes.map((n, i) => {
-	            const completed = i < activeStageIndex;
-	            const active = isProcessing && i === activeStageIndex;
-	            const pending = i > activeStageIndex;
-	            return (
-	              <g key={`node-${n.id}`}
-	                className={n.id <= 5 ? "float-1" : "float-2"}>
-	                <circle cx={n.cx} cy={n.cy} r="14"
-	                  fill={completed ? "#D6BA91" : "#0E1513"}
-	                  fillOpacity={completed ? "0.15" : "0.9"}
-	                  stroke={active ? "#E5D4BC" : completed ? "#D6BA91" : "#2F3C38"}
-	                  strokeWidth={active ? "2.5" : "1.2"}
-	                  className={active ? "pulse-vermilion" : ""} />
-	                <text x={n.cx} y={n.cy + 3} textAnchor="middle"
-	                  fill={completed || active ? "#D6BA91" : "#455651"}
-	                  fontSize="8" fontFamily="monospace" fontWeight="bold">{completed ? '§' : n.icon}</text>
-	                <text x={n.cx} y={n.cy - 17} textAnchor="middle"
-	                  fill={active ? "#D6BA91" : completed ? "#EAE6DF" : "#8EA38C"}
-	                  fontSize="6" fontWeight={active ? "bold" : "normal"} fontFamily="monospace">
-	                  {n.label}
-	                </text>
-	              </g>
-	            );
-	          })}
-	        </svg>
-	      </div>
-	    );
-	  }
+		          {/* Nodes */}
+		          {SYNTHESIS_STAGES.map((stg, i) => {
+		            const n = nodePositions[i];
+		            const completed = i < activeStageIndex;
+		            const active = isProcessing && i === activeStageIndex;
+		            return (
+		              <g key={`node-${stg.key}`}
+		                className={i <= 4 ? "float-1" : "float-2"}>
+		                <circle cx={n.cx} cy={n.cy} r="14"
+		                  fill={completed ? "#D6BA91" : "#0E1513"}
+		                  fillOpacity={completed ? "0.15" : "0.9"}
+		                  stroke={active ? "#E5D4BC" : completed ? "#D6BA91" : "#2F3C38"}
+		                  strokeWidth={active ? "2.5" : "1.2"}
+		                  className={active ? "pulse-vermilion" : ""} />
+		                <text x={n.cx} y={n.cy + 3} textAnchor="middle"
+		                  fill={completed || active ? "#D6BA91" : "#455651"}
+		                  fontSize="8" fontFamily="monospace" fontWeight="bold">{completed ? '§' : stg.icon}</text>
+		                <text x={n.cx} y={n.cy - 17} textAnchor="middle"
+		                  fill={active ? "#D6BA91" : completed ? "#EAE6DF" : "#8EA38C"}
+		                  fontSize="6" fontWeight={active ? "bold" : "normal"} fontFamily="monospace">
+		                  {stg.svgLabel}
+		                </text>
+		              </g>
+		            );
+		          })}
+		        </svg>
+		      </div>
+		    );
+		  }
 
   return null;
 };
@@ -499,9 +745,90 @@ export const StrategyRoomScreen: React.FC = () => {
     );
   };
 
+  // ─── Citation & verification panel ───────────────────────────────────────────
+  // Renders real retrieved-precedents and/or verification rows inside an assistant
+  // bubble for Synthesis stages 2 and 5. Falls through without output when there
+  // is nothing to show.
+  const renderCitationPanel = (item: ChatBubble) => {
+    const hasCitations = item.citations && item.citations.length > 0;
+    const hasVerification = item.verification && item.verification.length > 0;
+    if (!hasCitations && !hasVerification && !item.retrievalNote) return null;
+
+    return (
+      <div className="mt-2 pt-2 border-t border-white/10 space-y-2">
+        {/* Retrieved precedents (Stage 2) */}
+        {hasCitations && (
+          <div className="p-2 bg-brand-bg-primary/50 border border-brand-border rounded-xl space-y-1.5">
+            <h6 className="flex items-center gap-1 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-text-primary/80">
+              <CitationIcon className="w-3 h-3" /> Retrieved Precedents
+            </h6>
+            {(item.citations || []).map((c, i) => (
+              <div key={i} className="text-[9px] space-y-0.5 p-1.5 bg-brand-bg-primary/30 rounded-lg border border-brand-border/30">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-semibold text-brand-text-primary leading-tight">{c.title}</span>
+                  {c.url ? (
+                    <a href={c.url} target="_blank" rel="noopener noreferrer"
+                      className="text-brand-accent hover:text-brand-accent-hover flex-shrink-0 mt-0.5"
+                      title="Open in IndianKanoon">
+                      <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                      </svg>
+                    </a>
+                  ) : null}
+                </div>
+                {(c.citation || c.court || c.date) && (
+                  <div className="text-[7px] font-mono text-brand-text-secondary/60 flex flex-wrap gap-x-2">
+                    {c.citation && <span>📖 {c.citation}</span>}
+                    {c.court && <span>⚖ {c.court}</span>}
+                    {c.date && <span>📅 {c.date}</span>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Verification rows (Stage 5) */}
+        {hasVerification && (
+          <div className="p-2 bg-brand-bg-primary/50 border border-brand-border rounded-xl space-y-1">
+            <h6 className="flex items-center gap-1 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-text-primary/80">
+              <CitationIcon className="w-3 h-3" /> Citation Verification
+            </h6>
+            {(item.verification || []).map((v, i) => (
+              <div key={i} className="text-[8px] flex items-center gap-1.5 py-1 border-b border-brand-border/20 last:border-b-0">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  v.status.startsWith('Verified') ? 'bg-brand-success' : 'bg-amber-500'
+                }`} />
+                <span className="font-semibold text-brand-text-primary/90 truncate">{v.caseName}</span>
+                <span className="text-brand-text-secondary/50">·</span>
+                <span className="text-brand-text-secondary/70 truncate max-w-[120px]">{v.citation}</span>
+                <span className={`ml-auto flex-shrink-0 text-[7px] font-mono ${
+                  v.status.startsWith('Verified') ? 'text-brand-success' : 'text-amber-400'
+                }`}>
+                  {v.status.startsWith('Verified') ? '✓' : '⚠'} {v.status.slice(0, 15)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Retrieval health note */}
+        {item.retrievalNote && (
+          <div className={`text-[7px] font-mono px-2 py-1 rounded-lg flex items-center gap-1 ${
+            item.retrievalNote.includes('Verified') || item.retrievalNote.includes('retrieved')
+              ? 'bg-brand-success/10 text-brand-success border border-brand-success/30'
+              : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+          }`}>
+            <span>{item.retrievalNote.includes('Verified') || item.retrievalNote.includes('retrieved') ? 'ℹ' : '⚠'}</span>
+            <span>{item.retrievalNote}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const [activeTab, setActiveTab] = useState<ChamberMode>(ChamberMode.ORACLE);
   const [selectedPersona, setSelectedPersona] = useState<Persona>(PERSONAS[0]);
-  const [selectedModel, setSelectedModel] = useState<string>('deepseek-chat');
 
   const [inputVal, setInputVal] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -661,13 +988,16 @@ export const StrategyRoomScreen: React.FC = () => {
     return data.text || '';
   };
 
-  const appendBubble = (tab: string, sender: 'user' | 'assistant' | 'system', text: string, meta?: string, trace?: { stage: string; content: string }[]) => {
+  const appendBubble = (tab: string, sender: 'user' | 'assistant' | 'system', text: string, meta?: string, trace?: { stage: string; content: string }[], extras?: { citations?: CaselawResult[]; verification?: VerificationRow[]; retrievalNote?: string }) => {
     const newBubble: ChatBubble = {
       id: `${tab}-${Date.now()}-${Math.random()}`,
       sender,
       text,
       meta,
       trace,
+      citations: extras?.citations,
+      verification: extras?.verification,
+      retrievalNote: extras?.retrievalNote,
     };
     setChatHistories((prev) => ({
       ...prev,
@@ -709,7 +1039,7 @@ export const StrategyRoomScreen: React.FC = () => {
     activeAbortControllerRef.current = controller;
     const signal = controller.signal;
 
-    const updateProvisionalBubble = (bubbleText: string, bubbleTrace?: { stage: string; content: string }[], bubbleMeta?: string) => {
+    const updateProvisionalBubble = (bubbleText: string, bubbleTrace?: { stage: string; content: string }[], bubbleMeta?: string, extras?: { citations?: CaselawResult[]; verification?: VerificationRow[]; retrievalNote?: string }) => {
       setChatHistories(prev => {
         const history = prev[activeTab] || [];
         return {
@@ -720,7 +1050,10 @@ export const StrategyRoomScreen: React.FC = () => {
                 ...bubble, 
                 text: bubbleText, 
                 trace: bubbleTrace || bubble.trace,
-                meta: bubbleMeta || bubble.meta
+                meta: bubbleMeta || bubble.meta,
+                citations: extras?.citations ?? bubble.citations,
+                verification: extras?.verification ?? bubble.verification,
+                retrievalNote: extras?.retrievalNote ?? bubble.retrievalNote,
               };
             }
             return bubble;
@@ -778,55 +1111,153 @@ export const StrategyRoomScreen: React.FC = () => {
         const response = await callChatAPI(prompt, `${selectedPersona.systemPrompt}\n\nFocus strictly on Indian law frameworks, procedural safeguards, and client interests. Keep the tone characteristic of your persona.`, 'deepseek-chat', signal);
         updateProvisionalBubble(response, undefined, selectedPersona.name);
 
-      } else if (activeTab === ChamberMode.SYNTHESIS) {
-	        const jurisLabel = practiceMode === 'indian' ? 'INDIAN' : 'INTERNATIONAL';
-	        const jurisInstruction = practiceMode === 'indian'
-	          ? 'CRITICAL: You operate in the INDIAN legal system. ONLY cite Indian Supreme Court, High Court, or Tribunal judgments. NEVER reference international, foreign, or comparative jurisdiction case law.'
-	          : 'CRITICAL: You operate in the INTERNATIONAL legal system. ONLY cite international tribunals (ICJ, ICC, WTO, ICSID, etc.) or foreign domestic courts appropriate to the case jurisdiction. NEVER reference Indian judgments or Indian legal principles.';
+	      } else if (activeTab === ChamberMode.SYNTHESIS) {
+		        const jurisLabel = practiceMode === 'indian' ? 'INDIAN' : 'INTERNATIONAL';
+		        const jurisInstruction = practiceMode === 'indian'
+		          ? 'CRITICAL: You operate in the INDIAN legal system. ONLY cite Indian Supreme Court, High Court, or Tribunal judgments. NEVER reference international, foreign, or comparative jurisdiction case law.'
+		          : 'CRITICAL: You operate in the INTERNATIONAL legal system. ONLY cite international tribunals (ICJ, ICC, WTO, ICSID, etc.) or foreign domestic courts appropriate to the case jurisdiction. NEVER reference Indian judgments or Indian legal principles.';
+		        const jurisInfo: JurisdictionInfo = { label: jurisLabel, instruction: jurisInstruction };
 
-	        setOracleStage('Phase 1/7: Systemic Matrix — mapping stakeholders & forces...');
-	        const s1 = await callChatAPI(`Map the 24 conflicting interests and legal forces in play for this dispute. ${jurisInstruction}\n\nDispute facts: ${text}`, 'Comprehensive systemic legal auditor.', 'deepseek-chat', signal);
-	        const trace = [{ stage: 'Systemic Matrix', content: s1 }];
-	        setOracleTrace([...trace]);
-	        updateProvisionalBubble('Mapping conflicting systemic forces and stakeholder interest matrices...', [...trace]);
+		        // Run all Synthesis stages sequentially from the declarative table.
+		        // Stages build on one another via `ctx.stages[k] = output`.
+		        const ctx: SynthesisContext = {
+		          dispute: text,
+		          stages: {},
+		          retrievedPrecedents: [],
+		          retrievalAvailable: false,
+		          verificationBlock: '',
+		        };
 
-	        setOracleStage('Phase 2/7: Jurisdictional Precedent Scan — scanning case law...');
-	        const s2 = await callChatAPI(`${jurisLabel} jurisdiction.\n\nDispute facts: ${text}\n\nSystemic matrix:\n${s1}\n\n${jurisInstruction}\n\nIdentify and summarize 8-12 landmark precedents from the ${jurisLabel} jurisdiction relevant to this dispute. For each precedent, provide the full case name, neutral citation, ratio decidendi, and why it applies.`, `${jurisLabel} legal precedent researcher.`, 'deepseek-chat', signal);
-	        trace.push({ stage: 'Jurisdictional Precedent Scan', content: s2 });
-	        setOracleTrace([...trace]);
-	        updateProvisionalBubble('Scanning relevant case law and judicial precedents...', [...trace]);
+		        // ── Stage 1: Systemic Matrix (no retrieval) ──────────────
+		        let trace: { stage: string; content: string }[] = [];
+		        for (let i = 0; i < SYNTHESIS_STAGES.length; i++) {
+		          const stg = SYNTHESIS_STAGES[i];
 
-	        setOracleStage('Phase 3/7: Adversarial Stress Test — simulating opposition...');
-	        const s3 = await callChatAPI(`Relevant precedents:\n${s2}\n\n${jurisInstruction}\n\nClient premise: ${text}\n\nGenerate the absolute most damaging counter-argument that opposing counsel could raise to destroy this case, citing adverse precedent where possible.`, 'Adversarial prosecuting general.', 'reasoner', signal);
-	        trace.push({ stage: 'Adversarial Stress Test', content: s3 });
-	        setOracleTrace([...trace]);
-	        updateProvisionalBubble('Simulating high-stakes opposition rebuttals and counterclaims...', [...trace]);
+		          // Pre-stage hooks: do retrieval before Stage 2, and citation
+		          // verification before Stage 5.
+		          if (stg.key === 'precedent-scan') {
+		            setOracleStage('(retrieving real precedents via IndianKanoon…)');
+		            try {
+		              const caselawResp = await searchCaselaw(text, practiceMode ?? 'common', 8);
+		              ctx.retrievedPrecedents = caselawResp.results;
+		              ctx.retrievalAvailable = caselawResp.available;
+		              ctx.stages['precedent-scan-retrieval-count'] = String(caselawResp.results.length);
+		            } catch {
+		              ctx.retrievedPrecedents = [];
+		              ctx.retrievalAvailable = false;
+		            }
+		          }
 
-	        setOracleStage('Phase 4/7: Adversarial Synthesis — crafting unified strategy...');
-	        const s4 = await callChatAPI(`Client premise: ${text}\n\n${jurisInstruction}\n\nRelevant precedents:\n${s2}\n\nAdversarial counter-arguments:\n${s3}\n\nFormulate a unified, unbreakable litigation strategy and motion draft plan that inoculates the client against these specific attacks and leverages the identified precedents.`, 'Senior advocate and strategic synthesis master.', 'reasoner', signal);
-	        trace.push({ stage: 'Adversarial Synthesis', content: s4 });
-	        setOracleTrace([...trace]);
-	        updateProvisionalBubble('Synthesizing unified litigation strategy with precedent support...', [...trace]);
+		          if (stg.key === 'citation-audit') {
+		            setOracleStage('(extracting cited cases for real verification…)');
+		            try {
+		              // Extract candidate case names from the Stage 4 strategy output.
+		              const extractorResp = await callChatAPI(
+		                ctx.stages['adversarial-synthesis'] || '',
+		                CITATION_EXTRACTOR_SYSTEM,
+		                'deepseek-chat',
+		                signal,
+		              );
+		              let candidates: { caseName: string; citation: string }[] = [];
+		              try {
+		                const cleaned = extractorResp.trim()
+		                  .replace(/^```(json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+		                const parsed = JSON.parse(cleaned);
+		                if (Array.isArray(parsed)) candidates = parsed.slice(0, 12);
+		              } catch { /* non-JSON response — skip verification */ }
 
-	        setOracleStage('Phase 5/7: Judgment Validation & Citation Audit...');
-	        const s5 = await callChatAPI(`Litigation strategy and motion draft:\n${s4}\n\n${jurisInstruction}\n\nExtract EVERY specific case or judgment cited in the above strategy. For each, determine:\n1. Has this judgment been overruled, reversed, or overruled in part?\n2. Has it been cited, affirmed, distinguished, or followed in subsequent cases?\n3. Is it still binding / precedential in the ${jurisLabel} jurisdiction?\n4. Are there any conflicting judgments on the same point of law?\n\nOutput a validation table with columns: Case Name | Citation | Current Status | Cited/Followed By | Risk Level (High/Medium/Low)`, `${jurisLabel} citation validation clerk.`, 'reasoner', signal);
-	        trace.push({ stage: 'Judgment Validation & Citation Audit', content: s5 });
-	        setOracleTrace([...trace]);
-	        updateProvisionalBubble('Validating cited judgments for overruling, distinguishing, and good-law status...', [...trace]);
+		              // Batch-verify each candidate via /api/caselaw.
+		              if (candidates.length > 0) {
+		                const verificationRows: VerificationRow[] = [];
+		                for (const cand of candidates) {
+		                  const query = `${cand.caseName} ${cand.citation}`.trim();
+		                  if (!query) continue;
+		                  try {
+		                    const resp = await searchCaselaw(query, practiceMode ?? 'common', 1);
+		                    const hit = resp.results[0];
+		                    verificationRows.push({
+		                      caseName: cand.caseName,
+		                      citation: hit?.citation || cand.citation,
+		                      status: hit
+		                        ? `Verified — located via ${resp.provider || 'IndianKanoon'}`
+		                        : 'UNVERIFIED — not found in real lookup',
+		                      url: hit?.url,
+		                      dates: hit?.date,
+		                      court: hit?.court,
+		                    });
+		                  } catch {
+		                    verificationRows.push({
+		                      caseName: cand.caseName,
+		                      citation: cand.citation,
+		                      status: 'UNVERIFIED — lookup failed',
+		                    });
+		                  }
+		                }
+		                ctx.verificationBlock = [
+		                  'Verified citation status from real case-law lookup:',
+		                  ...verificationRows.map(v =>
+		                    `  - ${v.caseName} (${v.citation}): ${v.status}`
+		                  ),
+		                ].join('\n');
+		                // Store on the final bubble so the user can inspect.
+		                (ctx as any).__verificationRows = verificationRows;
+		              } else {
+		                ctx.verificationBlock = `No candidates were extractable from the strategy text. Mark every cited case as UNVERIFIED.`;
+		                (ctx as any).__verificationRows = [];
+		              }
+		            } catch {
+		              ctx.verificationBlock = 'Real-case verification encountered an error. Mark every cited case as UNVERIFIED.';
+		              (ctx as any).__verificationRows = [];
+		            }
+		          }
 
-	        setOracleStage('Phase 6/7: Risk & Vulnerability Analysis...');
-	        const s6 = await callChatAPI(`Litigation strategy:\n${s4}\n\n${jurisInstruction}\n\nCitation audit:\n${s5}\n\nPerform a comprehensive ${jurisLabel} risk analysis covering:\n1. Procedural risks (limitation periods, jurisdiction bars, maintainability)\n2. Evidentiary vulnerabilities\n3. Adverse-precedent risk flagged in the citation audit\n4. Counter-party strategy risks\n5. Proposed mitigation strategies for each identified risk`, `${jurisLabel} litigation risk auditor.`, 'deepseek-chat', signal);
-	        trace.push({ stage: 'Risk & Vulnerability Analysis', content: s6 });
-	        setOracleTrace([...trace]);
-	        updateProvisionalBubble('Performing comprehensive risk and vulnerability audit...', [...trace]);
+		          // ── Execute the stage ────────────────────────────────
+		          const phaseLabel = `${i + 1}/${SYNTHESIS_STAGES.length}: ${stg.label}`;
+		          setOracleStage(`Phase ${phaseLabel} — ${stg.interimBubble}…`);
 
-	        setOracleStage('Phase 7/7: Final Motion Draft — polishing deliverable...');
-	        const s7 = await callChatAPI(`Full analysis:\nPrecedents: ${s2}\nStrategy: ${s4}\nCitation audit: ${s5}\nRisk analysis: ${s6}\n\n${jurisInstruction}\n\nProduce the final, court-ready advisory memorandum and motion draft. Structure it as:\n1. Case Overview & Material Facts\n2. Points of Determination / Issues\n3. Arguments (with ${jurisLabel} precedent citations from the scan)\n4. Citation Appendix (with validation-status note per case from the audit)\n5. Risk Register & Mitigations\n6. Proposed Motion / Pleading Draft\n\nRemove all meta-commentary, stage labels, and introductory summaries. Output only the polished legal deliverable.`, 'Master litigator and senior judicial clerk.', 'deepseek-chat', signal);
-	        trace.push({ stage: 'Final Motion Draft', content: s7 });
-	        setOracleTrace([...trace]);
+		          const stagePrompt = stg.buildPrompt(ctx, jurisInfo);
+		          const stageSystem = stg.system(jurisInfo);
+		          const output = await callChatAPI(
+		            stagePrompt,
+		            stageSystem,
+		            stg.model,
+		            signal,
+		          );
 
-	        updateProvisionalBubble(s7, [...trace], 'Synthesized Adversarial Memo');
-	      }
+		          ctx.stages[stg.key] = output;
+		          trace = [...trace, { stage: stg.label, content: output }];
+		          setOracleTrace(trace);
+
+		          // After Stage 2, attach the retrieved precedents to the bubble.
+		          let bubbleCitations: CaselawResult[] | undefined;
+		          let bubbleNote: string | undefined;
+		          if (stg.key === 'precedent-scan') {
+		            bubbleCitations = ctx.retrievedPrecedents.length > 0
+		              ? ctx.retrievedPrecedents : undefined;
+		            bubbleNote = !ctx.retrievalAvailable
+		              ? 'Real case-law lookup unavailable — citations may be unverified. International lookup pending.'
+		              : ctx.retrievedPrecedents.length === 0
+		                ? 'Case-law lookup returned no hits — the model was asked to rely on black-letter principles only.'
+		                : `Retrieved ${ctx.retrievedPrecedents.length} real case${ctx.retrievedPrecedents.length !== 1 ? 's' : ''} from IndianKanoon.`;
+		          }
+
+		          // After Stage 5, attach verification rows to the bubble.
+		          let bubbleVerification: VerificationRow[] | undefined;
+		          if (stg.key === 'citation-audit') {
+		            bubbleVerification = (ctx as any).__verificationRows;
+		            bubbleNote = (ctx as any).__verificationRows?.some(v => v.status.startsWith('Verified'))
+		              ? `Verified ${(ctx as any).__verificationRows.filter(v => v.status.startsWith('Verified')).length} of ${(ctx as any).__verificationRows.length} cited cases via IndianKanoon.`
+		              : 'None of the cited cases could be verified via real lookup — treat all citation-status claims with caution.';
+		          }
+
+		          updateProvisionalBubble(
+		            stg.key === 'final-draft' ? output : stg.interimBubble,
+		            trace,
+		            stg.key === 'final-draft' ? 'Synthesized Adversarial Memo' : undefined,
+		            { citations: bubbleCitations, verification: bubbleVerification, retrievalNote: bubbleNote },
+		          );
+		        }
+		      }
     } catch (err: any) {
       if (err.name === 'AbortError') {
         updateProvisionalBubble('[Cancelled] Deliberation cancelled by user.');
@@ -985,6 +1416,8 @@ export const StrategyRoomScreen: React.FC = () => {
                 >
                   <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
                   
+                  {renderCitationPanel(item)}
+
                   {item.trace && item.trace.length > 0 && (
                     <details className="mt-2 pt-2 border-t border-white/10 text-[10px] font-light text-brand-text-secondary/80">
                       <summary className="cursor-pointer text-[8px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
@@ -1047,15 +1480,8 @@ export const StrategyRoomScreen: React.FC = () => {
                       'Refinement',
                       'Reconcile',
                       'Polish'
-                    ] : activeTab === ChamberMode.SYNTHESIS ? [
-                      'Systemic Matrix',
-                      'Precedent Scan',
-                      'Stress Test',
-                      'Synthesis',
-                      'Citation Audit',
-                      'Risk Analysis',
-                      'Final Draft'
-                    ] : ['Processing'])).map((stg, idx) => {
+                    ] : activeTab === ChamberMode.SYNTHESIS ? SYNTHESIS_STAGES.map(s => s.label)
+                    : ['Processing'])).map((stg, idx) => {
                       const isCompleted = idx < oracleTrace.length;
                       const isActive = idx === oracleTrace.length;
                       return (
@@ -1069,6 +1495,12 @@ export const StrategyRoomScreen: React.FC = () => {
                             <span className={isCompleted ? 'text-brand-text-secondary/60 line-through' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/35'}>
                               {stg}
                             </span>
+                            {/* Per-stage model badge (Synthesis only) */}
+                            {activeTab === ChamberMode.SYNTHESIS && SYNTHESIS_BY_KEY[SYNTHESIS_STAGES[idx]?.key] && (
+                              <span className="text-[5px] font-mono text-brand-text-secondary/40 ml-1.5">
+                                {SYNTHESIS_STAGES[idx].model.replace('deepseek-', 'ds-')}
+                              </span>
+                            )}
                           </div>
                         </div>
                       );
@@ -1296,6 +1728,7 @@ export const StrategyRoomScreen: React.FC = () => {
                     }`}
                 >
                   <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
+                  {renderCitationPanel(item)}
                 </div>
 
                 {item.sender === 'assistant' && item.text && (
@@ -1419,8 +1852,6 @@ export const StrategyRoomScreen: React.FC = () => {
                 oracleStage={oracleStage}
                 oracleTrace={oracleTrace}
                 selectedPersona={selectedPersona}
-                selectedModel={selectedModel}
-                setSelectedModel={setSelectedModel}
                 setSelectedPersona={setSelectedPersona}
               />
             </div>
@@ -1457,15 +1888,8 @@ export const StrategyRoomScreen: React.FC = () => {
                         'Defensive Refinement',
                         'Jurisprudential Reconciliation',
                         'Final Polish'
-                      ] : activeTab === ChamberMode.SYNTHESIS ? [
-                        'Systemic Matrix',
-                        'Jurisdictional Precedent Scan',
-                        'Adversarial Stress Test',
-                        'Adversarial Synthesis',
-                        'Judgment Validation & Citation Audit',
-                        'Risk & Vulnerability Analysis',
-                        'Final Motion Draft'
-                      ] : ['Processing Consultation'])).map((stg, idx) => {
+                      ] : activeTab === ChamberMode.SYNTHESIS ? SYNTHESIS_STAGES.map(s => s.label)
+                      : ['Processing Consultation'])).map((stg, idx) => {
                         const isCompleted = idx < oracleTrace.length;
                         const isActive = idx === oracleTrace.length;
                         return (
@@ -1484,6 +1908,12 @@ export const StrategyRoomScreen: React.FC = () => {
                               <span className={isCompleted ? 'text-brand-text-secondary/50 line-through' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/30'}>
                                 {stg}
                               </span>
+                              {/* Per-stage model badge (Synthesis only) */}
+                              {activeTab === ChamberMode.SYNTHESIS && SYNTHESIS_BY_KEY[SYNTHESIS_STAGES[idx]?.key] && (
+                                <span className="text-[7px] font-mono px-1 py-[1px] border border-brand-border rounded bg-brand-bg-primary text-brand-text-secondary/60 ml-1">
+                                  {SYNTHESIS_STAGES[idx].model.replace('deepseek-', 'ds-')}
+                                </span>
+                              )}
                             </div>
                           </div>
                         );
