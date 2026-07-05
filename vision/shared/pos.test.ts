@@ -4,7 +4,7 @@
 import { posEstimate, DEFAULT_FPS } from './pos';
 import type { RgbSample } from './types';
 
-function assert(cond: boolean, msg: string): void {
+function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 

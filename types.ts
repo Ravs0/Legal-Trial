@@ -25,7 +25,6 @@ export enum JudgePersonalityId {
   RICHARD_LAHOTI = 'richard_lahoti',
   VICTOR_VANCE = 'victor_vance',
   ALFRED_ANAND = 'alfred_anand',
-  AS_ANAND_MOCK = 'as_anand_mock', // Alias or specific focus
   SAMUEL_BARUCHA = 'samuel_barucha',
   ALBERT_AHMADI = 'albert_ahmadi',
   MICHAEL_VENKAT = 'michael_venkat',

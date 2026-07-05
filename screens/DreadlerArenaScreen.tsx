@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { TrialSimContext } from '../App';
 import { Button } from '../components/Button';
-import { Card } from '../components/Card';
 import { useConversationBridge } from '../components/ConversationBridge';
-import { ROUTES } from '../constants';
 import { useRealBiometrics } from '../vision/useRealBiometrics';
+import { useVisualViewport } from '../hooks/useVisualViewport';
 import dreadlerPortrait from '../assets/dreadler_portrait.jpg';
 import dreadlerArenaRoom from '../assets/dreadler_arena_room.jpg';
 import dreadlerLogicWorld from '../assets/dreadler_logic_world.jpg';
@@ -116,36 +113,11 @@ const TAXONOMY_TACTICS = [
 ];
 
 // ─── Visual Viewport Hook ───────────────────────────────────────────────
-function useVisualViewport() {
-  const [vpHeight, setVpHeight] = useState(
-    () => window.visualViewport?.height ?? window.innerHeight
-  );
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      setVpHeight(vv.height);
-      setIsMobile(window.innerWidth < 768);
-    };
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    window.addEventListener('resize', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, []);
-  const adjustedHeight = isMobile ? vpHeight - 80 : vpHeight - 100;
-  return { vpHeight: adjustedHeight, isMobile };
-}
+// (shared via ../hooks/useVisualViewport — the inline copy was removed)
 
 export const DreadlerArenaScreen: React.FC = () => {
-  const navigate = useNavigate();
-  const context = useContext(TrialSimContext);
   const bridge = useConversationBridge();
-  const { vpHeight, isMobile } = useVisualViewport();
+  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 768, mobileOffset: 80, desktopOffset: 100 });
 
   const renderMarkdown = (text: string) => {
     if (!text) return null;
@@ -180,7 +152,6 @@ export const DreadlerArenaScreen: React.FC = () => {
   const [selectedWorld, setSelectedWorld] = useState<string>('dreadler_logic');
   const [selectedSkin, setSelectedSkin] = useState<string>('dreadler');
   const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
-  const [hasStarted, setHasStarted] = useState<boolean>(false);
 
   // ─── LIVE ARENA STATE ──────────────────────────────────────────────────────
   const [stateData, setStateData] = useState<CoherenceState | null>(null);
@@ -241,9 +212,6 @@ export const DreadlerArenaScreen: React.FC = () => {
   const [showMobileReference, setShowMobileReference] = useState(false);
   const [showMobileCritic, setShowMobileCritic] = useState(false);
   
-  // Mock Voice Mode
-  const [isVoiceActive, setIsVoiceActive] = useState<boolean>(false);
-
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -352,8 +320,6 @@ export const DreadlerArenaScreen: React.FC = () => {
       // Extract results
       const {
         character_response,
-        coherence_score,
-        pressure_level,
         agent_variant,
         critic_analysis,
         is_direct_lie,
@@ -368,7 +334,7 @@ export const DreadlerArenaScreen: React.FC = () => {
       // Analyze if a new tactic was recorded in the used_tactics array
       const oldTactics = stateData?.used_tactics || [];
       const newTactics = nextStateData?.used_tactics || [];
-      const newlyAddedTactic = newTactics.find(t => !oldTactics.includes(t)) || null;
+      const newlyAddedTactic = newTactics.find((t: string) => !oldTactics.includes(t)) || null;
       setLastTacticFlagged(newlyAddedTactic);
 
       setLastCriticLog(critic_analysis);
@@ -1338,13 +1304,6 @@ interface BiometricState {
   cameraOn: boolean;
 }
 
-interface VoightKampffConsoleProps {
-  isDirectLie?: boolean;
-  isTyping?: boolean;
-  coherence?: number;
-  className?: string;
-}
-
 const EMOTION_KEYS: EmotionKey[] = [
   'Neutral',
   'Happy',
@@ -1455,10 +1414,6 @@ function humanizeCameraError(err: unknown): string {
 
 function randInRange(min: number, max: number): number {
   return min + Math.random() * (max - min);
-}
-
-function jitter(base: number, amp: number): number {
-  return base + (Math.random() * 2 - 1) * amp;
 }
 
 function lerp(a: number, b: number, t: number): number {

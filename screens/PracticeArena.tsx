@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChatMessage as ChatMessageComponent } from '../components/ChatMessage';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { TrialSimContext } from '../App';
-import { ChatMessage, SessionRecord, SessionSettings, PerformanceMetrics } from '../types';
+import { ChatMessage, SessionRecord } from '../types';
 import { startJudgeChatSession, startOpposingCounselChatSession, sendMessageToChatStream, analyzeSessionPerformance } from '../services/geminiService';
 import { ROUTES, SESSION_DURATIONS_MINUTES } from '../constants';
 import { useTimer } from '../hooks/useTimer';
@@ -12,42 +12,13 @@ import { Chat } from '../types';
 import { CourtIcon } from '../components/icons/CourtIcon';
 import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
-import { Modal } from '../components/Modal';
 import { getCategoryColorClasses } from '../services/colorUtils';
 import { BackgroundGeometry } from '../components/BackgroundGeometry';
-
-const useVisualViewport = () => {
-  const [vpHeight, setVpHeight] = useState(
-    () => typeof window !== 'undefined' ? (window.visualViewport?.height ?? window.innerHeight) : 800
-  );
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  );
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      setVpHeight(vv.height);
-      setIsMobile(window.innerWidth < 768);
-    };
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    window.addEventListener('resize', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, []);
-  // On mobile, subtract Layout's top bar (56px) + padding (24px total)
-  const adjustedHeight = isMobile ? vpHeight - 80 : vpHeight;
-  return { vpHeight: adjustedHeight, isMobile };
-};
+import { useVisualViewport } from '../hooks/useVisualViewport';
 
 const PracticeArena: React.FC = () => {
   const navigate = useNavigate();
-  const { vpHeight, isMobile } = useVisualViewport();
-  const location = useLocation();
+  const { vpHeight } = useVisualViewport({ breakpoint: 768, mobileOffset: 80, desktopOffset: 0 });
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error("TrialSimContext not found");
@@ -65,7 +36,6 @@ const PracticeArena: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesRef = useRef<ChatMessage[]>(messages);
   useEffect(() => { messagesRef.current = messages; }, [messages]);
-  const [sessionRecord, setSessionRecord] = useState<SessionRecord | null>(null);
   const [userInput, setUserInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<'judge' | 'opposingCounsel' | false>(false);
   const [sessionEnded, setSessionEnded] = useState(false);
@@ -73,7 +43,6 @@ const PracticeArena: React.FC = () => {
   const currentSessionRecordRef = useRef<SessionRecord | null>(null);
 
   // Objection and Drawer state
-  const [isObjectionOpen, setIsObjectionOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [objectionGrounds, setObjectionGrounds] = useState('relevance');
   const [objectionExplanation, setObjectionExplanation] = useState('');
@@ -457,7 +426,6 @@ const PracticeArena: React.FC = () => {
     const savedExplanation = objectionExplanation.trim();
 
     // Clear state early for clean UI
-    setIsObjectionOpen(false);
     setIsInlineObjectionActive(false);
     setObjectionExplanation('');
 

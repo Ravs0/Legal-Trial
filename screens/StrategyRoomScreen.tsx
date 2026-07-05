@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { TrialSimContext } from '../App';
@@ -7,6 +6,8 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { CourtIcon } from '../components/icons/CourtIcon';
 import { CitationIcon } from '../components/icons/CitationIcon';
 import { searchCaselaw, CaselawResult, CITATION_EXTRACTOR_SYSTEM } from '../services/caselawService';
+import { useVisualViewport } from '../hooks/useVisualViewport';
+import { renderLegalMarkdown } from '../utils/markdown';
 
 enum ChamberMode {
   ORACLE = 'oracle',
@@ -327,12 +328,11 @@ const DeliberationBlueprint: React.FC<{
 }> = ({
   activeTab,
   isProcessing,
-  oracleStage,
   oracleTrace,
   selectedPersona,
   setSelectedPersona,
 }) => {
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [, setHoveredNode] = useState<string | null>(null);
 
   const styleBlock = (
     <style>{`
@@ -683,67 +683,13 @@ const DeliberationBlueprint: React.FC<{
   return null;
 };
 
-// ─── Visual Viewport Hook ───────────────────────────────────────────────
-function useVisualViewport() {
-  const [vpHeight, setVpHeight] = useState(
-    () => window.visualViewport?.height ?? window.innerHeight
-  );
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      setVpHeight(vv.height);
-      setIsMobile(window.innerWidth < 1024);
-    };
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    window.addEventListener('resize', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, []);
-  // On mobile, subtract Layout's top bar (56px) + padding (24px)
-  const adjustedHeight = isMobile ? vpHeight - 80 : vpHeight;
-  return { vpHeight: adjustedHeight, isMobile };
-}
-
 export const StrategyRoomScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   if (!context) throw new Error('TrialSimContext not found');
   const { practiceMode } = context;
-  const { vpHeight, isMobile } = useVisualViewport();
-
-  const renderMarkdown = (text: string) => {
-    if (!text) return null;
-    return (
-      <ReactMarkdown
-        components={{
-          strong: ({node, ...props}) => <strong className="text-brand-accent font-semibold" {...props} />,
-          em: ({node, ...props}) => <em className="font-serif italic opacity-95" {...props} />,
-          ul: ({node, ...props}) => <ul className="list-disc pl-4 my-2 space-y-1" {...props} />,
-          ol: ({node, ...props}) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props} />,
-          li: ({node, ...props}) => <li className="" {...props} />,
-          h1: ({node, ...props}) => <h1 className="text-lg font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
-          h2: ({node, ...props}) => <h2 className="text-base font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
-          h3: ({node, ...props}) => <h3 className="text-sm font-serif font-bold text-brand-text-primary mt-3 mb-1" {...props} />,
-          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-          code: ({node, className, children, ...props}) => {
-            const match = /language-(\w+)/.exec(className || '');
-            return !match ? (
-              <code className="bg-brand-bg-secondary px-1 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>
-            ) : (
-              <pre className="bg-brand-bg-secondary p-2 rounded text-xs font-mono overflow-x-auto"><code {...props}>{children}</code></pre>
-            );
-          }
-        }}
-      >
-        {text}
-      </ReactMarkdown>
-    );
-  };
+  // Strategy Room uses a 1024px mobile breakpoint (wider than the 768px default
+  // because the duel-plinth desktop layout needs more horizontal room).
+  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 1024, mobileOffset: 80 });
 
   // ─── Citation & verification panel ───────────────────────────────────────────
   // Renders real retrieved-precedents and/or verification rows inside an assistant
@@ -1245,8 +1191,8 @@ export const StrategyRoomScreen: React.FC = () => {
 		          let bubbleVerification: VerificationRow[] | undefined;
 		          if (stg.key === 'citation-audit') {
 		            bubbleVerification = (ctx as any).__verificationRows;
-		            bubbleNote = (ctx as any).__verificationRows?.some(v => v.status.startsWith('Verified'))
-		              ? `Verified ${(ctx as any).__verificationRows.filter(v => v.status.startsWith('Verified')).length} of ${(ctx as any).__verificationRows.length} cited cases via IndianKanoon.`
+            bubbleNote = (ctx as any).__verificationRows?.some((v: VerificationRow) => v.status.startsWith('Verified'))
+              ? `Verified ${(ctx as any).__verificationRows.filter((v: VerificationRow) => v.status.startsWith('Verified')).length} of ${(ctx as any).__verificationRows.length} cited cases via IndianKanoon.`
 		              : 'None of the cited cases could be verified via real lookup — treat all citation-status claims with caution.';
 		          }
 
@@ -1414,7 +1360,7 @@ export const StrategyRoomScreen: React.FC = () => {
                         : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
                     }`}
                 >
-                  <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
+                  <div className="font-light text-brand-text-primary">{renderLegalMarkdown(item.text)}</div>
                   
                   {renderCitationPanel(item)}
 
@@ -1727,7 +1673,7 @@ export const StrategyRoomScreen: React.FC = () => {
                         : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
                     }`}
                 >
-                  <div className="font-light text-brand-text-primary">{renderMarkdown(item.text)}</div>
+                  <div className="font-light text-brand-text-primary">{renderLegalMarkdown(item.text)}</div>
                   {renderCitationPanel(item)}
                 </div>
 

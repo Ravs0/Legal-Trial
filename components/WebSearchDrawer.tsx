@@ -48,7 +48,6 @@ function useFocusTrap<T extends HTMLElement>(active: boolean) {
 
     let focusable = getFocusable();
     const first = focusable[0];
-    const last = focusable[focusable.length - 1];
     first?.focus();
 
     const onKey = (e: KeyboardEvent) => {

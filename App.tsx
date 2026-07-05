@@ -1,6 +1,6 @@
 
 import React, { useState, createContext, useEffect, useMemo, useContext } from 'react';
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import HomeScreen from './screens/HomeScreen';
 import SetupScreen from './screens/SetupScreen';
@@ -90,21 +90,16 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFactGenerating, setIsFactGenerating] = useState(false); // New state for drafting fact generation
-  const [practiceMode, setPracticeModeState] = useState<PracticeMode | null>(() => {
+  const [practiceMode, setPracticeMode] = useState<PracticeMode | null>(() => {
     return localStorage.getItem('practiceMode') as PracticeMode | null;
   });
 
-  const setPracticeMode = (mode: PracticeMode | null) => {
-    setPracticeModeState(mode);
-    if (mode) {
-      localStorage.setItem('practiceMode', mode);
+  // Persist practice mode + clear session when it is unset.
+  useEffect(() => {
+    if (practiceMode) {
+      localStorage.setItem('practiceMode', practiceMode);
     } else {
       localStorage.removeItem('practiceMode');
-    }
-  };
-
-  useEffect(() => {
-    if (!practiceMode) {
       setCurrentSessionSettings(null);
       setActiveChatJudge(null);
       setActiveChatOpposingCounsel(null);

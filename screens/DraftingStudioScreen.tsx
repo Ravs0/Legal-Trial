@@ -1,8 +1,7 @@
 import React, { useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { TrialSimContext } from '../App';
 import { DRAFTING_TASKS_INDIAN, DRAFTING_TASKS_INTERNATIONAL } from '../constants';
-import { DraftingTask, DraftingStudioStage, ChatMessage as DraftingMessage } from '../types';
+import { DraftingTask, DraftingStudioStage } from '../types';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -12,6 +11,7 @@ import { SelectInput } from '../components/SelectInput';
 import { scoreLegalWriting, ScoringResult } from '../services/legalWritingScorer';
 import { ScoreCard } from '../components/ScoreCard';
 import { Modal } from '../components/Modal';
+import { renderLegalMarkdown } from '../utils/markdown';
 
 
 // Icons
@@ -161,7 +161,6 @@ const DraftingStudioScreen: React.FC = () => {
   const computeDiff = (oldText: string, newText: string) => {
     const oldLines = oldText.split('\n');
     const newLines = newText.split('\n');
-    const maxLines = Math.max(oldLines.length, newLines.length);
     const diffRows: { oldNum: number | string; oldLine: string; newNum: number | string; newLine: string; type: 'unchanged' | 'modified' | 'added' | 'deleted' }[] = [];
 
     let oldIdx = 0;
@@ -341,12 +340,11 @@ const DraftingStudioScreen: React.FC = () => {
 
   // Voice Recording state for STT
   const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const startRecording = async () => {
-    setAudioError(null);
+    setGlobalError(null);
     audioChunksRef.current = [];
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -369,7 +367,7 @@ const DraftingStudioScreen: React.FC = () => {
       setIsRecording(true);
     } catch (err) {
       console.error('Microphone access denied:', err);
-      setAudioError('Microphone access is required for voice input.');
+      setGlobalError('Microphone access is required for voice input.');
     }
   };
 
@@ -405,7 +403,7 @@ const DraftingStudioScreen: React.FC = () => {
       reader.readAsDataURL(blob);
     } catch (err) {
       console.error('Transcription error:', err);
-      setAudioError('Failed to transcribe voice.');
+      setGlobalError('Failed to transcribe voice.');
     } finally {
       setIsLoadingAiInteraction(false);
     }
@@ -446,35 +444,7 @@ const DraftingStudioScreen: React.FC = () => {
     }
   };
 
-  const renderMarkdown = (text: string) => {
-    if (!text) return null;
-    return (
-      <ReactMarkdown
-        components={{
-          strong: ({node, ...props}) => <strong className="text-brand-accent font-semibold" {...props} />,
-          em: ({node, ...props}) => <em className="font-serif italic opacity-95" {...props} />,
-          ul: ({node, ...props}) => <ul className="list-disc pl-4 my-2 space-y-1" {...props} />,
-          ol: ({node, ...props}) => <ol className="list-decimal pl-4 my-2 space-y-1" {...props} />,
-          li: ({node, ...props}) => <li className="" {...props} />,
-          h1: ({node, ...props}) => <h1 className="text-lg font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
-          h2: ({node, ...props}) => <h2 className="text-base font-serif font-bold text-brand-text-primary mt-4 mb-2" {...props} />,
-          h3: ({node, ...props}) => <h3 className="text-sm font-serif font-bold text-brand-text-primary mt-3 mb-1" {...props} />,
-          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-          code: ({node, className, children, ...props}) => {
-            const match = /language-(\w+)/.exec(className || '');
-            return !match ? (
-              <code className="bg-brand-bg-secondary px-1 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>
-            ) : (
-              <pre className="bg-brand-bg-secondary p-2 rounded text-xs font-mono overflow-x-auto"><code {...props}>{children}</code></pre>
-            );
-          }
-        }}
-      >
-        {text}
-      </ReactMarkdown>
-    );
-  };
-
+  // (renderLegalMarkdown is imported from ../utils/markdown — inline copy removed)
   const isLoading = isFactGenerating || isLoadingAiInteraction;
 
   // Auto-save logic
@@ -1115,7 +1085,7 @@ Section 8.2 Limitation of Liability.
                                             <span className="text-[10px] font-mono uppercase tracking-widest">{currentTask?.type} Case Facts</span>
                                         </div>
                                         <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                            {generatedFacts ? renderMarkdown(generatedFacts) : "Generating facts..."}
+                                            {generatedFacts ? renderLegalMarkdown(generatedFacts) : "Generating facts..."}
                                         </div>
                                     </div>
                                 )}
@@ -1216,7 +1186,7 @@ Section 8.2 Limitation of Liability.
                                         ) : (
                                             <div>
                                                 <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                                    {aiFeedback ? renderMarkdown(aiFeedback) : "Submit your draft for AI review."}
+                                                    {aiFeedback ? renderLegalMarkdown(aiFeedback) : "Submit your draft for AI review."}
                                                 </div>
                                                 {aiFeedback && (
                                                     <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
@@ -1241,7 +1211,7 @@ Section 8.2 Limitation of Liability.
                                             <span className="text-[10px] font-mono uppercase tracking-widest">Filing Protocol</span>
                                         </div>
                                         <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                            {filingProcedure ? renderMarkdown(filingProcedure) : "Filing info not requested yet."}
+                                            {filingProcedure ? renderLegalMarkdown(filingProcedure) : "Filing info not requested yet."}
                                             {filingProcedure && (
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                     <button

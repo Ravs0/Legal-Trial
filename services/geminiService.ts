@@ -1,4 +1,4 @@
-import { Chat, ChatMessage, PerformanceMetrics, SessionRecord, SessionSettings, PracticeMode, DraftingTask } from '../types';
+import { Chat, PerformanceMetrics, SessionRecord, SessionSettings, PracticeMode, DraftingTask } from '../types';
 import { KOKU_SYSTEM_PROMPT } from '../kokuConfig';
 
 // ─── Core API call ────────────────────────────────────────────────────────────

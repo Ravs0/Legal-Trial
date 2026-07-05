@@ -10,7 +10,7 @@ import {
   INTERNATIONAL_JUDGE_PERSONALITIES, INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES,
   ROUTES,
 } from '../constants';
-import { CaseCategoryId, CaseDetail, JudgePersonality, JudgePersonalityId, SessionType, CaseDifficulty, SessionSettings, OpposingCounselPersonalityId, OpposingCounselPersonality, PracticeMode } from '../types';
+import { CaseCategoryId, CaseDetail, JudgePersonality, JudgePersonalityId, SessionType, CaseDifficulty, SessionSettings, OpposingCounselPersonalityId, OpposingCounselPersonality } from '../types';
 import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
 import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';

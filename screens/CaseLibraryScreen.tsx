@@ -10,7 +10,7 @@ import {
   INTERNATIONAL_JUDGE_PERSONALITIES, INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES,
   ROUTES
 } from '../constants';
-import { CaseCategory, CaseDetail, CaseDifficulty, JudgePersonality, OpposingCounselPersonality, SessionSettings, SessionType, PracticeMode } from '../types';
+import { CaseCategory, CaseDetail, CaseDifficulty, JudgePersonality, OpposingCounselPersonality, SessionSettings, SessionType } from '../types';
 import { SelectInput } from '../components/SelectInput';
 import { Modal } from '../components/Modal';
 import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';

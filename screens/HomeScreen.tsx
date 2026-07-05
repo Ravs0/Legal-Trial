@@ -2,7 +2,6 @@ import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ROUTES, APP_NAME } from '../constants';
-import { CourtIcon } from '../components/icons/CourtIcon';
 import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
 import { TrialSimContext } from '../App';
 import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
