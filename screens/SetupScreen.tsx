@@ -15,6 +15,7 @@ import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
 import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
 import { getCategoryColorClasses } from '../services/colorUtils';
+import { savePendingSettings } from '../services/storageService';
 
 const SetupScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -122,6 +123,7 @@ const SetupScreen: React.FC = () => {
     };
 
     setCurrentSessionSettings(sessionSettings);
+    savePendingSettings(sessionSettings);
 
     setTimeout(() => {
       setGlobalLoading(false);

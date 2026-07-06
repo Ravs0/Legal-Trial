@@ -85,7 +85,7 @@ const phaseLabel = (phase: TrialPhase) => phase.replace('_', ' ');
 
 const PracticeArena: React.FC = () => {
   const navigate = useNavigate();
-  const { vpHeight } = useVisualViewport({ breakpoint: 768, mobileOffset: 80, desktopOffset: 0 });
+  const { vpHeight, viewportHeight } = useVisualViewport({ breakpoint: 768, mobileOffset: 0, desktopOffset: 0 });
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error("TrialSimContext not found");
@@ -1177,7 +1177,7 @@ const PracticeArena: React.FC = () => {
         />
       )}
       
-      <div className={`lg:hidden fixed bottom-0 left-0 right-0 max-h-[88vh] bg-[#0d0d0d] border-t border-zinc-800/80 rounded-t-2xl z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar px-4 py-5 sm:p-6 space-y-5 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+      <div className={`lg:hidden fixed bottom-0 left-0 right-0 bg-[#0d0d0d] border-t border-zinc-800/80 rounded-t-2xl z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar px-4 py-5 sm:p-6 space-y-5 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ maxHeight: `${Math.max(320, viewportHeight - 16)}px` }}>
         <div className="flex justify-between items-center pb-3 border-b border-zinc-900/60">
           <div>
             <h3 className={`text-lg font-bold font-serif ${catColors.text} flex items-center`}><CourtIcon className={`h-5 w-5 mr-2 ${catColors.text}`} /> Bench Companion</h3>

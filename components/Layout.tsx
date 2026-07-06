@@ -13,6 +13,7 @@ import { Bars3Icon } from './icons/Bars3Icon';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { BackgroundGeometry } from './BackgroundGeometry';
 import { loadActiveSession } from '../services/storageService';
+import { useVisualViewport } from '../hooks/useVisualViewport';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -137,6 +138,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
+  const { viewportHeight, isMobile } = useVisualViewport();
   const practiceMode = context?.practiceMode;
   const modeDisplay = practiceMode ? (practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1)) : '';
 
@@ -182,6 +184,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const hideSidebarOnPaths = [ROUTES.PRACTICE, ROUTES.LANDING];
   const showSidebar = !hideSidebarOnPaths.includes(location.pathname) && practiceMode;
   const isExpanded = isSidebarOpen || isMobileOpen;
+  const shellStyle = useMemo(() => (
+    isMobile
+      ? { minHeight: `${viewportHeight}px`, height: `${viewportHeight}px` }
+      : undefined
+  ), [isMobile, viewportHeight]);
   const quickActions = useMemo(() => ([
     {
       id: 'start-trial',
@@ -205,7 +212,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ]), [activeSessionLabel, navigate]);
 
   return (
-    <div className="h-dvh flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative noise-overlay">
+    <div className="min-h-screen flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative noise-overlay" style={shellStyle}>
       <BackgroundGeometry />
 
       {/* Mobile Top Bar */}
@@ -353,7 +360,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </aside>
       )}
 
-      <main className={`flex-grow z-10 transition-all duration-300 ease-in-out h-dvh flex flex-col overflow-hidden 
+      <main className={`flex-grow min-h-0 z-10 transition-all duration-300 ease-in-out flex flex-col overflow-hidden 
         ${showSidebar ? (isSidebarOpen ? 'md:ml-56' : 'md:ml-[60px]') : ''}
         ${showSidebar ? 'pt-[110px] md:pt-0' : ''}
       `}>

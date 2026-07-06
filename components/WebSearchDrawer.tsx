@@ -3,32 +3,11 @@ import { TrialSimContext } from '../App';
 import { searchWeb, SearchResult } from '../services/searchService';
 import { summarizeSearchResults } from '../services/aiService';
 import { LoadingSpinner } from './LoadingSpinner';
+import { useVisualViewport } from '../hooks/useVisualViewport';
 
 interface WebSearchDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-// ─── Visual Viewport Hook ───────────────────────────────────────────────
-// When keyboard opens on mobile, visualViewport.height shrinks.
-// We pin the drawer height to that value so it compresses naturally
-// and the search input stays visible — no content hidden behind keyboard.
-function useVisualViewport() {
-  const [vpHeight, setVpHeight] = useState(
-    () => window.visualViewport?.height ?? window.innerHeight
-  );
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => setVpHeight(vv.height);
-    vv.addEventListener('resize', update);
-    vv.addEventListener('scroll', update);
-    return () => {
-      vv.removeEventListener('resize', update);
-      vv.removeEventListener('scroll', update);
-    };
-  }, []);
-  return vpHeight;
 }
 
 // ─── Focus Trap Hook ─────────────────────────────────────────────────────────
@@ -90,7 +69,7 @@ const isSafeUrl = (url: string): boolean => {
 export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClose }) => {
   const context = useContext(TrialSimContext);
   const practiceMode = context?.practiceMode || 'common';
-  const vpHeight = useVisualViewport();
+  const { viewportHeight } = useVisualViewport();
 
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -231,7 +210,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
   return (
     <div
       className="fixed inset-x-0 top-0 z-[100] flex justify-end overflow-hidden"
-      style={{ height: `${vpHeight}px` }}
+      style={{ height: `${viewportHeight}px` }}
     >
       {/* Backdrop */}
       <div 

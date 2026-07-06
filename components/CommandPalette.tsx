@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES } from '../constants';
 import { CASES } from '../constants';
 import { loadActiveSession } from '../services/storageService';
+import { useVisualViewport } from '../hooks/useVisualViewport';
 
 interface CommandItem {
   id: string;
@@ -18,6 +19,7 @@ export const CommandPalette: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [activeSessionLabel, setActiveSessionLabel] = useState<string | null>(null);
+  const { viewportHeight, isMobile } = useVisualViewport();
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -212,6 +214,11 @@ export const CommandPalette: React.FC = () => {
   };
 
   const commands = useMemo(() => getCommands(), [currentPath, activeSessionLabel]);
+  const mobilePanelStyle = useMemo(() => (
+    isMobile
+      ? { height: `${Math.max(320, Math.round(viewportHeight * 0.78))}px`, maxHeight: `${viewportHeight}px` }
+      : undefined
+  ), [isMobile, viewportHeight]);
 
   const filteredCommands = commands.filter(c =>
     c.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -269,7 +276,8 @@ export const CommandPalette: React.FC = () => {
       onClick={() => setIsOpen(false)}
     >
       <div 
-        className="w-full sm:max-w-2xl bg-brand-bg-primary border-t-2 sm:border-2 border-brand-accent rounded-t-2xl sm:rounded-xl shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col h-[78dvh] sm:h-auto sm:max-h-[560px] overflow-hidden"
+        className="w-full sm:max-w-2xl bg-brand-bg-primary border-t-2 sm:border-2 border-brand-accent rounded-t-2xl sm:rounded-xl shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col sm:h-auto sm:max-h-[560px] overflow-hidden"
+        style={mobilePanelStyle}
         onClick={e => e.stopPropagation()}
       >
         <div className="px-4 py-2 border-b border-brand-text-primary/20 bg-brand-bg-secondary/80 flex items-center justify-between sm:hidden">

@@ -21,7 +21,7 @@ import { Chat } from './types';
 import { OversightSpirit } from './components/OversightSpirit';
 import { ConversationBridgeProvider } from './components/ConversationBridge';
 import { CommandPalette } from './components/CommandPalette';
-import { loadActiveSession } from './services/storageService';
+import { loadActiveSession, loadPendingSettings, clearPendingSettings } from './services/storageService';
 
 export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 /** @deprecated Use LexForgeContext instead */
@@ -109,10 +109,23 @@ function App() {
 
   useEffect(() => {
     const activeSession = loadActiveSession();
-    if (!activeSession) return;
-    setCurrentSessionSettings(activeSession.settings);
-    if (!practiceMode) {
-      setPracticeMode(activeSession.settings.practiceMode);
+    if (activeSession) {
+      setCurrentSessionSettings(activeSession.settings);
+      if (!practiceMode) {
+        setPracticeMode(activeSession.settings.practiceMode);
+      }
+      return;
+    }
+
+    // Fallback: restore from pending (pre‑arena) settings so a refresh
+    // during setup → arena transition doesn't lose the configuration.
+    const pending = loadPendingSettings();
+    if (pending) {
+      setCurrentSessionSettings(pending);
+      if (!practiceMode) {
+        setPracticeMode(pending.practiceMode);
+      }
+      clearPendingSettings();
     }
   }, [practiceMode]);
 

@@ -8,6 +8,7 @@ import { CitationIcon } from '../components/icons/CitationIcon';
 import { searchCaselaw, CaselawResult, CITATION_EXTRACTOR_SYSTEM } from '../services/caselawService';
 import { useVisualViewport } from '../hooks/useVisualViewport';
 import { renderLegalMarkdown } from '../utils/markdown';
+import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/storageService';
 
 enum ChamberMode {
   ORACLE = 'oracle',
@@ -689,7 +690,7 @@ export const StrategyRoomScreen: React.FC = () => {
   const { practiceMode } = context;
   // Strategy Room uses a 1024px mobile breakpoint (wider than the 768px default
   // because the duel-plinth desktop layout needs more horizontal room).
-  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 1024, mobileOffset: 80 });
+  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 1024, mobileOffset: 0, desktopOffset: 0 });
 
   // ─── Citation & verification panel ───────────────────────────────────────────
   // Renders real retrieved-precedents and/or verification rows inside an assistant
@@ -796,10 +797,15 @@ export const StrategyRoomScreen: React.FC = () => {
     }
   };
 
-  const [chatHistories, setChatHistories] = useState<{ [key: string]: ChatBubble[] }>({
-    oracle: [{ id: 'init-o', sender: 'assistant', text: 'Oracle Multi-Model Deliberation ready. Enter your high-stakes legal question.' }],
-    council: [{ id: 'init-c', sender: 'assistant', text: 'Legal Counsel Chamber active. Select an expert persona and begin consultation.' }],
-    synthesis: [{ id: 'init-s', sender: 'assistant', text: '7-Phase Adversarial Synthesis ready. Enter a case premise or dispute to stress-test.' }],
+  const defaultHistories = {
+    oracle: [{ id: 'init-o', sender: 'assistant' as const, text: 'Oracle Multi-Model Deliberation ready. Enter your high-stakes legal question.' }],
+    council: [{ id: 'init-c', sender: 'assistant' as const, text: 'Legal Counsel Chamber active. Select an expert persona and begin consultation.' }],
+    synthesis: [{ id: 'init-s', sender: 'assistant' as const, text: '7-Phase Adversarial Synthesis ready. Enter a case premise or dispute to stress-test.' }],
+  };
+
+  const [chatHistories, setChatHistories] = useState<{ [key: string]: ChatBubble[] }>(() => {
+    const saved = readGenericState<{ [key: string]: ChatBubble[] }>(STORAGE_KEYS.strategyChatHistories);
+    return saved && saved.oracle && saved.council && saved.synthesis ? saved : defaultHistories;
   });
 
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -813,6 +819,18 @@ export const StrategyRoomScreen: React.FC = () => {
       activeAbortControllerRef.current?.abort();
     };
   }, []);
+
+  // ─── Persist chat histories on every change (debounced) ─────────────────
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      saveGenericState(STORAGE_KEYS.strategyChatHistories, chatHistories);
+    }, 600);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, [chatHistories]);
 
   const activeHistory = chatHistories[activeTab] || [];
 

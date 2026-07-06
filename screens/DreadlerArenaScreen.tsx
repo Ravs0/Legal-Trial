@@ -117,7 +117,7 @@ const TAXONOMY_TACTICS = [
 
 export const DreadlerArenaScreen: React.FC = () => {
   const bridge = useConversationBridge();
-  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 768, mobileOffset: 80, desktopOffset: 100 });
+  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 768, mobileOffset: 0, desktopOffset: 0 });
 
   const renderMarkdown = (text: string) => {
     if (!text) return null;

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/storageService';
 
 export interface BridgeMessage {
   id: string;
@@ -30,7 +31,10 @@ const sanitizeBridgeText = (value: string): string => {
 };
 
 export const ConversationBridgeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [recentMessages, setRecentMessages] = useState<BridgeMessage[]>([]);
+  const [recentMessages, setRecentMessages] = useState<BridgeMessage[]>(() => {
+    const saved = readGenericState<BridgeMessage[]>(STORAGE_KEYS.bridgeMessages);
+    return saved ?? [];
+  });
   const counterRef = useRef(0);
 
   const addMessage = useCallback((msg: Omit<BridgeMessage, 'id' | 'timestamp'>) => {
@@ -45,6 +49,18 @@ export const ConversationBridgeProvider: React.FC<{ children: React.ReactNode }>
       return updated.length > MAX_MESSAGES ? updated.slice(-MAX_MESSAGES) : updated;
     });
   }, []);
+
+  // ─── Persist bridge messages on every change ─────────────────────────
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      saveGenericState(STORAGE_KEYS.bridgeMessages, recentMessages);
+    }, 600);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, [recentMessages]);
 
   const getConversationSummary = useCallback((): string => {
     if (recentMessages.length === 0) {

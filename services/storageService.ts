@@ -1,4 +1,4 @@
-import { SessionRecord } from '../types';
+import { SessionRecord, SessionSettings } from '../types';
 
 const STORAGE_VERSION = 1;
 const ACTIVE_SESSION_KEY = 'legal-trial.active-session';
@@ -100,4 +100,56 @@ export const loadCompletedSessionById = (sessionId?: string | null): SessionReco
 
 export const loadLatestCompletedSession = (): SessionRecord | null => {
   return loadCompletedSessions()[0] || null;
+};
+
+// ─── Generic envelope helpers for non-trial screen state ─────────────────────
+// These re-use the same versioned‑envelope pattern as active/completed sessions
+// so that cross‑screen (StrategyRoom, AIPersonas, ConversationBridge) state
+// survives refresh.
+
+export const STORAGE_KEYS = {
+  strategyChatHistories: 'legal-trial.strategy-chat-histories',
+  personaMessages: 'legal-trial.persona-messages',
+  bridgeMessages: 'legal-trial.bridge-messages',
+} as const;
+
+/** Save any JSON‑serialisable payload under a key. */
+export const saveGenericState = <T>(key: string, payload: T): void => {
+  safeWrite(key, payload);
+};
+
+/** Read a previously saved payload, or null. */
+export const readGenericState = <T>(key: string): T | null => {
+  const envelope = safeRead<T>(key);
+  return envelope?.payload ?? null;
+};
+
+/** Remove a previously saved payload. */
+export const clearGenericState = (key: string): void => {
+  if (!isBrowser) return;
+  try {
+    window.localStorage.removeItem(key);
+  } catch { /* noop */ }
+};
+
+// ─── Pending (pre‑arena) setup settings ──────────────────────────────────────
+const PENDING_SETTINGS_KEY = 'legal-trial.pending-settings';
+
+export const savePendingSettings = (settings: SessionSettings): void => {
+  safeWrite(PENDING_SETTINGS_KEY, {
+    ...settings,
+    caseDetail: settings.caseDetail,
+    judgePersonality: settings.judgePersonality,
+    opposingCounselPersonality: settings.opposingCounselPersonality,
+  });
+};
+
+export const loadPendingSettings = (): SessionSettings | null => {
+  const envelope = safeRead<any>(PENDING_SETTINGS_KEY);
+  return envelope?.payload ?? null;
+};
+
+export const clearPendingSettings = (): void => {
+  if (!isBrowser) return;
+  try { window.localStorage.removeItem(PENDING_SETTINGS_KEY); } catch { /* noop */ }
 };

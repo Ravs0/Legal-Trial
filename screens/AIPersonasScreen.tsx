@@ -5,6 +5,7 @@ import { Chat } from '../types';
 import { useConversationBridge } from '../components/ConversationBridge';
 import { useVisualViewport } from '../hooks/useVisualViewport';
 import { renderLegalMarkdown } from '../utils/markdown';
+import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/storageService';
 
 // ─── Persona Interface ────────────────────────────────────────────────────────
 export interface HistoricalPersona {
@@ -166,7 +167,7 @@ const AIPersonasScreen: React.FC = () => {
   const practiceMode = context?.practiceMode;
   
   const bridge = useConversationBridge();
-  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 768, mobileOffset: 80, desktopOffset: 112 });
+  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 768, mobileOffset: 0, desktopOffset: 0 });
 
   // Tab State: 'historical' | 'sentient'
   const [activeTab, setActiveTab] = useState<'historical' | 'sentient'>('historical');
@@ -181,7 +182,10 @@ const AIPersonasScreen: React.FC = () => {
 
   const [subjects] = useState<SentientSubject[]>(SENTIENT_SUBJECTS);
   const [chats, setChats] = useState<Record<string, Chat>>({});
-  const [allMessages, setAllMessages] = useState<Record<string, PersonaMessage[]>>({});
+  const [allMessages, setAllMessages] = useState<Record<string, PersonaMessage[]>>(() => {
+    const saved = readGenericState<Record<string, PersonaMessage[]>>(STORAGE_KEYS.personaMessages);
+    return saved ?? {};
+  });
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [viewTab, setViewTab] = useState<'chat' | 'info' | 'codex'>('info');
@@ -381,6 +385,18 @@ const AIPersonasScreen: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping, interjecting]);
+
+  // ─── Persist persona message histories on every change ─────────────────
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      saveGenericState(STORAGE_KEYS.personaMessages, allMessages);
+    }, 600);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, [allMessages]);
 
   useEffect(() => {
     if (activeTab === 'historical') {
