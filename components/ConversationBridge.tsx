@@ -1,11 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface BridgeMessage {
   id: string;
-  source: string;       // 'constitutional' | 'criminal' | 'corporate' | 'family' | 'international' | 'council' | 'drafting' | 'trial'
-  sourceName: string;   // Human readable: 'Samvidhan', 'Danda', etc.
+  source: string;
+  sourceName: string;
   sender: 'user' | 'ai';
   text: string;
   timestamp: number;
@@ -21,11 +19,15 @@ export interface ConversationBridgeContextType {
 const MAX_MESSAGES = 20;
 const SUMMARY_COUNT = 10;
 
-// ─── Context ──────────────────────────────────────────────────────────────────
-
 const ConversationBridgeContext = createContext<ConversationBridgeContextType | null>(null);
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+const sanitizeBridgeText = (value: string): string => {
+  return value
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[<>`{}\[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
 export const ConversationBridgeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [recentMessages, setRecentMessages] = useState<BridgeMessage[]>([]);
@@ -34,39 +36,36 @@ export const ConversationBridgeProvider: React.FC<{ children: React.ReactNode }>
   const addMessage = useCallback((msg: Omit<BridgeMessage, 'id' | 'timestamp'>) => {
     const newMsg: BridgeMessage = {
       ...msg,
+      text: sanitizeBridgeText(msg.text),
       id: `bridge-${Date.now()}-${counterRef.current++}`,
       timestamp: Date.now(),
     };
     setRecentMessages(prev => {
       const updated = [...prev, newMsg];
-      // Keep only the last MAX_MESSAGES to avoid bloat
       return updated.length > MAX_MESSAGES ? updated.slice(-MAX_MESSAGES) : updated;
     });
   }, []);
 
   const getConversationSummary = useCallback((): string => {
     if (recentMessages.length === 0) {
-      return 'No recent conversations across modules.';
+      return 'Cross-module summary: none.';
     }
 
     const slice = recentMessages.slice(-SUMMARY_COUNT);
-
-    // Group by source for a cleaner summary
     const grouped = new Map<string, BridgeMessage[]>();
     for (const msg of slice) {
-      const key = msg.sourceName;
+      const key = sanitizeBridgeText(msg.sourceName);
       if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)!.push(msg);
     }
 
-    const lines: string[] = ['## Recent Cross-Module Activity'];
+    const lines: string[] = ['Cross-module summary (sanitized plain text):'];
 
     for (const [sourceName, msgs] of grouped) {
-      lines.push(`\n### Conversation with ${sourceName}:`);
+      lines.push(`Source=${sourceName}`);
       for (const m of msgs) {
         const role = m.sender === 'user' ? 'User' : sourceName;
-        // Truncate very long messages to keep context manageable
-        const text = m.text.length > 200 ? m.text.slice(0, 200) + '...' : m.text;
+        const text = sanitizeBridgeText(m.text).slice(0, 220);
         lines.push(`- ${role}: ${text}`);
       }
     }
@@ -89,8 +88,6 @@ export const ConversationBridgeProvider: React.FC<{ children: React.ReactNode }>
   );
 };
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
 export const useConversationBridge = (): ConversationBridgeContextType => {
   const ctx = useContext(ConversationBridgeContext);
   if (!ctx) {
@@ -98,3 +95,4 @@ export const useConversationBridge = (): ConversationBridgeContextType => {
   }
   return ctx;
 };
+

@@ -7,13 +7,14 @@ import { TrialSimContext } from '../App';
 import { PerformanceMetrics, SessionRecord } from '../types';
 import { ROUTES } from '../constants';
 import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
+import { loadCompletedSessionById, loadLatestCompletedSession } from '../services/storageService';
 
 const PerformanceScreen: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const context = useContext(TrialSimContext);
 
-  if (!context) throw new Error("TrialSimContext not found");
+  if (!context) throw new Error('TrialSimContext not found');
   const { setIsLoading: setGlobalLoading, setError: setGlobalError, practiceMode } = context;
 
   const [sessionRecord, setSessionRecord] = useState<SessionRecord | null>(null);
@@ -25,32 +26,32 @@ const PerformanceScreen: React.FC = () => {
     setGlobalLoading(true);
 
     const routerState = location.state as { sessionRecord?: SessionRecord } | null;
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get('sessionId');
     const recordFromState = routerState?.sessionRecord;
+    const recordFromStorage = loadCompletedSessionById(sessionId) || loadLatestCompletedSession();
+    const resolvedRecord = recordFromState || recordFromStorage;
 
-    if (recordFromState) {
-      setSessionRecord(recordFromState);
-      if (recordFromState.performance) {
-        setPerformanceMetrics(recordFromState.performance);
-      } else {
-        setGlobalError("Performance metrics are missing for this session.");
-        setPerformanceMetrics({
-          argumentStrength: 0, precedentUsage: 0, constitutionalBasis: 0, responseQuality: 0, overallScore: 0,
-          feedback: "Performance metrics were not available or generation failed.",
-          improvementAreas: ["Please try re-analyzing if the option is available or contact support."]
-        });
+    if (resolvedRecord) {
+      setSessionRecord(resolvedRecord);
+      setPerformanceMetrics(resolvedRecord.performance || null);
+
+      if (resolvedRecord.analysisStatus?.state === 'unavailable') {
+        setGlobalError('Performance analysis for this session was unavailable.');
+      } else if (!resolvedRecord.performance) {
+        setGlobalError('Performance metrics are missing for this session.');
       }
     } else if (!practiceMode) {
-      setGlobalError("No session data found and no practice mode selected.");
+      setGlobalError('No session data found and no practice mode selected.');
       navigate(ROUTES.LANDING);
     } else {
-      setGlobalError("No session data found to display performance. Please start a new session.");
+      setGlobalError('No session data found to display performance. Please start a new session.');
       navigate(ROUTES.HOME);
     }
 
     setIsLoading(false);
     setGlobalLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state, practiceMode]);
+  }, [location.state, location.search, navigate, practiceMode, setGlobalError, setGlobalLoading]);
 
   const renderScoreBar = (label: string, score: number, outOf: number = 10) => (
     <div className="mb-5 group">
@@ -75,7 +76,9 @@ const PerformanceScreen: React.FC = () => {
     return (
       <Card title="Analysis Unavailable" className="text-center max-w-lg mx-auto mt-20">
         <p className="text-brand-text-secondary mb-8 font-light leading-relaxed">
-          Performance data for this session could not be generated or retrieved.
+          {sessionRecord.analysisStatus?.state === 'unavailable'
+            ? 'Performance analysis could not be generated for this session. The transcript and session details are still available below.'
+            : 'Performance data for this session could not be generated or retrieved.'}
         </p>
         <Button onClick={() => navigate(ROUTES.HOME)} variant="outline" className="px-8">Return to Dashboard</Button>
       </Card>
@@ -127,6 +130,11 @@ const PerformanceScreen: React.FC = () => {
               </div>
               <div className="h-px w-full bg-brand-text-primary/30"></div>
               <div>
+                <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Phase Reached</span>
+                <span className="text-brand-text-primary font-medium">{sessionRecord.activePhase?.replace('_', ' ') || 'opening'}</span>
+              </div>
+              <div className="h-px w-full bg-brand-text-primary/30"></div>
+              <div>
                 <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Timestamp</span>
                 <span className="text-brand-text-secondary font-mono text-xs">{new Date(sessionRecord.startTime).toLocaleDateString()}
                   {sessionRecord.endTime ? ` • ${new Date(sessionRecord.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ' (Inc)'}</span>
@@ -136,10 +144,12 @@ const PerformanceScreen: React.FC = () => {
 
           <Card title="Score Breakdown">
             <div className="space-y-2">
-              {renderScoreBar("Argument Strength", performanceMetrics.argumentStrength)}
-              {renderScoreBar("Precedent Usage", performanceMetrics.precedentUsage)}
-              {renderScoreBar("Legal Basis", performanceMetrics.constitutionalBasis)}
-              {renderScoreBar("Response Quality", performanceMetrics.responseQuality)}
+              {renderScoreBar('Argument Strength', performanceMetrics.argumentStrength)}
+              {renderScoreBar('Precedent Usage', performanceMetrics.precedentUsage)}
+              {renderScoreBar('Legal Grounding', performanceMetrics.legalGrounding)}
+              {renderScoreBar('Response Quality', performanceMetrics.responseQuality)}
+              {renderScoreBar('Objection Handling', performanceMetrics.objectionHandling)}
+              {renderScoreBar('Courtroom Presence', performanceMetrics.courtroomPresence)}
             </div>
             <div className="mt-8 pt-6 border-t border-brand-text-primary/30 relative">
               <div className="flex justify-between items-end mb-3">
@@ -159,7 +169,7 @@ const PerformanceScreen: React.FC = () => {
         <div className="lg:col-span-2 space-y-8">
           <Card title="Detailed Feedback" className="h-full">
             <div className="prose prose-sm sm:prose-base prose-invert max-w-none text-brand-text-primary leading-relaxed font-light">
-              <p className="first-letter:text-4xl first-letter:font-serif first-letter:text-brand-accent first-letter:mr-1 first-letter:float-left">{performanceMetrics.feedback || "No specific feedback available from the bench."}</p>
+              <p className="first-letter:text-4xl first-letter:font-serif first-letter:text-brand-accent first-letter:mr-1 first-letter:float-left">{performanceMetrics.feedback || 'No specific feedback available from the bench.'}</p>
             </div>
 
             <div className="mt-10 pt-8 border-t border-brand-text-primary/30">
@@ -168,7 +178,7 @@ const PerformanceScreen: React.FC = () => {
                 Areas for Improvement
               </h4>
 
-              {performanceMetrics.improvementAreas && performanceMetrics.improvementAreas.length > 0 && !performanceMetrics.improvementAreas[0].toLowerCase().includes("error") ? (
+              {performanceMetrics.improvementAreas && performanceMetrics.improvementAreas.length > 0 && !performanceMetrics.improvementAreas[0].toLowerCase().includes('error') ? (
                 <ul className="space-y-4">
                   {performanceMetrics.improvementAreas.map((area, index) => (
                     <li key={index} className="flex items-start p-4 bg-brand-bg-secondary rounded-xl border border-brand-text-primary/30 transition-colors group">
@@ -180,7 +190,7 @@ const PerformanceScreen: React.FC = () => {
                   ))}
                 </ul>
               ) : (
-                <p className="text-brand-text-secondary font-light italic px-4 py-3 bg-brand-bg-secondary rounded-xl border border-brand-text-primary/30">{performanceMetrics.improvementAreas[0] || "No specific improvement areas identified by the bench."}</p>
+                <p className="text-brand-text-secondary font-light italic px-4 py-3 bg-brand-bg-secondary rounded-xl border border-brand-text-primary/30">{performanceMetrics.improvementAreas[0] || 'No specific improvement areas identified by the bench.'}</p>
               )}
             </div>
           </Card>
@@ -211,10 +221,7 @@ const PerformanceScreen: React.FC = () => {
                 </span>
                 <div className={`p-4 rounded-xl max-w-[85%] sm:max-w-[75%] font-light leading-relaxed text-sm sm:text-base border ${isUser
                     ? 'bg-brand-bg-secondary border-brand-accent text-brand-text-primary'
-                    : (msg.sender === 'judge'
-                      ? 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary'
-                      : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary'
-                    )
+                    : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary'
                   }`}>
                   <span className="whitespace-pre-wrap break-words">{msg.text}</span>
                 </div>

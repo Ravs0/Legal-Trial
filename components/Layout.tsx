@@ -1,5 +1,5 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import React, { useContext, useState, useEffect, useMemo } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME, ROUTES } from '../constants';
 import { TrialSimContext } from '../App';
 import { CourtIcon } from './icons/CourtIcon';
@@ -12,6 +12,7 @@ import { QuillIcon } from './icons/QuillIcon';
 import { Bars3Icon } from './icons/Bars3Icon';
 import { XMarkIcon } from './icons/XMarkIcon';
 import { BackgroundGeometry } from './BackgroundGeometry';
+import { loadActiveSession } from '../services/storageService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -113,10 +114,28 @@ const TargetIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M2 12h2m16 0h2" />
   </svg>
 );
+const ResumeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6.75 16.5 12l-6 5.25V6.75Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75v10.5" />
+  </svg>
+);
+
+const SearchIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.6-5.4a6.75 6.75 0 1 1-13.5 0 6.75 6.75 0 0 1 13.5 0Z" />
+  </svg>
+);
+
+const formatModeLabel = (mode: string | null | undefined) => {
+  if (!mode) return '';
+  return `${mode.charAt(0).toUpperCase()}${mode.slice(1)} Mode`;
+};
 
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const context = useContext(TrialSimContext);
   const practiceMode = context?.practiceMode;
   const modeDisplay = practiceMode ? (practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1)) : '';
@@ -127,10 +146,30 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   });
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [activeSessionLabel, setActiveSessionLabel] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('sidebarOpen', JSON.stringify(isSidebarOpen));
   }, [isSidebarOpen]);
+
+  useEffect(() => {
+    const syncActiveSession = () => {
+      const activeSession = loadActiveSession();
+      if (!activeSession) {
+        setActiveSessionLabel(null);
+        return;
+      }
+      setActiveSessionLabel(activeSession.settings.caseDetail.title);
+    };
+
+    syncActiveSession();
+    window.addEventListener('focus', syncActiveSession);
+    window.addEventListener('storage', syncActiveSession);
+    return () => {
+      window.removeEventListener('focus', syncActiveSession);
+      window.removeEventListener('storage', syncActiveSession);
+    };
+  }, [location.pathname]);
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -143,6 +182,27 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const hideSidebarOnPaths = [ROUTES.PRACTICE, ROUTES.LANDING];
   const showSidebar = !hideSidebarOnPaths.includes(location.pathname) && practiceMode;
   const isExpanded = isSidebarOpen || isMobileOpen;
+  const quickActions = useMemo(() => ([
+    {
+      id: 'start-trial',
+      label: 'New Trial',
+      icon: <PlusCircleIcon className="h-4 w-4" />,
+      onClick: () => navigate(ROUTES.SETUP),
+    },
+    {
+      id: 'resume-session',
+      label: activeSessionLabel ? 'Resume Session' : 'No Active Session',
+      icon: <ResumeIcon className="h-4 w-4" />,
+      disabled: !activeSessionLabel,
+      onClick: () => navigate(ROUTES.PRACTICE),
+    },
+    {
+      id: 'search',
+      label: 'Search',
+      icon: <SearchIcon className="h-4 w-4" />,
+      onClick: () => window.dispatchEvent(new CustomEvent('cmd-palette-open')),
+    },
+  ]), [activeSessionLabel, navigate]);
 
   return (
     <div className="h-dvh flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative noise-overlay">
@@ -150,14 +210,32 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Mobile Top Bar */}
       {showSidebar && (
-        <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-brand-bg-dark/95 backdrop-blur-xl border-b border-white/8 z-40 flex items-center justify-between px-4">
-          <Link to={ROUTES.HOME} className="flex items-center space-x-2">
-            <CourtIcon className="h-5 w-5 text-brand-accent" />
-            <h1 className="text-[17px] font-semibold text-white/90">{APP_NAME}</h1>
-          </Link>
-          <button onClick={toggleMobileSidebar} className="p-2 -mr-2 text-white/50 hover:text-white/90 transition-colors">
-            <Bars3Icon className="h-6 w-6" />
-          </button>
+        <div className="md:hidden fixed top-0 left-0 right-0 z-40 border-b border-white/8 bg-brand-bg-dark/95 backdrop-blur-xl">
+          <div className="h-14 flex items-center justify-between px-4">
+            <Link to={ROUTES.HOME} className="flex items-center gap-2 min-w-0">
+              <CourtIcon className="h-5 w-5 text-brand-accent flex-shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-[16px] font-semibold text-white/90 truncate">{APP_NAME}</h1>
+                {practiceMode && <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-accent/80 truncate">{formatModeLabel(practiceMode)}</p>}
+              </div>
+            </Link>
+            <button onClick={toggleMobileSidebar} className="p-2 -mr-2 text-white/50 hover:text-white/90 transition-colors">
+              <Bars3Icon className="h-6 w-6" />
+            </button>
+          </div>
+          <div className="px-3 pb-3 flex gap-2 overflow-x-auto custom-scrollbar">
+            {quickActions.map(action => (
+              <button
+                key={action.id}
+                onClick={action.onClick}
+                disabled={action.disabled}
+                className={`min-h-[42px] px-3 rounded-xl border text-[12px] font-medium whitespace-nowrap flex items-center gap-2 transition-colors ${action.disabled ? 'border-white/8 text-white/25 bg-white/5' : 'border-brand-accent/20 text-white/85 bg-white/5 hover:bg-white/10 hover:border-brand-accent/40'}`}
+              >
+                {action.icon}
+                <span>{action.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -181,7 +259,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between h-14 flex-shrink-0 px-3 border-b border-white/8">
             <div className={`flex items-center overflow-hidden transition-all ${!isExpanded ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 flex-1'}`}>
               <CourtIcon className="h-4 w-4 text-brand-accent mr-2" />
-              <h1 className="text-[13px] font-semibold text-white/90 leading-tight truncate">{APP_NAME}</h1>
+              <div className="min-w-0">
+                <h1 className="text-[13px] font-semibold text-white/90 leading-tight truncate">{APP_NAME}</h1>
+                {practiceMode && <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-accent/70 truncate">{formatModeLabel(practiceMode)}</p>}
+              </div>
             </div>
             <button
               onClick={() => isMobileOpen ? toggleMobileSidebar() : toggleDesktopSidebar()}
@@ -190,6 +271,30 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               {isMobileOpen ? <XMarkIcon className="h-5 w-5" /> : (isSidebarOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />)}
             </button>
           </div>
+
+          {isExpanded && (
+            <div className="px-3 py-3 border-b border-white/8 space-y-2">
+              <div className="grid grid-cols-1 gap-2">
+                {quickActions.map(action => (
+                  <button
+                    key={action.id}
+                    onClick={action.onClick}
+                    disabled={action.disabled}
+                    className={`w-full min-h-[44px] px-3 rounded-xl border text-left text-[12px] font-medium flex items-center gap-2 transition-colors ${action.disabled ? 'border-white/8 text-white/25 bg-white/5' : 'border-white/10 text-white/80 hover:text-white hover:bg-white/8 hover:border-brand-accent/25'}`}
+                  >
+                    <span className="text-brand-accent">{action.icon}</span>
+                    <span>{action.label}</span>
+                  </button>
+                ))}
+              </div>
+              {activeSessionLabel && (
+                <div className="rounded-xl border border-brand-accent/20 bg-brand-accent/10 px-3 py-2">
+                  <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-accent/80">Active Session</p>
+                  <p className="mt-1 text-[12px] text-white/80 line-clamp-2">{activeSessionLabel}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Navigation */}
           <nav className="flex-grow py-2 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
@@ -250,7 +355,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <main className={`flex-grow z-10 transition-all duration-300 ease-in-out h-dvh flex flex-col overflow-hidden 
         ${showSidebar ? (isSidebarOpen ? 'md:ml-56' : 'md:ml-[60px]') : ''}
-        ${showSidebar ? 'pt-14 md:pt-0' : ''}
+        ${showSidebar ? 'pt-[110px] md:pt-0' : ''}
       `}>
         {children}
       </main>

@@ -1,9 +1,11 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ROUTES, APP_NAME } from '../constants';
 import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
 import { TrialSimContext } from '../App';
+import { loadActiveSession } from '../services/storageService';
+import { SessionRecord } from '../types';
 import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
 import personaSeal from '../assets/persona_seal.jpg';
 import deceptionKey from '../assets/deception_key.jpg';
@@ -103,84 +105,160 @@ const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick
 };
 
 
+const formatElapsed = (session: SessionRecord) => {
+  const minutes = Math.max(0, Math.round(session.elapsedSeconds / 60));
+  if (minutes <= 1) return 'just started';
+  return `${minutes} min elapsed`;
+};
+
 const HomeScreen: React.FC = () => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
   const practiceMode = context?.practiceMode;
   const modeDisplay = practiceMode ? (practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1)) : 'Selected';
+  const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
+
+  useEffect(() => {
+    const syncActiveSession = () => {
+      setActiveSession(loadActiveSession());
+    };
+
+    syncActiveSession();
+    window.addEventListener('focus', syncActiveSession);
+    window.addEventListener('storage', syncActiveSession);
+    return () => {
+      window.removeEventListener('focus', syncActiveSession);
+      window.removeEventListener('storage', syncActiveSession);
+    };
+  }, []);
 
   const draftingDescription = practiceMode === 'indian'
-    ? `Master Indian legal drafting: plaints, petitions, notices (CPC, new Criminal Laws like BNSS II, Contract Act). AI-guided feedback & procedural nuances.`
-    : `Refine international legal drafting: submissions, memorials, agreements (treaties, arbitration, human rights). AI feedback & best practices.`;
+    ? 'Master Indian legal drafting: plaints, petitions, notices, procedural filings, and AI-guided feedback grounded in local practice.'
+    : 'Refine international legal drafting: memorials, submissions, agreements, and strategy writing with tighter AI feedback.';
 
   const heroDescription = (
     <>
-      Welcome to <span className="font-medium text-brand-text-primary">{APP_NAME}</span>.
-      Sharpen advocacy in <strong className="font-medium text-brand-text-primary">Mock Trials</strong>.
-      Master legal writing in the <strong className="font-medium text-brand-text-primary">Drafting Studio</strong>.
-      Your {modeDisplay.toLowerCase()} law skills journey starts here.
+      Return to <span className="font-medium text-brand-text-primary">{APP_NAME}</span> with a cleaner path: start a new mock trial, continue your live session, or jump straight into drafting and strategy work.
     </>
   );
 
+  const quickStats = useMemo(() => {
+    if (!activeSession) return null;
+    return {
+      title: activeSession.settings.caseDetail.title,
+      phase: activeSession.activePhase.replace('_', ' '),
+      elapsed: formatElapsed(activeSession),
+    };
+  }, [activeSession]);
+
   return (
-    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-0 animate-fadeIn relative">
+    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-6 animate-fadeIn relative">
+      <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)] gap-4 lg:gap-6">
+        <div className="rounded-2xl border border-brand-border bg-brand-bg-secondary overflow-hidden relative min-h-[280px]">
+          <img src={heroCourtroom} alt="Courtroom" className="absolute inset-0 w-full h-full object-cover opacity-45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-dark via-brand-bg-dark/88 to-brand-bg-dark/45" />
+          <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6 lg:p-8 gap-6">
+            <div className="max-w-2xl">
+              <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] text-brand-accent/90">{modeDisplay} Practice</p>
+              <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-brand-text-primary">Elevate Your {modeDisplay} Legal Skills</h1>
+              <div className="mt-4 text-sm sm:text-base lg:text-lg text-brand-text-secondary/90 max-w-3xl leading-relaxed">{heroDescription}</div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+              <Button variant="primary" size="lg" onClick={() => navigate(ROUTES.SETUP)} className="sm:min-w-[220px]">
+                <PlusCircleIcon className="h-5 w-5 mr-2" />
+                Start New Trial
+              </Button>
+              <Button variant="secondary" size="lg" onClick={() => navigate(activeSession ? ROUTES.PRACTICE : ROUTES.DRAFTING_STUDIO)} className="sm:min-w-[220px]">
+                {activeSession ? 'Resume Active Session' : 'Open Drafting Studio'}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-brand-border bg-brand-bg-secondary p-5 sm:p-6 flex flex-col gap-4">
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Next Best Step</p>
+            <h2 className="mt-2 text-xl font-serif font-semibold text-brand-text-primary">{activeSession ? 'Continue your live hearing' : 'Set up your next session'}</h2>
+            <p className="mt-2 text-sm text-brand-text-secondary/80 leading-relaxed">
+              {activeSession
+                ? 'Your last courtroom session is still live in local storage. Continue from the transcript, phase, and score state you left behind.'
+                : 'Pick a case, judge, counsel, and session length, then drop directly into the arena with a clearer mobile flow.'}
+            </p>
+          </div>
+
+          {quickStats ? (
+            <div className="rounded-xl border border-brand-accent/20 bg-brand-accent/10 p-4 space-y-3">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-accent/85">Active Session</p>
+                <h3 className="mt-1 text-sm font-semibold text-white/90 leading-snug">{quickStats.title}</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs text-brand-text-secondary/80">
+                <div className="rounded-lg border border-white/8 bg-brand-bg-dark/35 px-3 py-2">
+                  <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/45">Phase</p>
+                  <p className="mt-1 capitalize text-white/85">{quickStats.phase}</p>
+                </div>
+                <div className="rounded-lg border border-white/8 bg-brand-bg-dark/35 px-3 py-2">
+                  <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/45">Progress</p>
+                  <p className="mt-1 text-white/85">{quickStats.elapsed}</p>
+                </div>
+              </div>
+              <Button variant="primary" fullWidth onClick={() => navigate(ROUTES.PRACTICE)}>
+                Resume Session
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-white/8 bg-brand-bg-dark/35 p-4 space-y-3">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">No Active Session</p>
+                <p className="mt-1 text-sm text-brand-text-secondary/80">Start a fresh courtroom run or switch into a non-trial workspace.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="secondary" onClick={() => navigate(ROUTES.SETUP)}>Trial Setup</Button>
+                <Button variant="ghost" onClick={() => navigate(ROUTES.STRATEGY)}>Strategy Room</Button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl border border-white/8 bg-brand-bg-dark/30 px-3 py-3">
+              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Mode</p>
+              <p className="mt-1 text-xs text-white/85">{modeDisplay}</p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-brand-bg-dark/30 px-3 py-3">
+              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Arena</p>
+              <p className="mt-1 text-xs text-white/85">Live Practice</p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-brand-bg-dark/30 px-3 py-3">
+              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">AI</p>
+              <p className="mt-1 text-xs text-white/85">DeepSeek</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
         <BentoItem
-          isHero
-          title={`Elevate Your ${modeDisplay} Legal Skills`}
-          description={heroDescription}
-          icon={
-            <img 
-              src={heroCourtroom} 
-              alt="Hero Courtroom background" 
-              className="w-full h-full object-cover"
-            />
-          }
-          onClick={() => navigate(ROUTES.SETUP)}
-          buttonText={`Start New ${modeDisplay} Trial Session`}
-          className="min-h-[280px] lg:min-h-[400px]"
-        />
-
-        <BentoItem
           title="AI Personas"
-          description="Consult directly with elite historical legal strategists (Samuel Leibowitz, Cardinal Richelieu) or engage sentient legal domains personified as Ren (Kuudere), Kira (Yandere), Aldric, Hana, and Sora."
-          icon={
-            <img 
-              src={personaSeal} 
-              alt="AI Personas" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          }
+          description="Consult domain experts, legal strategists, and specialized advisors when you need a fresh frame before entering the arena."
+          icon={<img src={personaSeal} alt="AI Personas" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
           onClick={() => navigate(ROUTES.PERSONAS)}
-          buttonText="Select Persona"
+          buttonText="Open Personas"
           className="md:col-span-1"
         />
 
         <BentoItem
           title="AI Strategy Room"
-          description="Convene multi-agent expert debates, run the 6-stage Oracle deconstruction, or execute a 7-phase Adversarial Case Synthesis to stress-test your strategy."
-          icon={
-            <img 
-              src={strategyAstrolabe} 
-              alt="Strategy Astrolabe" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          }
+          description="Stress-test your theory, run multi-agent debate, and pressure your argument before you step into live adversarial exchange."
+          icon={<img src={strategyAstrolabe} alt="Strategy Astrolabe" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
           onClick={() => navigate(ROUTES.STRATEGY)}
-          buttonText="Enter Strategy Room"
+          buttonText="Enter Strategy"
           className="md:col-span-1"
         />
 
         <BentoItem
           title="Deception Arena"
-          description="Interrogate witnesses and suspects powered by the Dreadler deception engine. Spot strategic omissions, evasions, and implicatures. Maintain pressure to expose the truth."
-          icon={
-            <img 
-              src={deceptionKey} 
-              alt="Deception Arena" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          }
+          description="Interrogate witnesses and suspects with the Dreadler engine when you want a higher-pressure factual challenge than standard trial sparring."
+          icon={<img src={deceptionKey} alt="Deception Arena" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
           onClick={() => navigate(ROUTES.DREADLER)}
           buttonText="Enter Arena"
           className="md:col-span-1"
@@ -189,13 +267,7 @@ const HomeScreen: React.FC = () => {
         <BentoItem
           title="Drafting Practice Studio"
           description={draftingDescription}
-          icon={
-            <img 
-              src={draftingPen} 
-              alt="Drafting Pen" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          }
+          icon={<img src={draftingPen} alt="Drafting Pen" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
           onClick={() => navigate(ROUTES.DRAFTING_STUDIO)}
           buttonText="Enter Studio"
           className="md:col-span-1"
@@ -203,52 +275,34 @@ const HomeScreen: React.FC = () => {
 
         <BentoItem
           title="Case Library"
-          description={`Explore diverse legal scenarios and precedents within the ${modeDisplay.toLowerCase()} framework to prepare for rigorous mock trials.`}
-          icon={
-            <img 
-              src={libraryBooks} 
-              alt="Case Library" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          }
+          description={`Explore legal scenarios and precedents inside the ${modeDisplay.toLowerCase()} framework before configuring your next session.`}
+          icon={<img src={libraryBooks} alt="Case Library" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
           onClick={() => navigate(ROUTES.LIBRARY)}
           buttonText="Browse Cases"
         />
 
         <BentoItem
           title="Meet the Judges"
-          description={`Familiarize yourself with AI Judge personalities, their judicial philosophies, and expectations relevant to ${modeDisplay.toLowerCase()} practice.`}
-          icon={
-            <img 
-              src={judgeGavel} 
-              alt="Judge Gavel" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          }
+          description={`Review AI judicial philosophies and likely questioning styles relevant to ${modeDisplay.toLowerCase()} practice.`}
+          icon={<img src={judgeGavel} alt="Judge Gavel" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
           onClick={() => navigate(ROUTES.JUDGES)}
           buttonText="View Judges"
         />
 
         <BentoItem
           title="Opposing Counsel"
-          description={`Analyze the specialized AI Opposing Counsel you'll face in the ${modeDisplay.toLowerCase()} arena. Understand their tactical approaches.`}
-          icon={
-            <img 
-              src={counselScales} 
-              alt="Opposing Counsel Scales" 
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          }
+          description={`Understand the tactical profiles and specialties of the counsel you will face in the ${modeDisplay.toLowerCase()} arena.`}
+          icon={<img src={counselScales} alt="Opposing Counsel Scales" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
           onClick={() => navigate(ROUTES.OPPOSING_COUNSEL)}
           buttonText="View Counsel"
           className="md:col-span-1 lg:col-span-1"
         />
       </div>
 
-      <div className="text-center pt-10 pb-4 relative">
+      <div className="text-center pt-6 pb-4 relative">
         <div className="absolute top-0 left-1/4 right-1/4 h-px bg-brand-border"></div>
         <p className="text-xs lg:text-sm font-light tracking-wide text-brand-text-secondary/70 max-w-2xl mx-auto px-4">
-          {APP_NAME} is a rigorous training module designed to critically assess and dramatically improve your legal argumentation and drafting dexterity within the {modeDisplay.toLowerCase()} context.
+          {APP_NAME} remains a rigorous training module for advocacy and drafting, but the front door is now tuned for faster re-entry, clearer next actions, and better mobile use.
         </p>
       </div>
     </div>

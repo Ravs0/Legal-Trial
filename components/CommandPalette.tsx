@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES } from '../constants';
 import { CASES } from '../constants';
+import { loadActiveSession } from '../services/storageService';
 
 interface CommandItem {
   id: string;
@@ -16,11 +17,27 @@ export const CommandPalette: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activeSessionLabel, setActiveSessionLabel] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const syncActiveSession = () => {
+      const activeSession = loadActiveSession();
+      setActiveSessionLabel(activeSession?.settings.caseDetail.title || null);
+    };
+
+    syncActiveSession();
+    window.addEventListener('focus', syncActiveSession);
+    window.addEventListener('storage', syncActiveSession);
+    return () => {
+      window.removeEventListener('focus', syncActiveSession);
+      window.removeEventListener('storage', syncActiveSession);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -31,8 +48,18 @@ export const CommandPalette: React.FC = () => {
         setIsOpen(false);
       }
     };
+
+    const handleOpen = () => setIsOpen(true);
+    const handleClose = () => setIsOpen(false);
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('cmd-palette-open', handleOpen);
+    window.addEventListener('cmd-palette-close', handleClose);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('cmd-palette-open', handleOpen);
+      window.removeEventListener('cmd-palette-close', handleClose);
+    };
   }, []);
 
   useEffect(() => {
@@ -48,7 +75,6 @@ export const CommandPalette: React.FC = () => {
 
   const currentPath = location.pathname;
 
-  // Build command list based on context
   const getCommands = (): CommandItem[] => {
     const commands: CommandItem[] = [
       {
@@ -64,6 +90,17 @@ export const CommandPalette: React.FC = () => {
         title: 'Start New Trial Session',
         description: 'Configure a new simulated courtroom trial.',
         action: () => navigate(ROUTES.SETUP)
+      },
+      {
+        id: 'nav-resume',
+        category: 'Navigation',
+        title: activeSessionLabel ? 'Resume Active Session' : 'No Active Session',
+        description: activeSessionLabel ? `Return to ${activeSessionLabel}.` : 'No saved in-progress courtroom session is available right now.',
+        action: () => {
+          if (activeSessionLabel) {
+            navigate(ROUTES.PRACTICE);
+          }
+        }
       },
       {
         id: 'nav-personas',
@@ -116,7 +153,6 @@ export const CommandPalette: React.FC = () => {
       }
     ];
 
-    // Contextual Actions: Drafting Studio
     if (currentPath.includes(ROUTES.DRAFTING_STUDIO)) {
       commands.unshift(
         {
@@ -138,7 +174,6 @@ export const CommandPalette: React.FC = () => {
       );
     }
 
-    // Contextual Actions: Practice Arena
     if (currentPath.includes(ROUTES.PRACTICE)) {
       commands.unshift(
         {
@@ -159,26 +194,26 @@ export const CommandPalette: React.FC = () => {
       );
     }
 
-    // Append Precedent Cases
-    CASES.forEach(c => {
-      commands.push({
-        id: `case-${c.id}`,
-        category: 'Precedents',
-        title: `Precedent: ${c.title}`,
-        description: c.briefFacts.substring(0, 75) + '...',
-        action: () => {
-          navigate(ROUTES.LIBRARY);
-          setTimeout(() => {
+    if (currentPath.includes(ROUTES.LIBRARY)) {
+      CASES.forEach(c => {
+        commands.push({
+          id: `case-${c.id}`,
+          category: 'Precedents',
+          title: `Precedent: ${c.title}`,
+          description: c.briefFacts.substring(0, 75) + '...',
+          action: () => {
             window.dispatchEvent(new CustomEvent('cmd-palette-select-case', { detail: { caseId: c.id } }));
-          }, 150);
-        }
+          }
+        });
       });
-    });
+    }
 
     return commands;
   };
 
-  const filteredCommands = getCommands().filter(c =>
+  const commands = useMemo(() => getCommands(), [currentPath, activeSessionLabel]);
+
+  const filteredCommands = commands.filter(c =>
     c.title.toLowerCase().includes(search.toLowerCase()) ||
     c.description.toLowerCase().includes(search.toLowerCase()) ||
     c.category.toLowerCase().includes(search.toLowerCase())
@@ -188,7 +223,22 @@ export const CommandPalette: React.FC = () => {
     setSelectedIndex(0);
   }, [search]);
 
+  useEffect(() => {
+    if (filteredCommands.length === 0 && selectedIndex !== 0) {
+      setSelectedIndex(0);
+    } else if (filteredCommands.length > 0 && selectedIndex >= filteredCommands.length) {
+      setSelectedIndex(filteredCommands.length - 1);
+    }
+  }, [filteredCommands, selectedIndex]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (filteredCommands.length === 0) {
+      if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+      }
+      return;
+    }
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex(prev => (prev + 1) % filteredCommands.length);
@@ -215,16 +265,23 @@ export const CommandPalette: React.FC = () => {
 
   return (
     <div 
-      className="fixed inset-0 bg-[#0D0F12]/90 flex items-start justify-center z-[99999] p-4 sm:p-10 pt-16 sm:pt-24"
+      className="fixed inset-0 bg-[#0D0F12]/90 flex items-end sm:items-start justify-center z-[99999] p-0 sm:p-10 sm:pt-24"
       onClick={() => setIsOpen(false)}
     >
       <div 
-        className="w-full max-w-2xl bg-brand-bg-primary border-2 border-brand-accent rounded-xl shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col max-h-[480px] overflow-hidden"
+        className="w-full sm:max-w-2xl bg-brand-bg-primary border-t-2 sm:border-2 border-brand-accent rounded-t-2xl sm:rounded-xl shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col h-[78dvh] sm:h-auto sm:max-h-[560px] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Search Input */}
-        <div className="flex items-center px-4 py-3 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex-shrink-0">
-          <svg className="w-5 h-5 text-brand-text-secondary/70 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="px-4 py-2 border-b border-brand-text-primary/20 bg-brand-bg-secondary/80 flex items-center justify-between sm:hidden">
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-accent/80">Quick Actions</p>
+            <p className="text-xs text-brand-text-secondary/70">Search tools, routes, and live actions.</p>
+          </div>
+          <button onClick={() => setIsOpen(false)} className="text-xs font-medium text-brand-text-secondary/70 hover:text-brand-text-primary transition-colors">Close</button>
+        </div>
+
+        <div className="flex items-center px-4 py-3 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex-shrink-0 gap-3">
+          <svg className="w-5 h-5 text-brand-text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -239,7 +296,24 @@ export const CommandPalette: React.FC = () => {
           <kbd className="hidden sm:inline-block px-1.5 py-0.5 border border-brand-text-primary/30 text-[9px] font-mono text-brand-text-secondary uppercase">ESC</kbd>
         </div>
 
-        {/* Command list */}
+        {activeSessionLabel && (
+          <div className="px-4 py-2 border-b border-brand-text-primary/10 bg-brand-accent/8 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-brand-accent/80">Active Session</p>
+              <p className="text-xs text-brand-text-primary/85 truncate">{activeSessionLabel}</p>
+            </div>
+            <button
+              onClick={() => {
+                navigate(ROUTES.PRACTICE);
+                setIsOpen(false);
+              }}
+              className="text-[11px] font-medium text-brand-accent hover:text-brand-accent-hover transition-colors whitespace-nowrap"
+            >
+              Resume
+            </button>
+          </div>
+        )}
+
         <div ref={listRef} className="flex-grow overflow-y-auto custom-scrollbar p-2.5 space-y-1">
           {filteredCommands.length > 0 ? (
             filteredCommands.map((cmd, idx) => {
@@ -252,27 +326,21 @@ export const CommandPalette: React.FC = () => {
                     setIsOpen(false);
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`w-full text-left px-3.5 py-2.5 flex items-start justify-between border transition-all rounded-xl
-                    ${isSelected 
-                      ? 'bg-brand-accent/10 border-brand-accent text-brand-text-primary' 
-                      : 'bg-transparent border-transparent text-brand-text-secondary'
-                    }`}
+                  className={`w-full text-left px-3.5 py-3 sm:py-2.5 flex items-start justify-between border transition-all rounded-xl ${isSelected ? 'bg-brand-accent/10 border-brand-accent text-brand-text-primary' : 'bg-transparent border-transparent text-brand-text-secondary'} ${cmd.id === 'nav-resume' && !activeSessionLabel ? 'opacity-50' : ''}`}
                 >
                   <div className="min-w-0 flex-grow pr-3">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className={`text-[8px] font-mono uppercase tracking-wider px-1 py-0.5 border
-                        ${isSelected ? 'border-brand-accent/50 text-brand-accent bg-brand-bg-primary' : 'border-brand-text-primary/10 bg-brand-bg-secondary text-brand-text-secondary/60'}`}>
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <span className={`text-[8px] font-mono uppercase tracking-wider px-1 py-0.5 border ${isSelected ? 'border-brand-accent/50 text-brand-accent bg-brand-bg-primary' : 'border-brand-text-primary/10 bg-brand-bg-secondary text-brand-text-secondary/60'}`}>
                         {cmd.category}
                       </span>
-                      <span className="text-xs font-serif font-bold truncate">{cmd.title}</span>
+                      <span className="text-xs sm:text-sm font-serif font-bold truncate">{cmd.title}</span>
                     </div>
-                    <p className={`text-[10px] truncate ${isSelected ? 'text-brand-text-primary/70' : 'text-brand-text-secondary/50'}`}>
+                    <p className={`text-[11px] sm:text-[10px] ${isSelected ? 'text-brand-text-primary/70' : 'text-brand-text-secondary/50'}`}>
                       {cmd.description}
                     </p>
                   </div>
                   {cmd.shortcut && (
-                    <kbd className={`px-1.5 py-0.5 border text-[9px] font-mono flex-shrink-0 uppercase
-                      ${isSelected ? 'border-brand-accent/40 text-brand-accent' : 'border-brand-text-primary/10 text-brand-text-secondary/30'}`}>
+                    <kbd className={`px-1.5 py-0.5 border text-[9px] font-mono flex-shrink-0 uppercase ${isSelected ? 'border-brand-accent/40 text-brand-accent' : 'border-brand-text-primary/10 text-brand-text-secondary/30'}`}>
                       {cmd.shortcut}
                     </kbd>
                   )}
@@ -286,12 +354,13 @@ export const CommandPalette: React.FC = () => {
           )}
         </div>
 
-        {/* Footer info */}
-        <div className="px-4 py-2 border-t border-brand-text-primary/30 bg-brand-bg-secondary/60 text-[9px] font-mono text-brand-text-secondary/40 flex justify-between items-center flex-shrink-0">
+        <div className="px-4 py-2 border-t border-brand-text-primary/30 bg-brand-bg-secondary/60 text-[9px] font-mono text-brand-text-secondary/40 flex justify-between items-center gap-3 flex-shrink-0">
           <span>↑↓ to navigate · Enter to select</span>
-          <span>Cmd+K to toggle</span>
+          <span className="hidden sm:inline">Cmd+K to toggle</span>
+          <span className="sm:hidden">Tap a command</span>
         </div>
       </div>
     </div>
   );
 };
+

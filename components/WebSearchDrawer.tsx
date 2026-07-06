@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { TrialSimContext } from '../App';
 import { searchWeb, SearchResult } from '../services/searchService';
-import { summarizeSearchResults } from '../services/geminiService';
+import { summarizeSearchResults } from '../services/aiService';
 import { LoadingSpinner } from './LoadingSpinner';
 
 interface WebSearchDrawerProps {

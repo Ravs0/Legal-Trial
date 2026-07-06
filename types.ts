@@ -4,6 +4,51 @@ export interface Chat {
 }
 export type PracticeMode = 'indian' | 'international';
 
+export type TrialMessageSender = 'user' | 'judge' | 'opposingCounsel' | 'system';
+export type TrialMessageKind =
+  | 'opening'
+  | 'argument'
+  | 'rebuttal'
+  | 'question'
+  | 'response'
+  | 'objection'
+  | 'ruling'
+  | 'instruction'
+  | 'system';
+export type TrialPhase = 'opening' | 'issue_framing' | 'rebuttal' | 'judicial_questions' | 'closing';
+
+export interface TrialScoreBreakdown {
+  engagement: number;
+  advocacy: number;
+  objections: number;
+  responsiveness: number;
+  professionalism: number;
+  total: number;
+}
+
+export interface ObjectionDetails {
+  grounds: string;
+  basis: string;
+  targetedMessageId?: string;
+  wasQuick?: boolean;
+  outcome?: 'sustained' | 'overruled' | 'reserved';
+}
+
+export interface ChatMessageMeta {
+  kind?: TrialMessageKind;
+  phase?: TrialPhase;
+  scoreDelta?: number;
+  scoreReason?: string;
+  objection?: ObjectionDetails;
+  references?: string[];
+}
+
+export interface AnalysisStatus {
+  state: 'pending' | 'ready' | 'unavailable';
+  error?: string;
+  rawResponse?: string;
+}
+
 export enum JudgePersonalityId {
   // Indian Judges (Target: 30)
   ROBERT_VANCE = 'robert_vance',
@@ -227,17 +272,20 @@ export interface SessionSettings {
 
 export interface ChatMessage {
   id: string;
-  sender: 'user' | 'judge' | 'opposingCounsel' | 'system';
+  sender: TrialMessageSender;
   text: string;
   timestamp: Date;
   avatarUrl?: string;
+  meta?: ChatMessageMeta;
 }
 
 export interface PerformanceMetrics {
   argumentStrength: number; // 1-10
   precedentUsage: number; // 1-10
-  constitutionalBasis: number; // 1-10 (or relevant legal basis for intl law)
+  legalGrounding: number; // 1-10
   responseQuality: number; // 1-10
+  objectionHandling: number; // 1-10
+  courtroomPresence: number; // 1-10
   overallScore: number; // 1-10
   feedback: string;
   improvementAreas: string[];
@@ -251,6 +299,10 @@ export interface SessionRecord {
   startTime: Date;
   endTime?: Date;
   durationMinutes?: number;
+  elapsedSeconds?: number;
+  activePhase?: TrialPhase;
+  scoreBreakdown?: TrialScoreBreakdown;
+  analysisStatus?: AnalysisStatus;
 }
 
 // Types for Drafting Studio

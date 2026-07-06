@@ -21,6 +21,7 @@ import { Chat } from './types';
 import { OversightSpirit } from './components/OversightSpirit';
 import { ConversationBridgeProvider } from './components/ConversationBridge';
 import { CommandPalette } from './components/CommandPalette';
+import { loadActiveSession } from './services/storageService';
 
 export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 /** @deprecated Use LexForgeContext instead */
@@ -106,6 +107,14 @@ function App() {
     }
   }, [practiceMode]);
 
+  useEffect(() => {
+    const activeSession = loadActiveSession();
+    if (!activeSession) return;
+    setCurrentSessionSettings(activeSession.settings);
+    if (!practiceMode) {
+      setPracticeMode(activeSession.settings.practiceMode);
+    }
+  }, [practiceMode]);
 
   const contextValue = useMemo(() => ({
     currentSessionSettings, setCurrentSessionSettings,

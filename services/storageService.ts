@@ -1,8 +1,103 @@
+import { SessionRecord } from '../types';
 
-// This service is now significantly reduced as user session history and stats are no longer stored in localStorage.
-// The PerformanceScreen will receive session data via route state from PracticeArena.
+const STORAGE_VERSION = 1;
+const ACTIVE_SESSION_KEY = 'legal-trial.active-session';
+const COMPLETED_SESSION_KEY = 'legal-trial.completed-sessions';
+const MAX_COMPLETED_SESSIONS = 12;
 
-// If any other non-history related localStorage utility is needed in the future, it can be added here.
-// For now, this file can remain empty or be removed if no other storage utilities are foreseen.
+interface StoredEnvelope<T> {
+  version: number;
+  savedAt: string;
+  payload: T;
+}
 
-export {}; // Ensures the file is treated as a module.
+const isBrowser = typeof window !== 'undefined';
+
+const serializeSessionRecord = (record: SessionRecord): SessionRecord => ({
+  ...record,
+  startTime: new Date(record.startTime),
+  endTime: record.endTime ? new Date(record.endTime) : undefined,
+  transcript: record.transcript.map(message => ({
+    ...message,
+    timestamp: new Date(message.timestamp),
+  })),
+});
+
+const replacer = (_key: string, value: unknown) => {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return value;
+};
+
+const reviveSessionRecord = (record: SessionRecord): SessionRecord => ({
+  ...record,
+  startTime: new Date(record.startTime),
+  endTime: record.endTime ? new Date(record.endTime) : undefined,
+  transcript: Array.isArray(record.transcript)
+    ? record.transcript.map(message => ({
+        ...message,
+        timestamp: new Date(message.timestamp),
+      }))
+    : [],
+});
+
+const safeRead = <T>(key: string): StoredEnvelope<T> | null => {
+  if (!isBrowser) return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredEnvelope<T>;
+    if (!parsed || typeof parsed !== 'object' || parsed.version !== STORAGE_VERSION || !('payload' in parsed)) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const safeWrite = <T>(key: string, payload: T) => {
+  if (!isBrowser) return;
+  const envelope: StoredEnvelope<T> = {
+    version: STORAGE_VERSION,
+    savedAt: new Date().toISOString(),
+    payload,
+  };
+  window.localStorage.setItem(key, JSON.stringify(envelope, replacer));
+};
+
+export const saveActiveSession = (record: SessionRecord) => {
+  safeWrite(ACTIVE_SESSION_KEY, serializeSessionRecord(record));
+};
+
+export const loadActiveSession = (): SessionRecord | null => {
+  const envelope = safeRead<SessionRecord>(ACTIVE_SESSION_KEY);
+  return envelope ? reviveSessionRecord(envelope.payload) : null;
+};
+
+export const clearActiveSession = () => {
+  if (!isBrowser) return;
+  window.localStorage.removeItem(ACTIVE_SESSION_KEY);
+};
+
+export const saveCompletedSession = (record: SessionRecord) => {
+  const sessions = loadCompletedSessions();
+  const next = [reviveSessionRecord(record), ...sessions.filter(session => session.id !== record.id)].slice(0, MAX_COMPLETED_SESSIONS);
+  safeWrite(COMPLETED_SESSION_KEY, next.map(serializeSessionRecord));
+};
+
+export const loadCompletedSessions = (): SessionRecord[] => {
+  const envelope = safeRead<SessionRecord[]>(COMPLETED_SESSION_KEY);
+  if (!envelope || !Array.isArray(envelope.payload)) return [];
+  return envelope.payload.map(reviveSessionRecord);
+};
+
+export const loadCompletedSessionById = (sessionId?: string | null): SessionRecord | null => {
+  if (!sessionId) return null;
+  return loadCompletedSessions().find(session => session.id === sessionId) || null;
+};
+
+export const loadLatestCompletedSession = (): SessionRecord | null => {
+  return loadCompletedSessions()[0] || null;
+};

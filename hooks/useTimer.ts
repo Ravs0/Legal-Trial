@@ -11,58 +11,86 @@ interface TimerOptions {
 export const useTimer = ({ durationSeconds, onTick, onEnd, autoStart = true }: TimerOptions) => {
   const [remainingSeconds, setRemainingSeconds] = useState(durationSeconds);
   const [isRunning, setIsRunning] = useState(autoStart);
-  // Fix: Changed NodeJS.Timeout to number for browser compatibility
   const timerRef = useRef<number | null>(null);
+  const endAtRef = useRef<number | null>(autoStart ? Date.now() + durationSeconds * 1000 : null);
+  const pausedRemainingRef = useRef(durationSeconds);
 
-  const tick = useCallback(() => {
-    setRemainingSeconds(prev => {
-      const newRemaining = prev - 1;
-      if (onTick) {
-        onTick(newRemaining);
-      }
-      if (newRemaining <= 0) {
-        setIsRunning(false);
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (onEnd) {
-          onEnd();
-        }
-        return 0;
-      }
-      return newRemaining;
-    });
-  }, [onTick, onEnd]);
-
-  useEffect(() => {
-    if (isRunning && remainingSeconds > 0) {
-      timerRef.current = setInterval(tick, 1000) as unknown as number; // Cast because setInterval can return NodeJS.Timeout or number
-    } else if (!isRunning && timerRef.current) {
+  const stopInterval = useCallback(() => {
+    if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
+  }, []);
+
+  const syncRemaining = useCallback(() => {
+    if (!endAtRef.current) return;
+    const nextRemaining = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+    pausedRemainingRef.current = nextRemaining;
+    setRemainingSeconds(nextRemaining);
+    if (onTick) {
+      onTick(nextRemaining);
+    }
+    if (nextRemaining <= 0) {
+      stopInterval();
+      setIsRunning(false);
+      endAtRef.current = null;
+      if (onEnd) {
+        onEnd();
       }
-    };
-  }, [isRunning, remainingSeconds, tick]);
+    }
+  }, [onEnd, onTick, stopInterval]);
 
   useEffect(() => {
-    // Reset remaining seconds if duration changes
+    pausedRemainingRef.current = durationSeconds;
     setRemainingSeconds(durationSeconds);
-  }, [durationSeconds]);
+    if (autoStart) {
+      endAtRef.current = Date.now() + durationSeconds * 1000;
+      setIsRunning(true);
+    } else {
+      endAtRef.current = null;
+      setIsRunning(false);
+      stopInterval();
+    }
+  }, [autoStart, durationSeconds, stopInterval]);
+
+  useEffect(() => {
+    if (!isRunning) {
+      stopInterval();
+      return;
+    }
+    if (!endAtRef.current) {
+      endAtRef.current = Date.now() + pausedRemainingRef.current * 1000;
+    }
+    syncRemaining();
+    timerRef.current = window.setInterval(syncRemaining, 250);
+    return stopInterval;
+  }, [isRunning, stopInterval, syncRemaining]);
 
   const start = useCallback(() => {
-    if (remainingSeconds <= 0) setRemainingSeconds(durationSeconds); // Reset if ended
+    if (pausedRemainingRef.current <= 0) {
+      pausedRemainingRef.current = durationSeconds;
+      setRemainingSeconds(durationSeconds);
+    }
+    endAtRef.current = Date.now() + pausedRemainingRef.current * 1000;
     setIsRunning(true);
-  }, [durationSeconds, remainingSeconds]);
+  }, [durationSeconds]);
 
   const pause = useCallback(() => {
+    if (endAtRef.current) {
+      pausedRemainingRef.current = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+      setRemainingSeconds(pausedRemainingRef.current);
+    }
+    endAtRef.current = null;
     setIsRunning(false);
   }, []);
 
   const reset = useCallback(() => {
-    setIsRunning(false);
+    stopInterval();
+    endAtRef.current = null;
+    pausedRemainingRef.current = durationSeconds;
     setRemainingSeconds(durationSeconds);
-  }, [durationSeconds]);
+    setIsRunning(false);
+  }, [durationSeconds, stopInterval]);
 
   const formattedTime = (): string => {
     const minutes = Math.floor(remainingSeconds / 60);

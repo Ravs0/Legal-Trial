@@ -6,7 +6,7 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { QuillIcon } from '../components/icons/QuillIcon';
-import { generateDraftingFacts, generateDraftingGuidance, getFilingProcedureInfo } from '../services/geminiService';
+import { generateDraftingFacts, generateDraftingGuidance, getFilingProcedureInfo } from '../services/aiService';
 import { SelectInput } from '../components/SelectInput';
 import { scoreLegalWriting, ScoringResult } from '../services/legalWritingScorer';
 import { ScoreCard } from '../components/ScoreCard';
