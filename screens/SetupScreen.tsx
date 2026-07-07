@@ -15,7 +15,8 @@ import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
 import { GavelIcon } from '../components/icons/GavelIcon';
 import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
 import { getCategoryColorClasses } from '../services/colorUtils';
-import { savePendingSettings } from '../services/storageService';
+import { savePendingSettings, loadCompletedSessions } from '../services/storageService';
+import { trackEvent } from '../services/analyticsService';
 
 const SetupScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -124,6 +125,17 @@ const SetupScreen: React.FC = () => {
 
     setCurrentSessionSettings(sessionSettings);
     savePendingSettings(sessionSettings);
+    const completedCount = loadCompletedSessions().length;
+    if (completedCount > 0) {
+      trackEvent('second_session_started', { source: 'setup', completedSessions: completedCount });
+    }
+    trackEvent('setup_session_started', {
+      mode: practiceMode,
+      caseId: selectedCaseDetails.id,
+      caseTitle: selectedCaseDetails.title,
+      sessionType: selectedSessionType,
+      difficulty: selectedDifficulty,
+    });
 
     setTimeout(() => {
       setGlobalLoading(false);

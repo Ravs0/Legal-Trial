@@ -8,6 +8,14 @@ import { PerformanceMetrics, SessionRecord } from '../types';
 import { ROUTES } from '../constants';
 import { CheckCircleIcon } from '../components/icons/CheckCircleIcon';
 import { loadCompletedSessionById, loadLatestCompletedSession } from '../services/storageService';
+import {
+  buildScorecardMarkdown,
+  buildTranscriptMarkdown,
+  downloadMarkdown,
+  scorecardFilename,
+  transcriptFilename,
+} from '../services/exportService';
+import { trackEvent } from '../services/analyticsService';
 
 const PerformanceScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +43,11 @@ const PerformanceScreen: React.FC = () => {
     if (resolvedRecord) {
       setSessionRecord(resolvedRecord);
       setPerformanceMetrics(resolvedRecord.performance || null);
+      trackEvent('analysis_viewed', {
+        mode: resolvedRecord.settings.practiceMode,
+        caseId: resolvedRecord.settings.caseDetail.id,
+        hasAnalysis: resolvedRecord.performance ? 'yes' : 'no',
+      });
 
       if (resolvedRecord.analysisStatus?.state === 'unavailable') {
         setGlobalError('Performance analysis for this session was unavailable.');
@@ -231,9 +244,48 @@ const PerformanceScreen: React.FC = () => {
         </div>
       </Card>
 
-      <div className="mt-12 mb-8 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 border-t border-brand-text-primary/30 pt-10">
+      <div className="mt-12 mb-8 flex flex-col sm:flex-row flex-wrap justify-center items-center gap-4 sm:gap-6 border-t border-brand-text-primary/30 pt-10">
         <Button onClick={() => navigate(ROUTES.SETUP)} variant="primary" size="lg" className="w-full sm:w-auto px-10">Return to Arena</Button>
         <Button onClick={() => navigate(ROUTES.HOME)} variant="outline" size="lg" className="w-full sm:w-auto px-10">Back to Quarters</Button>
+        <Button
+          variant="ghost"
+          size="lg"
+          className="w-full sm:w-auto px-6 border border-white/10"
+          onClick={() => {
+            if (sessionRecord) {
+              navigator.clipboard.writeText(buildScorecardMarkdown(sessionRecord));
+              trackEvent('scorecard_copied', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+            }
+          }}
+        >
+          Copy Scorecard
+        </Button>
+        <Button
+          variant="ghost"
+          size="lg"
+          className="w-full sm:w-auto px-6 border border-white/10"
+          onClick={() => {
+            if (sessionRecord) {
+              downloadMarkdown(scorecardFilename(sessionRecord), buildScorecardMarkdown(sessionRecord));
+              trackEvent('scorecard_downloaded', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+            }
+          }}
+        >
+          Download Scorecard
+        </Button>
+        {sessionRecord && sessionRecord.transcript.length > 0 && (
+          <Button
+            variant="ghost"
+            size="lg"
+            className="w-full sm:w-auto px-6 border border-white/10"
+            onClick={() => {
+              downloadMarkdown(transcriptFilename(sessionRecord), buildTranscriptMarkdown(sessionRecord));
+              trackEvent('transcript_downloaded', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+            }}
+          >
+            Download Transcript
+          </Button>
+        )}
       </div>
     </div>
   );

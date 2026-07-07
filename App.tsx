@@ -10,10 +10,6 @@ import CaseLibraryScreen from './screens/CaseLibraryScreen';
 import JudgesScreen from './screens/JudgesScreen';
 import OpposingCounselScreen from './screens/OpposingCounselScreen';
 import LandingScreen from './screens/LandingScreen';
-import DraftingStudioScreen from './screens/DraftingStudioScreen'; // Import the new screen
-import AIPersonasScreen from './screens/AIPersonasScreen';
-import StrategyRoomScreen from './screens/StrategyRoomScreen';
-import DreadlerArenaScreen from './screens/DreadlerArenaScreen';
 import { ROUTES } from './constants';
 import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -22,6 +18,11 @@ import { OversightSpirit } from './components/OversightSpirit';
 import { ConversationBridgeProvider } from './components/ConversationBridge';
 import { CommandPalette } from './components/CommandPalette';
 import { loadActiveSession, loadPendingSettings, clearPendingSettings } from './services/storageService';
+
+const DraftingStudioScreen = React.lazy(() => import('./screens/DraftingStudioScreen'));
+const AIPersonasScreen = React.lazy(() => import('./screens/AIPersonasScreen'));
+const StrategyRoomScreen = React.lazy(() => import('./screens/StrategyRoomScreen'));
+const DreadlerArenaScreen = React.lazy(() => import('./screens/DreadlerArenaScreen'));
 
 export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 /** @deprecated Use LexForgeContext instead */
@@ -157,10 +158,10 @@ function App() {
           <Route path={ROUTES.LIBRARY} element={<Layout><ModeSpecificRoute element={<CaseLibraryScreen />} /></Layout>} />
           <Route path={ROUTES.JUDGES} element={<Layout><ModeSpecificRoute element={<JudgesScreen />} /></Layout>} />
           <Route path={ROUTES.OPPOSING_COUNSEL} element={<Layout><ModeSpecificRoute element={<OpposingCounselScreen />} /></Layout>} />
-          <Route path={ROUTES.DRAFTING_STUDIO} element={<Layout><ErrorBoundary fallbackMessage="Drafting Studio encountered an error."><ModeSpecificRoute element={<DraftingStudioScreen />} /></ErrorBoundary></Layout>} />
-          <Route path={ROUTES.PERSONAS} element={<Layout><ModeSpecificRoute element={<AIPersonasScreen />} /></Layout>} />
-          <Route path={ROUTES.STRATEGY} element={<Layout><ModeSpecificRoute element={<StrategyRoomScreen />} /></Layout>} />
-          <Route path={ROUTES.DREADLER} element={<Layout><ErrorBoundary fallbackMessage="Dreadler Arena encountered an error."><ModeSpecificRoute element={<DreadlerArenaScreen />} /></ErrorBoundary></Layout>} />
+          <Route path={ROUTES.DRAFTING_STUDIO} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Drafting Studio encountered an error."><ModeSpecificRoute element={<DraftingStudioScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
+          <Route path={ROUTES.PERSONAS} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ModeSpecificRoute element={<AIPersonasScreen />} /></Layout></React.Suspense>} />
+          <Route path={ROUTES.STRATEGY} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ModeSpecificRoute element={<StrategyRoomScreen />} /></Layout></React.Suspense>} />
+          <Route path={ROUTES.DREADLER} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Dreadler Arena encountered an error."><ModeSpecificRoute element={<DreadlerArenaScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
           <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
         </Routes>
       </HashRouter>

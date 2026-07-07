@@ -1,4 +1,4 @@
-# TrialSim — Mock Trial Simulator
+# LexForge — AI Legal Skills Platform
 
 An AI-driven mock-trial and legal-practice simulator. Argue cases against AI
 judges and opposing counsel, get scored, draft legal documents, and refine your

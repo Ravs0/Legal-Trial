@@ -1,9 +1,13 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrialSimContext } from '../App';
 import { ROUTES, APP_NAME } from '../constants';
 import { GavelMinimalIcon } from '../components/icons/GavelMinimalIcon';
 import { GlobeMinimalIcon } from '../components/icons/GlobeMinimalIcon';
+import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
+import { createDemoSessionSettings } from '../services/demoSessionService';
+import { savePendingSettings } from '../services/storageService';
+import { trackEvent } from '../services/analyticsService';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
 import { BackgroundGeometry } from '../components/BackgroundGeometry';
 
@@ -14,15 +18,37 @@ const LandingScreen: React.FC = () => {
   if (!context) {
     throw new Error("TrialSimContext not found in LandingScreen");
   }
-  const { setPracticeMode, setIsLoading } = context;
+  const { setPracticeMode, setIsLoading, setCurrentSessionSettings, setError } = context;
+
+  useEffect(() => {
+    trackEvent('landing_viewed');
+  }, []);
 
   const handleModeSelection = (mode: 'indian' | 'international') => {
+    trackEvent('practice_mode_selected', { mode });
     setIsLoading(true);
     setPracticeMode(mode);
     setTimeout(() => {
       setIsLoading(false);
       navigate(ROUTES.HOME);
     }, 100);
+  };
+
+  const handleDemoStart = () => {
+    try {
+      const settings = createDemoSessionSettings();
+      trackEvent('demo_trial_started', {
+        mode: settings.practiceMode,
+        caseId: settings.caseDetail.id,
+        caseTitle: settings.caseDetail.title,
+      });
+      setPracticeMode(settings.practiceMode);
+      setCurrentSessionSettings(settings);
+      savePendingSettings(settings);
+      navigate(ROUTES.PRACTICE);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to start demo trial.');
+    }
   };
 
   return (
@@ -77,9 +103,23 @@ const LandingScreen: React.FC = () => {
           <div className="h-px w-24 bg-brand-accent/30 mx-auto mb-6" />
 
           <p className="text-base sm:text-lg text-brand-text-secondary font-light leading-relaxed max-w-xl mx-auto">
-            Sharpen your legal skills with AI-driven mock trials, drafting practice,
-            case research &amp; strategy — for Indian &amp; international law.
+            Start a scored courtroom practice run in minutes, then use drafting,
+            case research &amp; strategy tools when you are ready to go deeper.
           </p>
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleDemoStart}
+              className="min-h-[48px] px-6 py-3 rounded-xl bg-brand-accent text-brand-accent-text font-semibold inline-flex items-center justify-center gap-2 hover:bg-brand-accent-hover transition-colors"
+            >
+              <PlusCircleIcon className="h-5 w-5" />
+              Start 5-Min Demo Trial
+            </button>
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/55">
+              No setup required
+            </span>
+          </div>
         </div>
 
         {/* Jurisdiction selection cards */}

@@ -44,7 +44,7 @@ export interface ChatMessageMeta {
 }
 
 export interface AnalysisStatus {
-  state: 'pending' | 'ready' | 'unavailable';
+  state: 'idle' | 'pending' | 'ready' | 'unavailable';
   error?: string;
   rawResponse?: string;
 }

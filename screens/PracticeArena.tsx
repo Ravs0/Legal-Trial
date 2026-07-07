@@ -14,6 +14,7 @@ import {
   buildOpposingCounselPrompt,
 } from '../services/aiService';
 import { clearActiveSession, loadActiveSession, saveActiveSession, saveCompletedSession } from '../services/storageService';
+import { speak, cancelSpeech, isTTSAvailable } from '../services/voiceService';
 import { ROUTES, SESSION_DURATIONS_MINUTES } from '../constants';
 import { useTimer } from '../hooks/useTimer';
 import { CourtIcon } from '../components/icons/CourtIcon';
@@ -22,6 +23,7 @@ import { GavelIcon } from '../components/icons/GavelIcon';
 import { getCategoryColorClasses } from '../services/colorUtils';
 import { BackgroundGeometry } from '../components/BackgroundGeometry';
 import { useVisualViewport } from '../hooks/useVisualViewport';
+import { trackEvent } from '../services/analyticsService';
 
 const PHASE_SEQUENCE: TrialPhase[] = ['opening', 'issue_framing', 'rebuttal', 'judicial_questions', 'closing'];
 const DEFAULT_SCORE_BREAKDOWN: TrialScoreBreakdown = {
@@ -123,6 +125,7 @@ const PracticeArena: React.FC = () => {
 
   const lastUserMessageRef = useRef('');
   const lastOcMessageRef = useRef('');
+  const firstArgumentTrackedRef = useRef(false);
 
   // Voice recording states for STT
   const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -131,6 +134,16 @@ const PracticeArena: React.FC = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  // Text-to-speech toggle — the bench speaks its replies aloud.
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem('lexforge.voiceEnabled') === 'true'; } catch { return false; }
+  });
+  const voiceEnabledRef = useRef(voiceEnabled);
+  useEffect(() => {
+    voiceEnabledRef.current = voiceEnabled;
+    try { localStorage.setItem('lexforge.voiceEnabled', voiceEnabled ? 'true' : 'false'); } catch { /* ignore */ }
+  }, [voiceEnabled]);
+
   // Refs to avoid stale closures (B3: live transcript, B7: judge double-fire)
   const latestMessagesRef = useRef<ChatMessage[]>(messages);
   const judgeStreamInFlightRef = useRef<boolean>(false);
@@ -138,6 +151,14 @@ const PracticeArena: React.FC = () => {
   useEffect(() => {
     latestMessagesRef.current = messages;
   }, [messages]);
+
+  const sessionDurationSeconds = currentSessionSettings ? SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType] * 60 : 900;
+
+  const { remainingSeconds, isRunning: isTimerRunning, pause: pauseTimer, reset: resetTimer, start: startTimer, formattedTime } = useTimer({
+    durationSeconds: sessionDurationSeconds,
+    onEnd: () => { if (!sessionEnded && currentSessionSettings) handleSessionEnd(true, true); },
+    autoStart: false,
+  });
 
   const syncSessionRecord = useCallback((nextMessages: ChatMessage[], nextScore: TrialScoreBreakdown, nextPhase: TrialPhase) => {
     setMessages(nextMessages);
@@ -245,14 +266,6 @@ const PracticeArena: React.FC = () => {
     }
   };
 
-  const sessionDurationSeconds = currentSessionSettings ? SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType] * 60 : 900;
-
-  const { remainingSeconds, isRunning: isTimerRunning, pause: pauseTimer, reset: resetTimer, start: startTimer, formattedTime } = useTimer({
-    durationSeconds: sessionDurationSeconds,
-    onEnd: () => { if (!sessionEnded && currentSessionSettings) handleSessionEnd(true, true); },
-    autoStart: false,
-  });
-
   const handleSessionEnd = useCallback(async (navigateToAnalysis = true, triggerAnalysis = false) => {
     if (sessionEnded) {
       if (navigateToAnalysis && currentSessionRecordRef.current) {
@@ -264,6 +277,17 @@ const PracticeArena: React.FC = () => {
     setSessionEnded(true);
     setIsAiTyping(false);
     pauseTimer();
+    cancelSpeech();
+
+    if (currentSessionSettings) {
+      trackEvent('session_completed', {
+        mode: currentSessionSettings.practiceMode,
+        caseId: currentSessionSettings.caseDetail.id,
+        sessionType: currentSessionSettings.sessionType,
+        durationMinutes: Math.max(0, Math.round((sessionDurationSeconds - remainingSeconds) / 60)),
+        overallScore: scoreBreakdown?.total ?? null,
+      });
+    }
 
     if (!currentSessionRecordRef.current || !currentSessionSettings) {
       if (navigateToAnalysis) navigate(ROUTES.HOME);
@@ -375,6 +399,12 @@ const PracticeArena: React.FC = () => {
 
     currentSessionRecordRef.current = nextRecord;
     syncSessionRecord(initialMessagesList, DEFAULT_SCORE_BREAKDOWN, 'opening');
+
+    if (voiceEnabledRef.current) {
+      // Enqueue both opening statements so they play in sequence.
+      initialMessagesList.forEach(m => speak(m.text, { queue: true }));
+    }
+
     resetTimer();
     startTimer();
     setGlobalLoading(false);
@@ -401,7 +431,7 @@ const PracticeArena: React.FC = () => {
         lastOcMessageRef.current || 'Opposing counsel has not yet responded in this phase.',
         scoreBreakdown,
       );
-      await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'judge_question', phase: activePhase });
+      await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'question', phase: activePhase });
     } catch (e) {
       console.error('Error triggerAutoJudgeResponse:', e);
     } finally {
@@ -515,6 +545,10 @@ const PracticeArena: React.FC = () => {
         : msg,
     );
     syncSessionRecord(finalizedMessages, scoreBreakdown, activePhase);
+
+    if (voiceEnabledRef.current && !aiResponseText.startsWith('Error:') && (senderType === 'judge' || senderType === 'opposingCounsel')) {
+      speak(aiResponseText, { rate: 1, pitch: senderType === 'judge' ? 0.9 : 1.05 });
+    }
     return aiResponseText;
   };
 
@@ -540,9 +574,9 @@ const PracticeArena: React.FC = () => {
       phase: activePhase,
       objection: {
         grounds: groundsText,
-        explanation: objectionExplanation.trim(),
+        basis: objectionExplanation.trim(),
         outcome: 'reserved',
-        wasQuick,
+        wasQuick: isQuick,
       },
     };
     const userMessageText = `[OBJECTION] Grounds: ${groundsText}\nBasis: ${objectionExplanation.trim()}${isQuick ? ' (Quick Objection Reflex)' : ''}`;
@@ -572,7 +606,7 @@ const PracticeArena: React.FC = () => {
         scoreBreakdown,
       ) + `\n\nRule specifically on the objection raised by counsel. State clearly whether it is sustained, overruled, or reserved, and explain why in under 100 words.`;
 
-      const rulingText = await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'judge_question', phase: activePhase });
+      const rulingText = await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'question', phase: activePhase });
       const outcome = detectObjectionOutcome(rulingText);
       const nextScore = scoreObjection(scoreBreakdown, outcome, isQuick);
       const finalMessages = latestMessagesRef.current.map(message =>
@@ -583,9 +617,9 @@ const PracticeArena: React.FC = () => {
                 ...message.meta,
                 objection: {
                   grounds: groundsText,
-                  explanation: savedExplanation,
+                  basis: savedExplanation,
                   outcome,
-                  wasQuick,
+                  wasQuick: isQuick,
                 },
               },
             }
@@ -603,12 +637,23 @@ const PracticeArena: React.FC = () => {
   const handleSendMessage = async () => {
     if (!userInput.trim() || isAiTyping || !activeChatJudge || !activeChatOpposingCounsel || sessionEnded || !currentSessionSettings || !isTimerRunning) return;
 
+    if (voiceEnabledRef.current) cancelSpeech();
+
     if (objectionWindowActive) {
       setObjectionWindowActive(false);
     }
 
     const userMessageText = userInput.trim();
     lastUserMessageRef.current = userMessageText;
+
+    if (!firstArgumentTrackedRef.current && currentSessionSettings) {
+      firstArgumentTrackedRef.current = true;
+      trackEvent('first_argument_sent', {
+        mode: currentSessionSettings.practiceMode,
+        caseId: currentSessionSettings.caseDetail.id,
+        sessionType: currentSessionSettings.sessionType,
+      });
+    }
 
     const nextScore = scoreSubmission(scoreBreakdown, userMessageText);
     const nextPhase = inferNextPhase([...latestMessagesRef.current, {
@@ -654,7 +699,7 @@ const PracticeArena: React.FC = () => {
         sender: 'judge',
         text: errorText,
         timestamp: new Date(),
-        meta: { kind: 'judge_question', phase: activePhase },
+        meta: { kind: 'question', phase: activePhase },
       };
       syncSessionRecord([...latestMessagesRef.current, errorMessageContent], nextScore, nextPhase);
       setGlobalError(errorText);
@@ -893,9 +938,31 @@ const PracticeArena: React.FC = () => {
             </div>
 
             <div className="text-right bg-brand-bg-tertiary/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-brand-text-primary/15">
-              <p className={`text-xl sm:text-2xl font-mono tracking-tight font-bold ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : catColors.text}`}>{formattedTime}</p>
+              <p className={`text-xl sm:text-2xl font-mono tracking-tight ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : catColors.text}`}>{formattedTime}</p>
               <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-brand-text-secondary/70">{remainingSeconds <= 0 ? 'Ended' : (isTimerRunning ? 'Remaining' : 'Paused')}</p>
             </div>
+
+            {isTTSAvailable() && (
+              <button
+                onClick={() => setVoiceEnabled(v => !v)}
+                className={`p-2 sm:px-3 sm:py-1.5 rounded-lg border transition-all flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-wider ${
+                  voiceEnabled
+                    ? `${catColors.bg} text-brand-accent-text border-transparent`
+                    : 'border-brand-text-primary/20 bg-brand-bg-tertiary/40 text-brand-text-secondary hover:text-brand-text-primary'
+                }`}
+                title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+                  {voiceEnabled ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 8.5a5 5 0 010 7M19 5a9 9 0 010 14" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M23 9l-6 6M17 9l6 6" />
+                  )}
+                </svg>
+                <span className="hidden sm:inline">{voiceEnabled ? 'Voice On' : 'Voice Off'}</span>
+              </button>
+            )}
           </div>
 
           <div className="sm:hidden space-y-3">
@@ -1023,13 +1090,29 @@ const PracticeArena: React.FC = () => {
                         {canObject ? 'Opposing Counsel has opened an objection window.' : isInlineObjectionActive ? 'Drafting formal objection.' : 'Transcript stays primary. Bench tools remain one tap away.'}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileDrawerOpen(true)}
-                      className="flex-shrink-0 rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-brand-accent/40 hover:text-brand-accent"
-                    >
-                      Open Bench
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {isTTSAvailable() && (
+                        <button
+                          type="button"
+                          onClick={() => setVoiceEnabled(v => !v)}
+                          className={`rounded-xl border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-all ${
+                            voiceEnabled
+                              ? `${catColors.bg} text-brand-accent-text border-transparent`
+                              : 'border-brand-text-primary/15 bg-brand-bg-tertiary/45 text-brand-text-primary hover:border-brand-accent/40 hover:text-brand-accent'
+                          }`}
+                          title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
+                        >
+                          {voiceEnabled ? 'Voice On' : 'Voice Off'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileDrawerOpen(true)}
+                        className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-brand-accent/40 hover:text-brand-accent"
+                      >
+                        Open Bench
+                      </button>
+                    </div>
                   </div>
                 </div>
 

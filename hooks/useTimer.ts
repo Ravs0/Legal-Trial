@@ -66,7 +66,11 @@ export const useTimer = ({ durationSeconds, onTick, onEnd, autoStart = true }: T
     return stopInterval;
   }, [isRunning, stopInterval, syncRemaining]);
 
-  const start = useCallback(() => {
+  const start = useCallback((elapsedSeconds = 0) => {
+    if (elapsedSeconds > 0) {
+      pausedRemainingRef.current = Math.max(0, durationSeconds - elapsedSeconds);
+      setRemainingSeconds(pausedRemainingRef.current);
+    }
     if (pausedRemainingRef.current <= 0) {
       pausedRemainingRef.current = durationSeconds;
       setRemainingSeconds(durationSeconds);
