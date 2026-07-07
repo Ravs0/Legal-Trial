@@ -1,5 +1,5 @@
-import React from 'react';
-import { FileText } from 'lucide-react';
+import React, { useRef } from 'react';
+import { FileText, Upload, Loader2 } from 'lucide-react';
 
 interface MasterManuscriptProps {
   fullContent: string;
@@ -19,6 +19,40 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
   onSmartSplit, isProcessing, selectionRange, textareaRef,
   onSelectionChange, onCreateSection,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset so same file can be uploaded again
+    e.target.value = '';
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const textExts = ['txt', 'md', 'csv', 'json', 'xml', 'html'];
+    const docExts = ['pdf', 'docx'];
+
+    if (textExts.includes(ext || '')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        setFullContent(text);
+      };
+      reader.readAsText(file);
+    } else if (docExts.includes(ext || '')) {
+      // For PDF/DOCX: read as text with basic extraction
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target?.result as string;
+        // Strip null bytes and try to extract printable text
+        const clean = text.replace(/\0/g, '').replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
+        setFullContent(clean || '[Could not extract text from ' + file.name + '. Try pasting the content manually.]');
+      };
+      reader.readAsBinaryString(file);
+    } else {
+      setFullContent('[Unsupported file format: .' + ext + '. Please paste the content manually.]');
+    }
+  };
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-[#0c0c0e]">
       <header className="h-16 border-b border-brand-border flex items-center justify-between px-10">
@@ -30,21 +64,34 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
             <span className="text-green-500/50">●</span> Auto-saved
           </span>
         </div>
-        <button
-          onClick={onSmartSplit}
-          disabled={isProcessing || !fullContent.trim()}
-          className="px-6 py-2 bg-brand-bg-secondary hover:bg-brand-text-primary/10 text-brand-text-primary text-xs font-bold rounded-xl border border-brand-border transition-all flex items-center gap-2 disabled:opacity-50"
-        >
-          {isProcessing ? (
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          )}
-          AI SMART SPLIT
-        </button>
+        <div className="flex items-center gap-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.pdf,.docx,.csv,.json"
+            onChange={handleFileUpload}
+            className="hidden"
+            aria-label="Upload legal document"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-4 py-2 bg-brand-bg-secondary hover:bg-brand-text-primary/10 text-brand-text-primary text-xs font-bold rounded-xl border border-brand-border transition-all flex items-center gap-2"
+          >
+            <Upload size={14} /> UPLOAD
+          </button>
+          <button
+            onClick={onSmartSplit}
+            disabled={isProcessing || !fullContent.trim()}
+            className="px-6 py-2 bg-brand-accent hover:opacity-90 text-brand-bg-dark text-xs font-bold rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {isProcessing ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            )}
+            AI SMART SPLIT
+          </button>
+        </div>
       </header>
       <main className="flex-1 overflow-y-auto p-12 custom-scrollbar relative">
         <div className="max-w-4xl mx-auto h-full flex flex-col">

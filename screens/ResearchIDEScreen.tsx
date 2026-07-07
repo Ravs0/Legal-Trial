@@ -177,7 +177,7 @@ const ResearchIDEScreen: React.FC = () => {
       setState(prev => ({ ...prev, sections: [...prev.sections, ...newSections] }));
       trackEvent('ai_smart_split_used', { sectionCount: newSections.length });
     } catch {
-      setValidationError("AI Smart Split failed. Check your Gemini API key.");
+      setValidationError("AI Smart Split failed. Check your DeepSeek API key or try again.");
       setTimeout(() => setValidationError(null), 5000);
     } finally {
       setIsProcessing(false);
