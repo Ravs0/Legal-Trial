@@ -251,10 +251,23 @@ const PerformanceScreen: React.FC = () => {
           variant="ghost"
           size="lg"
           className="w-full sm:w-auto px-6 border border-white/10"
-          onClick={() => {
+          onClick={async () => {
             if (sessionRecord) {
-              navigator.clipboard.writeText(buildScorecardMarkdown(sessionRecord));
-              trackEvent('scorecard_copied', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+              try {
+                await navigator.clipboard.writeText(buildScorecardMarkdown(sessionRecord));
+                trackEvent('scorecard_copied', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+              } catch {
+                // Fallback for non-secure contexts
+                const textarea = document.createElement('textarea');
+                textarea.value = buildScorecardMarkdown(sessionRecord);
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try { document.execCommand('copy'); } catch { /* ignore */ }
+                document.body.removeChild(textarea);
+                trackEvent('scorecard_copied', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+              }
             }
           }}
         >

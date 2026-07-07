@@ -41,7 +41,7 @@ export const Card: React.FC<CardProps> = ({
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyPress={(e) => { if (onClick && e.key === 'Enter') onClick(); }}
+      onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
     >
       {icon && (
         <div className="w-full pt-6 pb-4 flex items-center justify-center flex-shrink-0">

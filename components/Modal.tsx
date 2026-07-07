@@ -8,16 +8,31 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
+// Reference counter for nested modals
+let openModalCount = 0;
+
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
-  // Prevent scrolling on body when modal is open
+  // Prevent scrolling on body when modal is open (supports nested modals)
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      openModalCount++;
+      if (openModalCount === 1) {
+        document.body.style.overflow = 'hidden';
+      }
     } else {
-      document.body.style.overflow = 'unset';
+      openModalCount = Math.max(0, openModalCount - 1);
+      if (openModalCount === 0) {
+        document.body.style.overflow = '';
+      }
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      // Only clean up if this modal was the one that locked
+      if (isOpen) {
+        openModalCount = Math.max(0, openModalCount - 1);
+        if (openModalCount === 0) {
+          document.body.style.overflow = '';
+        }
+      }
     };
   }, [isOpen]);
 

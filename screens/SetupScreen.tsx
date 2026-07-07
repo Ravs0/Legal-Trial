@@ -43,6 +43,7 @@ const SetupScreen: React.FC = () => {
   const [selectedCaseDetails, setSelectedCaseDetails] = useState<CaseDetail | null>(null);
   const [selectedJudgeDetails, setSelectedJudgeDetails] = useState<JudgePersonality | null>(null);
   const [selectedOpposingCounselDetails, setSelectedOpposingCounselDetails] = useState<OpposingCounselPersonality | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const catColors = getCategoryColorClasses(selectedCategoryId || 'default');
 
@@ -108,9 +109,10 @@ const SetupScreen: React.FC = () => {
 
   const handleStartSession = () => {
     if (!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails || !practiceMode) {
-      alert("Please select a case, a judge personality, and an opposing counsel. Practice mode must also be selected.");
+      setValidationError("Please select a case, a judge personality, and an opposing counsel. Practice mode must also be selected.");
       return;
     }
+    setValidationError(null);
 
     setGlobalLoading(true);
 
@@ -283,6 +285,11 @@ const SetupScreen: React.FC = () => {
       </div>
 
       <div className="mt-12 pt-8 border-t border-brand-text-primary/30 relative">
+        {validationError && (
+          <div className="max-w-xl mx-auto mb-4 p-3 bg-brand-error/10 border border-brand-error/30 text-brand-error text-sm text-center rounded-xl">
+            {validationError}
+          </div>
+        )}
         {selectedCaseDetails && selectedJudgeDetails && selectedOpposingCounselDetails ? (
           <div className="max-w-xl mx-auto">
             <Button

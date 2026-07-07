@@ -68,7 +68,7 @@ const isSafeUrl = (url: string): boolean => {
 
 export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClose }) => {
   const context = useContext(TrialSimContext);
-  const practiceMode = context?.practiceMode || 'common';
+  const practiceMode = context?.practiceMode || 'indian';
   const { viewportHeight } = useVisualViewport();
 
   const [query, setQuery] = useState('');

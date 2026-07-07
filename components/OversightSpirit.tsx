@@ -21,6 +21,11 @@ interface ToastState {
 // ─── Predefined witty route remarks (<25 words each) ──────────────────────────
 
 const ROUTE_REMARKS: Record<string, string[]> = {
+  '/landing': [
+    "Welcome. Pick a mode and let's see what you're made of.",
+    "The landing page. Where every lawyer's journey begins. Or ends.",
+    "First impressions matter. Choose wisely.",
+  ],
   '/dashboard': [
     "Home sweet home. Don't just stare at the dashboard — go practice something.",
     "Back to base. Your win rate isn't going to improve by itself, you know.",
@@ -56,12 +61,17 @@ const ROUTE_REMARKS: Record<string, string[]> = {
     "Time to draft. Precision over volume. Make every sentence earn its place.",
     "Legal drafting? Remember: courts read documents, not your intentions.",
   ],
-  '/council': [
+  '/strategy-room': [
     "The AI Council Chamber. Where brilliant minds argue. Try to keep up.",
     "Council time. Multiple perspectives, one goal — finding the truth.",
     "Entering the council. Listen first, then form your own opinion.",
   ],
-  '/sentient-subjects': [
+  '/deception-arena': [
+    "The Dreadler awaits. Can you spot the lies? Or will you believe them all?",
+    "Entering the deception arena. Trust no one. Especially not yourself.",
+    "Time to interrogate. Remember: the truth is in the details.",
+  ],
+  '/ai-personas': [
     "Communing with the Subjects? They don't bite. Well, Kira might~",
     "Going to chat with anime law personalities? Ren won't show it, but they care.",
     "Careful with Sora. She'll deny caring about you. She definitely cares.",
@@ -78,16 +88,18 @@ const pickRandom = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.lengt
 
 const getRouteLabel = (pathname: string): string => {
   const map: Record<string, string> = {
+    '/landing': 'the Landing page',
     '/dashboard': 'the Dashboard',
     '/setup': 'Trial Setup',
     '/practice': 'the Practice Arena',
+    '/analysis': 'Performance Analysis',
     '/library': 'the Case Library',
     '/judges': 'the Judges gallery',
     '/opposing-counsel': 'Opposing Counsel profiles',
     '/drafting-studio': 'the Drafting Studio',
-    '/council': 'the AI Council Chamber',
-    '/sentient-subjects': 'the Sentient Subjects commune',
-    '/analysis': 'Performance Analysis',
+    '/ai-personas': 'the AI Personas commune',
+    '/strategy-room': 'the AI Strategy Room',
+    '/deception-arena': 'the Deception Arena',
     '/': 'the Landing page',
   };
   return map[pathname] || 'an unknown area';

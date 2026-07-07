@@ -271,9 +271,12 @@ export const CommandPalette: React.FC = () => {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-[#0D0F12]/90 flex items-end sm:items-start justify-center z-[99999] p-0 sm:p-10 sm:pt-24"
       onClick={() => setIsOpen(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
     >
       <div 
         className="w-full sm:max-w-2xl bg-brand-bg-primary border-t-2 sm:border-2 border-brand-accent rounded-t-2xl sm:rounded-xl shadow-[6px_6px_0px_0px_#FF5A1F] flex flex-col sm:h-auto sm:max-h-[560px] overflow-hidden"

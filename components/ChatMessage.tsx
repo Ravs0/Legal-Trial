@@ -37,8 +37,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const alignment = isUser ? 'items-end' : 'items-start';
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(message.text);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.text);
+    } catch {
+      // Fallback for non-secure contexts
+      const textarea = document.createElement('textarea');
+      textarea.value = message.text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try { document.execCommand('copy'); } catch { /* ignore */ }
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

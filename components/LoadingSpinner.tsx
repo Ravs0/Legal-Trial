@@ -23,7 +23,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   };
 
   return (
-    <div className={`flex flex-col items-center justify-center ${className}`}>
+    <div className={`flex flex-col items-center justify-center ${className}`} role="status" aria-live="polite">
       <svg
         className={`animate-spin ${sizeClasses[size]} ${spinnerColor}`}
         xmlns="http://www.w3.org/2000/svg"

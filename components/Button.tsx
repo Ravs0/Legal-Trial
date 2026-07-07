@@ -10,6 +10,17 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   categoryId?: string;
 }
 
+// Static focus ring color mapping (Tailwind JIT can't analyze dynamic class construction)
+const FOCUS_RING_BY_CATEGORY: Record<string, string> = {
+  'text-brand-amber': 'focus:ring-brand-amber',
+  'text-brand-rust': 'focus:ring-brand-rust',
+  'text-brand-emerald': 'focus:ring-brand-emerald',
+  'text-brand-terracotta': 'focus:ring-brand-terracotta',
+  'text-brand-cobalt': 'focus:ring-brand-cobalt',
+  'text-brand-sage': 'focus:ring-brand-sage',
+  'text-brand-concrete': 'focus:ring-brand-concrete',
+};
+
 export const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
@@ -22,26 +33,21 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const catColors = categoryId ? getCategoryColorClasses(categoryId) : null;
+  const focusRingClass = catColors ? (FOCUS_RING_BY_CATEGORY[catColors.text] || 'focus:ring-brand-accent') : 'focus:ring-brand-accent';
 
-  const baseStyles = `font-medium rounded-xl focus:outline-none focus:ring-1 ${
-    catColors ? `focus:ring-${catColors.text.replace('text-', '')}` : 'focus:ring-brand-accent'
-  } disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 
+  const baseStyles = `font-medium rounded-xl focus:outline-none focus:ring-1 ${focusRingClass} disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200
                       flex items-center justify-center relative overflow-hidden group min-h-[44px] sm:min-h-[0]`;
 
   let variantStylesConfig = {
     primary: catColors
-      ? `${catColors.bg} text-brand-navy ${catColors.bgHover} focus:ring-${catColors.text.replace('text-', '')} border ${catColors.border}`
+      ? `${catColors.bg} text-brand-navy ${catColors.bgHover} ${focusRingClass} border ${catColors.border}`
       : `bg-brand-accent text-brand-accent-text hover:bg-brand-accent-hover focus:ring-brand-accent border border-brand-accent`,
-    secondary: `bg-brand-bg-secondary text-brand-text-primary hover:text-brand-text-primary border border-brand-text-primary/30 hover:border-brand-text-primary ${
-      catColors ? `focus:ring-${catColors.text.replace('text-', '')}` : 'focus:ring-brand-accent'
-    }`,
+    secondary: `bg-brand-bg-secondary text-brand-text-primary hover:text-brand-text-primary border border-brand-text-primary/30 hover:border-brand-text-primary ${focusRingClass}`,
     danger: `bg-brand-error text-white hover:bg-red-600 focus:ring-brand-error border border-brand-error`,
     outline: catColors
-      ? `bg-transparent ${catColors.text} border ${catColors.border} ${catColors.bgHoverMuted} focus:ring-${catColors.text.replace('text-', '')}`
+      ? `bg-transparent ${catColors.text} border ${catColors.border} ${catColors.bgHoverMuted} ${focusRingClass}`
       : `bg-transparent text-brand-accent border border-brand-accent hover:bg-brand-accent/10 focus:ring-brand-accent`,
-    ghost: `bg-transparent text-brand-text-secondary hover:text-brand-text-primary ${
-      catColors ? `focus:ring-${catColors.text.replace('text-', '')}` : 'focus:ring-brand-accent'
-    } hover:bg-brand-text-primary/5 active:bg-brand-text-primary/10`,
+    ghost: `bg-transparent text-brand-text-secondary hover:text-brand-text-primary ${focusRingClass} hover:bg-brand-text-primary/5 active:bg-brand-text-primary/10`,
   };
 
   const currentVariantStyle = variantStylesConfig[variant];
