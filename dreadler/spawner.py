@@ -26,31 +26,8 @@ from .skins import get_skin
 
 logger = logging.getLogger(__name__)
 
-# Pressure score bands and their corresponding agent variants.
-# Order is descending by score threshold so that the first matching band wins.
-_PRESSURE_VARIANTS = (
-    (70, "alpha"),    # calm
-    (40, "beta"),     # pressured
-    (10, "gamma"),    # desperate
-    (0,  "collapsed") # collapsed (should trigger a respawn before use)
-)
-
-
-def _variant_for_score(score: int) -> str:
-    """
-    Map a coherence score to the corresponding agent variant label.
-
-    Args:
-        score: Current coherence score, 0-100.
-
-    Returns:
-        Variant label such as "alpha", "beta", "gamma", or "collapsed".
-    """
-    for threshold, variant in _PRESSURE_VARIANTS:
-        if score >= threshold:
-            return variant
-    return "collapsed"
-
+# Variant selection is owned by CoherenceState. SpawnBase only mirrors the
+# state's active variant so world/skin loading stays decoupled from score bands.
 
 class SpawnBase:
     """
@@ -185,8 +162,8 @@ class SpawnBase:
         state.score = 60
 
         # Recompute pressure and variant from the new score.
-        state._update_pressure()
-        self.current_variant = _variant_for_score(state.score)
+        state._update_pressure_and_variant()
+        self.current_variant = state.agent_variant
 
         logger.info(
             "Agent respawned (count=%d) as variant=%s with score=%d",

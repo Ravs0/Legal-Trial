@@ -23,6 +23,7 @@ const DraftingStudioScreen = React.lazy(() => import('./screens/DraftingStudioSc
 const AIPersonasScreen = React.lazy(() => import('./screens/AIPersonasScreen'));
 const StrategyRoomScreen = React.lazy(() => import('./screens/StrategyRoomScreen'));
 const DreadlerArenaScreen = React.lazy(() => import('./screens/DreadlerArenaScreen'));
+const ResearchIDEScreen = React.lazy(() => import('./screens/ResearchIDEScreen'));
 
 export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 /** @deprecated Use LexForgeContext instead */
@@ -162,6 +163,7 @@ function App() {
           <Route path={ROUTES.PERSONAS} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ModeSpecificRoute element={<AIPersonasScreen />} /></Layout></React.Suspense>} />
           <Route path={ROUTES.STRATEGY} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ModeSpecificRoute element={<StrategyRoomScreen />} /></Layout></React.Suspense>} />
           <Route path={ROUTES.DREADLER} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Dreadler Arena encountered an error."><ModeSpecificRoute element={<DreadlerArenaScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
+          <Route path={ROUTES.RESEARCH_IDE} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Research IDE encountered an error."><ModeSpecificRoute element={<ResearchIDEScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
           <Route path="*" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
         </Routes>
       </HashRouter>

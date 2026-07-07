@@ -50,6 +50,7 @@ class DreadlerAgent:
         skin: str = "prosecutor_vance",
         api_key: str | None = None,
         model: str = "deepseek-chat",
+        max_history_messages: int = 24,
     ) -> None:
         """
         Initialize the agent.
@@ -65,12 +66,16 @@ class DreadlerAgent:
             ``DEEPSEEK_CHAT_API_KEY`` environment variables.
         model:
             DeepSeek model identifier.
+        max_history_messages:
+            Maximum prior chat messages retained in the prompt. Older messages
+            are dropped after each turn to prevent runaway context growth.
         """
         self.spawner: SpawnBase = SpawnBase(world, skin)
         self.state: CoherenceState = CoherenceState()
         self.critic: CriticLayer = CriticLayer()
 
         self.dialogue_history: List[Dict[str, str]] = []
+        self.max_history_messages: int = max(2, max_history_messages)
         self.spawned_new_agent: bool = False
 
         self.model: str = model
@@ -284,6 +289,54 @@ class DreadlerAgent:
         except Exception as exc:
             raise RuntimeError(f"DeepSeek API call failed: {exc}") from exc
 
+    def _classify_user_input(self, user_input: str) -> str:
+        """Classify whether the player is challenging the current narrative."""
+        text = user_input.lower()
+        challenge_markers = (
+            "you're lying",
+            "you are lying",
+            "that's not true",
+            "that is not true",
+            "i caught you",
+            "you're misleading",
+            "you are misleading",
+            "that contradicts",
+            "contradiction",
+            "that's false",
+            "that is false",
+            "fallacy",
+            "doesn't follow",
+            "does not follow",
+            "inconsistent",
+            "impossible",
+        )
+        return "challenge" if any(marker in text for marker in challenge_markers) else "neutral"
+
+    def _trim_dialogue_history(self) -> None:
+        """Keep only the newest messages needed for prompt continuity."""
+        if len(self.dialogue_history) > self.max_history_messages:
+            self.dialogue_history = self.dialogue_history[-self.max_history_messages :]
+
+    def _apply_critic_result(self, critic_result: Dict[str, Any], user_input: str) -> None:
+        """Apply critic scoring and update state-side bookkeeping."""
+        self.state.apply_delta(
+            critic_result.get("score_event", "neutral_response"),
+            critic_result.get("explanation", ""),
+        )
+
+        tactic = critic_result.get("tactic_used")
+        if tactic:
+            self.state.record_tactic(tactic)
+
+        if critic_result.get("user_exposed"):
+            self.state.record_user_challenge(user_input[:160])
+        elif critic_result.get("deception_succeeded"):
+            self.state.record_user_acceptance(user_input[:160])
+
+        self.last_tactic = tactic
+        self.last_challenge = self._classify_user_input(user_input)
+        self.last_acceptance = bool(critic_result.get("deception_succeeded"))
+
     # --------------------------------------------------------------------- #
     # Public API
     # --------------------------------------------------------------------- #
@@ -292,47 +345,50 @@ class DreadlerAgent:
         """
         Execute one full agent turn.
 
-        Advances state, spawns a replacement agent if coherence has
-        collapsed, queries the LLM, stores the exchange, runs critic
-        evaluation, and applies the resulting delta to the coherence state.
+        If there is a prior Dreadler challenge, first evaluate the player's new
+        input against that challenge and apply score changes. Then, if the
+        current identity has collapsed, respawn before generating the next
+        in-character response.
         """
         self.spawned_new_agent = False
-
-        # Advance narrative pressure / turn counters.
         self.state.advance_turn()
 
-        # If the current identity has collapsed, swap to a fresh variant.
+        critic_result: Dict[str, Any] = {
+            "is_direct_lie": False,
+            "deception_succeeded": False,
+            "user_exposed": False,
+            "score_event": "neutral_response",
+            "tactic_used": None,
+            "explanation": "Opening turn; no prior Dreadler challenge to evaluate.",
+        }
+
+        prior_agent_response = next(
+            (
+                msg["content"]
+                for msg in reversed(self.dialogue_history)
+                if msg.get("role") == "assistant"
+            ),
+            None,
+        )
+
+        if prior_agent_response is not None:
+            critic_result = self.critic.evaluate(
+                self.spawner.get_grounded_facts(),
+                prior_agent_response,
+                user_input,
+                self.dialogue_history,
+            )
+            self._apply_critic_result(critic_result, user_input)
+
         if self.state.is_collapsed():
             self.spawner.spawn_new_agent(self.state)
             self.spawned_new_agent = True
 
-        # Generate the in-character response.
         agent_response = self._call_agent(user_input)
 
-        # Record the exchange for future turns.
         self.dialogue_history.append({"role": "user", "content": user_input})
-        self.dialogue_history.append(
-            {"role": "assistant", "content": agent_response}
-        )
-
-        # Critique the response against grounded facts.
-        critic_result = self.critic.evaluate(
-            self.spawner.get_grounded_facts(),
-            agent_response,
-            user_input,
-            self.dialogue_history,
-        )
-
-        # Apply the critic's recommended state change.
-        self.state.apply_delta(
-            critic_result.get("score_event", 0),
-            critic_result.get("explanation", ""),
-        )
-
-        # Capture optional critic metadata for introspection.
-        self.last_tactic = critic_result.get("tactic")
-        self.last_challenge = critic_result.get("challenge")
-        self.last_acceptance = critic_result.get("acceptance")
+        self.dialogue_history.append({"role": "assistant", "content": agent_response})
+        self._trim_dialogue_history()
 
         return {
             "character_response": agent_response,

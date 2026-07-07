@@ -1757,6 +1757,7 @@ export const ROUTES = {
   PERSONAS: '/ai-personas',
   STRATEGY: '/strategy-room',
   DREADLER: '/deception-arena',
+  RESEARCH_IDE: '/research-ide',
 };
 
 // --- DRAFTING DOCUMENT TYPES ---

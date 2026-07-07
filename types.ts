@@ -348,3 +348,54 @@ export interface TrialSimContextType {
   isFactGenerating: boolean;
   setIsFactGenerating: React.Dispatch<React.SetStateAction<boolean>>;
 }
+
+// ─── LexIDE Types ────────────────────────────────────────────────────────────
+
+export type LexIDEViewMode = 'home' | 'workspace' | 'ai-sandbox';
+export type CitationStyle = 'ILI' | 'OSCOLA';
+
+export interface LexIDESection {
+  id: string;
+  title: string;
+  content: string;
+}
+
+export interface LexIDEFootnote {
+  id: string;
+  sectionId: string;
+  text: string;
+  index: number;
+}
+
+export interface LexIDEResearchResult {
+  id: string;
+  title: string;
+  url: string;
+  snippet: string;
+  summary?: string;
+  isSummarizing?: boolean;
+}
+
+export interface LexIDESandboxMessage {
+  role: 'user' | 'ai';
+  text: string;
+}
+
+export interface LexIDEAppState {
+  viewMode: LexIDEViewMode;
+  fullContent: string;
+  sections: LexIDESection[];
+  footnotes: LexIDEFootnote[];
+  citationStyle: CitationStyle;
+  activeLeftSectionId: string;
+  activeRightSectionId: string;
+  isSplitView: boolean;
+  savedReferences: Record<string, LexIDEResearchResult[]>;
+  isExplorerVisible: boolean;
+  isResearchVisible: boolean;
+  sandboxSectionId: string;
+  sandboxDraft: string;
+  sandboxProposed: string;
+  sandboxAnalysis: string;
+  sandboxMessages: LexIDESandboxMessage[];
+}

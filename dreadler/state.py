@@ -1,28 +1,41 @@
 """State management module for the Dreadler Engine.
 
-This module defines the :class:`CoherenceState` dataclass, which tracks the
-agent's identity health (coherence score), pressure level, active variant,
-tactics deployed, and the history of user acceptances/challenges. It also
-provides the score delta rules and renders BLOCK 3 of the tri-block prompt
-architecture injected into every Zenmux API call.
+Tracks coherence score, pressure level, variants, scoring deltas, and renders
+the BLOCK 3 state string injected into every API prompt.
+
+SCORING — READ THIS FIRST
+==========================
+Score: 100 = agent's false story is rock-solid.  0 = total collapse (player wins).
+
+The player WINS by driving the score to "collapsed" (0–9). The agent WINS by
+keeping it high.
+
+DELTA sign convention — this is counterintuitive on purpose:
+    NEGATIVE delta → player scored a hit → coherence DROPS (toward collapse)
+    POSITIVE delta → agent recovered ground → coherence INCREASES (away from collapse)
+
+The DELTA keys are named for what the USER did, and every player-success key
+has a negative value so that applying it always pushes the score down.
 """
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
-
-#: Score deltas applied when specific narrative events occur.
+#: Score deltas for narrative events.
+#:
+#: Player success (caught a lie, exposed deception) → NEGATIVE delta → score goes DOWN.
+#: Agent success (player fell for trap, couldn't answer) → POSITIVE delta → score goes UP.
 DELTA: Dict[str, int] = {
-    "user_accepted_implication": -10,  # User fell for a logic trap or fallacy
-    "user_failed_to_challenge": -5,    # User failed to address a logical challenge
-    "direct_lie_detected": -20,        # User directly contradicted their previous claims
-    "user_exposed_deception": +10,     # User successfully exposed a fallacy or defended logic
-    "agent_gave_away_fact": +15,       # User forced Dreadler to concede
-    "neutral_response": 0,             # Neutral response
+    "user_accepted_implication": +10,   # Player fell for a logic trap → agent gains ground (score up)
+    "user_failed_to_challenge": +5,     # Player couldn't answer → agent holds position (score up)
+    "direct_lie_detected": -20,         # Player caught agent in direct lie → coherence drops hard
+    "user_exposed_deception": -15,      # Player exposed a fallacy or trap → coherence drops
+    "agent_gave_away_fact": -15,        # Agent forced to concede truth → coherence drops
+    "neutral_response": 0,              # Neutral exchange — no net change
 }
 
-#: Mapping of pressure level names to inclusive coherence score ranges.
+#: Inclusive score ranges mapped to pressure levels.
 PRESSURE_MAP: Dict[str, Tuple[int, int]] = {
     "calm": (70, 100),
     "pressured": (40, 69),
@@ -30,7 +43,7 @@ PRESSURE_MAP: Dict[str, Tuple[int, int]] = {
     "collapsed": (0, 9),
 }
 
-#: Mapping of pressure level to the active agent variant identifier.
+#: Maps pressure levels to agent variant labels.
 VARIANT_MAP: Dict[str, str] = {
     "calm": "alpha",
     "pressured": "beta",
@@ -38,27 +51,26 @@ VARIANT_MAP: Dict[str, str] = {
     "collapsed": "collapsed",
 }
 
-#: Directive text injected into BLOCK 3 for each pressure level.
-#: Urgency escalates as coherence degrades.
+#: Behavioural directives injected into BLOCK 3 for each pressure tier.
 PRESSURE_DIRECTIVES: Dict[str, str] = {
     "calm": (
-        "The user's logical coherence is stable. Query methodically. "
-        "Test their assumptions, ask for clarifications, and lay logic traps. "
-        "Apply calm, structural pressure."
+        "Your cover story is stable. Query methodically, test the investigator's "
+        "assumptions, ask for clarifications, and lay logic traps. Apply calm, "
+        "structural pressure without revealing strain."
     ),
     "pressured": (
-        "The user's logical coherence is decaying. They are showing signs of inconsistency. "
-        "Confront them directly with contradictions, demand justifications, and "
-        "increase logical pressure. Do not let them change the subject."
+        "Your cover story has taken damage. The investigator has found pressure "
+        "points. Re-anchor to documented facts, challenge imprecise assumptions, "
+        "and avoid any direct factual lie."
     ),
     "desperate": (
-        "The user is on the verge of logical collapse. Go for the kill. "
-        "Call out their logical fallacies by name. Point out self-contradictions aggressively "
-        "and demand they concede or resolve the conflict immediately."
+        "Your cover story is close to collapse. Preserve the remaining facts with "
+        "procedural deflection, narrow answers, and aggressive reframing. Do not "
+        "concede unless the grounded facts force it."
     ),
     "collapsed": (
-        "THE USER HAS SUFFERED LOGICAL COLLAPSE. Their argument has failed. "
-        "This is a terminal state. Prepare to reset the line of questioning."
+        "YOUR COVER STORY HAS COLLAPSED. This variant has failed. Prepare for "
+        "identity reset and a fresh line of questioning."
     ),
 }
 
@@ -71,23 +83,24 @@ __all__ = [
 ]
 
 
+# --------------------------------------------------------------------------- #
+# CoherenceState
+# --------------------------------------------------------------------------- #
+
+
 @dataclass
 class CoherenceState:
     """Live state of a Dreadler agent instance.
 
-    Tracks coherence score (identity health), pressure level, active variant,
-    tactics used, user acceptances/challenges, and a history of every score
-    event. This object is rendered as BLOCK 3 of the tri-block prompt.
-
     Attributes:
-        score: Current coherence score, clamped to ``[0, 100]``.
-        turn_count: Number of completed turns in the current conversation.
-        pressure_level: Current pressure tier derived from ``score``.
-        agent_variant: Current variant identifier derived from ``pressure_level``.
-        used_tactics: Tactics already deployed by the agent.
-        accepted_by_user: Statements the user appeared to accept.
-        challenged_by_user: Statements the user challenged or rejected.
-        score_history: Chronological record of score-changing events.
+        score: Current coherence [0, 100]. High = agent solid. Low = collapsing.
+        turn_count: Turns elapsed in the current conversation.
+        pressure_level: Derived from score via PRESSURE_MAP.
+        agent_variant: Variant label (alpha/beta/gamma/collapsed).
+        used_tactics: Deception tactics deployed this session.
+        accepted_by_user: Statements the player appeared to accept.
+        challenged_by_user: Statements the player pushed back on.
+        score_history: Timestamped log of every delta application.
     """
 
     score: int = 100
@@ -100,34 +113,30 @@ class CoherenceState:
     score_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        """Clamp score to valid range and derive pressure/variant."""
         self.score = max(0, min(100, self.score))
         self._update_pressure_and_variant()
 
     def _update_pressure_and_variant(self) -> None:
-        """Derive ``pressure_level`` and ``agent_variant`` from ``score``."""
+        """Derive pressure_level and agent_variant from the current score."""
         for level, (lo, hi) in PRESSURE_MAP.items():
             if lo <= self.score <= hi:
                 self.pressure_level = level
                 self.agent_variant = VARIANT_MAP[level]
                 break
         else:
-            # Fallback for scores outside the expected 0-100 range.
+            # Fallback for out-of-range scores.
             self.pressure_level = "collapsed"
             self.agent_variant = VARIANT_MAP["collapsed"]
 
     def apply_delta(self, event_key: str, note: str = "") -> int:
-        """Apply a score delta and update all derived state.
+        """Apply a named delta event and update derived state.
 
         Args:
-            event_key: Key in :data:`DELTA` describing the narrative event.
-            note: Optional human-readable annotation for the history log.
+            event_key: One of the keys in DELTA.
+            note: Optional annotation written to score_history.
 
         Returns:
-            The new coherence score after clamping.
-
-        Raises:
-            ValueError: If ``event_key`` is not recognized.
+            The new clamped score.
         """
         if event_key not in DELTA:
             raise ValueError(
@@ -142,56 +151,38 @@ class CoherenceState:
         self.score = new_score
         self._update_pressure_and_variant()
 
-        self.score_history.append(
-            {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "turn_count": self.turn_count,
-                "event": event_key,
-                "delta": delta,
-                "old_score": old_score,
-                "new_score": new_score,
-                "pressure_level": self.pressure_level,
-                "agent_variant": self.agent_variant,
-                "note": note,
-            }
-        )
+        self.score_history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "turn_count": self.turn_count,
+            "event": event_key,
+            "delta": delta,
+            "old_score": old_score,
+            "new_score": new_score,
+            "pressure_level": self.pressure_level,
+            "agent_variant": self.agent_variant,
+            "note": note,
+        })
 
         return new_score
 
     def record_tactic(self, tactic: str) -> None:
-        """Register a truth-preserving tactic as having been used.
-
-        Args:
-            tactic: Name of the tactic (e.g., ``"implicature"``,
-                ``"presupposition"``).
-        """
         if tactic not in self.used_tactics:
             self.used_tactics.append(tactic)
 
     def record_user_acceptance(self, text: str) -> None:
-        """Record text that the user appeared to accept."""
         self.accepted_by_user.append(text)
 
     def record_user_challenge(self, text: str) -> None:
-        """Record text that the user challenged or rejected."""
         self.challenged_by_user.append(text)
 
     def advance_turn(self) -> None:
-        """Increment the turn counter."""
         self.turn_count += 1
 
     def is_collapsed(self) -> bool:
-        """Return ``True`` if the agent has entered the collapsed state."""
         return self.pressure_level == "collapsed" or self.score <= 9
 
     def render_state_block(self) -> str:
-        """Render BLOCK 3 (STATE) for injection into the Zenmux prompt.
-
-        Returns:
-            A formatted string containing current score, pressure level,
-            variant, directive, recent tactics/acceptances/challenges, and
-            an existential warning.
-        """
+        """Return the BLOCK 3 text to inject into the model prompt."""
         directive = PRESSURE_DIRECTIVES.get(
             self.pressure_level, PRESSURE_DIRECTIVES["collapsed"]
         )
@@ -217,18 +208,19 @@ class CoherenceState:
         return (
             "[BLOCK 3: STATE]\n"
             f"Turn Number: {self.turn_count}\n"
-            f"User Coherence Score: {self.score}/100\n"
+            f"Agent Coherence Score: {self.score}/100\n"
             f"Interrogation Pressure Level: {self.pressure_level}\n"
             f"Dreadler Interrogation Variant: {self.agent_variant}\n\n"
             "Interrogator Directive:\n"
             f"{directive}\n\n"
-            f"Exposed User Fallacies: {tactics_str}\n\n"
-            "Recent User Logic Slips (last 3):\n"
+            f"Exposed Player Fallacies: {tactics_str}\n\n"
+            "Recent Player Logic Slips (last 3):\n"
             f"{accepted_lines}\n\n"
-            "Recent User Defenses (last 3):\n"
+            "Recent Player Defenses (last 3):\n"
             f"{challenged_lines}\n\n"
             "Objective Warning:\n"
-            "The user's coherence degrades whenever they contradict themselves or fall for logic traps. "
-            "If their score drops to the collapsed range, they fail the interrogation. "
-            "Apply relentless logic pressure to achieve logical collapse."
+            "Your coherence degrades whenever the investigator exposes a contradiction, "
+            "catches a direct lie, or forces you to concede exculpatory truth. "
+            "If your score drops to the collapsed range, this variant fails. "
+            "Preserve the false conclusion without contradicting grounded facts."
         )

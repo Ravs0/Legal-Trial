@@ -323,6 +323,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <SectionLabel label="AI Drafting" isOpen={isExpanded} />
             <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting Studio" icon={<QuillIcon />} isSidebarOpen={isExpanded} />
 
+            {/* ─── RESEARCH ────────────────────────────────────────────── */}
+            <SectionLabel label="Research" isOpen={isExpanded} />
+            <NavItem to={ROUTES.RESEARCH_IDE} label="Research IDE" icon={<DocumentTextIcon />} badge="NEW" isSidebarOpen={isExpanded} />
+
             {/* ─── PRACTICE ───────────────────────────────────────────── */}
             <SectionLabel label="Practice" isOpen={isExpanded} />
             <NavItem to={ROUTES.SETUP} label="New Trial" icon={<PlusCircleIcon />} isSidebarOpen={isExpanded} />

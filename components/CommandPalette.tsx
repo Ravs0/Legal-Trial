@@ -133,6 +133,13 @@ export const CommandPalette: React.FC = () => {
         action: () => navigate(ROUTES.DRAFTING_STUDIO)
       },
       {
+        id: 'nav-research-ide',
+        category: 'Navigation',
+        title: 'Open Research IDE',
+        description: 'Launch split-view legal research environment with AI grounding.',
+        action: () => navigate(ROUTES.RESEARCH_IDE)
+      },
+      {
         id: 'nav-library',
         category: 'Navigation',
         title: 'Open Case Precedent Library',
