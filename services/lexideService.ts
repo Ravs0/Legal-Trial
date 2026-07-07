@@ -8,11 +8,16 @@ class LexServiceError extends Error {
   }
 }
 
-async function callApi(messages: { role: string; content: string }[], system?: string): Promise<string> {
+async function callApi(messages: { role: string; content: string }[], system?: string, options?: { temperature?: number; max_tokens?: number }): Promise<string> {
+  const body: Record<string, unknown> = { messages };
+  if (system) body.system = system;
+  if (options?.temperature !== undefined) body.temperature = options.temperature;
+  if (options?.max_tokens !== undefined) body.max_tokens = options.max_tokens;
+
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, system }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -100,6 +105,8 @@ INSTRUCTIONS:
 };
 
 export const parseLegalPaper = async (rawText: string): Promise<{ sections: { title: string; content: string }[] }> => {
+  if (!rawText.trim()) throw new LexServiceError("No text to parse.");
+
   try {
     const text = await callApi(
       [{ role: 'user', content: `Split the following legal text into logical sections based on major headings.
@@ -110,15 +117,34 @@ RULES:
 3. Output a JSON array of objects with 'title' and 'content'.
 
 Text to process:
-${rawText}
-
-Return ONLY valid JSON, no markdown, no commentary.` }],
-      'You are a high-precision document parser. Split legal documents into sections by headings. Return ONLY valid JSON.'
+${rawText}` }],
+      'You are a high-precision document parser. Split legal documents into sections by headings. Return ONLY valid JSON. No commentary, no markdown formatting.',
+      { temperature: 0.1, max_tokens: 4096 }
     );
 
-    const cleaned = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    throw new LexServiceError("AI parsing failed. The model may not have returned valid JSON.");
+    // Strip any markdown fence or wrapping commentary
+    let cleaned = text.trim();
+    // Remove markdown code fences
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/gm, '').replace(/```\s*$/gm, '').trim();
+    // Find the first [ and last ] for a JSON array
+    const arrayStart = cleaned.indexOf('[');
+    const arrayEnd = cleaned.lastIndexOf(']');
+    if (arrayStart !== -1 && arrayEnd !== -1) {
+      cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
+    }
+    // Find the first { and last } if it's an object with sections property
+    const objStart = cleaned.indexOf('{');
+    const objEnd = cleaned.lastIndexOf('}');
+    if (objStart !== -1 && objEnd !== -1 && objEnd > objStart) {
+      cleaned = cleaned.slice(objStart, objEnd + 1);
+    }
+
+    const parsed = JSON.parse(cleaned);
+    // Handle both { sections: [...] } and direct array
+    const sections = parsed.sections || parsed;
+    if (!Array.isArray(sections)) throw new Error("Parsed result is not an array");
+    return { sections };
+  } catch (err) {
+    throw new LexServiceError(`AI parsing failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 };
