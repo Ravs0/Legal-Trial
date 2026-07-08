@@ -140,7 +140,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const context = useContext(TrialSimContext);
   const { viewportHeight, isMobile } = useVisualViewport();
   const practiceMode = context?.practiceMode;
-  const modeDisplay = practiceMode ? (practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1)) : '';
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     const savedState = localStorage.getItem('sidebarOpen');
@@ -344,7 +343,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <div className="px-3 py-2 border-t border-white/8">
               <div className="flex items-center gap-2 px-2 py-1.5 bg-brand-accent/10 border border-brand-accent/25">
                 <ChartIcon />
-                <span className="text-[10px] font-mono text-brand-accent tracking-wider uppercase">{modeDisplay} Mode</span>
+                <span className="text-[10px] font-mono text-brand-accent tracking-wider uppercase">{formatModeLabel(practiceMode)}</span>
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useRef } from 'react';
+import React, { useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { TrialSimContext } from '../App';
 import { searchWeb, SearchResult } from '../services/searchService';
 import { summarizeSearchResults } from '../services/aiService';
@@ -65,6 +65,29 @@ const isSafeUrl = (url: string): boolean => {
     return false;
   }
 };
+
+// Clipboard write with a fallback for non-secure contexts. Returns true if the
+// copy succeeded by either path.
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
 
 export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClose }) => {
   const context = useContext(TrialSimContext);
@@ -152,60 +175,30 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
   };
 
   const handleCopyLink = async (url: string, index: number) => {
-    try {
-      await navigator.clipboard.writeText(url);
+    if (await copyToClipboard(url)) {
       setCopiedIndex(index);
       setTimeout(() => setCopiedIndex(null), 2000);
-    } catch {
-      // Fallback copy execution for non-secure contexts
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        setCopiedIndex(index);
-        setTimeout(() => setCopiedIndex(null), 2000);
-      } catch {
-        setSearchError('Copying link failed.');
-      } finally {
-        document.body.removeChild(textarea);
-      }
+    } else {
+      setSearchError('Copying link failed.');
     }
   };
 
   const handleCopySummary = async () => {
     if (!summary) return;
-    try {
-      await navigator.clipboard.writeText(summary);
+    if (await copyToClipboard(summary)) {
       setCopiedSummary(true);
       setTimeout(() => setCopiedSummary(false), 2000);
-    } catch {
-      // Fallback copy execution for non-secure contexts
-      const textarea = document.createElement('textarea');
-      textarea.value = summary;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      try {
-        document.execCommand('copy');
-        setCopiedSummary(true);
-        setTimeout(() => setCopiedSummary(false), 2000);
-      } catch {
-        setSummarizeError('Copying summary failed.');
-      } finally {
-        document.body.removeChild(textarea);
-      }
+    } else {
+      setSummarizeError('Copying summary failed.');
     }
   };
 
   // Quick suggestions based on practice mode
-  const suggestions = practiceMode === 'indian' 
-    ? ['Section 302 IPC punishment', 'Admissibility of electronic records Section 65B', 'Landmark Supreme Court guidelines on bail']
-    : ['Strict liability autonomous vehicles', 'Doctrine of legitimate expectation common law', 'Hearsay exception guidelines'];
+  const suggestions = useMemo(() => (
+    practiceMode === 'indian' 
+      ? ['Section 302 IPC punishment', 'Admissibility of electronic records Section 65B', 'Landmark Supreme Court guidelines on bail']
+      : ['Strict liability autonomous vehicles', 'Doctrine of legitimate expectation common law', 'Hearsay exception guidelines']
+  ), [practiceMode]);
 
   return (
     <div

@@ -124,14 +124,6 @@ export const readGenericState = <T>(key: string): T | null => {
   return envelope?.payload ?? null;
 };
 
-/** Remove a previously saved payload. */
-export const clearGenericState = (key: string): void => {
-  if (!isBrowser) return;
-  try {
-    window.localStorage.removeItem(key);
-  } catch { /* noop */ }
-};
-
 // ─── Pending (pre‑arena) setup settings ──────────────────────────────────────
 const PENDING_SETTINGS_KEY = 'legal-trial.pending-settings';
 

@@ -14,9 +14,7 @@ import { ROUTES } from './constants';
 import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Chat } from './types';
-import { OversightSpirit } from './components/OversightSpirit';
 import { ConversationBridgeProvider } from './components/ConversationBridge';
-import { CommandPalette } from './components/CommandPalette';
 import { loadActiveSession, loadPendingSettings, clearPendingSettings } from './services/storageService';
 
 const DraftingStudioScreen = React.lazy(() => import('./screens/DraftingStudioScreen'));
@@ -25,6 +23,9 @@ const StrategyRoomScreen = React.lazy(() => import('./screens/StrategyRoomScreen
 const DreadlerArenaScreen = React.lazy(() => import('./screens/DreadlerArenaScreen'));
 const ResearchIDEScreen = React.lazy(() => import('./screens/ResearchIDEScreen'));
 const CourtSourcesScreen = React.lazy(() => import('./screens/CourtSourcesScreen'));
+// Non-critical global overlays: defer their module graphs out of the initial chunk.
+const OversightSpirit = React.lazy(() => import('./components/OversightSpirit').then(m => ({ default: m.OversightSpirit })));
+const CommandPalette = React.lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
 
 export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 /** @deprecated Use LexForgeContext instead */
@@ -148,8 +149,8 @@ function App() {
       <HashRouter>
         {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-80 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
         {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
-        <OversightSpirit />
-        <CommandPalette />
+        <React.Suspense fallback={null}><OversightSpirit /></React.Suspense>
+        <React.Suspense fallback={null}><CommandPalette /></React.Suspense>
         <Routes>
           <Route path={ROUTES.LANDING} element={<LandingScreen />} />
           <Route path="/" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />

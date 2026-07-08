@@ -59,10 +59,6 @@ export function pickVoice(preference?: string | null): SpeechSynthesisVoice | nu
   return voices[0];
 }
 
-export function getVoices(): SpeechSynthesisVoice[] {
-  return loadVoices();
-}
-
 // Speak text aloud. By default cancels any in-progress utterance to avoid overlap.
 export function speak(text: string, options: SpeakOptions = {}): void {
   if (!isTTSAvailable() || !text.trim()) return;

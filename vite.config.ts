@@ -12,6 +12,17 @@ export default defineConfig({
     host: '0.0.0.0',
   },
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Split stable vendor libs into a cacheable, parallel-loaded chunk
+        // so app-code deploys don't bust the React vendor cache.
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),

@@ -51,12 +51,6 @@ export function getHsemotionSession(): Promise<ort.InferenceSession | null> {
   return sessionPromise;
 }
 
-/** True if the ONNX session loaded successfully. */
-export async function isHsemotionAvailable(): Promise<boolean> {
-  const s = await getHsemotionSession();
-  return s !== null;
-}
-
 /**
  * Run HSEmotion on a 224x224 face crop. Returns a normalized EmotionSet, or
  * NEUTRAL_EMOTIONS if the model isn't available. HSEmotion expects a
