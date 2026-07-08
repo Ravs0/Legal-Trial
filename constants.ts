@@ -1758,6 +1758,7 @@ export const ROUTES = {
   STRATEGY: '/strategy-room',
   DREADLER: '/deception-arena',
   RESEARCH_IDE: '/research-ide',
+  COURT_SOURCES: '/court-sources',
 };
 
 // --- DRAFTING DOCUMENT TYPES ---

@@ -326,6 +326,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* ─── RESEARCH ────────────────────────────────────────────── */}
             <SectionLabel label="Research" isOpen={isExpanded} />
             <NavItem to={ROUTES.RESEARCH_IDE} label="Research IDE" icon={<DocumentTextIcon />} badge="NEW" isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.COURT_SOURCES} label="Court Sources" icon={<CourtIcon />} isSidebarOpen={isExpanded} />
 
             {/* ─── PRACTICE ───────────────────────────────────────────── */}
             <SectionLabel label="Practice" isOpen={isExpanded} />
