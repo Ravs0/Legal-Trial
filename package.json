@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite --port 3000",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx services/exportService.test.ts && tsx services/legalWritingScorer.test.ts",
+    "check": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "lucide-react": "^1.23.0",
@@ -21,6 +24,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "tsx": "^4.23.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
