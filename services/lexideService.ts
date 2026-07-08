@@ -1,30 +1,12 @@
 import type { LexIDESection, LexIDEResearchResult } from "../types";
 import { searchWeb } from "./searchService";
+import { callApi } from "./aiService";
 
 class LexServiceError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'LexServiceError';
   }
-}
-
-async function callApi(messages: { role: string; content: string }[], system?: string, options?: { temperature?: number; max_tokens?: number }): Promise<string> {
-  const body: Record<string, unknown> = { messages };
-  if (system) body.system = system;
-  if (options?.temperature !== undefined) body.temperature = options.temperature;
-  if (options?.max_tokens !== undefined) body.max_tokens = options.max_tokens;
-
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new LexServiceError(err.error || `AI service error (${res.status})`);
-  }
-  const data = await res.json();
-  return data.text || '';
 }
 
 export const performLegalResearch = async (query: string): Promise<LexIDEResearchResult[]> => {

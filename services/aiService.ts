@@ -25,11 +25,20 @@ class AiServiceError extends Error {
   }
 }
 
-async function callApi(messages: { role: string; content: string }[], system?: string): Promise<string> {
+export async function callApi(
+  messages: { role: string; content: string }[],
+  system?: string,
+  options?: { temperature?: number; max_tokens?: number }
+): Promise<string> {
+  const body: Record<string, unknown> = { messages };
+  if (system) body.system = system;
+  if (options?.temperature !== undefined) body.temperature = options.temperature;
+  if (options?.max_tokens !== undefined) body.max_tokens = options.max_tokens;
+
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, system }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
