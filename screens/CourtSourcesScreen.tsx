@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CourtDataRecord,
   CourtDataSourceId,
@@ -184,6 +184,7 @@ const CourtSourcesScreen: React.FC = () => {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   const params = useMemo<CourtSourceSearchParams>(
     () => ({ q: query, source, courtLevel, dataType, limit: 20 }),
@@ -191,18 +192,24 @@ const CourtSourcesScreen: React.FC = () => {
   );
 
   const runSearch = async (nextParams: CourtSourceSearchParams = params) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
     setLoading(true);
     setError(null);
     try {
       const res = await searchOfficialCourtSources(nextParams);
+      if (requestId !== requestIdRef.current) return;
       setRecords(res.records);
       setWarnings(res.warnings);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(err instanceof Error ? err.message : 'Court source lookup failed.');
       setRecords([]);
       setWarnings([]);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -214,6 +221,11 @@ const CourtSourcesScreen: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     runSearch(params);
+  };
+
+  const handleSourceSelect = (nextSource: CourtDataSourceId | '') => {
+    setSource(nextSource);
+    runSearch({ q: query, source: nextSource, courtLevel, dataType, limit: 20 });
   };
 
   const resetFilters = () => {
@@ -264,7 +276,7 @@ const CourtSourcesScreen: React.FC = () => {
               selected={source === opt.value}
               label={opt.label}
               short={opt.short}
-              onClick={() => { setSource(opt.value); }}
+              onClick={() => handleSourceSelect(opt.value)}
             />
           ))}
         </div>
