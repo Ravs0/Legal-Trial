@@ -17,6 +17,7 @@ import { BriefcaseIcon } from '../components/icons/BriefcaseIcon';
 import { getCategoryColorClasses } from '../services/colorUtils';
 import { savePendingSettings, loadCompletedSessions } from '../services/storageService';
 import { trackEvent } from '../services/analyticsService';
+import { PageHeader } from '../components/PageHeader';
 
 const SetupScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -154,15 +155,13 @@ const SetupScreen: React.FC = () => {
 
   return (
     <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full animate-fadeIn relative z-10">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center space-x-2 mb-4">
-          <div className="h-px w-8 bg-brand-text-primary/30"></div>
-          <span className="text-xs font-mono text-brand-text-primary tracking-widest uppercase">Configuration</span>
-          <div className="h-px w-8 bg-brand-text-primary/30"></div>
-        </div>
-        <h2 className="text-4xl md:text-5xl font-bold text-brand-text-primary font-serif tracking-tight">
-          Setup New {modeDisplay} Practice Session
-        </h2>
+      <div className="mb-10">
+        <PageHeader
+          align="center"
+          eyebrow="Configuration"
+          title={`Setup New ${modeDisplay} Practice Session`}
+          subtitle="Choose case, bench, and session length — then enter the arena."
+        />
       </div>
 
       <div className="grid md:grid-cols-3 gap-x-8 gap-y-8">

@@ -14,7 +14,6 @@ import deceptionKey from '../assets/deception_key.jpg';
 import draftingPen from '../assets/drafting_pen.jpg';
 import libraryBooks from '../assets/library_books.jpg';
 import judgeGavel from '../assets/judge_gavel.jpg';
-import counselScales from '../assets/counsel_scales.jpg';
 import heroCourtroom from '../assets/hero_courtroom.jpg';
 
 interface BentoItemProps {
@@ -269,61 +268,63 @@ const HomeScreen: React.FC = () => {
       <section className="space-y-4">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Advanced Tools</p>
-            <h2 className="mt-1 text-2xl font-serif font-semibold text-brand-text-primary">Use these after the practice loop</h2>
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Workspace</p>
+            <h2 className="mt-1 text-2xl font-serif font-semibold text-brand-text-primary">Write and research between hearings</h2>
           </div>
           <Button variant="ghost" onClick={() => navigate(ROUTES.SETUP)} className="hidden sm:inline-flex border border-white/10">Configure Trial</Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           <BentoItem
-            title="Drafting Practice Studio"
+            title="Drafting Studio"
             description={draftingDescription}
             icon={<img src={draftingPen} alt="Drafting Pen" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
             onClick={() => navigate(ROUTES.DRAFTING_STUDIO)}
             buttonText="Enter Studio"
           />
           <BentoItem
-            title="AI Strategy Room"
-            description="Stress-test your theory, run multi-agent debate, and pressure your argument before live exchange."
-            icon={<img src={strategyAstrolabe} alt="Strategy Astrolabe" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.STRATEGY)}
-            buttonText="Enter Strategy"
-          />
-          <BentoItem
             title="Case Library"
-            description={`Explore legal scenarios and precedents inside the ${modeDisplay.toLowerCase()} framework before configuring your next session.`}
+            description={`Explore ${modeDisplay.toLowerCase()} scenarios, then start a trial from a case you care about.`}
             icon={<img src={libraryBooks} alt="Case Library" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
             onClick={() => navigate(ROUTES.LIBRARY)}
             buttonText="Browse Cases"
           />
           <BentoItem
+            title="Bench & Counsel"
+            description={`Review AI judges and opposing counsel for ${modeDisplay.toLowerCase()} practice.`}
+            icon={<img src={judgeGavel} alt="Judge Gavel" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
+            onClick={() => navigate(ROUTES.BENCH)}
+            buttonText="View Roster"
+          />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Advisors (optional)</p>
+          <h2 className="mt-1 text-xl font-serif font-semibold text-brand-text-primary">Depth tools — after the practice loop</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <BentoItem
+            title="Strategy Room"
+            description="Stress-test theory and run multi-agent debate before live exchange."
+            icon={<img src={strategyAstrolabe} alt="Strategy Astrolabe" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
+            onClick={() => navigate(ROUTES.STRATEGY)}
+            buttonText="Enter Strategy"
+          />
+          <BentoItem
             title="AI Personas"
-            description="Consult domain experts, legal strategists, and specialized advisors when you need a fresh frame."
+            description="Consult domain experts when you need a fresh frame on a hard point."
             icon={<img src={personaSeal} alt="AI Personas" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
             onClick={() => navigate(ROUTES.PERSONAS)}
             buttonText="Open Personas"
           />
           <BentoItem
             title="Deception Arena"
-            description="Interrogate witnesses and suspects with the Dreadler engine for higher-pressure factual challenges."
+            description="Higher-pressure factual interrogation with the Dreadler engine."
             icon={<img src={deceptionKey} alt="Deception Arena" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
             onClick={() => navigate(ROUTES.DREADLER)}
             buttonText="Enter Arena"
-          />
-          <BentoItem
-            title="Bench and Counsel"
-            description={`Review AI judges and opposing counsel profiles relevant to ${modeDisplay.toLowerCase()} practice.`}
-            icon={<img src={judgeGavel} alt="Judge Gavel" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.JUDGES)}
-            buttonText="View Roster"
-          />
-          <BentoItem
-            title="Opposing Counsel"
-            description={`Understand tactical profiles and specialties of the counsel you will face in the ${modeDisplay.toLowerCase()} arena.`}
-            icon={<img src={counselScales} alt="Opposing Counsel Scales" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.OPPOSING_COUNSEL)}
-            buttonText="View Counsel"
           />
         </div>
       </section>

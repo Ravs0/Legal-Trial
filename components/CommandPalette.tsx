@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ROUTES } from '../constants';
-import { CASES } from '../constants';
+import { ROUTES, CASES, INTERNATIONAL_CASES } from '../constants';
 import { loadActiveSession } from '../services/storageService';
 import { useVisualViewport } from '../hooks/useVisualViewport';
+import type { PracticeMode } from '../types';
 
 interface CommandItem {
   id: string;
@@ -78,12 +78,17 @@ export const CommandPalette: React.FC = () => {
   const currentPath = location.pathname;
 
   const getCommands = (): CommandItem[] => {
+    const practiceMode = (typeof window !== 'undefined'
+      ? (localStorage.getItem('practiceMode') as PracticeMode | null)
+      : null);
+    const caseCatalog = practiceMode === 'international' ? INTERNATIONAL_CASES : CASES;
+
     const commands: CommandItem[] = [
       {
         id: 'nav-dashboard',
         category: 'Navigation',
         title: 'Go to Dashboard',
-        description: 'Navigate to the main workspace hub.',
+        description: 'Practice loop hub — demo, resume, and progress.',
         action: () => navigate(ROUTES.HOME)
       },
       {
@@ -105,60 +110,67 @@ export const CommandPalette: React.FC = () => {
         }
       },
       {
-        id: 'nav-personas',
+        id: 'nav-analysis',
         category: 'Navigation',
-        title: 'Consult AI Personas',
-        description: 'Talk to elite legal domain characters and experts.',
-        action: () => navigate(ROUTES.PERSONAS)
+        title: 'Review Performance',
+        description: 'Open scorecards, transcripts, and exports.',
+        action: () => navigate(ROUTES.ANALYSIS)
       },
       {
-        id: 'nav-strategy',
+        id: 'nav-library',
         category: 'Navigation',
-        title: 'Open AI Strategy Room',
-        description: 'Run Oracle deconstruction and multi-agent debates.',
-        action: () => navigate(ROUTES.STRATEGY)
-      },
-      {
-        id: 'nav-dreadler',
-        category: 'Navigation',
-        title: 'Enter Deception Arena',
-        description: 'Interrogate witnesses under the Dreadler lie detector.',
-        action: () => navigate(ROUTES.DREADLER)
+        title: 'Open Case Library',
+        description: 'Browse scenarios and start a trial from a case.',
+        action: () => navigate(ROUTES.LIBRARY)
       },
       {
         id: 'nav-drafting',
         category: 'Navigation',
-        title: 'Open Drafting Practice Studio',
-        description: 'Author plenteous legal petitions, plaints and briefs.',
+        title: 'Open Drafting Studio',
+        description: 'Draft petitions, plaints, memorials, and briefs with AI feedback.',
         action: () => navigate(ROUTES.DRAFTING_STUDIO)
       },
       {
         id: 'nav-research-ide',
         category: 'Navigation',
         title: 'Open Research IDE',
-        description: 'Launch split-view legal research environment with AI grounding.',
+        description: 'Split-view research workspace with AI grounding.',
         action: () => navigate(ROUTES.RESEARCH_IDE)
       },
+      ...(practiceMode === 'indian' ? [{
+        id: 'nav-court-sources',
+        category: 'Navigation' as const,
+        title: 'Court Sources',
+        description: 'Official Indian court portal entry points (directory).',
+        action: () => navigate(ROUTES.COURT_SOURCES)
+      }] : []),
       {
-        id: 'nav-library',
+        id: 'nav-strategy',
         category: 'Navigation',
-        title: 'Open Case Precedent Library',
-        description: 'Browse legal codes, precedents, and scenarios.',
-        action: () => navigate(ROUTES.LIBRARY)
+        title: 'Open Strategy Room',
+        description: 'Oracle deconstruction and multi-agent debate.',
+        action: () => navigate(ROUTES.STRATEGY)
       },
       {
-        id: 'nav-judges',
+        id: 'nav-personas',
         category: 'Navigation',
-        title: 'View Presiding Judges Roster',
-        description: 'Review philosophies of the sitting AI judges.',
-        action: () => navigate(ROUTES.JUDGES)
+        title: 'Consult AI Personas',
+        description: 'Domain advisors and specialized counsel chat.',
+        action: () => navigate(ROUTES.PERSONAS)
       },
       {
-        id: 'nav-opposing',
+        id: 'nav-dreadler',
         category: 'Navigation',
-        title: 'View Opposing Counsel Profiles',
-        description: 'Analyze opposing counsel specialties.',
-        action: () => navigate(ROUTES.OPPOSING_COUNSEL)
+        title: 'Enter Deception Arena',
+        description: 'Interrogate witnesses under the Dreadler engine.',
+        action: () => navigate(ROUTES.DREADLER)
+      },
+      {
+        id: 'nav-bench',
+        category: 'Navigation',
+        title: 'Bench & Counsel Roster',
+        description: 'Review AI judges and opposing counsel profiles.',
+        action: () => navigate(ROUTES.BENCH)
       }
     ];
 
@@ -203,12 +215,12 @@ export const CommandPalette: React.FC = () => {
       );
     }
 
-    if (currentPath.includes(ROUTES.LIBRARY)) {
-      CASES.forEach(c => {
+    if (currentPath.includes(ROUTES.LIBRARY) || currentPath.includes(ROUTES.SETUP)) {
+      caseCatalog.forEach(c => {
         commands.push({
           id: `case-${c.id}`,
           category: 'Precedents',
-          title: `Precedent: ${c.title}`,
+          title: `Case: ${c.title}`,
           description: c.briefFacts.substring(0, 75) + '...',
           action: () => {
             window.dispatchEvent(new CustomEvent('cmd-palette-select-case', { detail: { caseId: c.id } }));
@@ -220,7 +232,7 @@ export const CommandPalette: React.FC = () => {
     return commands;
   };
 
-  const commands = useMemo(() => getCommands(), [currentPath, activeSessionLabel]);
+  const commands = useMemo(() => getCommands(), [currentPath, activeSessionLabel, location.pathname]);
   const mobilePanelStyle = useMemo(() => (
     isMobile
       ? { height: `${Math.max(320, Math.round(viewportHeight * 0.78))}px`, maxHeight: `${viewportHeight}px` }

@@ -26,6 +26,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const isUser = message.sender === 'user';
   const isJudge = message.sender === 'judge';
   const isOpposingCounsel = message.sender === 'opposingCounsel';
+  const isSystem = message.sender === 'system' || message.meta?.kind === 'system';
+  const scoreDelta = message.meta?.scoreDelta;
+  const scoreReason = message.meta?.scoreReason;
 
   const catColors = categoryId ? getCategoryColorClasses(categoryId) : {
     text: 'text-brand-concrete',
@@ -75,6 +78,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   const getSenderName = () => {
     if (message.sender === 'user') return 'You';
+    if (isSystem) return 'System';
 
     const judgeList = practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES;
     const ocList = practiceMode === 'international' ? INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES : OPPOSING_COUNSEL_PERSONALITIES;
@@ -86,7 +90,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       const oc = ocList.find(o => o.id === opposingCounselPersonalityId);
       return oc ? `${oc.name} (${oc.specialty})` : 'Opposing Counsel';
     }
-    return '';
+    return 'System';
   };
 
   const handleSpeak = (text: string) => {
@@ -125,6 +129,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       console.error('Failed native speech synthesis:', err);
     }
   };
+
+  if (isSystem) {
+    return (
+      <div className="group relative flex flex-col items-center mb-4 px-4 py-2 animate-fadeInUp w-full">
+        <div className="max-w-2xl w-full rounded-xl border border-brand-error/30 bg-brand-error/10 px-4 py-3 text-center">
+          <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-error/90 mb-1">System</p>
+          <p className="text-xs sm:text-sm text-brand-text-primary/90 leading-relaxed whitespace-pre-wrap font-light">
+            {formatText(message.text)}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`group relative flex flex-col ${alignment} mb-6 px-4 py-3 rounded-lg hover:bg-zinc-900/20 transition-all duration-300 ease-out animate-fadeInUp w-full`}>
@@ -191,6 +208,24 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-light selection:bg-brand-accent/20">
                   {formatText(message.text)}
                 </p>
+                {(typeof scoreDelta === 'number' || scoreReason) && (
+                  <div className="mt-2 pt-2 border-t border-brand-accent/20 flex flex-wrap items-center gap-2">
+                    {typeof scoreDelta === 'number' && (
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                        scoreDelta > 0
+                          ? 'text-brand-success border-brand-success/30 bg-brand-success/10'
+                          : scoreDelta < 0
+                            ? 'text-brand-error border-brand-error/30 bg-brand-error/10'
+                            : 'text-brand-text-secondary border-white/10 bg-white/5'
+                      }`}>
+                        {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta} pts
+                      </span>
+                    )}
+                    {scoreReason && (
+                      <span className="text-[10px] font-mono text-brand-text-secondary/80">{scoreReason}</span>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-brand-bg-secondary border border-brand-border text-brand-text-primary rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm max-w-[85%] text-left">

@@ -7,7 +7,6 @@ import { DocumentTextIcon } from './icons/DocumentTextIcon';
 import { HomeIcon } from './icons/HomeIcon';
 import { PlusCircleIcon } from './icons/PlusCircleIcon';
 import { GavelIcon } from './icons/GavelIcon';
-import { UsersIcon } from './icons/UsersIcon';
 import { QuillIcon } from './icons/QuillIcon';
 import { Bars3Icon } from './icons/Bars3Icon';
 import { XMarkIcon } from './icons/XMarkIcon';
@@ -214,7 +213,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen flex bg-brand-bg-primary text-brand-text-primary overflow-hidden relative noise-overlay" style={shellStyle}>
       <BackgroundGeometry />
 
-      {/* Mobile Top Bar */}
+      {/* Mobile Top Bar — single row; quick actions live in the drawer */}
       {showSidebar && (
         <div className="md:hidden fixed top-0 left-0 right-0 z-40 border-b border-white/8 bg-brand-bg-dark/95 backdrop-blur-xl">
           <div className="h-14 flex items-center justify-between px-4">
@@ -225,22 +224,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {practiceMode && <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-accent/80 truncate">{formatModeLabel(practiceMode)}</p>}
               </div>
             </Link>
-            <button onClick={toggleMobileSidebar} className="p-2 -mr-2 text-white/50 hover:text-white/90 transition-colors">
+            <button onClick={toggleMobileSidebar} className="p-2 -mr-2 text-white/50 hover:text-white/90 transition-colors" aria-label="Open menu">
               <Bars3Icon className="h-6 w-6" />
             </button>
-          </div>
-          <div className="px-3 pb-3 flex gap-2 overflow-x-auto custom-scrollbar">
-            {quickActions.map(action => (
-              <button
-                key={action.id}
-                onClick={action.onClick}
-                disabled={action.disabled}
-                className={`min-h-[42px] px-3 rounded-xl border text-[12px] font-medium whitespace-nowrap flex items-center gap-2 transition-colors ${action.disabled ? 'border-white/8 text-white/25 bg-white/5' : 'border-brand-accent/20 text-white/85 bg-white/5 hover:bg-white/10 hover:border-brand-accent/40'}`}
-              >
-                {action.icon}
-                <span>{action.label}</span>
-              </button>
-            ))}
           </div>
         </div>
       )}
@@ -302,40 +288,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           )}
 
-          {/* Navigation */}
+          {/* Navigation — Practice first, then Workspace, then Advisors */}
           <nav className="flex-grow py-2 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
-            <NavItem to={ROUTES.HOME} label="Dashboard" icon={<HomeIcon />} end={true} isSidebarOpen={isExpanded} />
-
-            {/* ─── AI ADVISORS ─────────────────────────────────────────── */}
-            <SectionLabel label="AI Advisors" isOpen={isExpanded} />
-            <NavItem to={ROUTES.PERSONAS} label="AI Personas" icon={<BrainIcon />} isSidebarOpen={isExpanded} />
-
-            {/* ─── AI STRATEGY ─────────────────────────────────────────── */}
-            <SectionLabel label="AI Strategy" isOpen={isExpanded} />
-            <NavItem to={ROUTES.STRATEGY} label="Strategy Room" icon={<SparklesIcon />} isSidebarOpen={isExpanded} />
-
-            {/* ─── DECEPTION ARENA ─────────────────────────────────────── */}
-            <SectionLabel label="Deception Arena" isOpen={isExpanded} />
-            <NavItem to={ROUTES.DREADLER} label="Deception Arena" icon={<TargetIcon />} badge="ARENA" isSidebarOpen={isExpanded} />
-
-            {/* ─── AI DRAFTING ─────────────────────────────────────────── */}
-            <SectionLabel label="AI Drafting" isOpen={isExpanded} />
-            <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting Studio" icon={<QuillIcon />} isSidebarOpen={isExpanded} />
-
-            {/* ─── RESEARCH ────────────────────────────────────────────── */}
-            <SectionLabel label="Research" isOpen={isExpanded} />
-            <NavItem to={ROUTES.RESEARCH_IDE} label="Research IDE" icon={<DocumentTextIcon />} badge="NEW" isSidebarOpen={isExpanded} />
-            <NavItem to={ROUTES.COURT_SOURCES} label="Court Sources" icon={<CourtIcon />} isSidebarOpen={isExpanded} />
-
-            {/* ─── PRACTICE ───────────────────────────────────────────── */}
             <SectionLabel label="Practice" isOpen={isExpanded} />
+            <NavItem to={ROUTES.HOME} label="Dashboard" icon={<HomeIcon />} end={true} isSidebarOpen={isExpanded} />
             <NavItem to={ROUTES.SETUP} label="New Trial" icon={<PlusCircleIcon />} isSidebarOpen={isExpanded} />
             <NavItem to={ROUTES.LIBRARY} label="Case Library" icon={<DocumentTextIcon />} isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.ANALYSIS} label="Review" icon={<ChartIcon />} isSidebarOpen={isExpanded} />
 
-            {/* ─── REFERENCE ──────────────────────────────────────────── */}
+            <SectionLabel label="Workspace" isOpen={isExpanded} />
+            <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting Studio" icon={<QuillIcon />} isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.RESEARCH_IDE} label="Research IDE" icon={<DocumentTextIcon />} isSidebarOpen={isExpanded} />
+            {practiceMode === 'indian' && (
+              <NavItem to={ROUTES.COURT_SOURCES} label="Court Sources" icon={<CourtIcon />} isSidebarOpen={isExpanded} />
+            )}
+
+            <SectionLabel label="Advisors" isOpen={isExpanded} />
+            <NavItem to={ROUTES.STRATEGY} label="Strategy Room" icon={<SparklesIcon />} isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.PERSONAS} label="AI Personas" icon={<BrainIcon />} isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.DREADLER} label="Deception Arena" icon={<TargetIcon />} isSidebarOpen={isExpanded} />
+
             <SectionLabel label="Reference" isOpen={isExpanded} />
-            <NavItem to={ROUTES.JUDGES} label="Judges Roster" icon={<GavelIcon />} isSidebarOpen={isExpanded} />
-            <NavItem to={ROUTES.OPPOSING_COUNSEL} label="Opposing Counsel" icon={<UsersIcon />} isSidebarOpen={isExpanded} />
+            <NavItem to={ROUTES.BENCH} label="Bench & Counsel" icon={<GavelIcon />} isSidebarOpen={isExpanded} />
           </nav>
 
           {/* Mode Badge */}
@@ -366,7 +340,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <main className={`flex-grow min-h-0 z-10 transition-all duration-300 ease-in-out flex flex-col overflow-hidden 
         ${showSidebar ? (isSidebarOpen ? 'md:ml-56' : 'md:ml-[60px]') : ''}
-        ${showSidebar ? 'pt-[110px] md:pt-0' : ''}
+        ${showSidebar ? 'pt-14 md:pt-0' : ''}
       `}>
         {children}
       </main>

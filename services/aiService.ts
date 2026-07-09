@@ -224,7 +224,34 @@ const buildInitialHistory = (
   ];
 };
 
-export const startJudgeChatSession = (settings: SessionSettings): Chat => {
+/** Seed chat memory from a saved transcript so resume does not wipe AI context. */
+const seedHistoryFromTranscript = (
+  base: { role: string; content: string }[],
+  transcript: ChatMessage[] | undefined,
+  persona: 'judge' | 'opposingCounsel',
+): { role: string; content: string }[] => {
+  if (!transcript || transcript.length === 0) return base;
+  const window = buildTranscriptWindow(transcript, 24);
+  if (!window.trim()) return base;
+  const roleNote = persona === 'judge'
+    ? 'You are the presiding judge. Continue the hearing with full awareness of this record.'
+    : 'You are opposing counsel. Continue arguing with full awareness of this record.';
+  return [
+    ...base,
+    {
+      role: 'user',
+      content: `Prior hearing record (resume mid-session). ${roleNote}\n\n${window}`,
+    },
+    {
+      role: 'assistant',
+      content: persona === 'judge'
+        ? 'The Court has the full record before it. You may continue, Counsel.'
+        : 'I have the record. I will continue to challenge your submissions rigorously.',
+    },
+  ];
+};
+
+export const startJudgeChatSession = (settings: SessionSettings, priorTranscript?: ChatMessage[]): Chat => {
   const system = `${settings.judgePersonality.systemInstruction}
 
 **Trial Context:**
@@ -237,10 +264,13 @@ export const startJudgeChatSession = (settings: SessionSettings): Chat => {
 
 You are Presiding Judge ${settings.judgePersonality.name}. NEVER break character. Keep responses under 150 words.`;
 
-  return new GenericChat(buildInitialHistory(settings, 'judge'), system);
+  return new GenericChat(
+    seedHistoryFromTranscript(buildInitialHistory(settings, 'judge'), priorTranscript, 'judge'),
+    system,
+  );
 };
 
-export const startOpposingCounselChatSession = (settings: SessionSettings): Chat => {
+export const startOpposingCounselChatSession = (settings: SessionSettings, priorTranscript?: ChatMessage[]): Chat => {
   const system = `${settings.opposingCounselPersonality.systemInstruction}
 
 **Trial Context:**
@@ -252,7 +282,10 @@ export const startOpposingCounselChatSession = (settings: SessionSettings): Chat
 
 You are Opposing Counsel ${settings.opposingCounselPersonality.name}. Challenge the user's arguments rigorously. NEVER break character. Keep responses under 120 words.`;
 
-  return new GenericChat(buildInitialHistory(settings, 'opposingCounsel'), system);
+  return new GenericChat(
+    seedHistoryFromTranscript(buildInitialHistory(settings, 'opposingCounsel'), priorTranscript, 'opposingCounsel'),
+    system,
+  );
 };
 
 export const sendMessageToChatStream = async (

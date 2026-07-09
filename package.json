@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx services/exportService.test.ts && tsx services/legalWritingScorer.test.ts && tsx services/courtDataGateway.test.ts",
+    "test": "tsx services/exportService.test.ts && tsx services/legalWritingScorer.test.ts && tsx services/courtDataGateway.test.ts && tsx services/trialScoring.test.ts",
     "check": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

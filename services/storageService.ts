@@ -57,14 +57,36 @@ const safeRead = <T>(key: string): StoredEnvelope<T> | null => {
   }
 };
 
-const safeWrite = <T>(key: string, payload: T) => {
-  if (!isBrowser) return;
+const safeWrite = <T>(key: string, payload: T): boolean => {
+  if (!isBrowser) return false;
   const envelope: StoredEnvelope<T> = {
     version: STORAGE_VERSION,
     savedAt: new Date().toISOString(),
     payload,
   };
-  window.localStorage.setItem(key, JSON.stringify(envelope, replacer));
+  try {
+    window.localStorage.setItem(key, JSON.stringify(envelope, replacer));
+    return true;
+  } catch (error) {
+    // QuotaExceeded or private mode — try to free space once, then soft-fail.
+    console.warn('[storageService] write failed', key, error);
+    try {
+      if (key !== COMPLETED_SESSION_KEY) {
+        const completed = loadCompletedSessions().slice(0, 4);
+        const completedEnvelope: StoredEnvelope<SessionRecord[]> = {
+          version: STORAGE_VERSION,
+          savedAt: new Date().toISOString(),
+          payload: completed.map(serializeSessionRecord),
+        };
+        window.localStorage.setItem(COMPLETED_SESSION_KEY, JSON.stringify(completedEnvelope, replacer));
+        window.localStorage.setItem(key, JSON.stringify(envelope, replacer));
+        return true;
+      }
+    } catch {
+      /* ignore secondary failure */
+    }
+    return false;
+  }
 };
 
 export const saveActiveSession = (record: SessionRecord) => {

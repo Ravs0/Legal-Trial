@@ -16,6 +16,7 @@ import {
   transcriptFilename,
 } from '../services/exportService';
 import { trackEvent } from '../services/analyticsService';
+import { PageHeader } from '../components/PageHeader';
 
 const PerformanceScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -100,18 +101,13 @@ const PerformanceScreen: React.FC = () => {
 
   return (
     <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-8 animate-fadeIn pb-12 relative z-10">
-      <div className="text-center mb-10 pt-4">
-        <div className="inline-flex items-center justify-center space-x-2 mb-4 opacity-80">
-          <div className="h-px w-8 bg-brand-text-primary/30"></div>
-          <span className="text-xs font-mono text-brand-text-primary tracking-widest uppercase">Post-Session Review</span>
-          <div className="h-px w-8 bg-brand-text-primary/30"></div>
-        </div>
-        <h2 className="text-4xl sm:text-5xl font-bold text-brand-text-primary font-serif tracking-tight mb-2">
-          Performance Analysis
-        </h2>
-        <p className="text-brand-text-secondary font-light max-w-2xl mx-auto">
-          A comprehensive breakdown of your argumentation, legal basis, and overall effectiveness in the arena.
-        </p>
+      <div className="mb-10 pt-2">
+        <PageHeader
+          align="center"
+          eyebrow="Post-Session Review"
+          title="Performance Analysis"
+          subtitle="A breakdown of your argumentation, legal basis, and effectiveness — export and improve."
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
