@@ -7,6 +7,9 @@ import {
   CourtSourceSearchParams,
   searchOfficialCourtSources,
 } from '../services/courtSourcesService';
+import { PhotoHero } from '../components/PhotoHero';
+import { PatternPanel } from '../components/SurfacePattern';
+import courtroomLuxury from '../assets/courtroom_luxury.jpg';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -77,10 +80,10 @@ const SourcePill: React.FC<{ selected: boolean; label: string; short: string; on
     type="button"
     onClick={onClick}
     title={label}
-    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-all ${
+    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors ${
       selected
-        ? 'border-brand-accent/50 bg-brand-accent/15 text-brand-accent shadow-glow-accent-sm'
-        : 'border-brand-border bg-brand-bg-dark text-brand-text-secondary/70 hover:border-brand-border-light hover:text-brand-text-primary'
+        ? 'border-white bg-white text-black'
+        : 'border-brand-border bg-brand-bg-secondary text-brand-text-secondary hover:border-white/20 hover:text-brand-text-primary'
     }`}
   >
     <span className="hidden lg:inline">{label}</span>
@@ -166,13 +169,6 @@ const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
   );
 };
 
-const StatTile: React.FC<{ value: number; label: string }> = ({ value, label }) => (
-  <div className="rounded-lg border border-white/6 bg-brand-bg-dark/50 px-3 py-3 text-center">
-    <div className="text-xl font-mono font-semibold text-brand-text-primary">{value}</div>
-    <div className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/50">{label}</div>
-  </div>
-);
-
 // ─── Main Screen ────────────────────────────────────────────────────────────
 
 const CourtSourcesScreen: React.FC = () => {
@@ -241,35 +237,25 @@ const CourtSourcesScreen: React.FC = () => {
   const aggCount = records.filter((r) => r.provenance.retrieval_mode === 'aggregate_stats').length;
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden bg-brand-bg-primary">
-      {/* ─── Hero ───────────────────────────────────────────── */}
-      <div className="relative border-b border-brand-border overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/[0.04] via-transparent to-brand-accent/[0.02]" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-12">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl animate-fadeIn">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-lg border border-brand-accent/20 bg-brand-accent/8 px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/90">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v.01M12 14v.01M16 14v.01M8 18v.01M12 18v.01M16 18v.01"/></svg>
-                Official Indian Court Sources
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-serif font-bold text-brand-text-primary tracking-tight">Court Sources</h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-brand-text-secondary/80">
-                Search official court service entry points across Supreme Court, eCourts, judgments portals, NJDG, and API Setu.
-                Results are source references with provenance — not scraped live case records.
-              </p>
+    <div className="flex-1 min-h-0 h-full overflow-y-auto overflow-x-hidden bg-brand-bg-primary w-full">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-5 sm:py-6 space-y-5">
+        <PhotoHero
+          image={courtroomLuxury}
+          size="md"
+          eyebrow="Research · Indian courts"
+          title="Court sources"
+          subtitle="Official entry points: SCI, eCourts, judgments, NJDG, API Setu. Provenance-first references, not scraped dockets."
+          actions={
+            <div className="flex gap-2">
+              <span className="px-2.5 py-1 rounded-md border border-white/20 bg-black/40 text-[12px] text-white/80 tabular-nums">{records.length} sources</span>
+              <span className="px-2.5 py-1 rounded-md border border-white/20 bg-black/40 text-[12px] text-white/80 tabular-nums">{portalCount} portals</span>
+              <span className="px-2.5 py-1 rounded-md border border-white/20 bg-black/40 text-[12px] text-white/80 tabular-nums">{apiCount} APIs</span>
             </div>
-            <div className="grid grid-cols-3 gap-2.5 animate-fadeInUp">
-              <StatTile value={records.length} label="Sources" />
-              <StatTile value={portalCount} label="Portals" />
-              <StatTile value={apiCount} label="APIs" />
-            </div>
-          </div>
-        </div>
-      </div>
+          }
+        />
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-5">
         {/* ─── Source Pills ─────────────────────────────────── */}
-        <div className="flex flex-wrap gap-2 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
+        <div className="flex flex-wrap gap-2">
           {SOURCE_OPTIONS.map((opt) => (
             <SourcePill
               key={opt.value || 'all'}
@@ -282,19 +268,19 @@ const CourtSourcesScreen: React.FC = () => {
         </div>
 
         {/* ─── Search Bar ──────────────────────────────────── */}
-        <form onSubmit={handleSubmit} className="animate-fadeInUp" style={{ animationDelay: '0.15s' }}>
-          <div className="rounded-xl border border-brand-border bg-brand-bg-secondary p-4 sm:p-5">
+        <form onSubmit={handleSubmit}>
+          <PatternPanel pattern="dots" className="p-4 sm:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
               {/* Query input */}
               <div className="flex-1 flex flex-col gap-1.5">
-                <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/60">Search</span>
+                <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary">Search</span>
                 <div className="relative">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-text-secondary/40"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="CNR, party name, case type, court service..."
-                    className="h-11 w-full rounded-lg border border-brand-border bg-brand-bg-dark pl-10 pr-4 text-sm text-brand-text-primary outline-none transition-all placeholder:text-brand-text-secondary/30 focus:border-brand-accent focus:ring-1 focus:ring-brand-accent/30"
+                    className="h-11 w-full rounded-lg border border-brand-border bg-brand-bg-primary pl-10 pr-4 text-sm text-brand-text-primary outline-none transition-all placeholder:text-brand-text-secondary/40 focus:border-white/25 focus:ring-1 focus:ring-white/10"
                   />
                 </div>
               </div>
@@ -310,7 +296,7 @@ const CourtSourcesScreen: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex h-10 min-w-[100px] items-center justify-center gap-2 rounded-lg bg-brand-accent px-5 text-[11px] font-bold uppercase tracking-[0.12em] text-brand-bg-dark transition-all hover:bg-brand-accent-hover hover:shadow-glow-accent-sm disabled:opacity-50"
+                  className="inline-flex h-10 min-w-[100px] items-center justify-center gap-2 rounded-lg bg-white px-5 text-[12px] font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-50"
                 >
                   {loading ? (
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin"><path d="M21 12a9 9 0 11-6.22-8.56"/></svg>
@@ -322,13 +308,13 @@ const CourtSourcesScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="h-10 rounded-lg border border-brand-border px-3.5 text-[11px] font-semibold text-brand-text-secondary/60 transition-all hover:border-brand-border-light hover:text-brand-text-primary"
+                  className="h-10 rounded-lg border border-brand-border px-3.5 text-[12px] text-brand-text-secondary transition-colors hover:border-white/20 hover:text-brand-text-primary"
                 >
                   Reset
                 </button>
               </div>
             </div>
-          </div>
+          </PatternPanel>
         </form>
 
         {/* ─── Warnings ────────────────────────────────────── */}

@@ -12,7 +12,14 @@ import { scoreLegalWriting, ScoringResult } from '../services/legalWritingScorer
 import { ScoreCard } from '../components/ScoreCard';
 import { Modal } from '../components/Modal';
 import { renderLegalMarkdown } from '../utils/markdown';
-
+import { RoomBanner, RoomStepper } from '../components/RoomChrome';
+import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
+import { PhotoTile } from '../components/PhotoTile';
+import draftingPen from '../assets/drafting_pen.jpg';
+import libraryBooks from '../assets/library_books.jpg';
+import counselScales from '../assets/counsel_scales.jpg';
+import judgeGavel from '../assets/judge_gavel.jpg';
+import courtroomLuxury from '../assets/courtroom_luxury.jpg';
 
 // Icons
 import { Bars3Icon } from '../components/icons/Bars3Icon';
@@ -886,89 +893,85 @@ Section 8.2 Limitation of Liability.
     );
   };
 
+  // Guard index so RoomStepper never gets -1
+  const stepIndex = currentStepIndex < 0 ? 0 : currentStepIndex;
+
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden animate-fadeIn relative p-3 sm:p-4 md:p-6 lg:pb-6">
+    <div className="flex flex-col flex-1 min-h-0 w-full h-full overflow-hidden animate-fadeIn relative p-3 sm:p-4 md:p-5">
+      <SurfacePattern variant="grid" className="opacity-30" />
 
-      {/* Header & Stepper */}
-      <div className="flex-shrink-0 mb-4 lg:mb-8 text-center lg:text-left flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-6 px-1">
-        <div>
-            <div className="flex items-center justify-center lg:justify-start space-x-2 lg:space-x-3 mb-1 lg:mb-2">
-                <QuillIcon className="h-5 w-5 lg:h-6 lg:w-6 text-brand-accent" />
-                <h1 className="text-lg lg:text-3xl font-serif font-bold text-shimmer tracking-tight">Drafting Studio</h1>
-                <span className="text-[8px] lg:text-[10px] font-mono text-brand-accent border border-brand-text-primary/30 px-1.5 lg:px-2 py-0.5 rounded-xl uppercase tracking-widest">{modeDisplay}</span>
-            </div>
-            <p className="text-xs lg:text-sm text-brand-text-secondary font-light max-w-xl mx-auto lg:mx-0">
-                AI-powered legal instrument synthesis and procedural validation.
-            </p>
-        </div>
+      <div className="relative z-10 flex flex-col flex-1 min-h-0 w-full gap-3 sm:gap-4">
+      <RoomBanner
+        image={draftingPen}
+        dense
+        eyebrow={`${modeDisplay} · write`}
+        title="Drafting studio"
+        subtitle="Pick an instrument, get facts, draft, then score and file."
+        trailing={<RoomStepper steps={steps} currentIndex={stepIndex} />}
+        className="flex-shrink-0"
+      />
 
-        {/* Stepper */}
-        <div className="flex items-center justify-center space-x-1.5 md:space-x-4">
-            {steps.map((step, idx) => (
-                <React.Fragment key={step.id}>
-                    <div className="flex flex-col items-center group">
-                        <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-xl flex items-center justify-center text-[10px] lg:text-xs font-bold transition-all duration-300
-                            ${idx <= currentStepIndex ? 'bg-brand-accent text-brand-bg-primary scale-110' : 'bg-brand-bg-secondary border border-brand-text-primary/30 text-brand-text-secondary/50'}
-                        `}>
-                            {idx < currentStepIndex ? <CheckCircleIcon className="w-4 h-4 lg:w-5 lg:h-5" /> : idx + 1}
-                        </div>
-                        <span className={`text-[7px] lg:text-[9px] mt-1 lg:mt-1.5 font-mono uppercase tracking-tighter transition-colors ${idx <= currentStepIndex ? 'text-brand-accent' : 'text-brand-text-secondary/40'}`}>
-                            {step.label}
-                        </span>
-                    </div>
-                    {idx < steps.length - 1 && (
-                        <div className={`h-[1px] w-3 md:w-8 transition-colors duration-500 mb-4 ${idx < currentStepIndex ? 'bg-brand-accent' : 'bg-brand-text-primary/10'}`}></div>
-                    )}
-                </React.Fragment>
-            ))}
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-4 flex-grow overflow-hidden relative min-h-0">
+      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 flex-1 min-h-0 overflow-hidden relative">
         
         {/* Main Interface */}
         {stage === 'task_selection' || stage === 'fact_generation_loading' ? (
-            <div className="flex-grow flex items-center justify-center">
-                <Card className="max-w-xl w-full p-5 sm:p-10 bg-brand-bg-secondary border-brand-text-primary/30 relative overflow-hidden group">
-                    
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                <div className="max-w-3xl mx-auto space-y-4 py-2 pb-8">
                     {stage === 'task_selection' ? (
-                        <div className="space-y-8 relative z-10">
-                            <div className="text-center">
-                                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                                    <ClipboardIcon className="w-6 h-6 lg:w-8 lg:h-8 text-brand-accent" />
-                                </div>
-                                <h3 className="text-base lg:text-xl font-serif font-semibold text-brand-text-primary">Choose your Practice Area</h3>
-                                <p className="text-xs lg:text-sm text-brand-text-secondary font-light mt-1">Select an instrument to generate a practice scenario.</p>
+                      <>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                          {[
+                            { label: 'Plaints', image: courtroomLuxury },
+                            { label: 'Petitions', image: judgeGavel },
+                            { label: 'Contracts', image: libraryBooks },
+                            { label: 'Notices', image: counselScales },
+                          ].map((t) => (
+                            <PhotoTile
+                              key={t.label}
+                              title={t.label}
+                              image={t.image}
+                              compact
+                              badge="Instrument"
+                            />
+                          ))}
+                        </div>
+
+                        <PatternPanel pattern="dots" className="p-5 sm:p-8">
+                          <div className="space-y-6">
+                            <div className="text-center sm:text-left">
+                              <div className="inline-flex items-center gap-2 mb-2">
+                                <ClipboardIcon className="w-5 h-5 text-white/70" />
+                                <h3 className="text-[1.05rem] sm:text-lg font-serif font-semibold text-brand-text-primary">
+                                  Choose a practice instrument
+                                </h3>
+                              </div>
+                              <p className="text-[13px] text-brand-text-secondary">
+                                Select from the docket. Facts generate next; then you draft.
+                              </p>
                             </div>
 
                             <SelectInput
-                                options={groupedTaskOptionsForSelect}
-                                onChange={(e) => {
-                                    if (e.target.value && !e.target.value.startsWith("__optgroup__")) {
-                                        handleTaskSelectionAndFactGeneration(e.target.value);
-                                    }
-                                }}
-                                placeholder="Browse legal instruments..."
-                                value={currentTask?.id || ""}
-                                disabled={isLoading}
-                                className="py-4 bg-brand-bg-secondary border-brand-text-primary/30 hover:border-brand-text-primary transition-colors"
+                              options={groupedTaskOptionsForSelect}
+                              onChange={(e) => {
+                                if (e.target.value && !e.target.value.startsWith('__optgroup__')) {
+                                  handleTaskSelectionAndFactGeneration(e.target.value);
+                                }
+                              }}
+                              placeholder="Browse legal instruments..."
+                              value={currentTask?.id || ''}
+                              disabled={isLoading}
+                              className="py-3.5"
                             />
-
-                            <div className="grid grid-cols-2 gap-4">
-                                {['Plaints', 'Petitions', 'Contracts', 'Legal Notices'].map(type => (
-                                    <div key={type} className="p-4 rounded-xl border border-brand-text-primary/30 bg-brand-bg-secondary text-center">
-                                        <span className="text-[10px] font-mono text-brand-text-secondary uppercase tracking-widest">{type}</span>
-                                    </div>
-                                ))}
-                             </div>
-                        </div>
+                          </div>
+                        </PatternPanel>
+                      </>
                     ) : (
-                        <div className="space-y-6 text-center py-10">
-                            <LoadingSpinner text="Synthesizing bespoke legal facts..." size="lg" spinnerColor="text-brand-accent" textColor="text-brand-accent" />
-                            <p className="text-xs text-brand-text-secondary font-mono tracking-widest uppercase animate-pulse">Consulting the AI Legal Oracle</p>
-                        </div>
+                        <PatternPanel pattern="lines" className="p-10 text-center max-w-xl mx-auto">
+                            <LoadingSpinner text="Generating facts for your instrument..." size="lg" spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" />
+                            <p className="text-[12px] text-brand-text-secondary mt-4 uppercase tracking-wide">Building the scenario</p>
+                        </PatternPanel>
                     )}
-                </Card>
+                </div>
             </div>
         ) : (
             <>
@@ -1455,6 +1458,7 @@ Section 8.2 Limitation of Liability.
       >
         {renderDiffViewer()}
       </Modal>
+      </div>
     </div>
   );
 };

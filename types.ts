@@ -345,6 +345,8 @@ export interface TrialSimContextType {
   setError: React.Dispatch<React.SetStateAction<string | null>>;
   practiceMode: PracticeMode | null;
   setPracticeMode: React.Dispatch<React.SetStateAction<PracticeMode | null>>;
+  /** Clear mode + active/pending session and chats. Use for Leave mode. */
+  endPracticeMode: () => void;
   isFactGenerating: boolean;
   setIsFactGenerating: React.Dispatch<React.SetStateAction<boolean>>;
 }

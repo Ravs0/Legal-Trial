@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gavel, Home, Layout as LayoutIcon, Settings, RefreshCw, ChevronLeft, ChevronRight, AlignLeft, Split, Search, Maximize2, CheckCircle2, Sparkles, FileText } from 'lucide-react';
+import { Home, Layout as LayoutIcon, Settings, RefreshCw, ChevronLeft, ChevronRight, AlignLeft, Split, Search, Maximize2, CheckCircle2, Sparkles, FileText } from 'lucide-react';
 import { ROUTES } from '../constants';
 import { trackEvent } from '../services/analyticsService';
 import { parseLegalPaper, analyzeLegalConsistency, refineLegalWithIntent } from '../services/lexideService';
@@ -9,6 +9,8 @@ import { Editor } from './lexide/Editor';
 import { ResearchSidebar } from './lexide/ResearchSidebar';
 import { NeuralSandbox } from './lexide/NeuralSandbox';
 import type { LexIDEAppState, LexIDEResearchResult, LexIDESection } from '../types';
+import { SurfacePattern } from '../components/SurfacePattern';
+import libraryBooks from '../assets/library_books.jpg';
 
 const STORAGE_KEY = 'lexide_v1_session';
 
@@ -215,30 +217,44 @@ const ResearchIDEScreen: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-brand-bg-dark text-brand-text-primary overflow-hidden flex-grow">
+    <div className="flex flex-1 min-h-0 h-full w-full bg-brand-bg-primary text-brand-text-primary overflow-hidden relative">
+      <SurfacePattern variant="grid" className="opacity-25" />
       {/* Activity Bar */}
-      <div className="w-14 bg-brand-bg-dark-secondary border-r border-brand-border flex flex-col items-center py-6 gap-8 shrink-0 z-50">
-        <Gavel size={28} className="text-brand-accent mb-4" />
-        <button onClick={switchToHome} className={`p-3 rounded-xl transition-all ${state.viewMode === 'home' ? 'bg-brand-accent text-brand-bg-dark shadow-lg shadow-brand-accent/20' : 'text-brand-text-secondary hover:text-brand-text-primary'}`} title="Master Manuscript">
-          <FileText size={22} />
+      <div className="relative z-20 w-14 bg-brand-bg-secondary border-r border-brand-border flex flex-col items-center py-5 gap-3 shrink-0">
+        <div className="w-9 h-9 rounded-lg overflow-hidden border border-brand-border mb-2">
+          <img src={libraryBooks} alt="" className="w-full h-full object-cover" />
+        </div>
+        <button
+          onClick={switchToHome}
+          className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'home' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
+          title="Master Manuscript"
+        >
+          <FileText size={20} />
         </button>
-        <button onClick={switchToWorkspace} className={`p-3 rounded-xl transition-all ${state.viewMode === 'workspace' ? 'bg-brand-accent text-brand-bg-dark shadow-lg shadow-brand-accent/20' : 'text-brand-text-secondary hover:text-brand-text-primary'}`} title="IDE Workspace">
-          <LayoutIcon size={22} />
+        <button
+          onClick={switchToWorkspace}
+          className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'workspace' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
+          title="IDE Workspace"
+        >
+          <LayoutIcon size={20} />
         </button>
         {state.sandboxSectionId && (
-          <button onClick={() => setState(prev => ({ ...prev, viewMode: 'ai-sandbox' }))}
-            className={`p-3 rounded-xl transition-all ${state.viewMode === 'ai-sandbox' ? 'bg-brand-accent text-brand-bg-dark shadow-lg shadow-brand-accent/20' : 'text-brand-text-secondary hover:text-brand-text-primary'}`} title="Neural Sandbox">
-            <Sparkles size={22} />
+          <button
+            onClick={() => setState(prev => ({ ...prev, viewMode: 'ai-sandbox' }))}
+            className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'ai-sandbox' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
+            title="Neural Sandbox"
+          >
+            <Sparkles size={20} />
           </button>
         )}
-        <div className="mt-auto flex flex-col gap-6 pb-4">
-          <button onClick={() => navigate(ROUTES.HOME)} className="text-brand-text-secondary/40 hover:text-brand-text-primary transition-colors" title="Back to LexForge">
-            <Home size={22} />
+        <div className="mt-auto flex flex-col gap-4 pb-3">
+          <button onClick={() => navigate(ROUTES.HOME)} className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors" title="Back to LexForge">
+            <Home size={20} />
           </button>
-          <button onClick={clearSession} className="text-brand-text-secondary/40 hover:text-brand-error transition-colors" title="Clear Session">
-            <RefreshCw size={22} />
+          <button onClick={clearSession} className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors" title="Clear Session">
+            <RefreshCw size={20} />
           </button>
-          <Settings size={22} className="text-brand-text-secondary/30 cursor-not-allowed" />
+          <Settings size={20} className="text-brand-text-secondary/25 cursor-not-allowed" />
         </div>
       </div>
 
@@ -256,6 +272,7 @@ const ResearchIDEScreen: React.FC = () => {
           onCreateSection={handleCreateSection}
         />
       ) : state.viewMode === 'ai-sandbox' ? (
+        <div className="relative z-10 flex-1 min-w-0 overflow-hidden">
         <NeuralSandbox
           sandboxSectionId={state.sandboxSectionId}
           sandboxDraft={state.sandboxDraft}
@@ -270,13 +287,14 @@ const ResearchIDEScreen: React.FC = () => {
           onCommit={commitSandbox}
           onDiscard={switchToWorkspace}
         />
+        </div>
       ) : (
         /* Workspace: IDE View */
-        <div className="flex-1 flex overflow-hidden">
+        <div className="relative z-10 flex-1 flex overflow-hidden">
           {/* Collapsible Explorer */}
-          <div className={`bg-brand-bg-dark border-r border-brand-border transition-all duration-500 ease-in-out flex flex-col relative overflow-hidden ${state.isExplorerVisible ? 'w-64' : 'w-0'}`}>
-            <div className="p-5 border-b border-brand-border flex items-center justify-between min-w-[256px]">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text-secondary flex items-center gap-2">
+          <div className={`bg-brand-bg-secondary border-r border-brand-border transition-all duration-500 ease-in-out flex flex-col relative overflow-hidden ${state.isExplorerVisible ? 'w-64' : 'w-0'}`}>
+            <div className="p-4 border-b border-brand-border flex items-center justify-between min-w-[256px]">
+              <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary flex items-center gap-2">
                 <LayoutIcon size={12}/> Explorer
               </span>
               <button onClick={toggleExplorer} className="text-brand-text-secondary/40 hover:text-brand-text-primary transition-all">
@@ -288,14 +306,14 @@ const ResearchIDEScreen: React.FC = () => {
                 <button
                   key={s.id}
                   onClick={() => setState(prev => ({ ...prev, activeLeftSectionId: s.id }))}
-                  className={`w-full text-left px-5 py-3 text-xs flex items-center gap-3 transition-all ${state.activeLeftSectionId === s.id ? 'bg-brand-accent/10 text-brand-accent border-r-2 border-brand-accent' : 'hover:bg-brand-text-primary/5 text-brand-text-secondary'}`}
+                  className={`w-full text-left px-4 py-2.5 text-[12px] flex items-center gap-3 transition-colors ${state.activeLeftSectionId === s.id ? 'bg-white/[0.06] text-brand-text-primary border-r-2 border-white' : 'hover:bg-white/[0.03] text-brand-text-secondary'}`}
                 >
-                  <FileText size={14} className={state.activeLeftSectionId === s.id ? 'text-brand-accent' : 'text-brand-text-secondary/30'} />
+                  <FileText size={14} className={state.activeLeftSectionId === s.id ? 'text-white/80' : 'text-brand-text-secondary/40'} />
                   <span className="truncate">{s.title}</span>
                 </button>
               ))}
             </div>
-            <div className="p-4 border-t border-brand-border min-w-[256px]">
+            <div className="p-3 border-t border-brand-border min-w-[256px]">
               <button
                 onClick={async () => {
                   const text = state.sections.map(s => `## ${s.title}\n\n${s.content}`).join('\n\n');
@@ -314,7 +332,7 @@ const ResearchIDEScreen: React.FC = () => {
                   setCopyStatus(true);
                   setTimeout(() => setCopyStatus(false), 2000);
                 }}
-                className="w-full py-3 bg-brand-accent text-brand-bg-dark rounded-xl text-xs font-bold hover:opacity-90 flex items-center justify-center gap-2 transition-all"
+                className="w-full py-2.5 bg-white text-black rounded-lg text-[12px] font-medium hover:bg-white/90 flex items-center justify-center gap-2 transition-colors"
               >
                 {copyStatus ? <CheckCircle2 size={14} /> : <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-4H7v4"/><path d="M7 13h10"/><path d="M7 9h4"/></svg>}
                 {copyStatus ? "COMPILED" : "COMPILE PAPER"}
@@ -328,40 +346,40 @@ const ResearchIDEScreen: React.FC = () => {
             </button>
           )}
 
-          <main className="flex-1 flex flex-col min-w-0 bg-[#0c0c0e] relative">
-            <header className="h-12 border-b border-brand-border bg-brand-bg-dark-secondary flex items-center justify-between px-6 z-30">
-              <div className="flex items-center gap-4">
+          <main className="flex-1 flex flex-col min-w-0 bg-brand-bg-primary relative">
+            <header className="h-12 border-b border-brand-border bg-brand-bg-secondary flex items-center justify-between px-4 sm:px-5 z-30">
+              <div className="flex items-center gap-3">
                 <button onClick={toggleExplorer} className={`text-brand-text-secondary/40 hover:text-brand-text-primary transition-all ${state.isExplorerVisible ? '' : 'opacity-40'}`}>
                   <AlignLeft size={16} />
                 </button>
                 <div className="h-4 w-px bg-brand-border" />
-                <div className="flex items-center bg-brand-bg-dark border border-brand-border p-0.5 rounded-lg">
+                <div className="flex items-center bg-brand-bg-primary border border-brand-border p-0.5 rounded-lg">
                   <button
                     onClick={() => setState(prev => ({ ...prev, isSplitView: false }))}
-                    className={`flex items-center gap-2 px-3 py-1 text-[9px] font-bold uppercase tracking-tighter rounded transition-all ${!state.isSplitView ? 'bg-brand-accent text-brand-bg-dark' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded transition-colors ${!state.isSplitView ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
                   >
                     <Maximize2 size={10} /> Single
                   </button>
                   <button
                     onClick={() => setState(prev => ({ ...prev, isSplitView: true }))}
-                    className={`flex items-center gap-2 px-3 py-1 text-[9px] font-bold uppercase tracking-tighter rounded transition-all ${state.isSplitView ? 'bg-brand-accent text-brand-bg-dark' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded transition-colors ${state.isSplitView ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
                   >
-                    <Split size={10} /> Split View
+                    <Split size={10} /> Split
                   </button>
                 </div>
                 <div className="h-4 w-px bg-brand-border" />
                 <button
                   onClick={() => leftSection && enterSandbox(leftSection.id)}
-                  className="px-3 py-1 bg-brand-accent/10 hover:bg-brand-accent/20 text-[9px] font-bold text-brand-accent rounded-full border border-brand-accent/20 flex items-center gap-2 transition-all group"
+                  className="px-2.5 py-1 bg-white/[0.04] hover:bg-white/[0.08] text-[11px] text-brand-text-primary rounded-md border border-brand-border flex items-center gap-1.5 transition-colors"
                 >
-                  <Sparkles size={12} className="group-hover:animate-pulse" /> NEURAL SANDBOX
+                  <Sparkles size={12} /> Sandbox
                 </button>
-                <span className="text-[9px] text-brand-text-secondary/40 font-bold uppercase tracking-widest flex items-center gap-1.5">
-                  <CheckCircle2 size={10} className="text-green-500/40" /> Auto-saved
+                <span className="hidden sm:flex text-[11px] text-brand-text-secondary/50 items-center gap-1.5">
+                  <CheckCircle2 size={10} className="text-white/30" /> Saved
                 </span>
               </div>
-              <div className="flex items-center gap-4">
-                <button onClick={toggleResearch} className={`p-1.5 rounded-lg border transition-all ${state.isResearchVisible ? 'text-brand-accent bg-brand-accent/10 border-brand-accent/30' : 'text-brand-text-secondary/40 border-brand-border hover:border-brand-text-secondary/30'}`}>
+              <div className="flex items-center gap-3">
+                <button onClick={toggleResearch} className={`p-1.5 rounded-lg border transition-colors ${state.isResearchVisible ? 'text-black bg-white border-white' : 'text-brand-text-secondary/50 border-brand-border hover:border-white/20'}`}>
                   <Search size={16} />
                 </button>
               </div>

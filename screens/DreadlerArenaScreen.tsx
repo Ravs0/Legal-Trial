@@ -445,28 +445,29 @@ export const DreadlerArenaScreen: React.FC = () => {
   // ─── RENDER SUB-COMPONENTS ─────────────────────────────────────────────────
 
   const renderSetupView = () => (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn pb-12">
-      {/* Hero Header — full-bleed interrogation room */}
-      <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: '220px' }}>
+    <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn pb-12">
+      <div className="relative overflow-hidden rounded-xl border border-brand-border min-h-[180px] sm:min-h-[220px]">
         <img
           src={dreadlerArenaRoom}
-          alt="Interrogation Arena"
+          alt=""
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
-        {/* Dark gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
-        {/* Red vignette left */}
-        <div className="absolute inset-0 bg-gradient-to-r from-red-950/40 to-transparent" />
-        <div className="relative z-10 text-center space-y-3 pt-10 pb-12 px-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-950/60 border border-red-500/40 text-red-400 font-mono text-xs uppercase tracking-widest backdrop-blur-sm">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-            Interrogation Core
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-serif font-bold tracking-tight text-zinc-100 drop-shadow-lg">
-            Deception Arena
+        <div
+          className="absolute inset-0 opacity-[0.14] pointer-events-none"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(-45deg, transparent, transparent 12px, rgba(255,255,255,0.06) 12px, rgba(255,255,255,0.06) 13px)',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/75 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+        <div className="relative z-10 flex flex-col justify-end min-h-[180px] sm:min-h-[220px] p-5 sm:p-7 gap-2">
+          <p className="text-[11px] uppercase tracking-[0.14em] text-white/50">Labs · deception</p>
+          <h1 className="text-[1.6rem] sm:text-[2rem] font-serif font-semibold tracking-tight text-white">
+            Deception arena
           </h1>
-          <p className="text-sm lg:text-base text-zinc-300 max-w-2xl mx-auto font-light leading-relaxed drop-shadow">
-            Challenge witnesses who are bound by truth but engineered to mislead. Spot semantic shifts, implicatures, and omissions. Keep pressure high to break their coherence.
+          <p className="text-[13px] sm:text-[14px] text-white/70 max-w-xl leading-relaxed">
+            Witnesses bound by truth, engineered to mislead. Spot semantic shifts and break coherence under pressure.
           </p>
         </div>
       </div>
@@ -1268,7 +1269,7 @@ export const DreadlerArenaScreen: React.FC = () => {
   );
 
   return (
-    <div className={`w-full h-full bg-[#050508] text-zinc-100 select-none p-1 ${isSessionActive ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
+    <div className={`w-full flex-1 min-h-0 h-full bg-[#050508] text-zinc-100 select-none p-1 ${isSessionActive ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
       {isSessionActive ? renderArenaView() : renderSetupView()}
     </div>
   );

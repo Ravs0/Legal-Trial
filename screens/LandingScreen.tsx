@@ -4,19 +4,18 @@ import { TrialSimContext } from '../App';
 import { ROUTES, APP_NAME } from '../constants';
 import { GavelMinimalIcon } from '../components/icons/GavelMinimalIcon';
 import { GlobeMinimalIcon } from '../components/icons/GlobeMinimalIcon';
-import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
 import { createDemoSessionSettings } from '../services/demoSessionService';
 import { savePendingSettings } from '../services/storageService';
 import { trackEvent } from '../services/analyticsService';
+import heroCourtroom from '../assets/hero_courtroom.jpg';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
-import { BackgroundGeometry } from '../components/BackgroundGeometry';
 
 const LandingScreen: React.FC = () => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
 
   if (!context) {
-    throw new Error("TrialSimContext not found in LandingScreen");
+    throw new Error('TrialSimContext not found in LandingScreen');
   }
   const { setPracticeMode, setIsLoading, setCurrentSessionSettings, setError } = context;
 
@@ -52,207 +51,132 @@ const LandingScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-brand-bg-primary text-brand-text-primary relative overflow-hidden noise-overlay">
-      <BackgroundGeometry />
-      {/* Background vignette of courtroom */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center opacity-[0.06] mix-blend-luminosity pointer-events-none" 
-        style={{ backgroundImage: `url(${courtroomLuxury})` }}
-      />
+    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-brand-bg-primary text-brand-text-primary">
+      {/* Full-bleed photography */}
+      <div className="absolute inset-0" aria-hidden>
+        <img
+          src={heroCourtroom}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-primary via-brand-bg-primary/75 to-brand-bg-primary/45" />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-bg-primary/90 via-brand-bg-primary/50 to-brand-bg-primary/30" />
+        {/* Structural hatch (same language as interior PhotoHero) */}
+        <div
+          className="absolute inset-0 opacity-[0.14] pointer-events-none"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(-45deg, transparent, transparent 14px, rgba(255,255,255,0.05) 14px, rgba(255,255,255,0.05) 15px)',
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-[0.08] pointer-events-none"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+          }}
+        />
+      </div>
 
-      {/* Decorative geometric elements */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-brand-accent/15" />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-brand-accent/15" />
-      <div className="absolute top-0 bottom-0 left-[8%] w-px bg-brand-text-primary/5 hidden lg:block" />
-      <div className="absolute top-0 bottom-0 right-[8%] w-px bg-brand-text-primary/5 hidden lg:block" />
-
-      {/* Top bar */}
-      <header className="relative z-10 flex items-center justify-between px-6 sm:px-12 lg:px-24 py-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 border border-brand-accent/30 flex items-center justify-center">
-            <div className="w-2 h-2 bg-brand-accent" />
+      <header className="relative z-20 flex items-center justify-between px-5 sm:px-8 lg:px-12 h-14 sm:h-16">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-md overflow-hidden border border-white/20">
+            <img src={courtroomLuxury} alt="" className="w-full h-full object-cover" />
           </div>
-          <span className="text-[10px] font-mono text-brand-text-secondary tracking-[0.25em] uppercase">
-            LexForge Legal Platform
-          </span>
+          <span className="text-[15px] font-medium tracking-tight drop-shadow-sm">{APP_NAME}</span>
         </div>
-        <span className="text-[10px] font-mono text-brand-text-secondary/50 tracking-widest hidden sm:block">
-          v2.0
-        </span>
+        <button
+          type="button"
+          onClick={() => handleModeSelection('indian')}
+          className="text-[13px] text-white/70 hover:text-white transition-colors py-2"
+        >
+          Open workspace
+        </button>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 lg:px-24 relative z-10">
+      <main className="relative z-10 flex-1 flex flex-col justify-end sm:justify-center px-5 sm:px-8 lg:px-12 pb-10 sm:pb-16 pt-8">
+        <div className="max-w-6xl mx-auto w-full">
+          <div className="max-w-xl">
+            <p className="text-[12px] uppercase tracking-[0.16em] text-white/60 mb-4">
+              Courtroom practice
+            </p>
+            <h1 className="text-[2.4rem] sm:text-[3rem] lg:text-[3.4rem] font-serif font-semibold leading-[1.08] tracking-tight text-white drop-shadow-md">
+              Argue the case.
+              <br />
+              Get scored.
+              <br />
+              Come back sharper.
+            </h1>
+            <p className="mt-5 text-[15px] sm:text-base leading-relaxed text-white/75 max-w-md">
+              Mock hearings against an AI judge and opposing counsel.
+              Score, transcript, export. Tools when you need them.
+            </p>
 
-        {/* Hero typography */}
-        <div className="text-center max-w-3xl mx-auto mb-12 lg:mb-16 animate-fadeInUp">
-          <div className="inline-block mb-6">
-            <div className="flex items-center gap-3">
-              <div className="h-px w-8 bg-brand-accent/40" />
-              <span className="text-[10px] font-mono text-brand-accent tracking-[0.3em] uppercase font-medium">
-                Established 2026
-              </span>
-              <div className="h-px w-8 bg-brand-accent/40" />
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:items-center">
+              <button
+                type="button"
+                onClick={handleDemoStart}
+                className="h-12 px-7 rounded-lg bg-white text-brand-bg-primary text-[14px] font-semibold hover:bg-white/95 transition-colors"
+              >
+                Start 5-minute demo
+              </button>
+              <p className="text-[12px] text-white/55 sm:pl-1">
+                No setup. Beginner Indian case.
+              </p>
             </div>
           </div>
 
-          <h1 className="text-5xl sm:text-6xl lg:text-8xl font-serif font-bold tracking-tight text-brand-text-primary leading-[0.95] mb-6">
-            {APP_NAME}
-          </h1>
-
-          <div className="h-px w-24 bg-brand-accent/30 mx-auto mb-6" />
-
-          <p className="text-base sm:text-lg text-brand-text-secondary font-light leading-relaxed max-w-xl mx-auto">
-            Start a scored courtroom practice run in minutes, then use drafting,
-            case research &amp; strategy tools when you are ready to go deeper.
-          </p>
-
-          <div className="mt-8 flex flex-col items-center justify-center gap-3">
+          {/* Jurisdiction with photo tiles */}
+          <div className="mt-12 sm:mt-14 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
             <button
               type="button"
-              onClick={handleDemoStart}
-              className="min-h-[52px] px-8 py-3.5 rounded-2xl bg-brand-accent text-brand-accent-text font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 hover:bg-brand-accent-hover transition-all shadow-[0_8px_32px_rgba(214,186,145,0.18)] hover:shadow-[0_12px_40px_rgba(214,186,145,0.28)] hover:-translate-y-0.5"
+              onClick={() => handleModeSelection('indian')}
+              className="group relative h-36 sm:h-40 rounded-xl overflow-hidden border border-white/15 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              <PlusCircleIcon className="h-5 w-5" />
-              Start 5-Min Demo Trial
+              <img
+                src={courtroomLuxury}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
+              <div className="absolute inset-0 p-4 flex flex-col justify-end">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <GavelMinimalIcon className="h-4 w-4 text-white/80" />
+                  <span className="text-[11px] uppercase tracking-wide text-white/60">Jurisdiction</span>
+                </div>
+                <p className="text-lg font-serif font-semibold text-white">Indian practice</p>
+                <p className="text-[12px] text-white/65 mt-0.5">CPC, BNSS, constitutional and commercial</p>
+              </div>
             </button>
-            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/55">
-              No setup · Indian beginner case
-            </span>
-          </div>
 
-          <div className="mt-10 mb-2 flex items-center gap-4 w-full max-w-md mx-auto">
-            <div className="h-px flex-1 bg-brand-border/60" />
-            <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-brand-text-secondary/45">or choose jurisdiction</span>
-            <div className="h-px flex-1 bg-brand-border/60" />
-          </div>
-        </div>
-
-        {/* Jurisdiction selection cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 w-full max-w-3xl mx-auto animate-fadeInUp" style={{ animationDelay: '0.15s' }}>
-
-          {/* Indian Legal Practice */}
-          <div
-            onClick={() => handleModeSelection('indian')}
-            className="group relative bg-brand-bg-secondary/80 border border-brand-border rounded-2xl p-7 sm:p-9 cursor-pointer transition-all duration-300 ease-out
-              hover:border-brand-accent/45 hover:shadow-card-hover hover:-translate-y-1 focus-ring backdrop-blur-sm"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('indian'); } }}
-          >
-            <div className="flex flex-col h-full">
-              <div className="w-12 h-12 border border-brand-border rounded-xl flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-secondary transition-all duration-300">
-                <GavelMinimalIcon className="h-5 w-5 text-brand-accent" />
+            <button
+              type="button"
+              onClick={() => handleModeSelection('international')}
+              className="group relative h-36 sm:h-40 rounded-xl overflow-hidden border border-white/15 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <img
+                src={heroCourtroom}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
+              <div className="absolute inset-0 p-4 flex flex-col justify-end">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <GlobeMinimalIcon className="h-4 w-4 text-white/80" />
+                  <span className="text-[11px] uppercase tracking-wide text-white/60">Jurisdiction</span>
+                </div>
+                <p className="text-lg font-serif font-semibold text-white">International</p>
+                <p className="text-[12px] text-white/65 mt-0.5">Public IL, arbitration, treaty work</p>
               </div>
-
-              <span className="text-[9px] font-mono text-brand-accent tracking-[0.25em] uppercase mb-3 block">
-                Jurisdiction I
-              </span>
-
-              <h3 className="text-xl sm:text-2xl font-serif font-semibold text-brand-text-primary mb-3 group-hover:text-brand-accent transition-colors duration-300">
-                Indian Legal Practice
-              </h3>
-
-              <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed font-light mb-8 flex-grow">
-                Constitutional, criminal, and corporate laws of India. Practice advocacy under the CPC, IPC, BNSS, and Indian precedents.
-              </p>
-
-              <div className="flex items-center justify-between pt-4 border-t border-brand-border">
-                <span className="text-[10px] font-mono text-brand-text-secondary/60 tracking-wider group-hover:text-brand-accent/70 transition-colors">
-                  Select to enter
-                </span>
-                <span className="text-brand-text-secondary/40 group-hover:text-brand-accent group-hover:translate-x-1 transition-all duration-300 text-lg">
-                  &rarr;
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* International Law Practice */}
-          <div
-            onClick={() => handleModeSelection('international')}
-            className="group relative bg-brand-bg-secondary/80 border border-brand-border rounded-2xl p-7 sm:p-9 cursor-pointer transition-all duration-300 ease-out
-              hover:border-brand-accent/45 hover:shadow-card-hover hover:-translate-y-1 focus-ring backdrop-blur-sm"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('international'); } }}
-          >
-            <div className="flex flex-col h-full">
-              <div className="w-12 h-12 border border-brand-border rounded-xl flex items-center justify-center mb-6 group-hover:border-brand-accent/40 group-hover:bg-brand-bg-secondary transition-all duration-300">
-                <GlobeMinimalIcon className="h-5 w-5 text-brand-accent" />
-              </div>
-
-              <span className="text-[9px] font-mono text-brand-accent tracking-[0.25em] uppercase mb-3 block">
-                Jurisdiction II
-              </span>
-
-              <h3 className="text-xl sm:text-2xl font-serif font-semibold text-brand-text-primary mb-3 group-hover:text-brand-accent transition-colors duration-300">
-                International Law
-              </h3>
-
-              <p className="text-xs sm:text-sm text-brand-text-secondary leading-relaxed font-light mb-8 flex-grow">
-                Public international law, humanitarian law, ICJ disputes, and conventions. Master cross-border arbitration and international covenants.
-              </p>
-
-              <div className="flex items-center justify-between pt-4 border-t border-brand-border">
-                <span className="text-[10px] font-mono text-brand-text-secondary/60 tracking-wider group-hover:text-brand-accent/70 transition-colors">
-                  Select to enter
-                </span>
-                <span className="text-brand-text-secondary/40 group-hover:text-brand-accent group-hover:translate-x-1 transition-all duration-300 text-lg">
-                  &rarr;
-                </span>
-              </div>
-            </div>
+            </button>
           </div>
         </div>
       </main>
 
-      {/* Ecosystem section */}
-      <section className="relative z-10 px-6 sm:px-12 lg:px-24 py-8 border-t border-brand-border/30 animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
-        <div className="max-w-3xl mx-auto">
-          <p className="text-[9px] font-mono text-brand-text-secondary/40 tracking-[0.3em] uppercase mb-5 text-center">
-            LexForge Ecosystem
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-            <a
-              href="https://asia-legal-dossier.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
-            >
-              <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
-              <span className="text-[11px] font-mono tracking-wide">Asia Legal Dossier</span>
-            </a>
-            <a
-              href="https://repo-ccp-learning.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
-            >
-              <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
-              <span className="text-[11px] font-mono tracking-wide">CCP Learning</span>
-            </a>
-            <a
-              href="https://what-cardinal-said.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex items-center gap-2 text-brand-text-secondary/50 hover:text-brand-accent transition-colors duration-300"
-            >
-              <span className="w-1 h-1 rounded-full bg-brand-accent/40 group-hover:bg-brand-accent transition-colors" />
-              <span className="text-[11px] font-mono tracking-wide">What Cardinal Said</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative z-10 flex items-center justify-between px-6 sm:px-12 lg:px-24 py-6">
-        <span className="text-[10px] font-mono text-brand-text-secondary/40 tracking-wider">
-          &copy; 2026 LexForge Technologies
-        </span>
-        <span className="text-[10px] font-mono text-brand-text-secondary/40 tracking-wider hidden sm:block">
-          AI-Powered Legal Training
-        </span>
+      <footer className="relative z-20 px-5 sm:px-8 lg:px-12 h-11 flex items-center justify-between border-t border-white/10 text-[12px] text-white/45">
+        <span>{APP_NAME}</span>
+        <span className="hidden sm:inline">Argue · Score · Review</span>
       </footer>
     </div>
   );

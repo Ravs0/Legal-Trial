@@ -14,7 +14,7 @@ import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Chat } from './types';
 import { ConversationBridgeProvider } from './components/ConversationBridge';
-import { loadActiveSession, loadPendingSettings, clearPendingSettings } from './services/storageService';
+import { loadActiveSession, loadPendingSettings, clearPendingSettings, clearActiveSession } from './services/storageService';
 
 const DraftingStudioScreen = React.lazy(() => import('./screens/DraftingStudioScreen'));
 const AIPersonasScreen = React.lazy(() => import('./screens/AIPersonasScreen'));
@@ -98,7 +98,8 @@ function App() {
     return localStorage.getItem('practiceMode') as PracticeMode | null;
   });
 
-  // Persist practice mode + clear session when it is unset.
+  // Persist practice mode only. Do not re-hydrate mode from sessions here
+  // (that re-armed "leave mode" every time practiceMode became null).
   useEffect(() => {
     if (practiceMode) {
       localStorage.setItem('practiceMode', practiceMode);
@@ -110,27 +111,33 @@ function App() {
     }
   }, [practiceMode]);
 
+  // Mount-only: restore in-progress session / pending setup once.
   useEffect(() => {
     const activeSession = loadActiveSession();
     if (activeSession) {
       setCurrentSessionSettings(activeSession.settings);
-      if (!practiceMode) {
-        setPracticeMode(activeSession.settings.practiceMode);
-      }
+      setPracticeMode((prev) => prev ?? activeSession.settings.practiceMode);
       return;
     }
 
-    // Fallback: restore from pending (pre‑arena) settings so a refresh
-    // during setup → arena transition doesn't lose the configuration.
     const pending = loadPendingSettings();
     if (pending) {
       setCurrentSessionSettings(pending);
-      if (!practiceMode) {
-        setPracticeMode(pending.practiceMode);
-      }
+      setPracticeMode((prev) => prev ?? pending.practiceMode);
       clearPendingSettings();
     }
-  }, [practiceMode]);
+  }, []);
+
+  const endPracticeMode = useMemo(() => {
+    return () => {
+      clearActiveSession();
+      clearPendingSettings();
+      setCurrentSessionSettings(null);
+      setActiveChatJudge(null);
+      setActiveChatOpposingCounsel(null);
+      setPracticeMode(null);
+    };
+  }, []);
 
   const contextValue = useMemo(() => ({
     currentSessionSettings, setCurrentSessionSettings,
@@ -139,14 +146,15 @@ function App() {
     isLoading, setIsLoading,
     error, setError,
     practiceMode, setPracticeMode,
-    isFactGenerating, setIsFactGenerating, // Add to context
-  }), [currentSessionSettings, activeChatJudge, activeChatOpposingCounsel, isLoading, error, practiceMode, isFactGenerating]);
+    endPracticeMode,
+    isFactGenerating, setIsFactGenerating,
+  }), [currentSessionSettings, activeChatJudge, activeChatOpposingCounsel, isLoading, error, practiceMode, endPracticeMode, isFactGenerating]);
 
   return (
     <LexForgeContext.Provider value={contextValue}>
       <ConversationBridgeProvider>
       <HashRouter>
-        {isLoading && <div className="fixed inset-0 bg-brand-bg-primary bg-opacity-80 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>}
+        {isLoading && <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-white" textColor="text-white/50" /></div>}
         {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
         <React.Suspense fallback={null}><OversightSpirit /></React.Suspense>
         <React.Suspense fallback={null}><CommandPalette /></React.Suspense>

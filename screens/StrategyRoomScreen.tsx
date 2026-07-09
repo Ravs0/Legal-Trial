@@ -9,6 +9,9 @@ import { searchCaselaw, CaselawResult, CITATION_EXTRACTOR_SYSTEM } from '../serv
 import { useVisualViewport } from '../hooks/useVisualViewport';
 import { renderLegalMarkdown } from '../utils/markdown';
 import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/storageService';
+import { RoomBanner, RoomTabs } from '../components/RoomChrome';
+import { SurfacePattern } from '../components/SurfacePattern';
+import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
 
 enum ChamberMode {
   ORACLE = 'oracle',
@@ -1260,42 +1263,49 @@ export const StrategyRoomScreen: React.FC = () => {
   };
 
   return (
-    <div 
-      className="w-full flex flex-col overflow-hidden animate-fadeIn h-full"
-      style={{ height: isMobile ? `${vpHeight}px` : '100%' }}
+    <div
+      className="relative w-full flex flex-col flex-1 min-h-0 h-full overflow-hidden animate-fadeIn p-2 sm:p-3 lg:p-4"
+      style={isMobile ? { height: `${vpHeight}px` } : undefined}
     >
+      <SurfacePattern variant="grid" className="opacity-25" />
+      <div className="relative z-10 w-full flex flex-col flex-1 min-h-0 overflow-hidden gap-2 sm:gap-3">
+      <RoomBanner
+        image={strategyAstrolabe}
+        dense
+        eyebrow="Labs · strategy"
+        title="Strategy room"
+        subtitle="Oracle, Council, or Synthesis. Pressure-test theory before trial."
+        trailing={
+          <RoomTabs
+            tabs={[
+              { id: ChamberMode.ORACLE, label: 'Oracle' },
+              { id: ChamberMode.COUNCIL, label: 'Council' },
+              { id: ChamberMode.SYNTHESIS, label: 'Synthesis' },
+            ]}
+            active={activeTab}
+            onChange={(id) => setActiveTab(id as ChamberMode)}
+            className="hidden lg:inline-flex"
+          />
+        }
+        className="flex-shrink-0"
+      />
       
       {/* ========================================================================= */}
       {/* MOBILE APP-STYLE LAYOUT (Phones & Tablets < 1024px)                        */}
       {/* ========================================================================= */}
-      <div className="lg:hidden flex flex-col text-left relative h-full min-h-0">
+      <div className="lg:hidden flex flex-col text-left relative flex-1 min-h-0 overflow-hidden">
         
-        {/* Dynamic Mode Tab Bar Selector — compact for mobile */}
-        <div className="w-full flex flex-col gap-1 p-1.5 border border-brand-text-primary/30 bg-brand-bg-primary rounded-xl mb-2">
-          <div className="grid grid-cols-3 gap-1 w-full select-none">
-            {[
-              { value: ChamberMode.ORACLE, title: 'Oracle', icon: '[ O ]' },
-              { value: ChamberMode.COUNCIL, title: 'Council', icon: '[ C ]' },
-              { value: ChamberMode.SYNTHESIS, title: 'Synthesis', icon: '[ S ]' },
-            ].map((m) => {
-              const isActive = activeTab === m.value;
-              return (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setActiveTab(m.value)}
-                  className={`px-1.5 py-1.5 rounded-xl border text-[9px] font-medium font-serif flex items-center justify-center gap-1 
-                    ${isActive 
-                      ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-semibold' 
-                      : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-secondary hover:border-brand-text-primary/30 hover:text-brand-text-primary'
-                    }`}
-                >
-                  <span>{m.icon}</span>
-                  <span>{m.title}</span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="mb-2 flex-shrink-0">
+          <RoomTabs
+            tabs={[
+              { id: ChamberMode.ORACLE, label: 'Oracle' },
+              { id: ChamberMode.COUNCIL, label: 'Council' },
+              { id: ChamberMode.SYNTHESIS, label: 'Synthesis' },
+            ]}
+            active={activeTab}
+            onChange={(id) => setActiveTab(id as ChamberMode)}
+            className="w-full !flex"
+          />
         </div>
 
         {/* Mobile Vertical Scroll for Persona Council — more compact */}
@@ -1335,9 +1345,9 @@ export const StrategyRoomScreen: React.FC = () => {
         )}
 
         {/* Chat Workspace (Mobile) */}
-        <div className="flex-grow flex flex-col bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl overflow-hidden relative shadow-inner-subtle min-h-[150px]">
+        <div className="flex-1 min-h-0 flex flex-col bg-brand-bg-primary border border-brand-border rounded-xl overflow-hidden relative">
           {/* Chat Feed (Mobile) */}
-          <div className="flex-grow p-3 overflow-y-auto space-y-3 custom-scrollbar text-left relative z-10">
+          <div className="flex-1 min-h-0 p-3 overflow-y-auto space-y-3 custom-scrollbar text-left relative z-10">
             {activeHistory.length <= 1 && (
               <div className="p-2 border border-brand-text-primary/30 bg-brand-bg-primary rounded-xl space-y-1 text-left mb-2">
                 <h4 className="text-[10px] font-serif font-bold text-shimmer flex items-center gap-1.5">
@@ -1550,40 +1560,41 @@ export const StrategyRoomScreen: React.FC = () => {
       {/* ========================================================================= */}
       {/* LAPTOP HIGH-FIDELITY WAR ROOM DASHBOARD (Large Screens >= 1024px)          */}
       {/* ========================================================================= */}
-      <div className="hidden lg:grid grid-cols-12 gap-6 w-full text-left h-full min-h-0">
+      <div className="hidden lg:grid grid-cols-12 gap-4 w-full text-left flex-1 min-h-0 overflow-hidden">
         
         {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
-        <div className="col-span-3 flex flex-col gap-5 h-full min-h-0 overflow-y-auto custom-scrollbar pr-1">
-          <Card className="p-5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col gap-4 relative overflow-hidden group">
-            <div className="space-y-0.5">
-              <h3 className="text-base font-serif font-bold text-shimmer flex items-center gap-1.5">
-                <CourtIcon className="h-5 w-5 text-brand-text-primary" /> Protocols
+        <div className="col-span-3 flex flex-col gap-4 min-h-0 overflow-y-auto custom-scrollbar pr-1">
+          <div className="relative overflow-hidden rounded-xl border border-brand-border p-4 flex flex-col gap-3">
+            <img src={strategyAstrolabe} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-black/90" />
+            <div className="relative z-10 space-y-0.5">
+              <h3 className="text-[14px] font-serif font-semibold text-white flex items-center gap-1.5">
+                <CourtIcon className="h-4 w-4 text-white/80" /> Protocols
               </h3>
-              <p className="text-[10px] text-brand-text-secondary font-light">Select deliberation protocol.</p>
+              <p className="text-[11px] text-white/55">Select deliberation mode</p>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="relative z-10 flex flex-col gap-2">
               {[
-                { value: ChamberMode.ORACLE, title: 'Oracle', badge: '6-Stg', icon: '[ O ]' },
-                { value: ChamberMode.COUNCIL, title: 'Council', badge: 'Minds', icon: '[ C ]' },
-                { value: ChamberMode.SYNTHESIS, title: 'Synthesis', badge: '7-Phs', icon: '[ S ]' },
+                { value: ChamberMode.ORACLE, title: 'Oracle', badge: '6-stg', icon: 'O' },
+                { value: ChamberMode.COUNCIL, title: 'Council', badge: 'Minds', icon: 'C' },
+                { value: ChamberMode.SYNTHESIS, title: 'Synthesis', badge: '7-ph', icon: 'S' },
               ].map((m) => {
                 const isActive = activeTab === m.value;
                 return (
                   <button
                     key={m.value}
                     onClick={() => setActiveTab(m.value)}
-                    className={`w-full p-3.5 rounded-xl border text-left flex items-center gap-3 relative overflow-hidden group/btn transition-all
+                    className={`w-full p-3 rounded-lg border text-left flex items-center gap-3 relative overflow-hidden transition-colors
                       ${isActive 
-                        ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent font-semibold scale-[1.01]' 
-                        : 'bg-brand-bg-primary border-brand-border text-brand-text-secondary hover:border-brand-accent/40 hover:bg-brand-accent/5 hover:text-brand-text-primary'
+                        ? 'bg-white text-black border-white font-medium' 
+                        : 'bg-black/40 border-white/15 text-white/75 hover:border-white/30 hover:text-white'
                       }`}
                   >
-                    <span className="font-mono text-xs font-semibold flex-shrink-0 whitespace-nowrap">{m.icon}</span>
+                    <span className={`w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0 border ${isActive ? 'border-black/15 bg-black/5' : 'border-white/20'}`}>{m.icon}</span>
                     <div className="flex-grow flex items-center justify-between min-w-0 gap-2">
-                      <span className="text-xs font-bold font-serif truncate whitespace-nowrap">{m.title}</span>
-                      <span className={`text-[8px] font-mono px-1.5 py-0.5 border rounded uppercase flex-shrink-0
-                        ${isActive ? 'border-brand-accent/35 bg-brand-bg-primary text-brand-text-primary' : 'border-white/10 bg-white/5'}`}>
+                      <span className="text-[13px] font-medium truncate whitespace-nowrap">{m.title}</span>
+                      <span className={`text-[10px] uppercase tracking-wide flex-shrink-0 ${isActive ? 'text-black/50' : 'text-white/40'}`}>
                         {m.badge}
                       </span>
                     </div>
@@ -1591,7 +1602,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 );
               })}
             </div>
-          </Card>
+          </div>
 
           {/* Dynamic Selection Details (Desktop Sidebar) */}
 
@@ -1631,10 +1642,10 @@ export const StrategyRoomScreen: React.FC = () => {
         </div>
 
         {/* Columns 4-9: Interactive Workbench (Chat Feed & Input) */}
-        <div className="col-span-6 flex flex-col bg-brand-bg-secondary border border-brand-border rounded-2xl overflow-hidden relative shadow-inner-subtle h-full min-h-0">
+        <div className="col-span-6 flex flex-col bg-brand-bg-secondary border border-brand-border rounded-xl overflow-hidden relative min-h-0">
           
           {/* Chat Feed */}
-          <div className="flex-grow p-5 overflow-y-auto space-y-5 custom-scrollbar text-left relative z-10">
+          <div className="flex-1 min-h-0 p-5 overflow-y-auto space-y-5 custom-scrollbar text-left relative z-10">
             
             {activeHistory.length <= 1 && (
               <div className="p-6 border border-brand-border bg-brand-bg-primary/30 rounded-xl flex flex-col items-center gap-4 text-center my-2">
@@ -1791,7 +1802,7 @@ export const StrategyRoomScreen: React.FC = () => {
         </div>
 
         {/* Columns 9-12: Real-time Deliberation Blueprint & Trace Console (Right Panel) */}
-        <div className="col-span-3 flex flex-col gap-5 h-full overflow-hidden min-h-0">
+        <div className="col-span-3 flex flex-col gap-4 min-h-0 overflow-hidden">
           <Card className="p-4.5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col h-full overflow-hidden ">
             <div className="space-y-1 border-b border-brand-border pb-3">
               <h3 className="text-sm font-serif font-bold text-shimmer flex items-center justify-between">
@@ -1916,6 +1927,7 @@ export const StrategyRoomScreen: React.FC = () => {
 
       </div>
 
+    </div>
     </div>
   );
 };

@@ -22,27 +22,25 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   const alignClass = align === 'center' ? 'text-center items-center' : 'text-left items-start';
 
   return (
-    <header className={`flex flex-col gap-3 sm:gap-4 ${alignClass} ${className}`}>
+    <header className={`flex flex-col gap-2 ${alignClass} ${className}`}>
       {icon && (
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-brand-bg-secondary border border-brand-border flex items-center justify-center text-brand-accent">
+        <div className="w-10 h-10 border border-white/15 flex items-center justify-center text-white/60">
           {icon}
         </div>
       )}
       {eyebrow && (
-        <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] text-brand-accent/90">
-          {eyebrow}
-        </p>
+        <p className="text-[11px] uppercase tracking-[0.14em] text-white/40">{eyebrow}</p>
       )}
-      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-brand-text-primary tracking-tight">
+      <h1 className="text-[1.5rem] sm:text-[1.75rem] font-semibold tracking-tight text-white leading-snug">
         {title}
       </h1>
       {subtitle && (
-        <div className={`text-sm sm:text-base text-brand-text-secondary/90 leading-relaxed max-w-2xl ${align === 'center' ? 'mx-auto' : ''}`}>
+        <div className={`text-[14px] text-white/50 leading-relaxed max-w-xl ${align === 'center' ? 'mx-auto' : ''}`}>
           {subtitle}
         </div>
       )}
       {actions && (
-        <div className={`flex flex-wrap gap-2 mt-1 ${align === 'center' ? 'justify-center' : ''}`}>
+        <div className={`flex flex-wrap gap-2 mt-2 ${align === 'center' ? 'justify-center' : ''}`}>
           {actions}
         </div>
       )}

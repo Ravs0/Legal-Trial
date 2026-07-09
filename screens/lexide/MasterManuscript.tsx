@@ -1,5 +1,8 @@
 import React, { useRef } from 'react';
 import { FileText, Upload, Loader2 } from 'lucide-react';
+import { RoomBanner } from '../../components/RoomChrome';
+import { PatternPanel, SurfacePattern } from '../../components/SurfacePattern';
+import libraryBooks from '../../assets/library_books.jpg';
 
 interface MasterManuscriptProps {
   fullContent: string;
@@ -25,7 +28,6 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset so same file can be uploaded again
     e.target.value = '';
 
     const ext = file.name.split('.').pop()?.toLowerCase();
@@ -40,11 +42,9 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
       };
       reader.readAsText(file);
     } else if (docExts.includes(ext || '')) {
-      // For PDF/DOCX: read as text with basic extraction
       const reader = new FileReader();
       reader.onload = (ev) => {
         const text = ev.target?.result as string;
-        // Strip null bytes and try to extract printable text
         const clean = text.replace(/\0/g, '').replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
         setFullContent(clean || '[Could not extract text from ' + file.name + '. Try pasting the content manually.]');
       };
@@ -53,18 +53,23 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
       setFullContent('[Unsupported file format: .' + ext + '. Please paste the content manually.]');
     }
   };
+
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-[#0c0c0e]">
-      <header className="h-16 border-b border-brand-border flex items-center justify-between px-10">
-        <div className="flex items-center gap-4">
-          <FileText size={20} className="text-brand-accent" />
-          <h2 className="text-sm font-bold uppercase tracking-widest text-brand-text-secondary">Master Manuscript</h2>
-          <div className="h-4 w-px bg-brand-border mx-2" />
-          <span className="text-[10px] text-brand-text-secondary/60 font-bold uppercase tracking-widest">
-            <span className="text-green-500/50">●</span> Auto-saved
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="relative z-10 flex-1 min-h-0 flex flex-col min-w-0 bg-brand-bg-primary overflow-hidden">
+      <div className="p-3 sm:p-4 border-b border-brand-border flex-shrink-0 space-y-3">
+        <RoomBanner
+          image={libraryBooks}
+          dense
+          eyebrow="Research · LexIDE"
+          title="Master manuscript"
+          subtitle="Paste or upload a paper, split into sections, then open the workspace."
+          trailing={
+            <span className="text-[11px] text-white/55 tabular-nums border border-white/15 rounded-md px-2 py-1">
+              {sections.length} sections
+            </span>
+          }
+        />
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -75,70 +80,80 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-2 bg-brand-bg-secondary hover:bg-brand-text-primary/10 text-brand-text-primary text-xs font-bold rounded-xl border border-brand-border transition-all flex items-center gap-2"
+            className="px-3 py-2 bg-brand-bg-secondary hover:bg-white/[0.04] text-brand-text-primary text-[12px] rounded-lg border border-brand-border transition-colors flex items-center gap-2"
           >
-            <Upload size={14} /> UPLOAD
+            <Upload size={14} /> Upload
           </button>
           <button
             onClick={onSmartSplit}
             disabled={isProcessing || !fullContent.trim()}
-            className="px-6 py-2 bg-brand-accent hover:opacity-90 text-brand-bg-dark text-xs font-bold rounded-xl transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-3 py-2 bg-white text-black text-[12px] font-medium rounded-lg disabled:opacity-40 flex items-center gap-2"
           >
-            {isProcessing ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            )}
-            AI SMART SPLIT
+            {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+            Smart split
           </button>
+          {selectionRange && selectionRange.end > selectionRange.start && (
+            <button
+              onClick={onCreateSection}
+              className="px-3 py-2 border border-brand-border text-[12px] text-brand-text-primary rounded-lg hover:bg-white/[0.04]"
+            >
+              Create section from selection
+            </button>
+          )}
         </div>
-      </header>
-      <main className="flex-1 overflow-y-auto p-12 custom-scrollbar relative">
-        <div className="max-w-4xl mx-auto h-full flex flex-col">
-          <div className="flex-1 bg-brand-bg-dark-secondary rounded-2xl border border-brand-border/50 p-10 shadow-2xl relative">
-            <textarea
-              ref={textareaRef}
-              value={fullContent}
-              onSelect={() => {
-                const el = textareaRef.current;
-                if (!el) return;
-                const { selectionStart, selectionEnd } = el;
-                if (selectionStart !== selectionEnd) onSelectionChange({ start: selectionStart, end: selectionEnd });
-                else onSelectionChange(null);
-              }}
-              onChange={(e) => setFullContent(e.target.value)}
-              placeholder="PASTE YOUR LEGAL DOCUMENT HERE..."
-              className="w-full h-full bg-transparent text-brand-text-primary leading-relaxed text-lg focus:outline-none resize-none"
-            />
-            {selectionRange && (
-              <button onClick={onCreateSection} className="absolute top-6 right-6 bg-brand-accent text-brand-bg-dark px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 shadow-2xl hover:opacity-90 transition-opacity">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
-                CREATE SECTION
-              </button>
+      </div>
+
+      <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex flex-col min-w-0 relative">
+          <SurfacePattern variant="lines" className="opacity-40" />
+          <textarea
+            ref={textareaRef}
+            value={fullContent}
+            onChange={(e) => setFullContent(e.target.value)}
+            onSelect={(e) => {
+              const t = e.currentTarget;
+              if (t.selectionStart !== t.selectionEnd) {
+                onSelectionChange({ start: t.selectionStart, end: t.selectionEnd });
+              } else {
+                onSelectionChange(null);
+              }
+            }}
+            placeholder="Paste your legal paper, judgment extract, or research draft here…"
+            className="relative z-10 flex-1 w-full resize-none bg-transparent p-4 sm:p-6 text-[13px] sm:text-[14px] leading-relaxed text-brand-text-primary placeholder:text-brand-text-secondary/40 focus:outline-none custom-scrollbar font-mono"
+          />
+        </div>
+
+        <aside className="hidden md:flex w-64 border-l border-brand-border flex-col bg-brand-bg-secondary">
+          <div className="p-3 border-b border-brand-border">
+            <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary">Sections</p>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+            {sections.length === 0 ? (
+              <PatternPanel pattern="dots" className="p-4 m-1">
+                <p className="text-[12px] text-brand-text-secondary leading-relaxed">
+                  No sections yet. Use Smart split or select text and create a section.
+                </p>
+              </PatternPanel>
+            ) : (
+              sections.map((s) => (
+                <div
+                  key={s.id}
+                  className="group flex items-start justify-between gap-2 p-2.5 rounded-lg border border-brand-border bg-brand-bg-primary hover:border-white/20"
+                >
+                  <span className="text-[12px] text-brand-text-primary leading-snug line-clamp-2">{s.title}</span>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteSection(s.id)}
+                    className="text-[11px] text-brand-text-secondary opacity-0 group-hover:opacity-100 hover:text-brand-text-primary flex-shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))
             )}
           </div>
-        </div>
-      </main>
-      <footer className="h-10 bg-brand-bg-dark-secondary border-t border-brand-border flex items-center justify-between px-8 shrink-0">
-        <div className="flex items-center gap-8 text-[9px] text-brand-text-secondary uppercase font-bold tracking-[0.2em]">
-          <div className="flex items-center gap-2 text-brand-text-secondary/60">{sections.length} PARTS</div>
-          <div className="flex items-center gap-2 text-brand-text-secondary/60">
-            {fullContent.split(/\s+/).filter(x => x.length > 0).length} WORDS
-          </div>
-          <div className="text-brand-accent/60 font-mono">STATUS::STABLE</div>
-        </div>
-        <div className="flex gap-2">
-          {sections.map((sec, i) => (
-            <div key={sec.id} className="group flex items-center gap-2 px-3 py-1 bg-brand-bg-dark border border-brand-border rounded-lg">
-              <span className="text-[9px] text-brand-text-secondary/60 font-mono">{String(i+1).padStart(2, '0')}</span>
-              <span className="text-[10px] text-brand-text-primary/80 truncate max-w-[80px]">{sec.title}</span>
-              <button onClick={() => onDeleteSection(sec.id)} className="text-brand-text-secondary/30 hover:text-brand-error transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-          ))}
-        </div>
-      </footer>
+        </aside>
+      </div>
     </div>
   );
 };

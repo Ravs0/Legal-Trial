@@ -731,11 +731,11 @@ const PracticeArena: React.FC = () => {
   const lastMessage = messages[messages.length - 1];
   const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
   const sessionMeta = useMemo(() => ([
-    { label: 'Phase', value: phaseLabel(activePhase), tone: catColors.text },
-    { label: 'Score', value: String(scoreBreakdown.total), tone: catColors.text },
-    { label: 'Timer', value: formattedTime, tone: remainingSeconds < 60 ? 'text-brand-error' : catColors.text },
-    { label: 'Reflex', value: String(quickObjectionsCount), tone: catColors.text },
-  ]), [activePhase, catColors.text, formattedTime, quickObjectionsCount, remainingSeconds, scoreBreakdown.total]);
+    { label: 'Phase', value: phaseLabel(activePhase), tone: 'text-brand-text-primary' },
+    { label: 'Score', value: String(scoreBreakdown.total), tone: 'text-brand-text-primary' },
+    { label: 'Timer', value: formattedTime, tone: remainingSeconds < 60 ? 'text-brand-error' : 'text-brand-text-primary' },
+    { label: 'Reflex', value: String(quickObjectionsCount), tone: 'text-brand-text-primary' },
+  ]), [activePhase, formattedTime, quickObjectionsCount, remainingSeconds, scoreBreakdown.total]);
   const mobileQuickActions = useMemo(() => ([
     {
       label: 'Bench',
@@ -924,18 +924,19 @@ const PracticeArena: React.FC = () => {
     >
       <BackgroundGeometry />
 
-      <div className="px-3 py-2.5 sm:px-5 sm:py-3 bg-brand-bg-secondary/95 backdrop-blur-xl border-b border-white/[0.06] sticky top-0 z-20 flex-shrink-0">
+      <div className="px-3 py-2.5 sm:px-4 sm:py-3 bg-brand-bg-secondary border-b border-brand-border sticky top-0 z-20 flex-shrink-0">
         <div className="max-w-7xl mx-auto space-y-2.5">
           <div className="flex items-start sm:items-center justify-between gap-3">
             <div className="text-left min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                <span className="inline-block px-2 py-0.5 rounded-md text-[9px] font-mono border border-white/10 bg-white/[0.04] text-brand-text-secondary uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
-                <span className="text-[9px] font-mono text-brand-text-secondary/60 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
+              <div className="flex flex-wrap items-center gap-2 mb-1 text-[11px] text-brand-text-secondary">
+                <span>{currentSessionSettings.difficulty}</span>
+                <span className="opacity-40">·</span>
+                <span>{currentSessionSettings.sessionType}</span>
               </div>
-              <h2 className="text-base sm:text-xl font-bold truncate font-serif text-brand-text-primary leading-snug" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
-              <div className="hidden sm:flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-brand-text-secondary mt-1">
-                <span className="flex items-center gap-1"><GavelIcon className="h-3.5 w-3.5 opacity-70" /> {currentSessionSettings.judgePersonality.name}</span>
-                <span className="flex items-center gap-1"><BriefcaseIcon className="h-3.5 w-3.5 opacity-70" /> {currentSessionSettings.opposingCounselPersonality.name}</span>
+              <h2 className="text-[15px] sm:text-lg font-semibold truncate text-brand-text-primary leading-snug" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
+              <div className="hidden sm:flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[12px] text-brand-text-secondary mt-1">
+                <span className="flex items-center gap-1"><GavelIcon className="h-3.5 w-3.5 opacity-60" /> {currentSessionSettings.judgePersonality.name}</span>
+                <span className="flex items-center gap-1"><BriefcaseIcon className="h-3.5 w-3.5 opacity-60" /> {currentSessionSettings.opposingCounselPersonality.name}</span>
               </div>
             </div>
 
@@ -943,23 +944,23 @@ const PracticeArena: React.FC = () => {
               {isTTSAvailable() && (
                 <button
                   onClick={() => setVoiceEnabled(v => !v)}
-                  className={`px-3 py-2 rounded-xl border text-[10px] font-mono uppercase tracking-wider transition-all ${
+                  className={`h-9 px-3 rounded-md border text-[12px] transition-colors ${
                     voiceEnabled
-                      ? `${catColors.bg} text-brand-accent-text border-transparent`
-                      : 'border-white/10 bg-white/[0.03] text-brand-text-secondary hover:text-brand-text-primary'
+                      ? 'bg-brand-text-primary text-brand-bg-primary border-transparent'
+                      : 'border-brand-border text-brand-text-secondary hover:text-brand-text-primary'
                   }`}
                   title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
                 >
-                  {voiceEnabled ? 'Voice On' : 'Voice Off'}
+                  {voiceEnabled ? 'Voice on' : 'Voice off'}
                 </button>
               )}
               {!sessionEnded && isTimerRunning && (
                 <button
                   onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
-                  className="px-3 py-2 rounded-xl border border-brand-error/25 bg-brand-error/5 hover:bg-brand-error/10 text-brand-error transition-all text-[10px] font-mono uppercase tracking-wider"
+                  className="h-9 px-3 rounded-md border border-brand-error/40 text-brand-error text-[12px] hover:bg-brand-error/10 transition-colors"
                   title="End Trial Early"
                 >
-                  End Early
+                  End early
                 </button>
               )}
             </div>

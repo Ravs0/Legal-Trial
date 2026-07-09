@@ -13,9 +13,11 @@ import {
 import { CaseCategory, CaseDetail, CaseDifficulty, JudgePersonality, OpposingCounselPersonality, SessionSettings, SessionType } from '../types';
 import { SelectInput } from '../components/SelectInput';
 import { Modal } from '../components/Modal';
-import { DocumentTextIcon } from '../components/icons/DocumentTextIcon';
 import { usePrecedentSearch } from '../hooks/usePrecedentSearch';
 import { getCategoryColorClasses } from '../services/colorUtils';
+import { PhotoHero } from '../components/PhotoHero';
+import { PatternPanel } from '../components/SurfacePattern';
+import libraryBooks from '../assets/library_books.jpg';
 
 
 const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty; categoryId?: string }> = ({ difficulty, categoryId }) => {
@@ -337,65 +339,60 @@ const CaseLibraryScreen: React.FC = () => {
   const opposingCounselOptions = currentOCs.map(oc => ({ value: oc.id, label: `${oc.name} (${oc.specialty})` }));
 
   return (
-    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-16 animate-fadeIn pb-12 overflow-x-hidden relative">
-      <div className="text-center pt-4 lg:pt-8 relative z-10 max-w-4xl mx-auto px-4">
-        <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mx-auto mb-4 lg:mb-6">
-          <DocumentTextIcon className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-brand-accent" />
-        </div>
-        <div className="inline-flex items-center justify-center space-x-2 mb-2 lg:mb-3 opacity-80">
-          <div className="h-px w-6 lg:w-8 bg-brand-text-primary/30"></div>
-          <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-primary tracking-widest uppercase">{modeDisplay} Context</span>
-          <div className="h-px w-6 lg:w-8 bg-brand-text-primary/30"></div>
-        </div>
-        <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-brand-text-primary font-serif tracking-tight mb-3 lg:mb-4">Case Library</h1>
-        <p className="text-xs lg:text-base text-brand-text-secondary font-light max-w-2xl mx-auto leading-relaxed">
-          An exclusive archive of procedural and substantive legal scenarios. Review the docket and select a matter to commence practice.
-        </p>
-        <div className="mt-8 max-w-xl mx-auto relative">
+    <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn overflow-x-hidden relative">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto w-full space-y-5 pb-12">
+      <PhotoHero
+        image={libraryBooks}
+        size="md"
+        eyebrow={`${modeDisplay} · practice`}
+        title="Case library"
+        subtitle="Browse scenarios, tune search, or launch a custom trial from your own facts."
+      />
+
+      <PatternPanel pattern="dots" className="p-4 sm:p-5">
+        <div className="relative">
           <input
             type="text"
-            placeholder="Search docket precedents (e.g. copyright, contract, negligence)..."
+            placeholder="Search docket (copyright, contract, negligence…)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-4 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-accent text-sm text-brand-text-primary placeholder-brand-text-secondary/40 font-light"
+            className="w-full p-3 sm:p-3.5 bg-brand-bg-primary border border-brand-border rounded-lg focus:outline-none focus:ring-1 focus:ring-white/20 text-[14px] text-brand-text-primary placeholder-brand-text-secondary/50"
           />
           {searchQuery && (
-            <button 
+            <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono text-brand-accent hover:text-brand-text-primary transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-brand-text-secondary hover:text-brand-text-primary"
             >
-              [ CLEAR ]
+              Clear
             </button>
           )}
         </div>
 
-        {/* Pipeline & Search Tuning button */}
-        <div className="mt-2 text-right max-w-xl mx-auto">
+        <div className="mt-2 text-right">
           <button
             onClick={() => setIsTuningExpanded(!isTuningExpanded)}
             type="button"
-            className="text-[10px] font-mono text-brand-accent hover:text-brand-text-primary uppercase tracking-wider transition-colors"
+            className="text-[11px] text-brand-text-secondary hover:text-brand-text-primary uppercase tracking-wide"
           >
-            {isTuningExpanded ? '[ Hide Search Settings ▲ ]' : '[ Open Search Settings ▼ ]'}
+            {isTuningExpanded ? 'Hide search settings' : 'Search settings'}
           </button>
         </div>
 
-        {/* Search Tuning Panel */}
         {isTuningExpanded && (
-          <div className="mt-4 max-w-xl mx-auto p-4 bg-brand-bg-secondary border border-brand-text-primary/30 text-left font-mono text-xs space-y-4 animate-fadeIn">
+          <div className="mt-3 p-3.5 border border-brand-border bg-brand-bg-primary text-left text-[12px] space-y-4 rounded-lg">
             <div>
-              <label className="block text-[10px] uppercase text-zinc-400 tracking-wider mb-2 font-bold">Search Pipeline (Haystack/CAP)</label>
-              <div className="flex border border-brand-text-primary/30 bg-black/20 p-[1px]">
+              <label className="block text-[11px] uppercase tracking-wide text-brand-text-secondary mb-2">Pipeline</label>
+              <div className="flex border border-brand-border rounded-md overflow-hidden">
                 {(['bm25', 'legal-bert', 'haystack-hybrid'] as const).map((pipe) => (
                   <button
                     key={pipe}
                     type="button"
                     onClick={() => setSearchPipeline(pipe)}
-                    className={`flex-1 py-1.5 text-center text-[10px] font-bold uppercase transition-all ${
-                      searchPipeline === pipe ? 'bg-brand-accent/20 text-brand-accent border border-brand-accent/30' : 'text-zinc-500 hover:text-zinc-300'
+                    className={`flex-1 py-1.5 text-center text-[11px] transition-colors ${
+                      searchPipeline === pipe ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary'
                     }`}
                   >
-                    {pipe === 'bm25' ? 'BM25 (Keyword)' : pipe === 'legal-bert' ? 'Legal-BERT' : 'Haystack Hybrid'}
+                    {pipe === 'bm25' ? 'BM25' : pipe === 'legal-bert' ? 'Legal-BERT' : 'Hybrid'}
                   </button>
                 ))}
               </div>
@@ -459,30 +456,29 @@ const CaseLibraryScreen: React.FC = () => {
             )}
           </div>
         )}
-      </div>
-
+      </PatternPanel>
 
       {/* Custom Case Simulator Section */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div>
         <button 
           onClick={() => setIsCustomSimExpanded(!isCustomSimExpanded)}
-          className="w-full text-left p-4.5 bg-brand-bg-secondary border border-brand-text-primary/30 hover:bg-brand-bg-secondary/80 flex items-center justify-between transition-all group focus-ring"
+          className="w-full text-left p-4 border border-brand-border bg-brand-bg-secondary hover:bg-brand-bg-tertiary rounded-xl flex items-center justify-between transition-colors group"
         >
-          <div className="flex items-center space-x-3.5">
-            <div className="w-9 h-9 bg-brand-bg-primary border border-brand-text-primary/20 flex items-center justify-center text-brand-accent group-hover:border-brand-accent transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-brand-bg-primary border border-brand-border rounded-lg flex items-center justify-center text-brand-text-secondary group-hover:text-brand-text-primary transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
             </div>
             <div>
-              <h3 className="text-sm font-serif font-bold text-brand-text-primary uppercase tracking-wide group-hover:text-brand-accent transition-colors">
-                [ Configure Bespoke Custom Trial ]
+              <h3 className="text-[14px] font-medium text-brand-text-primary">
+                Custom trial
               </h3>
-              <p className="text-[10px] text-brand-text-secondary/70 font-light mt-0.5">
-                Upload legal briefs or paste custom dispute facts.
+              <p className="text-[12px] text-brand-text-secondary mt-0.5">
+                Upload briefs or paste your own dispute facts
               </p>
             </div>
           </div>
-          <span className="text-xs font-mono text-brand-accent font-semibold">
-            {isCustomSimExpanded ? "[ Collapse ▲ ]" : "[ Expand ▼ ]"}
+          <span className="text-[12px] text-brand-text-secondary">
+            {isCustomSimExpanded ? 'Collapse' : 'Expand'}
           </span>
         </button>
 
@@ -841,6 +837,7 @@ const CaseLibraryScreen: React.FC = () => {
           </div>
         </Modal>
       )}
+    </div>
     </div>
   );
 };

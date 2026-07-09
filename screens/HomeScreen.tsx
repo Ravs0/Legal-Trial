@@ -2,101 +2,35 @@ import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { ROUTES } from '../constants';
-import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
 import { TrialSimContext } from '../App';
 import { loadActiveSession, loadCompletedSessions, savePendingSettings } from '../services/storageService';
 import { SessionRecord } from '../types';
 import { createDemoSessionSettings } from '../services/demoSessionService';
 import { trackEvent } from '../services/analyticsService';
-import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
-import personaSeal from '../assets/persona_seal.jpg';
-import deceptionKey from '../assets/deception_key.jpg';
+import heroCourtroom from '../assets/hero_courtroom.jpg';
 import draftingPen from '../assets/drafting_pen.jpg';
 import libraryBooks from '../assets/library_books.jpg';
 import judgeGavel from '../assets/judge_gavel.jpg';
-import heroCourtroom from '../assets/hero_courtroom.jpg';
-
-interface BentoItemProps {
-  title: string;
-  description: React.ReactNode;
-  icon?: React.ReactNode;
-  onClick?: () => void;
-  buttonText?: string;
-  className?: string;
-}
-
-const BentoItem: React.FC<BentoItemProps> = ({ title, description, icon, onClick, buttonText, className = '' }) => {
-  const isImgIcon = React.isValidElement(icon) && icon.type === 'img';
-  const imgElement = isImgIcon ? (icon as React.ReactElement<React.ImgHTMLAttributes<HTMLImageElement>>) : null;
-  const imgSrc = imgElement ? imgElement.props.src : null;
-
-  return (
-    <div
-      className={`relative overflow-hidden flex flex-col rounded-2xl border transition-all duration-500 ease-out group bg-brand-bg-secondary border-brand-border ${onClick ? 'cursor-pointer focus-ring hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:-translate-y-1 hover:border-brand-accent/50' : ''} ${className}`}
-      onClick={onClick}
-      tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
-      role={onClick ? 'button' : undefined}
-    >
-      {imgSrc && (
-        <>
-          <img
-            src={imgSrc}
-            alt={title}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-45 group-hover:opacity-65"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-dark/95 via-brand-bg-dark/85 to-brand-bg-dark/55" />
-        </>
-      )}
-
-      <div className="relative z-10 w-full h-full flex-grow flex flex-col p-6 lg:p-8">
-        {icon && !imgSrc && (
-          <div className="w-12 h-12 rounded-xl bg-brand-bg-primary border border-brand-border flex items-center justify-center mb-5 transition-all duration-300 group-hover:border-brand-accent/30 group-hover:bg-brand-bg-secondary overflow-hidden">
-            <div className="text-brand-accent">
-              {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'h-5 w-5 lg:h-6 lg:w-6' })}
-            </div>
-          </div>
-        )}
-
-        <h3 className="font-serif mb-2 lg:mb-3 text-base lg:text-xl font-semibold text-brand-text-primary group-hover:text-brand-accent transition-colors duration-300">{title}</h3>
-        <div className="font-light flex-grow leading-relaxed text-xs lg:text-sm text-brand-text-secondary/85 mb-4 lg:mb-6 group-hover:text-brand-text-primary transition-colors duration-300">{description}</div>
-
-        {buttonText && (
-          <div className="mt-auto w-full pt-4 border-t border-brand-border/40">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-between px-2 text-brand-accent hover:text-brand-accent-hover transition-all bg-brand-bg-dark/40 backdrop-blur-sm border border-brand-border/20 rounded-xl py-1.5"
-            >
-              <span>[ {buttonText} ]</span>
-              <span className="transform transition-transform group-hover:translate-x-1">-&gt;</span>
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
+import personaSeal from '../assets/persona_seal.jpg';
+import deceptionKey from '../assets/deception_key.jpg';
+import { PhotoHero } from '../components/PhotoHero';
+import { PhotoTile } from '../components/PhotoTile';
+import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
 
 const formatElapsed = (session: SessionRecord) => {
   const minutes = Math.max(0, Math.round((session.elapsedSeconds ?? 0) / 60));
   if (minutes <= 1) return 'just started';
-  return `${minutes} min elapsed`;
+  return `${minutes} min in`;
 };
 
 const HomeScreen: React.FC = () => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
-
   if (!context) throw new Error('TrialSimContext not found');
 
-  const {
-    practiceMode,
-    setPracticeMode,
-    setCurrentSessionSettings,
-    setError,
-  } = context;
-  const modeDisplay = practiceMode ? (practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1)) : 'Selected';
+  const { practiceMode, setPracticeMode, setCurrentSessionSettings, setError } = context;
+  const modeDisplay = practiceMode ? practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1) : '';
   const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
   const [completedSessions, setCompletedSessions] = useState<SessionRecord[]>([]);
 
@@ -105,26 +39,22 @@ const HomeScreen: React.FC = () => {
   }, [practiceMode]);
 
   useEffect(() => {
-    const syncSessions = () => {
+    const sync = () => {
       setActiveSession(loadActiveSession());
       setCompletedSessions(loadCompletedSessions());
     };
-
-    syncSessions();
-    window.addEventListener('focus', syncSessions);
-    window.addEventListener('storage', syncSessions);
+    sync();
+    window.addEventListener('focus', sync);
+    window.addEventListener('storage', sync);
     return () => {
-      window.removeEventListener('focus', syncSessions);
-      window.removeEventListener('storage', syncSessions);
+      window.removeEventListener('focus', sync);
+      window.removeEventListener('storage', sync);
     };
   }, []);
 
   const handleDemoStart = () => {
     try {
       const settings = createDemoSessionSettings();
-      if (completedSessions.length > 0) {
-        trackEvent('second_session_started', { source: 'dashboard_demo', completedSessions: completedSessions.length });
-      }
       trackEvent('demo_trial_started', {
         source: 'dashboard',
         mode: settings.practiceMode,
@@ -140,199 +70,150 @@ const HomeScreen: React.FC = () => {
     }
   };
 
-  const draftingDescription = practiceMode === 'indian'
-    ? 'Draft plaints, petitions, notices, procedural filings, and get AI-guided feedback grounded in local practice.'
-    : 'Refine memorials, submissions, agreements, and strategy writing with tighter AI feedback.';
-
-  const quickStats = useMemo(() => {
-    if (!activeSession) return null;
-    return {
-      title: activeSession.settings.caseDetail.title,
-      phase: (activeSession.activePhase || 'opening').replace('_', ' '),
-      elapsed: formatElapsed(activeSession),
-    };
-  }, [activeSession]);
-
-  const progressSummary = useMemo(() => {
-    const analyzed = completedSessions.filter(session => session.performance);
+  const progress = useMemo(() => {
+    const analyzed = completedSessions.filter((s) => s.performance);
     const latest = analyzed[0] || null;
-    const best = analyzed.reduce<SessionRecord | null>((currentBest, session) => {
-      if (!currentBest) return session;
-      return (session.performance?.overallScore || 0) > (currentBest.performance?.overallScore || 0) ? session : currentBest;
+    const best = analyzed.reduce<SessionRecord | null>((acc, s) => {
+      if (!acc) return s;
+      return (s.performance?.overallScore || 0) > (acc.performance?.overallScore || 0) ? s : acc;
     }, null);
-
     return {
-      completedCount: completedSessions.length,
-      analyzedCount: analyzed.length,
-      latestScore: latest?.performance?.overallScore,
-      bestScore: best?.performance?.overallScore,
-      latestCase: latest?.settings.caseDetail.title,
-      improvementAreas: latest?.performance?.improvementAreas?.slice(0, 3) || [],
+      done: completedSessions.length,
+      latest: latest?.performance?.overallScore,
+      best: best?.performance?.overallScore,
+      areas: latest?.performance?.improvementAreas?.slice(0, 3) || [],
     };
   }, [completedSessions]);
 
   return (
-    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-6 animate-fadeIn relative">
-      <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] gap-4 lg:gap-6">
-        <div className="rounded-2xl border border-brand-border/80 bg-brand-bg-secondary overflow-hidden relative min-h-[300px] shadow-card">
-          <img src={heroCourtroom} alt="" className="absolute inset-0 w-full h-full object-cover opacity-35" />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-dark via-brand-bg-dark/90 to-brand-bg-dark/50" />
-          <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6 lg:p-8 gap-6">
-            <div className="max-w-2xl">
-              <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] text-brand-accent/90">{modeDisplay} Practice</p>
-              <h1 className="mt-3 text-3xl sm:text-4xl lg:text-[2.75rem] font-serif font-bold text-brand-text-primary leading-tight">Practice, Score, Improve</h1>
-              <p className="mt-3 text-sm sm:text-base text-brand-text-secondary/90 max-w-xl leading-relaxed">
-                Start a hearing, argue on the record, get scored, export proof — then go deeper with drafting and research.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
-              <Button variant="primary" size="lg" onClick={handleDemoStart} className="w-full shadow-[0_6px_24px_rgba(214,186,145,0.15)]">
-                <PlusCircleIcon className="h-5 w-5 mr-2" />
-                Demo
+    <div className="flex-1 min-h-0 w-full overflow-y-auto bg-brand-bg-primary">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+        <PhotoHero
+          image={heroCourtroom}
+          size="lg"
+          eyebrow={`${modeDisplay} mode`}
+          title={
+            activeSession
+              ? 'Continue your hearing'
+              : progress.done
+                ? 'Ready for another run'
+                : 'Practice, score, improve'
+          }
+          subtitle={
+            activeSession
+              ? `${activeSession.settings.caseDetail.title} · ${formatElapsed(activeSession)}`
+              : 'Start a demo or configure a full trial. Everything else is optional.'
+          }
+          actions={
+            <>
+              <Button
+                variant="primary"
+                onClick={activeSession ? () => navigate(ROUTES.PRACTICE) : handleDemoStart}
+              >
+                {activeSession ? 'Resume hearing' : 'Start demo'}
               </Button>
-              <Button variant="secondary" size="lg" onClick={() => navigate(ROUTES.SETUP)} className="w-full">
-                New Trial
+              <Button
+                variant="secondary"
+                className="!border-white/25 !text-white hover:!bg-white/10"
+                onClick={() => navigate(ROUTES.SETUP)}
+              >
+                New trial
               </Button>
-              <Button variant="secondary" size="lg" onClick={() => navigate(activeSession ? ROUTES.PRACTICE : ROUTES.DRAFTING_STUDIO)} className="w-full">
-                {activeSession ? 'Resume' : 'Drafting'}
-              </Button>
-              <Button variant="ghost" size="lg" onClick={() => navigate(ROUTES.ANALYSIS)} className="w-full border border-white/10 bg-brand-bg-dark/30">
+              <Button
+                variant="ghost"
+                className="!text-white/80 hover:!text-white"
+                onClick={() => navigate(ROUTES.ANALYSIS)}
+              >
                 Review
               </Button>
-            </div>
-          </div>
+            </>
+          }
+        />
+
+        {/* Stats with pattern */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {[
+            { k: 'Done', v: progress.done },
+            { k: 'Latest', v: progress.latest ?? '—' },
+            { k: 'Best', v: progress.best ?? '—' },
+          ].map((x) => (
+            <PatternPanel key={x.k} pattern="dots" className="px-3 py-3">
+              <p className="text-[11px] text-brand-text-secondary">{x.k}</p>
+              <p className="mt-1 text-lg tabular-nums text-brand-text-primary">{x.v}</p>
+            </PatternPanel>
+          ))}
         </div>
 
-        <div className="rounded-2xl border border-brand-border/80 bg-brand-bg-secondary/90 p-5 sm:p-6 flex flex-col gap-4 shadow-card">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Progress</p>
-            <h2 className="mt-2 text-xl font-serif font-semibold text-brand-text-primary">
-              {activeSession ? 'Continue your live hearing' : progressSummary.completedCount ? 'Build on your last score' : 'Get your first score'}
-            </h2>
-            <p className="mt-2 text-sm text-brand-text-secondary/80 leading-relaxed">
-              {activeSession
-                ? 'Resume the active transcript and keep the courtroom momentum.'
-                : progressSummary.completedCount
-                  ? 'Use your completed sessions as a training record and repeat the loop.'
-                  : 'Run the demo first so you feel the product before configuring anything.'}
-            </p>
-          </div>
+        {progress.areas.length > 0 && (
+          <PatternPanel pattern="lines" className="px-4 py-3">
+            <p className="text-[11px] text-brand-text-secondary">Focus next</p>
+            <ul className="mt-2 space-y-1 text-[13px] text-brand-text-primary/90">
+              {progress.areas.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          </PatternPanel>
+        )}
 
-          {quickStats && (
-            <div className="rounded-xl border border-brand-accent/25 bg-brand-accent/[0.08] p-4 space-y-3">
-              <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-accent/85">Active Session</p>
-              <h3 className="text-sm font-semibold text-white/90 leading-snug">{quickStats.title}</h3>
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
-                <div className="rounded-lg border border-white/[0.07] bg-brand-bg-dark/40 px-3 py-2">
-                  <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/45">Phase</p>
-                  <p className="mt-1 capitalize text-white/85">{quickStats.phase}</p>
-                </div>
-                <div className="rounded-lg border border-white/[0.07] bg-brand-bg-dark/40 px-3 py-2">
-                  <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/45">Progress</p>
-                  <p className="mt-1 text-white/85">{quickStats.elapsed}</p>
-                </div>
-              </div>
-              <Button variant="primary" fullWidth onClick={() => navigate(ROUTES.PRACTICE)}>Resume Session</Button>
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/35 px-2.5 py-3">
-              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Done</p>
-              <p className="mt-1 text-lg font-mono text-white/90 tabular-nums">{progressSummary.completedCount}</p>
-            </div>
-            <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/35 px-2.5 py-3">
-              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Latest</p>
-              <p className="mt-1 text-lg font-mono text-brand-accent tabular-nums">{progressSummary.latestScore ?? '—'}</p>
-            </div>
-            <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/35 px-2.5 py-3">
-              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Best</p>
-              <p className="mt-1 text-lg font-mono text-white/90 tabular-nums">{progressSummary.bestScore ?? '—'}</p>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/30 p-4 mt-auto">
-            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">Focus next</p>
-            {progressSummary.improvementAreas.length > 0 ? (
-              <ul className="mt-3 space-y-2 text-sm text-brand-text-secondary/90">
-                {progressSummary.improvementAreas.map(area => (
-                  <li key={area} className="flex gap-2">
-                    <span className="text-brand-accent mt-0.5">·</span>
-                    <span>{area}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2 text-sm text-brand-text-secondary/80">Complete one analyzed session to unlock targeted notes.</p>
-            )}
-            {progressSummary.latestCase && <p className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-brand-accent/80 truncate">Last: {progressSummary.latestCase}</p>}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Workspace</p>
-            <h2 className="mt-1 text-2xl font-serif font-semibold text-brand-text-primary">Write and research between hearings</h2>
-          </div>
-          <Button variant="ghost" onClick={() => navigate(ROUTES.SETUP)} className="hidden sm:inline-flex border border-white/10">Configure Trial</Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          <BentoItem
-            title="Drafting Studio"
-            description={draftingDescription}
-            icon={<img src={draftingPen} alt="Drafting Pen" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.DRAFTING_STUDIO)}
-            buttonText="Enter Studio"
-          />
-          <BentoItem
-            title="Case Library"
-            description={`Explore ${modeDisplay.toLowerCase()} scenarios, then start a trial from a case you care about.`}
-            icon={<img src={libraryBooks} alt="Case Library" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.LIBRARY)}
-            buttonText="Browse Cases"
-          />
-          <BentoItem
-            title="Bench & Counsel"
-            description={`Review AI judges and opposing counsel for ${modeDisplay.toLowerCase()} practice.`}
-            icon={<img src={judgeGavel} alt="Judge Gavel" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.BENCH)}
-            buttonText="View Roster"
-          />
-        </div>
-      </section>
-
-      <section className="space-y-4">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Advisors (optional)</p>
-          <h2 className="mt-1 text-xl font-serif font-semibold text-brand-text-primary">Depth tools — after the practice loop</h2>
+          <div className="flex items-center gap-2 mb-2.5">
+            <p className="text-[12px] text-brand-text-secondary">Practice tools</p>
+            <div className="flex-1 h-px bg-brand-border relative overflow-hidden">
+              <SurfacePattern variant="lines" className="!opacity-100" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <PhotoTile
+              title="Cases"
+              description="Browse scenarios and start a trial"
+              image={libraryBooks}
+              onClick={() => navigate(ROUTES.LIBRARY)}
+              className="min-h-[160px] sm:min-h-[180px]"
+            />
+            <PhotoTile
+              title="Drafting"
+              description="Filings with structured feedback"
+              image={draftingPen}
+              onClick={() => navigate(ROUTES.DRAFTING_STUDIO)}
+              className="min-h-[160px] sm:min-h-[180px]"
+            />
+            <PhotoTile
+              title="Bench"
+              description="Judges and opposing counsel"
+              image={judgeGavel}
+              onClick={() => navigate(ROUTES.BENCH)}
+              className="min-h-[160px] sm:min-h-[180px]"
+            />
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          <BentoItem
-            title="Strategy Room"
-            description="Stress-test theory and run multi-agent debate before live exchange."
-            icon={<img src={strategyAstrolabe} alt="Strategy Astrolabe" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.STRATEGY)}
-            buttonText="Enter Strategy"
-          />
-          <BentoItem
-            title="AI Personas"
-            description="Consult domain experts when you need a fresh frame on a hard point."
-            icon={<img src={personaSeal} alt="AI Personas" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.PERSONAS)}
-            buttonText="Open Personas"
-          />
-          <BentoItem
-            title="Deception Arena"
-            description="Higher-pressure factual interrogation with the Dreadler engine."
-            icon={<img src={deceptionKey} alt="Deception Arena" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
-            onClick={() => navigate(ROUTES.DREADLER)}
-            buttonText="Enter Arena"
-          />
+
+        <div>
+          <div className="flex items-center gap-2 mb-2.5">
+            <p className="text-[12px] text-brand-text-secondary">Labs</p>
+            <div className="flex-1 h-px bg-brand-border" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <PhotoTile
+              title="Strategy"
+              description="Pressure-test your theory"
+              image={strategyAstrolabe}
+              onClick={() => navigate(ROUTES.STRATEGY)}
+            />
+            <PhotoTile
+              title="Personas"
+              description="Specialist advisors"
+              image={personaSeal}
+              onClick={() => navigate(ROUTES.PERSONAS)}
+            />
+            <PhotoTile
+              title="Deception"
+              description="High-pressure interrogation"
+              image={deceptionKey}
+              onClick={() => navigate(ROUTES.DREADLER)}
+            />
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 };

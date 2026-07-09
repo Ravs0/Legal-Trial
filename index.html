@@ -14,45 +14,52 @@
       theme: {
         extend: {
             colors: {
-            'brand-bg-primary': '#080D0C',
-            'brand-bg-secondary': '#0E1513',
-            'brand-bg-tertiary': '#16211E',
-            'brand-bg-dark': '#060A09',
-            'brand-bg-dark-secondary': '#090E0D',
-            'brand-text-primary': '#EAE6DF',
-            'brand-text-secondary': '#A0AFA9',
+            // Warm charcoal (neutral, no green). Single tint family.
+            'brand-bg-primary': '#0c0c0d',
+            'brand-bg-secondary': '#141416',
+            'brand-bg-tertiary': '#1c1c1f',
+            'brand-bg-dark': '#0c0c0d',
+            'brand-bg-dark-secondary': '#101012',
+            'brand-text-primary': '#f2f0ec',
+            'brand-text-secondary': '#8f8b84',
 
-            'brand-accent': '#D6BA91',
-            'brand-accent-hover': '#BCA177',
-            'brand-accent-text': '#080D0C',
-            'brand-accent-muted': 'rgba(214, 186, 145, 0.08)',
+            'brand-accent': '#e8e4dc',
+            'brand-accent-hover': '#f5f2eb',
+            'brand-accent-text': '#0c0c0d',
+            'brand-accent-muted': 'rgba(232, 228, 220, 0.08)',
 
-            'brand-gradient-from': '#D6BA91',
-            'brand-gradient-mid': '#E5D4BC',
-            'brand-gradient-to': '#BCA177',
+            'brand-gradient-from': '#e8e4dc',
+            'brand-gradient-mid': '#d0cbc2',
+            'brand-gradient-to': '#a8a39a',
 
-            'brand-border': '#2F3C38',
-            'brand-border-light': '#455651',
+            'brand-border': '#2a2a2e',
+            'brand-border-light': '#3a3a40',
 
-            'brand-error': '#CF6679',
-            'brand-success': '#81C784',
+            'brand-error': '#d48a92',
+            'brand-success': '#9a968e',
 
-            'brand-navy': '#080D0C',
-            'brand-navy-light': '#0E1513',
+            'brand-navy': '#0c0c0d',
+            'brand-navy-light': '#141416',
 
-            // Curated Palette mapped to natural organic PNW shades
-            'brand-amber': '#D6BA91',       // Aged Brass
-            'brand-rust': '#A76D56',        // Clay
-            'brand-emerald': '#4E7255',     // Pine Needles
-            'brand-terracotta': '#C88B8B',  // Muted Rose
-            'brand-cobalt': '#6E8A9E',      // Pacific Fog
-            'brand-sage': '#8EA38C',        // Forest Moss
-            'brand-concrete': '#8C9A9C',    // Mist Stone
+            'brand-amber': '#c9c4ba',
+            'brand-rust': '#b8a99c',
+            'brand-emerald': '#a8a6a0',
+            'brand-terracotta': '#b8ada6',
+            'brand-cobalt': '#a8aeb6',
+            'brand-sage': '#a6a49e',
+            'brand-concrete': '#94918c',
           },
           fontFamily: {
             sans: ['Inter', 'system-ui', 'sans-serif'],
             serif: ['Playfair Display', 'Georgia', 'serif'],
-            mono: ['JetBrains Mono', 'monospace'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+          borderRadius: {
+            'sm': '4px',
+            'DEFAULT': '6px',
+            'md': '8px',
+            'lg': '10px',
+            'xl': '12px',
           },
           boxShadow: {
             'glow-accent': '0 0 0 1px rgba(139, 115, 85, 0.25), 0 4px 14px rgba(0,0,0,0.08)',
@@ -139,8 +146,8 @@
     }
 
     body {
-      background-color: #080D0C;
-      color: #EAE6DF;
+      background-color: #0c0c0d;
+      color: #f2f0ec;
       font-family: 'Inter', system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;

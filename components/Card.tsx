@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface CardProps {
@@ -22,53 +21,44 @@ export const Card: React.FC<CardProps> = ({
   icon,
   onClick,
   hoverEffect = false,
-  titleGradient = false,
 }) => {
-
-  const baseCardStyles = `rounded-xl bg-brand-bg-primary border border-brand-text-primary/30`;
-
-  const interactiveStyles = onClick ? 'cursor-pointer transition-all duration-300' : '';
-  const hoverStyles = hoverEffect && onClick
-    ? 'hover:bg-brand-accent/5 focus-ring group'
-    : (onClick ? 'focus-ring group' : '');
-
   const isFlexColCard = className.includes('flex-col');
-
 
   return (
     <div
-      className={`${baseCardStyles} ${interactiveStyles} ${hoverStyles} ${className} overflow-hidden`}
+      className={`rounded-lg bg-brand-bg-secondary border border-brand-border overflow-hidden
+        ${onClick ? 'cursor-pointer' : ''}
+        ${hoverEffect && onClick ? 'hover:bg-brand-bg-tertiary/80 transition-colors' : ''}
+        ${className}`}
       onClick={onClick}
-      role={onClick ? "button" : undefined}
+      role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+      onKeyDown={(e) => {
+        if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onClick();
+        }
+      }}
     >
       {icon && (
-        <div className="w-full pt-6 pb-4 flex items-center justify-center flex-shrink-0">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center transition-colors">
-            <div className="text-brand-accent">
-              {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "h-8 w-8 sm:h-10 sm:w-10" })}
-            </div>
+        <div className="w-full pt-5 pb-2 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-md border border-brand-border flex items-center justify-center text-brand-text-secondary">
+            {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'h-5 w-5' })}
           </div>
         </div>
       )}
 
       {(title || actions) && (
-        <div className={`p-5 sm:p-6 ${icon ? 'pt-4' : ''} flex justify-between items-center ${children ? 'border-b border-brand-accent/10' : ''} flex-shrink-0 bg-brand-bg-primary/30`}>
+        <div className={`px-4 py-3 flex justify-between items-center ${children ? 'border-b border-brand-border' : ''}`}>
           {title && (
-            <h3 className={`text-xl sm:text-2xl font-serif font-semibold tracking-tight
-              ${titleGradient ? 'text-shimmer drop-shadow-md' : 'text-brand-text-primary group-hover:text-brand-accent transition-colors'}
-              ${titleClassName}`
-            }>
+            <h3 className={`text-[15px] font-medium tracking-tight text-brand-text-primary ${titleClassName}`}>
               {title}
             </h3>
           )}
           {actions && <div className="flex-shrink-0">{actions}</div>}
         </div>
       )}
-      <div className={`p-5 sm:p-6 ${isFlexColCard ? 'flex-grow flex flex-col' : ''}`}>
-        {children}
-      </div>
+      <div className={`p-4 ${isFlexColCard ? 'flex-grow flex flex-col' : ''}`}>{children}</div>
     </div>
   );
 };

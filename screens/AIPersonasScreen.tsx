@@ -6,6 +6,9 @@ import { useConversationBridge } from '../components/ConversationBridge';
 import { useVisualViewport } from '../hooks/useVisualViewport';
 import { renderLegalMarkdown } from '../utils/markdown';
 import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/storageService';
+import { RoomBanner, RoomTabs } from '../components/RoomChrome';
+import { SurfacePattern } from '../components/SurfacePattern';
+import personaSeal from '../assets/persona_seal.jpg';
 
 // ─── Persona Interface ────────────────────────────────────────────────────────
 export interface HistoricalPersona {
@@ -565,32 +568,33 @@ const AIPersonasScreen: React.FC = () => {
   };
 
   return (
-    <div 
-      className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden border border-brand-text-primary/20 animate-fadeIn"
-      style={{ height: isMobile ? `${vpHeight}px` : '100%' }}
+    <div
+      className="relative flex flex-col flex-1 min-h-0 w-full h-full overflow-hidden animate-fadeIn p-2 sm:p-3"
+      style={isMobile ? { height: `${vpHeight}px` } : undefined}
     >
-      {/* Top Header Tab Panel */}
-      <div className="flex items-center justify-between border-b border-brand-text-primary/20 bg-brand-bg-dark px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0">
-        <div className="flex items-center space-x-2">
-          <div className="h-2 w-2 rounded-full bg-brand-accent animate-pulse"></div>
-          <span className="text-[10px] sm:text-[11px] font-mono tracking-widest text-brand-text-secondary uppercase">Persona Suite</span>
-        </div>
-        
-        {/* Tab Toggle buttons */}
-        <div className="flex border border-brand-text-primary/30 p-0.5 bg-brand-bg-primary">
-          <button
-            onClick={() => { setActiveTab('historical'); setViewTab('info'); }}
-            className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-all ${activeTab === 'historical' ? 'bg-brand-accent text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-white'}`}
-          >
-            [ Historical ]
-          </button>
-          <button
-            onClick={() => { setActiveTab('sentient'); setViewTab('info'); }}
-            className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-mono uppercase transition-all ${activeTab === 'sentient' ? 'bg-brand-accent text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-white'}`}
-          >
-            [ Sentient ]
-          </button>
-        </div>
+      <SurfacePattern variant="dots" className="opacity-25" />
+      <div className="relative z-10 flex flex-col flex-1 min-h-0 w-full overflow-hidden border border-brand-border rounded-xl bg-brand-bg-primary text-brand-text-primary">
+      <div className="flex-shrink-0 p-2 sm:p-2.5 border-b border-brand-border">
+        <RoomBanner
+          image={personaSeal}
+          dense
+          eyebrow="Labs · personas"
+          title="Advisor suite"
+          subtitle="Historical strategists and sentient counsel. Pick a mind, then consult."
+          trailing={
+            <RoomTabs
+              tabs={[
+                { id: 'historical', label: 'Historical' },
+                { id: 'sentient', label: 'Sentient' },
+              ]}
+              active={activeTab}
+              onChange={(id) => {
+                setActiveTab(id as 'historical' | 'sentient');
+                setViewTab('info');
+              }}
+            />
+          }
+        />
       </div>
 
       {/* ─── MOBILE: Horizontal Persona Selector ─── */}
@@ -640,14 +644,15 @@ const AIPersonasScreen: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative">
         {/* ─── DESKTOP: Left Side Select list ─── */}
-        <div className="hidden md:flex w-64 sm:w-80 border-r border-brand-text-primary/20 flex-col bg-brand-bg-dark/40 overflow-y-auto flex-shrink-0">
-          <div className="p-3 border-b border-brand-text-primary/10">
-            <span className="text-[9px] font-mono tracking-wider text-brand-accent uppercase">Select Advisor</span>
+        <div className="hidden md:flex w-64 sm:w-80 border-r border-brand-border flex-col bg-brand-bg-secondary overflow-y-auto flex-shrink-0 relative min-h-0">
+          <SurfacePattern variant="dots" className="opacity-50" />
+          <div className="relative z-10 p-3 border-b border-brand-border">
+            <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary">Select advisor</span>
           </div>
 
-          <div className="divide-y divide-brand-text-primary/10">
+          <div className="relative z-10 divide-y divide-brand-border">
             {activeTab === 'historical' ? (
               HISTORICAL_PERSONAS.map(p => {
                 const isSelected = selectedHistorical.id === p.id;
@@ -655,7 +660,7 @@ const AIPersonasScreen: React.FC = () => {
                   <button
                     key={p.id}
                     onClick={() => { setSelectedHistorical(p); setViewTab('info'); }}
-                    className={`w-full text-left p-4 transition-all hover:bg-brand-bg-secondary/20 flex flex-col space-y-1 ${isSelected ? 'bg-brand-bg-secondary/40 border-l-2 border-brand-accent' : ''}`}
+                    className={`w-full text-left p-3.5 transition-colors hover:bg-white/[0.03] flex flex-col space-y-1 ${isSelected ? 'bg-white/[0.06] border-l-2 border-white' : 'border-l-2 border-transparent'}`}
                   >
                     <div className="flex items-center space-x-2">
                       <div className={`h-6 w-6 border border-brand-text-primary/30 flex items-center justify-center font-mono text-xs ${p.color} bg-brand-bg-primary`}>
@@ -951,14 +956,15 @@ const AIPersonasScreen: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setBreakthrough(null)}
-                className="px-4 py-1.5 border border-brand-accent text-brand-accent hover:bg-brand-accent/15 font-mono text-[10px] sm:text-xs uppercase"
+                className="px-4 py-1.5 border border-brand-border text-brand-text-primary hover:bg-white/5 text-[12px]"
               >
-                [ Proceed ]
+                Proceed
               </button>
             </div>
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

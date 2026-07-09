@@ -1,10 +1,9 @@
 import React, { useContext, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
-import { Card } from '../components/Card';
-import { PageHeader } from '../components/PageHeader';
 import { EmptyState } from '../components/EmptyState';
-import { Button } from '../components/Button';
 import { ProfileDetailModal } from '../components/ProfileDetailModal';
+import { PhotoHero } from '../components/PhotoHero';
+import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
 import { GavelIcon } from '../components/icons/GavelIcon';
 import { UsersIcon } from '../components/icons/UsersIcon';
 import { TrialSimContext } from '../App';
@@ -16,6 +15,8 @@ import {
   ROUTES,
 } from '../constants';
 import { JudgePersonality, OpposingCounselPersonality } from '../types';
+import judgeGavel from '../assets/judge_gavel.jpg';
+import counselScales from '../assets/counsel_scales.jpg';
 
 type BenchTab = 'judges' | 'counsel';
 
@@ -31,7 +32,6 @@ const BenchCounselScreen: React.FC = () => {
   if (!context) throw new Error('TrialSimContext not found in BenchCounselScreen');
   const { practiceMode } = context;
 
-  // Hooks must run unconditionally (before any early return).
   const judges = useMemo(
     () => (practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES),
     [practiceMode],
@@ -50,31 +50,29 @@ const BenchCounselScreen: React.FC = () => {
   }
 
   const jurisdictionLabel = practiceMode === 'international' ? 'International' : 'Indian';
+  const heroImage = activeTab === 'judges' ? judgeGavel : counselScales;
 
   return (
-    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-8 animate-fadeIn pb-12">
-      <PageHeader
-        align="center"
-        icon={<GavelIcon className="h-7 w-7" />}
+    <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-6 pb-12">
+      <PhotoHero
+        image={heroImage}
+        size="md"
         eyebrow="Reference"
-        title="Bench & Counsel"
-        subtitle={
-          <>
-            Review AI judges and opposing counsel for{' '}
-            <span className="text-brand-text-primary font-medium">{jurisdictionLabel}</span> practice before you enter the arena.
-          </>
-        }
+        title="Bench & counsel"
+        subtitle={`AI judges and opposing counsel for ${jurisdictionLabel} practice. Review profiles before you enter the arena.`}
       />
 
       <div className="flex justify-center">
-        <div className="inline-flex rounded-xl border border-brand-border bg-brand-bg-secondary p-1 gap-1">
+        <div className="relative inline-flex rounded-lg border border-brand-border bg-brand-bg-secondary p-1 gap-1 overflow-hidden">
+          <SurfacePattern variant="dots" className="opacity-80" />
           <button
             type="button"
             onClick={() => setTab('judges')}
-            className={`min-h-[44px] px-4 sm:px-6 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            className={`relative z-10 min-h-[40px] px-4 sm:px-5 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2 ${
               activeTab === 'judges'
-                ? 'bg-brand-accent/15 text-brand-accent border border-brand-accent/30'
-                : 'text-brand-text-secondary hover:text-brand-text-primary border border-transparent'
+                ? 'bg-white text-black'
+                : 'text-brand-text-secondary hover:text-brand-text-primary'
             }`}
           >
             <GavelIcon className="h-4 w-4" />
@@ -83,44 +81,52 @@ const BenchCounselScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => setTab('counsel')}
-            className={`min-h-[44px] px-4 sm:px-6 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            className={`relative z-10 min-h-[40px] px-4 sm:px-5 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2 ${
               activeTab === 'counsel'
-                ? 'bg-brand-accent/15 text-brand-accent border border-brand-accent/30'
-                : 'text-brand-text-secondary hover:text-brand-text-primary border border-transparent'
+                ? 'bg-white text-black'
+                : 'text-brand-text-secondary hover:text-brand-text-primary'
             }`}
           >
             <UsersIcon className="h-4 w-4" />
-            Opposing Counsel
+            Opposing counsel
           </button>
         </div>
       </div>
 
       {activeTab === 'judges' ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {judges.map(judge => (
-            <Card
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {judges.map((judge) => (
+            <button
               key={judge.id}
-              className="flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 transition-all bg-brand-bg-primary p-0 cursor-pointer hover:bg-brand-bg-secondary"
+              type="button"
               onClick={() => setSelectedJudge(judge)}
+              className="text-left group"
             >
-              <div className="p-8 pb-0 flex-grow relative">
-                <div className="w-14 h-14 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mb-6">
-                  <GavelIcon className="w-7 h-7 text-brand-accent" />
+              <PatternPanel pattern="grid" className="h-full p-0 overflow-hidden transition-colors group-hover:border-white/20">
+                <div className="relative h-24 overflow-hidden border-b border-brand-border">
+                  <img src={judgeGavel} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/25" />
+                  <div
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                      backgroundImage:
+                        'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px)',
+                    }}
+                  />
+                  <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
+                    <p className="text-[15px] font-medium text-white leading-snug">{judge.name}</p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-serif font-semibold text-brand-text-primary mb-2 group-hover:text-brand-accent transition-colors leading-tight">
-                  {judge.name}
-                </h3>
-                <div className="h-px w-12 bg-brand-text-primary/30 mb-5" />
-                <p className="text-sm font-light text-brand-text-secondary/90 leading-relaxed line-clamp-4">
-                  {judge.description}
-                </p>
-              </div>
-              <div className="p-8 pt-6 mt-auto">
-                <Button variant="outline" size="sm" fullWidth className="group-hover:bg-brand-accent group-hover:text-brand-accent-text group-hover:border-brand-accent border-brand-text-primary/30">
-                  View Judicial Profile
-                </Button>
-              </div>
-            </Card>
+                <div className="p-4">
+                  <p className="text-[13px] text-brand-text-secondary leading-relaxed line-clamp-3 mb-4">
+                    {judge.description}
+                  </p>
+                  <span className="inline-flex text-[12px] text-brand-text-secondary border border-brand-border rounded-md px-2.5 py-1 group-hover:text-brand-text-primary group-hover:border-white/20">
+                    View profile
+                  </span>
+                </div>
+              </PatternPanel>
+            </button>
           ))}
           {judges.length === 0 && (
             <div className="col-span-full">
@@ -133,32 +139,40 @@ const BenchCounselScreen: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {counsel.map(oc => (
-            <Card
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {counsel.map((oc) => (
+            <button
               key={oc.id}
-              className="flex flex-col h-full overflow-hidden group border border-brand-text-primary/30 bg-brand-bg-primary p-0 cursor-pointer hover:bg-brand-bg-secondary transition-all"
+              type="button"
               onClick={() => setSelectedCounsel(oc)}
+              className="text-left group"
             >
-              <div className="p-8 pb-0 flex-grow relative">
-                <div className="w-14 h-14 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl flex items-center justify-center mb-6">
-                  <UsersIcon className="w-7 h-7 text-brand-accent" />
+              <PatternPanel pattern="dots" className="h-full p-0 overflow-hidden transition-colors group-hover:border-white/20">
+                <div className="relative h-24 overflow-hidden border-b border-brand-border">
+                  <img src={counselScales} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/25" />
+                  <div
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                      backgroundImage:
+                        'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px)',
+                    }}
+                  />
+                  <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
+                    <p className="text-[11px] uppercase tracking-wide text-white/55 mb-0.5">{oc.specialty}</p>
+                    <p className="text-[15px] font-medium text-white leading-snug">{oc.name}</p>
+                  </div>
                 </div>
-                <h3 className="text-2xl font-serif font-semibold text-brand-text-primary mb-1 group-hover:text-brand-accent transition-colors leading-tight">
-                  {oc.name}
-                </h3>
-                <p className="text-[11px] font-mono uppercase tracking-wider text-brand-accent/80 mb-4">{oc.specialty}</p>
-                <div className="h-px w-12 bg-brand-text-primary/30 mb-5" />
-                <p className="text-sm font-light text-brand-text-secondary/90 leading-relaxed line-clamp-4">
-                  {oc.description}
-                </p>
-              </div>
-              <div className="p-8 pt-6 mt-auto">
-                <Button variant="outline" size="sm" fullWidth className="group-hover:bg-brand-accent group-hover:text-brand-accent-text group-hover:border-brand-accent border-brand-text-primary/30">
-                  View Counsel Profile
-                </Button>
-              </div>
-            </Card>
+                <div className="p-4">
+                  <p className="text-[13px] text-brand-text-secondary leading-relaxed line-clamp-3 mb-4">
+                    {oc.description}
+                  </p>
+                  <span className="inline-flex text-[12px] text-brand-text-secondary border border-brand-border rounded-md px-2.5 py-1 group-hover:text-brand-text-primary group-hover:border-white/20">
+                    View profile
+                  </span>
+                </div>
+              </PatternPanel>
+            </button>
           ))}
           {counsel.length === 0 && (
             <div className="col-span-full">
@@ -179,6 +193,7 @@ const BenchCounselScreen: React.FC = () => {
           setSelectedCounsel(null);
         }}
       />
+    </div>
     </div>
   );
 };

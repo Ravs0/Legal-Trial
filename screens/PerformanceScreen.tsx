@@ -16,7 +16,10 @@ import {
   transcriptFilename,
 } from '../services/exportService';
 import { trackEvent } from '../services/analyticsService';
-import { PageHeader } from '../components/PageHeader';
+import { PhotoHero } from '../components/PhotoHero';
+import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
+import counselScales from '../assets/counsel_scales.jpg';
+import judgeGavel from '../assets/judge_gavel.jpg';
 
 const PerformanceScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -100,59 +103,64 @@ const PerformanceScreen: React.FC = () => {
   }
 
   return (
-    <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-8 animate-fadeIn pb-12 relative z-10">
-      <div className="mb-10 pt-2">
-        <PageHeader
-          align="center"
-          eyebrow="Post-Session Review"
-          title="Performance Analysis"
-          subtitle="A breakdown of your argumentation, legal basis, and effectiveness — export and improve."
-        />
-      </div>
+    <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn relative z-10">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-6 pb-12">
+      <PhotoHero
+        image={counselScales}
+        size="md"
+        eyebrow="Post-session review"
+        title="Performance analysis"
+        subtitle={`${sessionRecord.settings.caseDetail.title} · score ${performanceMetrics.overallScore}/10`}
+        actions={
+          <>
+            <Button variant="primary" onClick={() => navigate(ROUTES.SETUP)}>New trial</Button>
+            <Button variant="secondary" className="!border-white/25 !text-white hover:!bg-white/10" onClick={() => navigate(ROUTES.HOME)}>
+              Dashboard
+            </Button>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-1 space-y-8">
-          <Card className="p-0 overflow-hidden group">
-            <div className="bg-brand-bg-secondary p-6 border-b border-brand-text-primary/30 relative overflow-hidden">
-              <h3 className="text-xl font-serif font-semibold text-brand-text-primary relative z-10">Session Details</h3>
-            </div>
-            <div className="p-6 bg-brand-bg-primary space-y-4 text-sm">
-              <div>
-                <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Mode</span>
-                <span className="font-semibold text-brand-text-primary">{sessionRecord.settings.practiceMode.charAt(0).toUpperCase() + sessionRecord.settings.practiceMode.slice(1)}</span>
-              </div>
-              <div className="h-px w-full bg-brand-text-primary/30"></div>
-              <div>
-                <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Case</span>
-                <span className="font-semibold text-brand-accent/90">{sessionRecord.settings.caseDetail.title}</span>
-              </div>
-              <div className="h-px w-full bg-brand-text-primary/30"></div>
-              <div>
-                <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">The Bench</span>
-                <span className="text-brand-text-primary font-medium">{sessionRecord.settings.judgePersonality.name}</span>
-              </div>
-              <div className="h-px w-full bg-brand-text-primary/30"></div>
-              <div>
-                <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Opposing Counsel</span>
-                <span className="text-brand-text-primary font-medium">{sessionRecord.settings.opposingCounselPersonality.name}</span>
-                <span className="block text-xs text-brand-text-secondary mt-0.5">{sessionRecord.settings.opposingCounselPersonality.specialty}</span>
-              </div>
-              <div className="h-px w-full bg-brand-text-primary/30"></div>
-              <div>
-                <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Phase Reached</span>
-                <span className="text-brand-text-primary font-medium">{sessionRecord.activePhase?.replace('_', ' ') || 'opening'}</span>
-              </div>
-              <div className="h-px w-full bg-brand-text-primary/30"></div>
-              <div>
-                <span className="block text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/60 mb-1">Timestamp</span>
-                <span className="text-brand-text-secondary font-mono text-xs">{new Date(sessionRecord.startTime).toLocaleDateString()}
-                  {sessionRecord.endTime ? ` • ${new Date(sessionRecord.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ' (Inc)'}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="lg:col-span-1 space-y-4 sm:space-y-5">
+          <PatternPanel pattern="dots" className="p-0 overflow-hidden">
+            <div className="relative h-16 border-b border-brand-border overflow-hidden">
+              <img src={judgeGavel} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/70" />
+              <div className="relative z-10 h-full flex items-center px-4">
+                <h3 className="text-[15px] font-medium text-white">Session details</h3>
               </div>
             </div>
-          </Card>
+            <div className="p-4 sm:p-5 space-y-3.5 text-[13px]">
+              {[
+                { k: 'Mode', v: sessionRecord.settings.practiceMode.charAt(0).toUpperCase() + sessionRecord.settings.practiceMode.slice(1) },
+                { k: 'Case', v: sessionRecord.settings.caseDetail.title },
+                { k: 'Bench', v: sessionRecord.settings.judgePersonality.name },
+                {
+                  k: 'Counsel',
+                  v: `${sessionRecord.settings.opposingCounselPersonality.name} · ${sessionRecord.settings.opposingCounselPersonality.specialty}`,
+                },
+                { k: 'Phase', v: sessionRecord.activePhase?.replace('_', ' ') || 'opening' },
+                {
+                  k: 'When',
+                  v: `${new Date(sessionRecord.startTime).toLocaleDateString()}${
+                    sessionRecord.endTime
+                      ? ` · ${new Date(sessionRecord.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                      : ''
+                  }`,
+                },
+              ].map((row) => (
+                <div key={row.k}>
+                  <span className="block text-[11px] uppercase tracking-wide text-brand-text-secondary mb-0.5">{row.k}</span>
+                  <span className="text-brand-text-primary font-medium">{row.v}</span>
+                </div>
+              ))}
+            </div>
+          </PatternPanel>
 
-          <Card title="Score Breakdown">
-            <div className="space-y-2">
+          <PatternPanel pattern="grid" className="p-4 sm:p-5">
+            <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary mb-4">Score breakdown</p>
+            <div className="space-y-1">
               {renderScoreBar('Argument Strength', performanceMetrics.argumentStrength)}
               {renderScoreBar('Precedent Usage', performanceMetrics.precedentUsage)}
               {renderScoreBar('Legal Grounding', performanceMetrics.legalGrounding)}
@@ -160,61 +168,68 @@ const PerformanceScreen: React.FC = () => {
               {renderScoreBar('Objection Handling', performanceMetrics.objectionHandling)}
               {renderScoreBar('Courtroom Presence', performanceMetrics.courtroomPresence)}
             </div>
-            <div className="mt-8 pt-6 border-t border-brand-text-primary/30 relative">
-              <div className="flex justify-between items-end mb-3">
-                <span className="text-sm font-medium text-brand-text-primary font-serif italic text-lg opacity-90">Overall Verdict</span>
-                <span className="text-3xl font-mono font-bold text-brand-text-primary">{performanceMetrics.overallScore} <span className="text-lg opacity-50 font-normal">/ 10</span></span>
+            <div className="mt-6 pt-5 border-t border-brand-border relative">
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-[13px] text-brand-text-secondary">Overall</span>
+                <span className="text-2xl font-mono font-semibold text-brand-text-primary tabular-nums">
+                  {performanceMetrics.overallScore}
+                  <span className="text-sm opacity-50 font-normal"> / 10</span>
+                </span>
               </div>
-              <div className="w-full bg-brand-bg-secondary h-4 overflow-hidden border border-brand-text-primary/30">
+              <div className="w-full bg-brand-bg-primary h-2.5 overflow-hidden border border-brand-border">
                 <div
-                  className="bg-brand-accent h-full transition-all duration-1000 ease-out relative"
+                  className="bg-brand-accent h-full transition-all duration-1000 ease-out"
                   style={{ width: `${(performanceMetrics.overallScore / 10) * 100}%` }}
                 />
               </div>
             </div>
-          </Card>
+          </PatternPanel>
         </div>
 
-        <div className="lg:col-span-2 space-y-8">
-          <Card title="Detailed Feedback" className="h-full">
-            <div className="prose prose-sm sm:prose-base prose-invert max-w-none text-brand-text-primary leading-relaxed font-light">
-              <p className="first-letter:text-4xl first-letter:font-serif first-letter:text-brand-accent first-letter:mr-1 first-letter:float-left">{performanceMetrics.feedback || 'No specific feedback available from the bench.'}</p>
+        <div className="lg:col-span-2 space-y-4 sm:space-y-5">
+          <PatternPanel pattern="lines" className="p-4 sm:p-6 h-full">
+            <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary mb-3">Detailed feedback</p>
+            <div className="text-brand-text-primary text-[14px] leading-relaxed">
+              <p>{performanceMetrics.feedback || 'No specific feedback available from the bench.'}</p>
             </div>
 
-            <div className="mt-10 pt-8 border-t border-brand-text-primary/30">
-              <h4 className="text-sm font-mono uppercase tracking-widest text-brand-accent mb-6 flex items-center">
-                <span className="w-6 h-px bg-brand-text-primary/30 mr-3"></span>
-                Areas for Improvement
-              </h4>
-
-              {performanceMetrics.improvementAreas && performanceMetrics.improvementAreas.length > 0 && !performanceMetrics.improvementAreas[0].toLowerCase().includes('error') ? (
-                <ul className="space-y-4">
+            <div className="mt-8 pt-6 border-t border-brand-border">
+              <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary mb-4">Areas to improve</p>
+              {performanceMetrics.improvementAreas &&
+              performanceMetrics.improvementAreas.length > 0 &&
+              !performanceMetrics.improvementAreas[0].toLowerCase().includes('error') ? (
+                <ul className="space-y-2.5">
                   {performanceMetrics.improvementAreas.map((area, index) => (
-                    <li key={index} className="flex items-start p-4 bg-brand-bg-secondary rounded-xl border border-brand-text-primary/30 transition-colors group">
-                      <div className="mt-0.5 mr-4 bg-brand-bg-primary rounded-xl p-1 group-hover:bg-brand-bg-secondary transition-colors">
-                        <CheckCircleIcon className="h-5 w-5 text-brand-accent" />
-                      </div>
-                      <span className="text-brand-text-primary/90 font-light leading-relaxed">{area}</span>
+                    <li
+                      key={index}
+                      className="flex items-start gap-3 p-3 rounded-lg border border-brand-border bg-brand-bg-primary"
+                    >
+                      <CheckCircleIcon className="h-4 w-4 text-white/50 mt-0.5 flex-shrink-0" />
+                      <span className="text-brand-text-primary/90 text-[13px] leading-relaxed">{area}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-brand-text-secondary font-light italic px-4 py-3 bg-brand-bg-secondary rounded-xl border border-brand-text-primary/30">{performanceMetrics.improvementAreas[0] || 'No specific improvement areas identified by the bench.'}</p>
+                <p className="text-brand-text-secondary text-[13px] px-3 py-2.5 rounded-lg border border-brand-border bg-brand-bg-primary">
+                  {performanceMetrics.improvementAreas?.[0] || 'No specific improvement areas identified.'}
+                </p>
               )}
             </div>
-          </Card>
+          </PatternPanel>
         </div>
       </div>
 
-      <Card className="mt-10 p-0 overflow-hidden">
-        <div className="p-6 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex justify-between items-center">
-          <h3 className="text-xl font-serif font-semibold text-brand-text-primary">Official Transcript</h3>
-          <span className="text-xs font-mono text-brand-text-secondary uppercase tracking-widest bg-brand-bg-primary/50 px-3 py-1 rounded-xl border border-brand-text-primary/30">Record</span>
+      <PatternPanel pattern="dots" className="p-0 overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-brand-border flex justify-between items-center">
+          <h3 className="text-[15px] font-medium text-brand-text-primary">Transcript</h3>
+          <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary border border-brand-border px-2 py-0.5 rounded">
+            Record
+          </span>
         </div>
-        <div className="max-h-[600px] overflow-y-auto p-6 bg-brand-bg-primary space-y-6 custom-scrollbar">
-          {sessionRecord.transcript.map(msg => {
+        <div className="max-h-[560px] overflow-y-auto p-4 sm:p-5 space-y-5 custom-scrollbar">
+          {sessionRecord.transcript.map((msg) => {
             let senderName = 'You (Counsel)';
-            let isUser = msg.sender === 'user';
+            const isUser = msg.sender === 'user';
 
             if (msg.sender === 'judge') {
               senderName = sessionRecord.settings.judgePersonality.name;
@@ -225,77 +240,98 @@ const PerformanceScreen: React.FC = () => {
 
             return (
               <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full`}>
-                <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary mb-1.5 opacity-70">
+                <span className="text-[10px] uppercase tracking-wide text-brand-text-secondary mb-1 opacity-80">
                   {senderName}
                 </span>
-                <div className={`p-4 rounded-xl max-w-[85%] sm:max-w-[75%] font-light leading-relaxed text-sm sm:text-base border ${isUser
-                    ? 'bg-brand-bg-secondary border-brand-accent text-brand-text-primary'
-                    : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary'
-                  }`}>
+                <div
+                  className={`p-3.5 rounded-lg max-w-[85%] sm:max-w-[75%] leading-relaxed text-[13px] sm:text-[14px] border ${
+                    isUser
+                      ? 'bg-brand-bg-primary border-white/20 text-brand-text-primary'
+                      : 'bg-brand-bg-primary border-brand-border text-brand-text-primary'
+                  }`}
+                >
                   <span className="whitespace-pre-wrap break-words">{msg.text}</span>
                 </div>
               </div>
             );
           })}
         </div>
-      </Card>
+      </PatternPanel>
 
-      <div className="mt-12 mb-8 flex flex-col sm:flex-row flex-wrap justify-center items-center gap-4 sm:gap-6 border-t border-brand-text-primary/30 pt-10">
-        <Button onClick={() => navigate(ROUTES.SETUP)} variant="primary" size="lg" className="w-full sm:w-auto px-10">Return to Arena</Button>
-        <Button onClick={() => navigate(ROUTES.HOME)} variant="outline" size="lg" className="w-full sm:w-auto px-10">Back to Quarters</Button>
+      <div className="relative pt-6 border-t border-brand-border flex flex-col sm:flex-row flex-wrap justify-center items-center gap-3">
+        <SurfacePattern variant="lines" className="opacity-50 !absolute inset-x-0 -top-0 h-20" />
+        <Button onClick={() => navigate(ROUTES.SETUP)} variant="primary" className="relative z-10 w-full sm:w-auto">
+          New trial
+        </Button>
+        <Button onClick={() => navigate(ROUTES.HOME)} variant="outline" className="relative z-10 w-full sm:w-auto">
+          Dashboard
+        </Button>
         <Button
           variant="ghost"
-          size="lg"
-          className="w-full sm:w-auto px-6 border border-white/10"
+          className="relative z-10 w-full sm:w-auto border border-white/10"
           onClick={async () => {
             if (sessionRecord) {
               try {
                 await navigator.clipboard.writeText(buildScorecardMarkdown(sessionRecord));
-                trackEvent('scorecard_copied', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+                trackEvent('scorecard_copied', {
+                  mode: sessionRecord.settings.practiceMode,
+                  caseId: sessionRecord.settings.caseDetail.id,
+                });
               } catch {
-                // Fallback for non-secure contexts
                 const textarea = document.createElement('textarea');
                 textarea.value = buildScorecardMarkdown(sessionRecord);
                 textarea.style.position = 'fixed';
                 textarea.style.opacity = '0';
                 document.body.appendChild(textarea);
                 textarea.select();
-                try { document.execCommand('copy'); } catch { /* ignore */ }
+                try {
+                  document.execCommand('copy');
+                } catch {
+                  /* ignore */
+                }
                 document.body.removeChild(textarea);
-                trackEvent('scorecard_copied', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+                trackEvent('scorecard_copied', {
+                  mode: sessionRecord.settings.practiceMode,
+                  caseId: sessionRecord.settings.caseDetail.id,
+                });
               }
             }
           }}
         >
-          Copy Scorecard
+          Copy scorecard
         </Button>
         <Button
           variant="ghost"
-          size="lg"
-          className="w-full sm:w-auto px-6 border border-white/10"
+          className="relative z-10 w-full sm:w-auto border border-white/10"
           onClick={() => {
             if (sessionRecord) {
               downloadMarkdown(scorecardFilename(sessionRecord), buildScorecardMarkdown(sessionRecord));
-              trackEvent('scorecard_downloaded', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+              trackEvent('scorecard_downloaded', {
+                mode: sessionRecord.settings.practiceMode,
+                caseId: sessionRecord.settings.caseDetail.id,
+              });
             }
           }}
         >
-          Download Scorecard
+          Download scorecard
         </Button>
         {sessionRecord && sessionRecord.transcript.length > 0 && (
           <Button
             variant="ghost"
-            size="lg"
-            className="w-full sm:w-auto px-6 border border-white/10"
+            className="relative z-10 w-full sm:w-auto border border-white/10"
             onClick={() => {
               downloadMarkdown(transcriptFilename(sessionRecord), buildTranscriptMarkdown(sessionRecord));
-              trackEvent('transcript_downloaded', { mode: sessionRecord.settings.practiceMode, caseId: sessionRecord.settings.caseDetail.id });
+              trackEvent('transcript_downloaded', {
+                mode: sessionRecord.settings.practiceMode,
+                caseId: sessionRecord.settings.caseDetail.id,
+              });
             }}
           >
-            Download Transcript
+            Download transcript
           </Button>
         )}
       </div>
+    </div>
     </div>
   );
 };
