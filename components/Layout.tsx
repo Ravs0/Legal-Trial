@@ -41,10 +41,10 @@ const NavItem: React.FC<{
   const location = useLocation();
 
   const navLinkClass = (isActive: boolean): string =>
-    `flex items-center px-3 py-2.5 rounded-xl text-[12px] font-medium transition-all group relative overflow-hidden
+    `flex items-center px-2.5 py-2 rounded-lg text-[12px] font-medium transition-colors duration-150 group relative
      ${isActive
-      ? 'bg-brand-accent/15 text-brand-accent border-l-2 border-l-brand-accent border-y border-r border-y-brand-accent/20 border-r-brand-accent/20'
-      : 'text-white/60 border border-transparent hover:bg-white/8 hover:text-white/90'
+      ? 'bg-brand-accent/12 text-brand-accent shadow-[inset_3px_0_0_0] shadow-brand-accent'
+      : 'text-white/55 hover:bg-white/[0.06] hover:text-white/90'
     }`;
 
   const manualIsActive = location.pathname === to || (!end && location.pathname.startsWith(to) && to !== ROUTES.HOME) || (end && location.pathname === to && to === ROUTES.HOME);
@@ -242,9 +242,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Sidebar */}
       {showSidebar && (
         <aside
-          className={`fixed inset-y-0 left-0 z-50 bg-brand-bg-dark border-r border-white/8 flex flex-col transition-all duration-300 ease-in-out
+          className={`fixed inset-y-0 left-0 z-50 bg-brand-bg-dark/98 backdrop-blur-xl border-r border-white/[0.06] flex flex-col transition-all duration-300 ease-in-out
             ${isSidebarOpen ? 'md:w-56' : 'md:w-[60px]'}
-            ${isMobileOpen ? 'translate-x-0 w-[260px]' : '-translate-x-full md:translate-x-0'}
+            ${isMobileOpen ? 'translate-x-0 w-[260px] shadow-2xl' : '-translate-x-full md:translate-x-0'}
           `}
         >
           {/* Sidebar Header */}
@@ -315,7 +315,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Mode Badge */}
           {isExpanded && (
             <div className="px-3 py-2 border-t border-white/8">
-              <div className="flex items-center gap-2 px-2 py-1.5 bg-brand-accent/10 border border-brand-accent/25">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-accent/10 border border-brand-accent/20">
                 <ChartIcon />
                 <span className="text-[10px] font-mono text-brand-accent tracking-wider uppercase">{formatModeLabel(practiceMode)}</span>
               </div>

@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
-import { ROUTES, APP_NAME } from '../constants';
+import { ROUTES } from '../constants';
 import { PlusCircleIcon } from '../components/icons/PlusCircleIcon';
 import { TrialSimContext } from '../App';
 import { loadActiveSession, loadCompletedSessions, savePendingSettings } from '../services/storageService';
@@ -174,38 +174,38 @@ const HomeScreen: React.FC = () => {
   return (
     <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto w-full overflow-y-auto custom-scrollbar h-full space-y-6 animate-fadeIn relative">
       <section className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] gap-4 lg:gap-6">
-        <div className="rounded-2xl border border-brand-border bg-brand-bg-secondary overflow-hidden relative min-h-[320px]">
-          <img src={heroCourtroom} alt="Courtroom" className="absolute inset-0 w-full h-full object-cover opacity-45" />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-dark via-brand-bg-dark/88 to-brand-bg-dark/45" />
+        <div className="rounded-2xl border border-brand-border/80 bg-brand-bg-secondary overflow-hidden relative min-h-[300px] shadow-card">
+          <img src={heroCourtroom} alt="" className="absolute inset-0 w-full h-full object-cover opacity-35" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-dark via-brand-bg-dark/90 to-brand-bg-dark/50" />
           <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6 lg:p-8 gap-6">
             <div className="max-w-2xl">
               <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] text-brand-accent/90">{modeDisplay} Practice</p>
-              <h1 className="mt-3 text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-brand-text-primary">Practice, Score, Improve</h1>
-              <p className="mt-4 text-sm sm:text-base lg:text-lg text-brand-text-secondary/90 max-w-3xl leading-relaxed">
-                {APP_NAME} is now centered on the courtroom loop: start quickly, argue a case, get scored, export the result, and come back sharper.
+              <h1 className="mt-3 text-3xl sm:text-4xl lg:text-[2.75rem] font-serif font-bold text-brand-text-primary leading-tight">Practice, Score, Improve</h1>
+              <p className="mt-3 text-sm sm:text-base text-brand-text-secondary/90 max-w-xl leading-relaxed">
+                Start a hearing, argue on the record, get scored, export proof — then go deeper with drafting and research.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-              <Button variant="primary" size="lg" onClick={handleDemoStart} className="w-full">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
+              <Button variant="primary" size="lg" onClick={handleDemoStart} className="w-full shadow-[0_6px_24px_rgba(214,186,145,0.15)]">
                 <PlusCircleIcon className="h-5 w-5 mr-2" />
-                Start Demo
+                Demo
               </Button>
               <Button variant="secondary" size="lg" onClick={() => navigate(ROUTES.SETUP)} className="w-full">
-                Start Trial
+                New Trial
               </Button>
               <Button variant="secondary" size="lg" onClick={() => navigate(activeSession ? ROUTES.PRACTICE : ROUTES.DRAFTING_STUDIO)} className="w-full">
                 {activeSession ? 'Resume' : 'Drafting'}
               </Button>
-              <Button variant="ghost" size="lg" onClick={() => navigate(ROUTES.ANALYSIS)} className="w-full border border-white/10">
+              <Button variant="ghost" size="lg" onClick={() => navigate(ROUTES.ANALYSIS)} className="w-full border border-white/10 bg-brand-bg-dark/30">
                 Review
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-brand-border bg-brand-bg-secondary p-5 sm:p-6 flex flex-col gap-4">
+        <div className="rounded-2xl border border-brand-border/80 bg-brand-bg-secondary/90 p-5 sm:p-6 flex flex-col gap-4 shadow-card">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Progress Loop</p>
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-accent/80">Progress</p>
             <h2 className="mt-2 text-xl font-serif font-semibold text-brand-text-primary">
               {activeSession ? 'Continue your live hearing' : progressSummary.completedCount ? 'Build on your last score' : 'Get your first score'}
             </h2>
@@ -214,20 +214,20 @@ const HomeScreen: React.FC = () => {
                 ? 'Resume the active transcript and keep the courtroom momentum.'
                 : progressSummary.completedCount
                   ? 'Use your completed sessions as a training record and repeat the loop.'
-                  : 'Run the demo trial first so you can feel the product before configuring anything.'}
+                  : 'Run the demo first so you feel the product before configuring anything.'}
             </p>
           </div>
 
           {quickStats && (
-            <div className="rounded-xl border border-brand-accent/20 bg-brand-accent/10 p-4 space-y-3">
+            <div className="rounded-xl border border-brand-accent/25 bg-brand-accent/[0.08] p-4 space-y-3">
               <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-accent/85">Active Session</p>
               <h3 className="text-sm font-semibold text-white/90 leading-snug">{quickStats.title}</h3>
-              <div className="grid grid-cols-2 gap-3 text-xs text-brand-text-secondary/80">
-                <div className="rounded-lg border border-white/8 bg-brand-bg-dark/35 px-3 py-2">
+              <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div className="rounded-lg border border-white/[0.07] bg-brand-bg-dark/40 px-3 py-2">
                   <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/45">Phase</p>
                   <p className="mt-1 capitalize text-white/85">{quickStats.phase}</p>
                 </div>
-                <div className="rounded-lg border border-white/8 bg-brand-bg-dark/35 px-3 py-2">
+                <div className="rounded-lg border border-white/[0.07] bg-brand-bg-dark/40 px-3 py-2">
                   <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/45">Progress</p>
                   <p className="mt-1 text-white/85">{quickStats.elapsed}</p>
                 </div>
@@ -237,30 +237,35 @@ const HomeScreen: React.FC = () => {
           )}
 
           <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl border border-white/8 bg-brand-bg-dark/30 px-3 py-3">
+            <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/35 px-2.5 py-3">
               <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Done</p>
-              <p className="mt-1 text-lg font-mono text-white/90">{progressSummary.completedCount}</p>
+              <p className="mt-1 text-lg font-mono text-white/90 tabular-nums">{progressSummary.completedCount}</p>
             </div>
-            <div className="rounded-xl border border-white/8 bg-brand-bg-dark/30 px-3 py-3">
+            <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/35 px-2.5 py-3">
               <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Latest</p>
-              <p className="mt-1 text-lg font-mono text-white/90">{progressSummary.latestScore ?? '-'}</p>
+              <p className="mt-1 text-lg font-mono text-brand-accent tabular-nums">{progressSummary.latestScore ?? '—'}</p>
             </div>
-            <div className="rounded-xl border border-white/8 bg-brand-bg-dark/30 px-3 py-3">
+            <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/35 px-2.5 py-3">
               <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-white/40">Best</p>
-              <p className="mt-1 text-lg font-mono text-white/90">{progressSummary.bestScore ?? '-'}</p>
+              <p className="mt-1 text-lg font-mono text-white/90 tabular-nums">{progressSummary.bestScore ?? '—'}</p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/8 bg-brand-bg-dark/35 p-4">
-            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">Latest Improvement Focus</p>
+          <div className="rounded-xl border border-white/[0.07] bg-brand-bg-dark/30 p-4 mt-auto">
+            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-white/45">Focus next</p>
             {progressSummary.improvementAreas.length > 0 ? (
-              <ul className="mt-3 space-y-2 text-sm text-brand-text-secondary/85">
-                {progressSummary.improvementAreas.map(area => <li key={area}>- {area}</li>)}
+              <ul className="mt-3 space-y-2 text-sm text-brand-text-secondary/90">
+                {progressSummary.improvementAreas.map(area => (
+                  <li key={area} className="flex gap-2">
+                    <span className="text-brand-accent mt-0.5">·</span>
+                    <span>{area}</span>
+                  </li>
+                ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-brand-text-secondary/80">Complete one analyzed session to unlock targeted improvement notes.</p>
+              <p className="mt-2 text-sm text-brand-text-secondary/80">Complete one analyzed session to unlock targeted notes.</p>
             )}
-            {progressSummary.latestCase && <p className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-brand-accent/80 truncate">Last case: {progressSummary.latestCase}</p>}
+            {progressSummary.latestCase && <p className="mt-3 text-[10px] font-mono uppercase tracking-[0.16em] text-brand-accent/80 truncate">Last: {progressSummary.latestCase}</p>}
           </div>
         </div>
       </section>

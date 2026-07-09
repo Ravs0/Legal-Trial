@@ -924,71 +924,51 @@ const PracticeArena: React.FC = () => {
     >
       <BackgroundGeometry />
 
-      <div className="px-3 py-3 sm:p-6 bg-brand-bg-secondary/80 backdrop-blur-md border-b border-brand-text-primary/15 sticky top-0 z-20 flex-shrink-0">
-        <div className="max-w-7xl mx-auto space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
-          <div className="text-left min-w-0 sm:flex-grow sm:max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-mono border border-brand-text-primary/20 bg-brand-bg-tertiary/60 text-brand-text-secondary uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
-              <span className="text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
-              <span className={`text-[10px] font-mono uppercase tracking-widest ${catColors.text}`}>{phaseLabel(activePhase)}</span>
+      <div className="px-3 py-2.5 sm:px-5 sm:py-3 bg-brand-bg-secondary/95 backdrop-blur-xl border-b border-white/[0.06] sticky top-0 z-20 flex-shrink-0">
+        <div className="max-w-7xl mx-auto space-y-2.5">
+          <div className="flex items-start sm:items-center justify-between gap-3">
+            <div className="text-left min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                <span className="inline-block px-2 py-0.5 rounded-md text-[9px] font-mono border border-white/10 bg-white/[0.04] text-brand-text-secondary uppercase tracking-wider">{currentSessionSettings.difficulty}</span>
+                <span className="text-[9px] font-mono text-brand-text-secondary/60 uppercase tracking-widest">{currentSessionSettings.sessionType}</span>
+              </div>
+              <h2 className="text-base sm:text-xl font-bold truncate font-serif text-brand-text-primary leading-snug" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
+              <div className="hidden sm:flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-brand-text-secondary mt-1">
+                <span className="flex items-center gap-1"><GavelIcon className="h-3.5 w-3.5 opacity-70" /> {currentSessionSettings.judgePersonality.name}</span>
+                <span className="flex items-center gap-1"><BriefcaseIcon className="h-3.5 w-3.5 opacity-70" /> {currentSessionSettings.opposingCounselPersonality.name}</span>
+              </div>
             </div>
-            <h2 className="text-lg sm:text-2xl font-bold text-shimmer truncate font-serif text-brand-text-primary" title={currentSessionSettings.caseDetail.title}>{currentSessionSettings.caseDetail.title}</h2>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] sm:text-sm text-brand-text-secondary mt-1.5">
-              <span className="flex items-center"><GavelIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.judgePersonality.name}</span>
-              <span className="flex items-center"><BriefcaseIcon className="h-3.5 w-3.5 mr-1" /> {currentSessionSettings.opposingCounselPersonality.name}</span>
+
+            <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+              {isTTSAvailable() && (
+                <button
+                  onClick={() => setVoiceEnabled(v => !v)}
+                  className={`px-3 py-2 rounded-xl border text-[10px] font-mono uppercase tracking-wider transition-all ${
+                    voiceEnabled
+                      ? `${catColors.bg} text-brand-accent-text border-transparent`
+                      : 'border-white/10 bg-white/[0.03] text-brand-text-secondary hover:text-brand-text-primary'
+                  }`}
+                  title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
+                >
+                  {voiceEnabled ? 'Voice On' : 'Voice Off'}
+                </button>
+              )}
+              {!sessionEnded && isTimerRunning && (
+                <button
+                  onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
+                  className="px-3 py-2 rounded-xl border border-brand-error/25 bg-brand-error/5 hover:bg-brand-error/10 text-brand-error transition-all text-[10px] font-mono uppercase tracking-wider"
+                  title="End Trial Early"
+                >
+                  End Early
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-            {!sessionEnded && isTimerRunning && (
-              <button
-                onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
-                className="p-2 sm:px-3 sm:py-1.5 rounded-lg border border-brand-error/30 bg-brand-bg-tertiary/40 hover:bg-brand-error/10 text-brand-error transition-all flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-wider"
-                title="End Trial Early"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <span className="hidden sm:inline">End Early</span>
-              </button>
-            )}
+          <SessionChipRow items={sessionMeta} className="hidden sm:grid" />
 
-            <div className="text-right bg-brand-bg-tertiary/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-brand-text-primary/15 hidden sm:block">
-              <p className={`text-xl sm:text-2xl font-mono tracking-tight ${catColors.text} font-bold`}>{scoreBreakdown.total}</p>
-              <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-brand-text-secondary/70">Court Score</p>
-            </div>
-
-            <div className="text-right bg-brand-bg-tertiary/40 px-3 py-1 sm:px-4 sm:py-2 rounded-lg border border-brand-text-primary/15">
-              <p className={`text-xl sm:text-2xl font-mono tracking-tight ${remainingSeconds < 60 ? 'text-brand-error animate-pulse' : catColors.text}`}>{formattedTime}</p>
-              <p className="text-[8px] sm:text-[9px] uppercase font-mono tracking-widest mt-0.5 text-brand-text-secondary/70">{remainingSeconds <= 0 ? 'Ended' : (isTimerRunning ? 'Remaining' : 'Paused')}</p>
-            </div>
-
-            {isTTSAvailable() && (
-              <button
-                onClick={() => setVoiceEnabled(v => !v)}
-                className={`p-2 sm:px-3 sm:py-1.5 rounded-lg border transition-all flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-wider ${
-                  voiceEnabled
-                    ? `${catColors.bg} text-brand-accent-text border-transparent`
-                    : 'border-brand-text-primary/20 bg-brand-bg-tertiary/40 text-brand-text-secondary hover:text-brand-text-primary'
-                }`}
-                title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
-                  {voiceEnabled ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.5 8.5a5 5 0 010 7M19 5a9 9 0 010 14" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M23 9l-6 6M17 9l6 6" />
-                  )}
-                </svg>
-                <span className="hidden sm:inline">{voiceEnabled ? 'Voice On' : 'Voice Off'}</span>
-              </button>
-            )}
-          </div>
-
-          <div className="sm:hidden space-y-3">
+          <div className="sm:hidden space-y-2">
             <SessionChipRow items={sessionMeta} />
-
             <div className="grid grid-cols-3 gap-2">
               {mobileQuickActions.map((action) => (
                 <button
@@ -996,10 +976,10 @@ const PracticeArena: React.FC = () => {
                   type="button"
                   onClick={action.onClick}
                   disabled={action.disabled}
-                  className={`rounded-xl border px-3 py-2.5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${action.tone}`}
+                  className={`rounded-xl border px-2.5 py-2 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px] ${action.tone}`}
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-wide">{action.label}</p>
-                  <p className="mt-1 text-[9px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/60">{action.hint}</p>
+                  <p className="mt-0.5 text-[9px] font-mono uppercase tracking-[0.14em] text-brand-text-secondary/55">{action.hint}</p>
                 </button>
               ))}
             </div>
@@ -1091,8 +1071,15 @@ const PracticeArena: React.FC = () => {
             <div className="p-3 sm:p-6 bg-brand-bg-primary border-t border-brand-text-primary/15 z-20 relative flex-shrink-0">
               <div className="max-w-4xl mx-auto">
                 {audioError && (
-                  <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/20 text-brand-error text-[11px] rounded-lg text-left animate-fadeIn">
-                    [ Error ] {audioError}
+                  <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/25 text-brand-error text-[11px] rounded-xl text-left animate-fadeIn flex items-start justify-between gap-3">
+                    <span className="leading-relaxed">{audioError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAudioError(null)}
+                      className="flex-shrink-0 text-[10px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 )}
 

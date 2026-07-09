@@ -4,7 +4,7 @@ export const BackgroundGeometry: React.FC = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 select-none">
       {/* Blueprint Grid Overlay — visible */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+      <svg className="absolute inset-0 w-full h-full opacity-[0.035]" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
             <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#D6BA91" strokeWidth="0.6" />
@@ -29,7 +29,7 @@ export const BackgroundGeometry: React.FC = () => {
       </svg>
 
       {/* Rotating Astrolabe Compass Rings — Top Right */}
-      <div className="absolute -top-40 -right-40 w-[560px] h-[560px] opacity-[0.08] animate-[spin_120s_linear_infinite]">
+      <div className="absolute -top-40 -right-40 w-[560px] h-[560px] opacity-[0.045] animate-[spin_120s_linear_infinite]">
         <svg className="w-full h-full text-brand-accent" viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="0.3">
           <circle cx="100" cy="100" r="95" strokeDasharray="2,3" />
           <circle cx="100" cy="100" r="88" />

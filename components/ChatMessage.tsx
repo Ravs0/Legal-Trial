@@ -144,7 +144,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   }
 
   return (
-    <div className={`group relative flex flex-col ${alignment} mb-6 px-4 py-3 rounded-lg hover:bg-zinc-900/20 transition-all duration-300 ease-out animate-fadeInUp w-full`}>
+    <div className={`group relative flex flex-col ${alignment} mb-4 sm:mb-5 px-2 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:bg-white/[0.02] transition-colors duration-200 animate-fadeInUp w-full`}>
       {/* Floating actions menu (hover on desktop, tap on mobile) */}
       {!isUser && (
         <>

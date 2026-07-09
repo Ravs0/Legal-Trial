@@ -107,29 +107,35 @@ const LandingScreen: React.FC = () => {
             case research &amp; strategy tools when you are ready to go deeper.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3">
             <button
               type="button"
               onClick={handleDemoStart}
-              className="min-h-[48px] px-6 py-3 rounded-xl bg-brand-accent text-brand-accent-text font-semibold inline-flex items-center justify-center gap-2 hover:bg-brand-accent-hover transition-colors"
+              className="min-h-[52px] px-8 py-3.5 rounded-2xl bg-brand-accent text-brand-accent-text font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 hover:bg-brand-accent-hover transition-all shadow-[0_8px_32px_rgba(214,186,145,0.18)] hover:shadow-[0_12px_40px_rgba(214,186,145,0.28)] hover:-translate-y-0.5"
             >
               <PlusCircleIcon className="h-5 w-5" />
               Start 5-Min Demo Trial
             </button>
             <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/55">
-              No setup required
+              No setup · Indian beginner case
             </span>
+          </div>
+
+          <div className="mt-10 mb-2 flex items-center gap-4 w-full max-w-md mx-auto">
+            <div className="h-px flex-1 bg-brand-border/60" />
+            <span className="text-[9px] font-mono uppercase tracking-[0.22em] text-brand-text-secondary/45">or choose jurisdiction</span>
+            <div className="h-px flex-1 bg-brand-border/60" />
           </div>
         </div>
 
         {/* Jurisdiction selection cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 w-full max-w-3xl mx-auto animate-fadeInUp" style={{ animationDelay: '0.15s' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 w-full max-w-3xl mx-auto animate-fadeInUp" style={{ animationDelay: '0.15s' }}>
 
           {/* Indian Legal Practice */}
           <div
             onClick={() => handleModeSelection('indian')}
-            className="group relative bg-brand-bg-secondary border border-brand-border rounded-2xl p-8 sm:p-10 cursor-pointer transition-all duration-400 ease-out shadow-sm
-              hover:bg-brand-bg-primary hover:border-brand-accent/40 hover:shadow-card hover:-translate-y-1 focus-ring"
+            className="group relative bg-brand-bg-secondary/80 border border-brand-border rounded-2xl p-7 sm:p-9 cursor-pointer transition-all duration-300 ease-out
+              hover:border-brand-accent/45 hover:shadow-card-hover hover:-translate-y-1 focus-ring backdrop-blur-sm"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('indian'); } }}
@@ -165,8 +171,8 @@ const LandingScreen: React.FC = () => {
           {/* International Law Practice */}
           <div
             onClick={() => handleModeSelection('international')}
-            className="group relative bg-brand-bg-secondary border border-brand-border rounded-2xl p-8 sm:p-10 cursor-pointer transition-all duration-400 ease-out shadow-sm
-              hover:bg-brand-bg-primary hover:border-brand-accent/40 hover:shadow-card hover:-translate-y-1 focus-ring"
+            className="group relative bg-brand-bg-secondary/80 border border-brand-border rounded-2xl p-7 sm:p-9 cursor-pointer transition-all duration-300 ease-out
+              hover:border-brand-accent/45 hover:shadow-card-hover hover:-translate-y-1 focus-ring backdrop-blur-sm"
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleModeSelection('international'); } }}
