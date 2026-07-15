@@ -266,11 +266,7 @@ class DreadlerAgent:
             url, data=data, headers=headers, method="POST"
         )
 
-        # Production environments may encounter SSL issues during local
-        # development; the spec requires disabling hostname verification.
         ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
 
         try:
             with urllib.request.urlopen(

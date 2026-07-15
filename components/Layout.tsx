@@ -142,6 +142,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [activeSessionLabel, setActiveSessionLabel] = useState<string | null>(null);
+  const labRoutes: string[] = [ROUTES.STRATEGY, ROUTES.PERSONAS, ROUTES.DREADLER];
+  const [labsExpanded, setLabsExpanded] = useState(() => labRoutes.includes(location.pathname));
 
   useEffect(() => {
     localStorage.setItem('sidebarOpen', JSON.stringify(isSidebarOpen));
@@ -163,6 +165,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   useEffect(() => {
     setIsMobileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (labRoutes.includes(location.pathname)) setLabsExpanded(true);
   }, [location.pathname]);
 
   const hideSidebarOnPaths: string[] = [ROUTES.PRACTICE, ROUTES.LANDING];
@@ -288,10 +294,25 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <NavItem to={ROUTES.COURT_SOURCES} label="Court sources" icon={<CourtIcon />} isSidebarOpen={isExpanded} />
             )}
 
-            <SectionLabel label="Labs" isOpen={isExpanded} />
-            <NavItem to={ROUTES.STRATEGY} label="Strategy" icon={<SparklesIcon />} isSidebarOpen={isExpanded} />
-            <NavItem to={ROUTES.PERSONAS} label="Personas" icon={<BrainIcon />} isSidebarOpen={isExpanded} />
-            <NavItem to={ROUTES.DREADLER} label="Deception" icon={<TargetIcon />} isSidebarOpen={isExpanded} />
+            <div className={`mt-3 ${isExpanded ? 'px-1' : ''}`}>
+              <button
+                type="button"
+                onClick={() => setLabsExpanded((open) => !open)}
+                aria-expanded={labsExpanded}
+                className={`w-full flex items-center rounded-md px-2.5 py-2 text-[13px] text-brand-text-secondary hover:bg-white/[0.03] hover:text-brand-text-primary ${isExpanded ? 'justify-between' : 'justify-center'}`}
+                aria-label="Toggle optional labs"
+              >
+                <span className={`flex items-center ${isExpanded ? 'gap-2.5' : ''}`}><SparklesIcon />{isExpanded && 'Optional labs'}</span>
+                {isExpanded && <span className="text-[11px]" aria-hidden="true">{labsExpanded ? '−' : '+'}</span>}
+              </button>
+              {labsExpanded && (
+                <div className={isExpanded ? 'mt-0.5 space-y-0.5' : 'space-y-0.5'}>
+                  <NavItem to={ROUTES.STRATEGY} label="Strategy" icon={<SparklesIcon />} isSidebarOpen={isExpanded} />
+                  <NavItem to={ROUTES.PERSONAS} label="Personas" icon={<BrainIcon />} isSidebarOpen={isExpanded} />
+                  <NavItem to={ROUTES.DREADLER} label="Deception" icon={<TargetIcon />} isSidebarOpen={isExpanded} />
+                </div>
+              )}
+            </div>
 
             <SectionLabel label="Reference" isOpen={isExpanded} />
             <NavItem to={ROUTES.BENCH} label="Bench" icon={<GavelIcon />} isSidebarOpen={isExpanded} />

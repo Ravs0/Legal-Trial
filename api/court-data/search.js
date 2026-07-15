@@ -1,4 +1,5 @@
 // Vercel Node.js 18+ serverless function — official Indian court data gateway
+import { allowRequest, applyCors } from '../security.js';
 //
 // This route intentionally returns official source references and normalized
 // metadata. It does not scrape captcha-protected/session-only court portals or
@@ -206,11 +207,11 @@ function parseGetQuery(req) {
 }
 
 export default async function handler(req, res) {
-    const origin = req.headers["origin"] || "";
-    Object.entries(getCorsHeaders(origin)).forEach(([key, value]) => res.setHeader(key, value));
+    if (!applyCors(req, res, 'GET, POST, OPTIONS')) return res.status(403).json({ error: 'Origin is not allowed.' });
 
     if (req.method === "OPTIONS") return res.status(200).end();
     if (req.method !== "GET" && req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+    if (!allowRequest(req, { limit: 60, windowMs: 60_000 })) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
     try {
         const rawQuery = req.method === "GET" ? parseGetQuery(req) : parseBody(req);

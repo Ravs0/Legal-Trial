@@ -79,6 +79,7 @@ export const RoomTabs: React.FC<{
   className?: string;
 }> = ({ tabs, active, onChange, className = '' }) => (
   <div
+    role="tablist"
     className={`relative inline-flex rounded-lg border border-white/20 bg-black/40 p-0.5 gap-0.5 overflow-hidden backdrop-blur-sm ${className}`}
   >
     <SurfacePattern variant="dots" className="opacity-50" />
@@ -86,8 +87,10 @@ export const RoomTabs: React.FC<{
       <button
         key={t.id}
         type="button"
+        role="tab"
+        aria-selected={active === t.id}
         onClick={() => onChange(t.id)}
-        className={`relative z-10 px-2.5 sm:px-3.5 py-1.5 rounded-md text-[11px] sm:text-[12px] font-medium transition-colors ${
+        className={`relative z-10 min-h-10 px-2.5 sm:px-3.5 py-1.5 rounded-md text-[11px] sm:text-[12px] font-medium transition-colors ${
           active === t.id ? 'bg-white text-black' : 'text-white/70 hover:text-white'
         }`}
       >

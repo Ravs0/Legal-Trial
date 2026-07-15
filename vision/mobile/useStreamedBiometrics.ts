@@ -20,12 +20,22 @@ import {
   type EmotionSet,
 } from '../shared/emotion-keys';
 
-// Configure this per README. Default points at localhost for desktop testing;
-// on a real phone it must be your laptop's LAN IP (e.g. ws://192.168.1.5:8787).
-const WS_URL =
-  (typeof window !== 'undefined' &&
-    (window as unknown as { __BIO_WS_URL__?: string }).__BIO_WS_URL__) ||
-  'ws://localhost:8787';
+// Remote biometric processing is opt-in. Frames never leave the device unless
+// a deployment explicitly supplies a token-protected endpoint at build time.
+const WS_URL = import.meta.env.VITE_BIOMETRIC_WS_URL?.trim() || '';
+const WS_TOKEN = import.meta.env.VITE_BIOMETRIC_WS_TOKEN?.trim() || '';
+
+function isApprovedEndpoint(url: string) {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    const localDev = import.meta.env.DEV && parsed.protocol === 'ws:' &&
+      ['localhost', '127.0.0.1', '::1'].includes(parsed.hostname);
+    return parsed.protocol === 'wss:' || localDev;
+  } catch {
+    return false;
+  }
+}
 
 const FRAME_INTERVAL_MS = 500;  // ~2 fps uplink
 const CROP_SIZE = 96;           // small — POS averages, HSEmotion upsamples
@@ -39,6 +49,7 @@ interface HookState {
 export function useStreamedBiometrics(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   coherence: number,
+  enabled: boolean,
 ): HookState {
   const [reading, setReading] = useState<BiometricReading>({
     bpm: null,
@@ -56,6 +67,11 @@ export function useStreamedBiometrics(
   const lastBpmRef = useRef<number | null>(null);
 
   useEffect(() => {
+    if (!enabled || !WS_TOKEN || !isApprovedEndpoint(WS_URL)) {
+      setConnected(false);
+      setReading((prev) => ({ ...prev, bpm: null, emotions: { ...NEUTRAL_EMOTIONS }, cameraOn: false }));
+      return;
+    }
     const video = videoRef.current;
     if (!video) return;
     if (!scratchRef.current) scratchRef.current = document.createElement('canvas');
@@ -67,7 +83,9 @@ export function useStreamedBiometrics(
     // --- connect ---
     let ws: WebSocket;
     try {
-      ws = new WebSocket(WS_URL);
+      const endpoint = new URL(WS_URL);
+      endpoint.searchParams.set('token', WS_TOKEN);
+      ws = new WebSocket(endpoint.toString());
     } catch (err) {
       console.warn('[bio-stream] could not open WebSocket:', err);
       return;
@@ -126,11 +144,11 @@ export function useStreamedBiometrics(
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       try { ws.close(); } catch { /* ignore */ }
     };
-  }, [videoRef]);
+  }, [videoRef, enabled]);
 
   useEffect(() => {
-    setReading((prev) => ({ ...prev, coherence }));
-  }, [coherence]);
+    setReading((prev) => ({ ...prev, coherence, cameraOn: enabled }));
+  }, [coherence, enabled]);
 
   return { reading, connected };
 }

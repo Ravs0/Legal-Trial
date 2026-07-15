@@ -171,8 +171,8 @@ export const clearPendingSettings = (): void => {
 /** Remove all LexForge content and preferences kept in this browser. */
 export const clearStoredLexForgeData = (): void => {
   if (!isBrowser) return;
-  const removablePrefixes = ['legal-trial.', 'lexforge.', 'draft-save-', 'subject-'];
-  const removableExactKeys = new Set(['practiceMode', 'sidebarOpen']);
+  const removablePrefixes = ['legal-trial.', 'lexforge.', 'lexide_', 'draft-save-', 'draft-snapshots-', 'subject-'];
+  const removableExactKeys = new Set(['practiceMode', 'sidebarOpen', 'lexide_v1_session']);
   try {
     const keys = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index)).filter(Boolean) as string[];
     keys.forEach((key) => {

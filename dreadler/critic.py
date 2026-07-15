@@ -39,13 +39,10 @@ class CriticLayer:
         """
         Initialize the CriticLayer.
 
-        Sets up an SSL context with ``check_hostname=False`` and
-        ``verify_mode=ssl.CERT_NONE``, and loads DeepSeek credentials from the
-        environment.
+        Uses the platform certificate store and loads DeepSeek credentials from
+        the environment.
         """
         self._ctx = ssl.create_default_context()
-        self._ctx.check_hostname = False
-        self._ctx.verify_mode = ssl.CERT_NONE
         self._api_key = ""
         for key in ["DEEPSEEK_API_KEY", "DEEPSEEK_CHAT_API_KEY", "DEEPSEEK_REASONER_API_KEY"]:
             val = os.environ.get(key)

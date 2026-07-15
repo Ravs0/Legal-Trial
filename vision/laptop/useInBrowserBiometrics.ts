@@ -30,6 +30,7 @@ interface HookState {
 export function useInBrowserBiometrics(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   coherence: number,
+  enabled: boolean,
 ): HookState {
   const [reading, setReading] = useState<BiometricReading>({
     bpm: null,
@@ -51,13 +52,21 @@ export function useInBrowserBiometrics(
   // Prime the HSEmotion session once.
   useEffect(() => {
     let cancelled = false;
+    if (!enabled) {
+      setSessionReady(false);
+      return;
+    }
     getHsemotionSession().then((s) => {
       if (!cancelled) setSessionReady(s !== null);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      setReading((prev) => ({ ...prev, bpm: null, emotions: { ...NEUTRAL_EMOTIONS }, cameraOn: false }));
+      return;
+    }
     // Reset buffer when the hook mounts fresh.
     samplesRef.current = [];
     if (!scratchRef.current) {
@@ -121,12 +130,12 @@ export function useInBrowserBiometrics(
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [videoRef, sessionReady]);
+  }, [videoRef, sessionReady, enabled]);
 
   // Reflect coherence into the reading whenever it changes upstream.
   useEffect(() => {
-    setReading((prev) => ({ ...prev, coherence }));
-  }, [coherence]);
+    setReading((prev) => ({ ...prev, coherence, cameraOn: enabled }));
+  }, [coherence, enabled]);
 
   return { reading, sessionReady };
 }

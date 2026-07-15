@@ -60,14 +60,16 @@ const BenchCounselScreen: React.FC = () => {
         size="md"
         eyebrow="Reference"
         title="Bench & counsel"
-        subtitle={`Simulated AI judges and opposing counsel for ${jurisdictionLabel} practice. Review their mock courtroom approaches before you enter the arena.`}
+        subtitle={`Fictional training profiles for ${jurisdictionLabel} practice — not real judges, biographies, legal advice, or legal authority.`}
       />
 
       <div className="flex justify-center">
-        <div className="relative inline-flex rounded-lg border border-brand-border bg-brand-bg-secondary p-1 gap-1 overflow-hidden">
+        <div role="tablist" aria-label="Bench and counsel profiles" className="relative inline-flex rounded-lg border border-brand-border bg-brand-bg-secondary p-1 gap-1 overflow-hidden">
           <SurfacePattern variant="dots" className="opacity-80" />
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'judges'}
             onClick={() => setTab('judges')}
             className={`relative z-10 min-h-[40px] px-4 sm:px-5 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2 ${
               activeTab === 'judges'
@@ -80,6 +82,8 @@ const BenchCounselScreen: React.FC = () => {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'counsel'}
             onClick={() => setTab('counsel')}
             className={`relative z-10 min-h-[40px] px-4 sm:px-5 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2 ${
               activeTab === 'counsel'
@@ -122,7 +126,7 @@ const BenchCounselScreen: React.FC = () => {
                     {judge.description}
                   </p>
                   <span className="inline-flex text-[12px] text-brand-text-secondary border border-brand-border rounded-md px-2.5 py-1 group-hover:text-brand-text-primary group-hover:border-white/20">
-                    View profile
+                    Simulation profile
                   </span>
                 </div>
               </PatternPanel>
@@ -168,7 +172,7 @@ const BenchCounselScreen: React.FC = () => {
                     {oc.description}
                   </p>
                   <span className="inline-flex text-[12px] text-brand-text-secondary border border-brand-border rounded-md px-2.5 py-1 group-hover:text-brand-text-primary group-hover:border-white/20">
-                    View profile
+                    Simulation profile
                   </span>
                 </div>
               </PatternPanel>

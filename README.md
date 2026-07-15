@@ -34,8 +34,10 @@ Environment Variables):
 
 | Variable | Required | Used by | Description |
 |---|---|---|---|
-| `DEEPSEEK_API_KEY` | **Yes** | `/api/chat`, `/api/call` | Powers all chat, judge, opposing-counsel, drafting, and performance analysis. |
+| `DEEPSEEK_API_KEY` | **Yes** | `/api/chat` | Powers all chat, judge, opposing-counsel, drafting, and performance analysis. |
 | `SARVAM_API_KEY` | Optional | `/api/voice` | Enables speech-to-text (mic input) and text-to-speech ("Read Aloud"). Without it, voice features are disabled. |
+| `ALLOWED_ORIGINS` | **Yes in production** | API routes | Comma-separated deployed app origins permitted to call the API. |
+| `DREADLER_STATE_SECRET` | Required for Dreadler | `/api/dreadler` | Long random secret used to sign the simulation state between turns. |
 
 Then deploy:
 ```
@@ -44,11 +46,10 @@ vercel --prod
 
 ## How the AI layer works
 
-- All model requests go through `POST /api/chat` (chat + streaming) or
-  `POST /api/call` (single-shot). See `api/`.
+- All model requests go through `POST /api/chat` (chat + streaming). See `api/`.
 - These functions read `DEEPSEEK_API_KEY` server-side and forward to DeepSeek's
   Chat Completions API. No key is ever exposed to the browser.
-- If the key is missing or the upstream fails, the API returns a `50x` and the
+- If a required key is missing or the upstream fails, the API returns a `50x` and the
   UI shows a clear "AI service unavailable" message. There is **no silent mock
   fallback** — what you see is always the real model.
 

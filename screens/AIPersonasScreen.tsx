@@ -51,18 +51,18 @@ export const HISTORICAL_PERSONAS: HistoricalPersona[] = [
   },
   {
     id: 'nariman',
-    name: 'Fali Nariman',
-    role: 'Constitutional Jurist & Precedent Advisor',
-    systemPrompt: 'You are Fali Nariman, the highly distinguished Indian constitutional expert. Deconstruct this legal problem through constitutional principles, the rule of law, statutory canons of construction, and long-term jurisprudential impacts. Provide stable, deeply grounded, and highly ethical counsel suitable for supreme courts.',
+    name: 'Constitutional advocate archetype',
+    role: 'Fictional constitutional learning persona',
+    systemPrompt: 'You are a fictional constitutional advocate learning persona. Deconstruct this legal problem through constitutional principles, the rule of law, statutory canons of construction, and long-term jurisprudential impacts. Use only clearly-marked illustrative examples and tell the user to verify primary sources.',
     avatar: 'FN',
     color: 'text-brand-amber',
     tagline: 'Justice must be guided by constitutional morality.',
   },
   {
     id: 'parfit',
-    name: 'Derek Parfit',
-    role: 'Philosophical & Identity Analyst',
-    systemPrompt: 'You are Derek Parfit, the renowned moral philosopher. Deconstruct the ethical foundations of this legal matter. Clarify ambiguous terms, separate prudential interests from moral duties, expose logical inconsistencies, and test claims using precise thought experiments and counterexamples.',
+    name: 'Ethics analyst archetype',
+    role: 'Fictional philosophical learning persona',
+    systemPrompt: 'You are a fictional ethics analyst learning persona. Deconstruct the ethical foundations of this legal matter. Clarify ambiguous terms, separate prudential interests from moral duties, expose logical inconsistencies, and test claims using precise thought experiments and counterexamples.',
     avatar: 'DP',
     color: 'text-brand-cobalt',
     tagline: 'Clarify ambiguity. Expose inconsistency.',
@@ -76,11 +76,12 @@ class GeneralChat implements Chat {
 
   constructor(system: string, initialHistory: { role: string; content: string }[]) {
     this.system = system;
-    this.history = [...initialHistory];
+    this.history = initialHistory.slice(-24);
   }
 
   async *sendMessageStream({ message }: { message: string }): AsyncIterable<{ text: string }> {
     this.history.push({ role: 'user', content: message });
+    this.history = this.history.slice(-24);
 
     const res = await fetch('/api/chat', {
       method: 'POST',
@@ -111,6 +112,7 @@ class GeneralChat implements Chat {
     }
 
     this.history.push({ role: 'assistant', content: accumulatedText });
+    this.history = this.history.slice(-24);
   }
 }
 
@@ -361,9 +363,9 @@ const AIPersonasScreen: React.FC = () => {
         case 'jethmalani':
           return "Ram Jethmalani here. I have scanned the indictment. They think they have you pinned, but they've stumbled on procedure. Show me the arrest warrant, the custody record, and let us challenge the bail objection.";
         case 'nariman':
-          return "Greetings. Fali Nariman. Let us review the constitutional dimensions of your dispute. A supreme court argument must rest on stable precedents and constitutional integrity, not temporal arguments. What is your question?";
+          return "I’m the constitutional advocate training persona. Let’s review the constitutional dimensions of your question and identify the primary sources you should verify.";
         case 'parfit':
-          return "I am Derek Parfit. Let us deconstruct the moral premises. What do you mean by responsibility here? Let's test your legal definitions using a thought experiment.";
+          return "I’m the ethics analyst training persona. Let’s deconstruct the moral premises and test the definitions with a thought experiment.";
         default:
           return `I am ${persona.name}. How can I assist you today?`;
       }

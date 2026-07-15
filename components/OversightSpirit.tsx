@@ -130,7 +130,7 @@ async function callKokuApi(
 const PROACTIVE_COOLDOWN_MS = 60_000;  // 60 seconds between popups
 const TOAST_AUTO_DISMISS_MS = 8_000;   // 8 seconds
 const ROUTE_CHANGE_DELAY_MS = 3_000;   // 3 seconds after route change
-const INITIAL_GREETING = "Finally. Let's see what you're up to. Try not to embarrass yourself too much while I'm watching.";
+const INITIAL_GREETING = "I’m here if you want a concise practice prompt or a second set of eyes.";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -144,6 +144,8 @@ export const OversightSpirit: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [toast, setToast] = useState<ToastState>({ visible: false, text: '', exiting: false });
   const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
+  const [proactiveEnabled, setProactiveEnabled] = useState(false);
+  const [shareCrossModuleContext, setShareCrossModuleContext] = useState(false);
 
   // ── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -166,7 +168,7 @@ export const OversightSpirit: React.FC = () => {
 
   // ── Build Koku's system prompt with bridge context ───────────────────────
   const buildSystemPrompt = useCallback((): string => {
-    const bridgeSummary = bridge?.getConversationSummary() || '';
+    const bridgeSummary = shareCrossModuleContext ? (bridge?.getConversationSummary() || '') : '';
     const hasBridgeActivity = bridgeSummary && !bridgeSummary.includes('No recent conversations');
 
     return `${KOKU_SYSTEM_PROMPT}
@@ -178,7 +180,7 @@ export const OversightSpirit: React.FC = () => {
 ${hasBridgeActivity ? `\n# Cross-Module Conversation Awareness\nYou can see what the user has been discussing with other modules. Use this to make insightful, connected observations. Reference their conversations naturally — e.g., "I saw you were talking to Danda about bail. Here's what I think..."\n\n${bridgeSummary}` : ''}
 
 Remember: you are Koku, the Oversight Spirit. Never break character. Keep responses punchy and under 100 words unless the user asks for detail.`;
-  }, [location.pathname, context, bridge]);
+  }, [location.pathname, context, bridge, shareCrossModuleContext]);
 
   // ── Toast management ─────────────────────────────────────────────────────
   const dismissToast = useCallback(() => {
@@ -216,6 +218,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
 
   // ── Proactive route-change remarks ───────────────────────────────────────
   useEffect(() => {
+    if (!proactiveEnabled) return;
     const currentPath = location.pathname;
 
     // Skip if same route, or chat is already open, or on landing
@@ -271,7 +274,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
       if (routeTimerRef.current) clearTimeout(routeTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, proactiveEnabled]);
 
   // ── Send message handler ─────────────────────────────────────────────────
   const handleSend = async () => {
@@ -326,7 +329,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
         ...prev,
         { role: 'user', content: userMsg },
         { role: 'assistant', content: responseText },
-      ]);
+      ].slice(-24));
     } catch {
       setMessages(prev =>
         prev.map(m => m.id === responseId
@@ -349,7 +352,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
 
       {/* ─── Full Chat Window ──────────────────────────────────────────────── */}
       {isOpen && (
@@ -363,7 +366,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
               <div>
                 <span className="text-brand-accent font-serif font-bold text-base">Koku</span>
                 <span className="ml-2 text-[9px] text-brand-text-secondary tracking-widest uppercase border border-brand-text-primary/20 px-1.5 py-0.5">
-                  Oversight Spirit
+                  Optional coach
                 </span>
               </div>
             </div>
@@ -375,6 +378,10 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+          <div className="flex gap-2 border-b border-brand-text-primary/15 px-4 py-2 text-[10px] text-brand-text-secondary">
+            <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={proactiveEnabled} onChange={(event) => setProactiveEnabled(event.target.checked)} /> Proactive tips</label>
+            <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={shareCrossModuleContext} onChange={(event) => setShareCrossModuleContext(event.target.checked)} /> Share module context</label>
           </div>
 
           {/* Messages */}
@@ -420,6 +427,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
               placeholder="Ask Koku..."
+              aria-label="Ask Koku"
               className="flex-grow bg-transparent text-sm text-brand-text-primary focus:outline-none placeholder-brand-text-secondary/50 font-light"
             />
             <button
@@ -477,9 +485,8 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
           className="w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-xl shadow-[4px_4px_0px_0px_#FF5A1F] hover:shadow-[2px_2px_0px_0px_#FF5A1F] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center relative group"
         >
           <span className="text-xl font-bold text-brand-accent font-serif">K</span>
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-error rounded-xl border border-brand-bg-primary animate-pulse" />
           <div className="absolute right-16 bg-brand-bg-secondary border border-brand-accent text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-xl">
-            Oversight Active
+            Open optional coach
           </div>
         </button>
       )}

@@ -15,12 +15,14 @@ interface MasterManuscriptProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   onSelectionChange: (range: { start: number; end: number } | null) => void;
   onCreateSection: () => void;
+  hasAiConsent: boolean;
+  setHasAiConsent: (value: boolean) => void;
 }
 
 export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
   fullContent, setFullContent, sections, onDeleteSection,
   onSmartSplit, isProcessing, selectionRange, textareaRef,
-  onSelectionChange, onCreateSection,
+  onSelectionChange, onCreateSection, hasAiConsent, setHasAiConsent,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +71,13 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
             </span>
           }
         />
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2.5 text-[11px] leading-relaxed text-brand-text-secondary">
+          Do not paste or upload confidential, privileged, or client-identifying material. Files stay in this browser until you run an AI feature; AI features send the selected content to the configured service.
+        </div>
+        <label className="flex items-start gap-2.5 text-[11px] leading-relaxed text-brand-text-secondary">
+          <input type="checkbox" checked={hasAiConsent} onChange={(event) => setHasAiConsent(event.target.checked)} className="mt-0.5 h-4 w-4 accent-brand-accent" />
+          <span>I confirm this material is appropriate to process with the configured AI service.</span>
+        </label>
         <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInputRef}
@@ -80,14 +89,15 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-2 bg-brand-bg-secondary hover:bg-white/[0.04] text-brand-text-primary text-[12px] rounded-lg border border-brand-border transition-colors flex items-center gap-2"
+            disabled={!hasAiConsent}
+            className="min-h-10 px-3 py-2 bg-brand-bg-secondary hover:bg-white/[0.04] text-brand-text-primary text-[12px] rounded-lg border border-brand-border transition-colors disabled:cursor-not-allowed disabled:opacity-40 flex items-center gap-2"
           >
             <Upload size={14} /> Upload
           </button>
           <button
             onClick={onSmartSplit}
-            disabled={isProcessing || !fullContent.trim()}
-            className="px-3 py-2 bg-white text-black text-[12px] font-medium rounded-lg disabled:opacity-40 flex items-center gap-2"
+            disabled={isProcessing || !fullContent.trim() || !hasAiConsent}
+            className="min-h-10 px-3 py-2 bg-white text-black text-[12px] font-medium rounded-lg disabled:opacity-40 flex items-center gap-2"
           >
             {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
             Smart split

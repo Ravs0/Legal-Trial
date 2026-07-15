@@ -1,19 +1,18 @@
 // Vercel Node.js 18+ serverless function — Voice Integration (Sarvam AI)
+import { allowRequest, applyCors, validText } from './security.js';
 
-function corsHeaders(origin) {
-    return {
-        "Access-Control-Allow-Origin": origin || "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-    };
-}
+const MAX_TTS_CHARS = 6_000;
+const MAX_AUDIO_BASE64_CHARS = 8 * 1024 * 1024;
+const SUPPORTED_LANGUAGES = new Set(['hi-IN', 'en-IN', 'ta-IN', 'te-IN', 'bn-IN', 'gu-IN', 'kn-IN', 'ml-IN', 'mr-IN', 'pa-IN']);
 
 export default async function handler(req, res) {
-    const origin = req.headers["origin"] || "*";
-    Object.entries(corsHeaders(origin)).forEach(([k, v]) => res.setHeader(k, v));
+    if (!applyCors(req, res)) return res.status(403).json({ error: 'Origin is not allowed.' });
 
     if (req.method === "OPTIONS") return res.status(200).end();
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+    if (!allowRequest(req, { limit: 20, windowMs: 60_000 })) {
+        return res.status(429).json({ error: 'Too many voice requests. Please wait a minute and try again.' });
+    }
 
     let body = req.body;
     if (typeof body === "string") {
@@ -37,7 +36,8 @@ export default async function handler(req, res) {
     try {
         if (action === "tts") {
             const { text, language = "hi-IN", gender = "female" } = body;
-            if (!text) return res.status(400).json({ error: "Missing 'text' for TTS" });
+            if (!validText(text, MAX_TTS_CHARS) || !text.trim()) return res.status(400).json({ error: `TTS text must be 1–${MAX_TTS_CHARS} characters.` });
+            if (!SUPPORTED_LANGUAGES.has(language) || !['female', 'male'].includes(gender)) return res.status(400).json({ error: 'Unsupported voice option.' });
 
             const response = await fetch("https://api.sarvam.ai/text-to-speech", {
                 method: "POST",
@@ -73,7 +73,8 @@ export default async function handler(req, res) {
 
         } else if (action === "stt") {
             const { audio, language = "hi-IN" } = body;
-            if (!audio) return res.status(400).json({ error: "Missing 'audio' for STT" });
+            if (!validText(audio, MAX_AUDIO_BASE64_CHARS) || !audio) return res.status(400).json({ error: 'Audio is missing or exceeds the 6 MB limit.' });
+            if (!SUPPORTED_LANGUAGES.has(language)) return res.status(400).json({ error: 'Unsupported language.' });
 
             // Decode base64 audio to Buffer
             const audioBuffer = Buffer.from(audio, "base64");

@@ -2,7 +2,7 @@
 
 Adds real rPPG (remote photoplethysmography) + HSEmotion emotion classification to the Legal-Trial app. Replaces the simulated biosignal data with actual pulse and expression readings extracted from the user's webcam feed.
 
-**Architecture:** The pipeline is adaptive — on laptop, POS + HSEmotion run in the browser via ONNX Web. On phone, frames are streamed to a persistent Python backend that runs the models.
+**Architecture:** The pipeline is adaptive — on laptop, POS + HSEmotion run in the browser via ONNX Web. Mobile streaming is disabled by default; when explicitly enabled, frames go only to a token-protected `wss://` backend.
 
 **Integration:** The hook `useRealBiometrics()` returns the same `{bpm, emotions, pupilMm, coherence, cameraOn}` shape as the simulated `useBiometrics()` in `DreadlerArenaScreen.tsx`. The screen swaps sources with a one-line conditional: `const bio = camera.cameraOn ? realBio : simulatedBio`. When the camera is off, the theater animation continues.
 
@@ -10,7 +10,7 @@ Adds real rPPG (remote photoplethysmography) + HSEmotion emotion classification 
 
 | Workload | Needs | Runs on |
 |----------|-------|---------|
-| DeepSeek LLM | Stateless HTTP | Vercel (`api/call.js`) |
+| DeepSeek LLM | Stateless HTTP | Vercel (`api/chat.js`) |
 | rPPG + HSEmotion | Persistent process + model | Your laptop (dev) or a VPS/container |
 
 The phone path (`useStreamedBiometrics`) points at the Python backend via `WS_URL`. In dev, use your laptop's LAN IP so the phone can reach it.
@@ -62,26 +62,20 @@ This adds ~27 MB of WASM (.wasm files) for the WebGL + SIMD runtime. Vite tree-s
 ```
 POS (heart rate) works fully with zero downloads. Emotions require the ONNX file.
 
-### 3. Run the Python backend (only needed for phone path)
+### 3. Run the Python backend (only for an explicitly enabled phone path)
 ```bash
 cd vision/backend
 pip install -r requirements.txt
-uvicorn server:app --host 0.0.0.0 --port 8787
+BIO_WS_TOKEN="replace-with-a-long-random-secret" uvicorn server:app --host 127.0.0.1 --port 8787
 ```
 
-For the phone to reach it, use your laptop's LAN IP:
+Configure the deployment at build time, never in the browser console:
 ```bash
-ipconfig getifaddr en0                   # macOS
-hostname -I | awk '{print $1}'            # Linux
+VITE_BIOMETRIC_WS_URL=wss://biometrics.example.com/ws/biometrics
+VITE_BIOMETRIC_WS_TOKEN="same-long-random-secret"
 ```
 
-Then set the WebSocket URL before the phone opens the app:
-```ts
-// In browser console or a config surface:
-window.__BIO_WS_URL__ = 'ws://192.168.1.5:8787';
-```
-
-On laptop (dev), the default `ws://localhost:8787` works.
+Use TLS (`wss://`) outside local development. The app does not open a mobile WebSocket or upload frames without both variables.
 
 ---
 
@@ -121,6 +115,6 @@ Both implement the same algorithm and produce equivalent results:
 
 ## Notes
 
-- **The simulator still runs.** When the camera is off, `useBiometrics()` provides the theater animation (fake BPM/emotion driven by coherence and pressure level).
+- **The simulator still runs.** When the camera is off, `useBiometrics()` provides clearly simulated drill telemetry. When a camera is on, unavailable measurements remain unavailable rather than falling back to simulation.
 - **onnxruntime-web** adds ~27 MB WASM to the build. If you only use the mobile path and never run emotions in-browser, you can change `hsemotion.session.ts` to skip loading it and rely entirely on the Python backend for emotions.
 - **The 6 dB SNR threshold** was calibrated against the synthetic test. Real lighting may need adjustment — you can tune `MIN_SNR_DB` in both `pos.ts` and `pos.py` at runtime.

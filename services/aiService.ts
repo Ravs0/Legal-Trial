@@ -24,6 +24,9 @@ class AiServiceError extends Error {
   }
 }
 
+const MAX_CHAT_HISTORY_MESSAGES = 24;
+const boundedHistory = (history: { role: string; content: string }[]) => history.slice(-MAX_CHAT_HISTORY_MESSAGES);
+
 const apiErrorMessage = (status: number, error?: string) => {
   if (import.meta.env.DEV && status === 404) {
     return 'The AI endpoint is unavailable in Vite dev. Start the app with `vercel dev` so the local /api functions are available.';
@@ -60,12 +63,13 @@ class GenericChat implements Chat {
   private system: string;
 
   constructor(initialHistory: { role: string; content: string }[], system: string) {
-    this.history = [...initialHistory];
+    this.history = boundedHistory(initialHistory);
     this.system = system;
   }
 
   async *sendMessageStream({ message }: { message: string }): AsyncIterable<{ text: string }> {
     this.history.push({ role: 'user', content: message });
+    this.history = boundedHistory(this.history);
 
     try {
       const res = await fetch('/api/chat', {
@@ -97,6 +101,7 @@ class GenericChat implements Chat {
       }
 
       this.history.push({ role: 'assistant', content: accumulatedText });
+      this.history = boundedHistory(this.history);
     } catch (error) {
       // Don't pollute the conversation history with a failed attempt.
       this.history.pop();

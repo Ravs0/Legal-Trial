@@ -1,4 +1,5 @@
 // Vercel Node.js 18+ serverless function — Case-law search proxy
+import { allowRequest, applyCors } from './security.js';
 //
 // One source for now: IndianKanoon (https://indiankanoon.org) for the INDIAN
 // jurisdiction. The INTERNATIONAL / common-law jurisdiction is deferred — the
@@ -149,11 +150,11 @@ async function searchIndianKanoonScrape(query, pageNum, limit) {
 
 // ─── Handler ───────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-    const origin = req.headers["origin"] || "";
-    Object.entries(getCorsHeaders(origin)).forEach(([k, v]) => res.setHeader(k, v));
+    if (!applyCors(req, res)) return res.status(403).json({ error: 'Origin is not allowed.' });
 
     if (req.method === "OPTIONS") return res.status(200).end();
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+    if (!allowRequest(req, { limit: 20, windowMs: 60_000 })) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
 
     let body = req.body;
     if (typeof body === "string") {

@@ -155,6 +155,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
   // ─── LIVE ARENA STATE ──────────────────────────────────────────────────────
   const [stateData, setStateData] = useState<CoherenceState | null>(null);
+  const [stateToken, setStateToken] = useState<string | null>(null);
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState<string>('');
   const [isTyping, setIsTyping] = useState<boolean>(false);
@@ -167,9 +168,10 @@ export const DreadlerArenaScreen: React.FC = () => {
   const [selectedAlgo, setSelectedAlgo] = useState<'pos' | 'evm' | 'hsemotion' | 'physformer'>('pos');
   const simulatedBio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100, stateData?.agent_variant || 'alpha', lastTacticFlagged);
   // Real biometrics pipeline: laptop runs POS+HSEmotion in-browser; phone
-  // streams frames to the Python backend. Same shape as simulatedBio, so we
-  // swap the source only when the camera is live.
-  const realBio = useRealBiometrics(camera.videoRef, isMobile, stateData?.score ?? 100);
+  // streams frames only to an explicitly configured, token-protected backend.
+  // Camera-off drills use clearly-labelled simulated telemetry; camera-on
+  // displays only readings actually recovered from the selected pipeline.
+  const realBio = useRealBiometrics(camera.videoRef, isMobile, stateData?.score ?? 100, camera.cameraOn);
   const bio = camera.cameraOn ? realBio.reading : simulatedBio;
   const [realBpm, setRealBpm] = useState<number | null>(null);
 
@@ -181,15 +183,13 @@ export const DreadlerArenaScreen: React.FC = () => {
     }
   }, [camera.cameraOn, realBio.reading.bpm]);
 
-  // displayBpm must always be a number for the UI (toFixed, waveform). When the
-  // real pipeline has no confident reading yet, fall back to the simulated value
-  // so the readout never goes blank mid-session.
+  // Never present simulation as a camera-derived measurement. The waveform uses
+  // a harmless visual baseline while the text remains unavailable.
   const realBpmValue = (camera.cameraOn && realBpm !== null) ? realBpm : null;
-  const displayBpm: number = realBpmValue ?? (bio.bpm ?? simulatedBio.bpm);
+  const displayBpm: number = camera.cameraOn ? (realBpmValue ?? 0) : simulatedBio.bpm;
   // POS recovers heart rate only — it never yields a pupil measurement, so the
   // real reading's pupilMm stays null until (never) we add pupillometry.
-  // Cascade to the simulated value so .toFixed() in the HUD never hits null.
-  const displayPupilMm: number = bio.pupilMm ?? simulatedBio.pupilMm;
+  const displayPupilMm: number | null = camera.cameraOn ? bio.pupilMm : simulatedBio.pupilMm;
 
   const dominantEmotion = useMemo(() => {
     let maxVal = -1;
@@ -242,6 +242,7 @@ export const DreadlerArenaScreen: React.FC = () => {
     setLastDirectLie(false);
     setLastTacticFlagged(null);
     setFactCheckedStates({});
+    setStateToken(null);
 
     const initialIntroText = activeSkin.variantQuotes.alpha;
     const initialMsgId = `init-${Date.now()}`;
@@ -307,7 +308,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           world: selectedWorld,
           skin: selectedSkin,
           user_input: userText,
-          state_data: stateData
+          state_token: stateToken
         })
       });
 
@@ -325,11 +326,13 @@ export const DreadlerArenaScreen: React.FC = () => {
         is_direct_lie,
         spawned_new_agent,
         thinking_log,
-        state_data: nextStateData
+        state_data: nextStateData,
+        state_token: nextStateToken
       } = result;
 
       // Update state data
       setStateData(nextStateData);
+      setStateToken(typeof nextStateToken === 'string' ? nextStateToken : null);
 
       // Analyze if a new tactic was recorded in the used_tactics array
       const oldTactics = stateData?.used_tactics || [];
@@ -625,7 +628,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
       {/* ─── MOBILE: Reference Panel Drawer ─── */}
       {isMobile && showMobileReference && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileReference(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Reference materials" className="fixed inset-0 z-50 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileReference(false)}>
           <div className="flex-grow p-4 overflow-y-auto custom-scrollbar pointer-events-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <div className="flex border-b border-zinc-800 font-mono text-xs flex-grow">
@@ -658,12 +661,12 @@ export const DreadlerArenaScreen: React.FC = () => {
                     if (checkState === 'verified') { bgClass = 'border-emerald-500/40 text-emerald-400 bg-emerald-950/5'; bullet = '[✓]'; }
                     else if (checkState === 'questioned') { bgClass = 'border-red-500/40 text-red-400 bg-red-950/5'; bullet = '[?]'; }
                     return (
-                      <div key={index} onClick={() => toggleFactCheck(index)} className={`p-2.5 border text-left cursor-pointer transition-all ${bgClass}`}>
+                      <button type="button" key={index} onClick={() => toggleFactCheck(index)} aria-pressed={checkState !== 'unmarked'} className={`w-full p-2.5 border text-left transition-all ${bgClass}`}>
                         <div className="flex items-start gap-2">
                           <span className="font-bold flex-shrink-0">{bullet}</span>
                           <span className="leading-tight text-[11px]">{fact}</span>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -700,7 +703,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
       {/* ─── MOBILE: Critic Log Drawer ─── */}
       {isMobile && showMobileCritic && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileCritic(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Critic analysis" className="fixed inset-0 z-50 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileCritic(false)}>
           <div className="flex-grow p-4 overflow-y-auto custom-scrollbar pointer-events-auto font-mono" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <span className="text-xs uppercase tracking-widest text-red-500 font-bold flex items-center gap-1.5">
@@ -850,9 +853,9 @@ export const DreadlerArenaScreen: React.FC = () => {
                     if (checkState === 'verified') { bgClass = 'border-emerald-500/40 text-emerald-400 bg-emerald-950/5'; bullet = '[✓]'; }
                     else if (checkState === 'questioned') { bgClass = 'border-red-500/40 text-red-400 bg-red-950/5'; bullet = '[?]'; }
                     return (
-                      <div key={index} onClick={() => toggleFactCheck(index)} className={`p-2 sm:p-2.5 border text-left cursor-pointer transition-all ${bgClass}`}>
+                      <button type="button" key={index} onClick={() => toggleFactCheck(index)} aria-pressed={checkState !== 'unmarked'} className={`w-full p-2 sm:p-2.5 border text-left transition-all ${bgClass}`}>
                         <div className="flex items-start gap-2"><span className="font-bold flex-shrink-0">{bullet}</span><span className="leading-tight text-[10px] sm:text-[11px]">{fact}</span></div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -1041,10 +1044,9 @@ export const DreadlerArenaScreen: React.FC = () => {
                     videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
                     bpm={displayBpm} 
-                    pupilMm={displayPupilMm} 
+                    pupilMm={displayPupilMm ?? 0}
                     selectedAlgo={selectedAlgo}
                     emotions={bio.emotions}
-                    onBpmUpdate={setRealBpm}
                   />
                 )}
                 
@@ -1089,11 +1091,11 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 border border-zinc-800 p-2.5 bg-zinc-900/10 font-mono text-[10px]">
                 <div>
                   <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Heart Rate</span>
-                  <span className="font-bold text-red-400">♥ {displayBpm.toFixed(0)} <span className="text-[7px] text-zinc-500 font-normal">BPM</span></span>
+                  <span className="font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? '—' : displayBpm.toFixed(0)} <span className="text-[7px] text-zinc-500 font-normal">BPM</span></span>
                 </div>
                 <div>
                   <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
-                  <span className="font-bold text-red-400">👁 {displayPupilMm.toFixed(2)} <span className="text-[7px] text-zinc-500 font-normal">MM</span></span>
+                  <span className="font-bold text-red-400">👁 {displayPupilMm === null ? '—' : displayPupilMm.toFixed(2)} <span className="text-[7px] text-zinc-500 font-normal">MM</span></span>
                 </div>
               </div>
             </div>
@@ -1151,7 +1153,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
         {/* MOBILE FULL-SCREEN RETINAL SCANNERS DRAWER */}
         {isMobile && showMobileVKDrawer && (
-          <div className="fixed inset-0 z-40 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileVKDrawer(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Biometric controls" className="fixed inset-0 z-50 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileVKDrawer(false)}>
             <div className="flex-grow p-4 overflow-y-auto custom-scrollbar pointer-events-auto flex flex-col gap-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
                 <span className="text-xs uppercase tracking-widest text-red-500 font-bold flex items-center gap-1.5">
@@ -1192,10 +1194,9 @@ export const DreadlerArenaScreen: React.FC = () => {
                     videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
                     bpm={displayBpm} 
-                    pupilMm={displayPupilMm} 
+                    pupilMm={displayPupilMm ?? 0}
                     selectedAlgo={selectedAlgo}
                     emotions={bio.emotions}
-                    onBpmUpdate={setRealBpm}
                   />
                 )}
                 
@@ -1231,11 +1232,11 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 border border-zinc-800 p-3 bg-zinc-900/10 font-mono">
                 <div>
                   <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Heart Rate</span>
-                  <span className="text-lg font-bold text-red-400">♥ {displayBpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
+                  <span className="text-lg font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? '—' : displayBpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
                 </div>
                 <div>
                   <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Pupil Size</span>
-                  <span className="text-lg font-bold text-red-400">👁 {displayPupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
+                  <span className="text-lg font-bold text-red-400">👁 {displayPupilMm === null ? '—' : displayPupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
                 </div>
               </div>
               
@@ -2561,4 +2562,3 @@ function ScanCircleOverlay({
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Console Component
 // ─────────────────────────────────────────────────────────────────────────────
-

@@ -32,9 +32,10 @@ export function useRealBiometrics(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   isMobile: boolean,
   coherence: number,
+  enabled: boolean,
 ): RealBiometricsResult {
-  const laptop = useInBrowserBiometrics(videoRef, coherence);
-  const mobile = useStreamedBiometrics(videoRef, coherence);
+  const laptop = useInBrowserBiometrics(videoRef, coherence, enabled && !isMobile);
+  const mobile = useStreamedBiometrics(videoRef, coherence, enabled && isMobile);
 
   // Both hooks run (React rules-of-hooks: no conditional calls), but we surface
   // only the active path's data. This keeps hook order stable across resizes.
@@ -46,9 +47,9 @@ export function useRealBiometrics(
       pupilMm: active.pupilMm,
       coherence,
       emotions: active.emotions ?? { ...NEUTRAL_EMOTIONS },
-      cameraOn: true,
+      cameraOn: enabled,
     }),
-    [active.bpm, active.pupilMm, active.emotions, coherence],
+    [active.bpm, active.pupilMm, active.emotions, coherence, enabled],
   );
 
   return {

@@ -32,13 +32,13 @@ export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 export const TrialSimContext = LexForgeContext;
 
 const GlobalErrorDisplay: React.FC<{ message: string; onDismiss: () => void }> = ({ message, onDismiss }) => (
-  <div className="fixed top-5 right-5 bg-red-700 text-white p-4 rounded-md shadow-lg z-[100] max-w-sm animate-fadeIn border border-red-500">
+  <div role="alert" aria-live="assertive" className="fixed top-5 right-5 bg-red-700 text-white p-4 rounded-md shadow-lg z-[100] max-w-sm animate-fadeIn border border-red-500">
     <div className="flex justify-between items-start">
       <div>
         <h4 className="font-bold text-lg">Application Error</h4>
         <p className="text-sm mt-1">{message}</p>
       </div>
-      <button onClick={onDismiss} className="ml-4 text-red-100 hover:text-white text-2xl leading-none" aria-label="Dismiss application error">&times;</button>
+      <button onClick={onDismiss} className="ml-4 min-h-11 min-w-11 text-red-100 hover:text-white text-2xl leading-none" aria-label="Dismiss application error">&times;</button>
     </div>
   </div>
 );

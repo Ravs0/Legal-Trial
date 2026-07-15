@@ -10,6 +10,7 @@ import { ResearchSidebar } from './lexide/ResearchSidebar';
 import { NeuralSandbox } from './lexide/NeuralSandbox';
 import type { LexIDEAppState, LexIDEResearchResult, LexIDESection } from '../types';
 import { SurfacePattern } from '../components/SurfacePattern';
+import { Modal } from '../components/Modal';
 import libraryBooks from '../assets/library_books.jpg';
 
 const STORAGE_KEY = 'lexide_v1_session';
@@ -52,6 +53,7 @@ const ResearchIDEScreen: React.FC = () => {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showSectionTitleDialog, setShowSectionTitleDialog] = useState(false);
   const [sectionTitleInput, setSectionTitleInput] = useState('');
+  const [hasAiConsent, setHasAiConsent] = useState(false);
 
   const homeTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -90,6 +92,11 @@ const ResearchIDEScreen: React.FC = () => {
   };
 
   const enterSandbox = async (sectionId: string) => {
+    if (!hasAiConsent) {
+      setValidationError('Confirm AI-processing consent before using the sandbox.');
+      setTimeout(() => setValidationError(null), 4000);
+      return;
+    }
     const section = state.sections.find(s => s.id === sectionId);
     if (!section) return;
     setState(prev => ({
@@ -106,6 +113,7 @@ const ResearchIDEScreen: React.FC = () => {
   };
 
   const handleSandboxRefine = async () => {
+    if (!hasAiConsent) return;
     if (!userIntent.trim() && !state.sandboxDraft) return;
     setIsSandboxProcessing(true);
     const intent = userIntent || "Streamline and ensure document-wide stylistic consistency.";
@@ -167,7 +175,7 @@ const ResearchIDEScreen: React.FC = () => {
   }, [state.activeLeftSectionId, state.citationStyle]);
 
   const handleAutoMap = async () => {
-    if (!state.fullContent.trim()) return;
+    if (!state.fullContent.trim() || !hasAiConsent) return;
     setIsProcessing(true);
     try {
       const parsed = await parseLegalPaper(state.fullContent);
@@ -270,6 +278,8 @@ const ResearchIDEScreen: React.FC = () => {
           textareaRef={homeTextareaRef}
           onSelectionChange={setSelectionRange}
           onCreateSection={handleCreateSection}
+          hasAiConsent={hasAiConsent}
+          setHasAiConsent={setHasAiConsent}
         />
       ) : state.viewMode === 'ai-sandbox' ? (
         <div className="relative z-10 flex-1 min-w-0 overflow-hidden">
@@ -292,7 +302,7 @@ const ResearchIDEScreen: React.FC = () => {
         /* Workspace: IDE View */
         <div className="relative z-10 flex-1 flex overflow-hidden">
           {/* Collapsible Explorer */}
-          <div className={`bg-brand-bg-secondary border-r border-brand-border transition-all duration-500 ease-in-out flex flex-col relative overflow-hidden ${state.isExplorerVisible ? 'w-64' : 'w-0'}`}>
+          <div className={`hidden lg:flex bg-brand-bg-secondary border-r border-brand-border transition-all duration-500 ease-in-out flex-col relative overflow-hidden ${state.isExplorerVisible ? 'w-64' : 'w-0'}`}>
             <div className="p-4 border-b border-brand-border flex items-center justify-between min-w-[256px]">
               <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary flex items-center gap-2">
                 <LayoutIcon size={12}/> Explorer
@@ -442,7 +452,7 @@ const ResearchIDEScreen: React.FC = () => {
             </footer>
           </main>
 
-          <div className={`bg-brand-bg-dark border-l border-brand-border transition-all duration-500 ease-in-out flex flex-col relative overflow-hidden ${state.isResearchVisible ? 'w-80' : 'w-0'}`}>
+          <div className={`hidden lg:flex bg-brand-bg-dark border-l border-brand-border transition-all duration-500 ease-in-out flex-col relative overflow-hidden ${state.isResearchVisible ? 'w-80' : 'w-0'}`}>
             <ResearchSidebar
               initialQuery={researchQuery}
               onCite={handleCite}
@@ -467,9 +477,8 @@ const ResearchIDEScreen: React.FC = () => {
       )}
 
       {/* Section Title Dialog */}
-      {showSectionTitleDialog && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]" onClick={() => setShowSectionTitleDialog(false)}>
-          <div className="bg-brand-bg-dark border border-brand-border rounded-2xl p-8 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+      <Modal isOpen={showSectionTitleDialog} onClose={() => setShowSectionTitleDialog(false)} title="Name this section" size="sm">
+          <div>
             <h3 className="text-sm font-bold text-brand-text-primary uppercase tracking-widest mb-2">Name This Section</h3>
             <p className="text-[10px] text-brand-text-secondary/60 mb-6">Give a descriptive title to the selected text from your manuscript.</p>
             <input
@@ -485,8 +494,7 @@ const ResearchIDEScreen: React.FC = () => {
               <button onClick={confirmCreateSection} disabled={!sectionTitleInput.trim()} className="flex-1 py-2.5 text-xs bg-brand-accent hover:opacity-90 text-brand-bg-dark rounded-xl transition-all font-bold uppercase tracking-tighter disabled:opacity-50">Create</button>
             </div>
           </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

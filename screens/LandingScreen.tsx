@@ -5,7 +5,9 @@ import { ROUTES, APP_NAME } from '../routes';
 import { GavelMinimalIcon } from '../components/icons/GavelMinimalIcon';
 import { GlobeMinimalIcon } from '../components/icons/GlobeMinimalIcon';
 import { clearStoredLexForgeData, savePendingSettings } from '../services/storageService';
+import { clearActiveSession, loadActiveSession } from '../services/storageService';
 import { trackEvent } from '../services/analyticsService';
+import { Modal } from '../components/Modal';
 import heroCourtroom from '../assets/hero_courtroom.jpg';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
 
@@ -18,6 +20,7 @@ const LandingScreen: React.FC = () => {
   }
   const { setPracticeMode, setIsLoading, setCurrentSessionSettings, setError } = context;
   const [dataCleared, setDataCleared] = useState(false);
+  const [showDemoConfirm, setShowDemoConfirm] = useState(false);
 
   useEffect(() => {
     trackEvent('landing_viewed');
@@ -33,8 +36,9 @@ const LandingScreen: React.FC = () => {
     }, 100);
   };
 
-  const handleDemoStart = async () => {
+  const startDemo = async (replaceActiveSession = false) => {
     try {
+      if (replaceActiveSession) clearActiveSession();
       const { createDemoSessionSettings } = await import('../services/demoSessionService');
       const settings = createDemoSessionSettings();
       trackEvent('demo_trial_started', {
@@ -49,6 +53,14 @@ const LandingScreen: React.FC = () => {
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Unable to start demo trial.');
     }
+  };
+
+  const handleDemoStart = () => {
+    if (loadActiveSession()) {
+      setShowDemoConfirm(true);
+      return;
+    }
+    void startDemo();
   };
 
   return (
@@ -189,6 +201,20 @@ const LandingScreen: React.FC = () => {
         <span>{APP_NAME}</span>
         <span className="hidden sm:inline">Argue · Score · Review</span>
       </footer>
+
+      <Modal isOpen={showDemoConfirm} onClose={() => setShowDemoConfirm(false)} title="Resume or start a demo?" size="sm">
+        <p className="text-sm leading-relaxed text-brand-text-secondary">
+          You have a hearing in progress. Starting the demo will replace that local active session.
+        </p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button type="button" onClick={() => navigate(ROUTES.PRACTICE)} className="min-h-11 rounded-lg border border-brand-border px-4 text-sm font-medium text-brand-text-primary hover:bg-brand-bg-secondary">
+            Resume hearing
+          </button>
+          <button type="button" onClick={() => { setShowDemoConfirm(false); void startDemo(true); }} className="min-h-11 rounded-lg bg-brand-accent px-4 text-sm font-semibold text-brand-bg-primary hover:opacity-90">
+            Start fresh demo
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

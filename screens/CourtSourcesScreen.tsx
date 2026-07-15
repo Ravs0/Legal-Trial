@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   CourtDataRecord,
   CourtDataSourceId,
@@ -60,10 +60,13 @@ const SelectField: React.FC<{
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
-}> = ({ label, value, options, onChange }) => (
+}> = ({ label, value, options, onChange }) => {
+  const id = useId();
+  return (
   <div className="flex flex-col gap-1.5">
-    <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/60">{label}</span>
+    <label htmlFor={id} className="text-[9px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/60">{label}</label>
     <select
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="h-10 w-full rounded-lg border border-brand-border bg-brand-bg-dark px-3 text-xs font-medium text-brand-text-primary outline-none transition-all focus:border-brand-accent focus:ring-1 focus:ring-brand-accent/30"
@@ -73,7 +76,8 @@ const SelectField: React.FC<{
       ))}
     </select>
   </div>
-);
+  );
+};
 
 const SourcePill: React.FC<{ selected: boolean; label: string; short: string; onClick: () => void }> = ({ selected, label, short, onClick }) => (
   <button

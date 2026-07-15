@@ -4,11 +4,11 @@ The phone uplinks low-res JPEG face crops; this server extracts an averaged RGB
 sample per frame, runs POS over a sliding window for BPM, and runs HSEmotion
 for emotions. It pushes {bpm, emotions, ...} JSON updates back to the phone.
 
-Owner-only by construction: binds to localhost (or a LAN IP you choose). Add an
-auth token via OWNER_TOKEN env var if you expose it beyond localhost.
+Owner-only by construction: bind to localhost and require a non-empty
+BIO_WS_TOKEN. Never expose this service directly to a LAN or the internet.
 
 Run:
-  uvicorn vision.backend.server:app --host 0.0.0.0 --port 8787
+  BIO_WS_TOKEN=replace-me uvicorn vision.backend.server:app --host 127.0.0.1 --port 8787
 """
 from __future__ import annotations
 
@@ -34,7 +34,8 @@ import hsemotion  # type: ignore
 
 app = FastAPI(title="Legal-Trial vision backend")
 
-OWNER_TOKEN = os.environ.get("OWNER_TOKEN", "")
+OWNER_TOKEN = os.environ.get("BIO_WS_TOKEN", "")
+MAX_FRAME_BYTES = 128 * 1024
 BUFFER_SEC = 10
 MAX_BUFFER = int(BUFFER_SEC * DEFAULT_FPS)
 
@@ -48,16 +49,16 @@ async def health():
         "status": "active",
         "cv2": _HAS_CV2,
         "hsemotion": hsemotion.is_available(),
-        "auth_required": bool(OWNER_TOKEN),
+        "auth_required": True,
     }
 
 
 @app.websocket("/ws/biometrics")
 async def ws_biometrics(ws: WebSocket):
     """One connection = one user session = one ring buffer of RGB samples."""
-    # Optional owner token (header or query) before accepting.
+    # A token is mandatory: biometric frames must never be accepted anonymously.
     token = ws.headers.get("x-owner-token") or ws.query_params.get("token")
-    if OWNER_TOKEN and token != OWNER_TOKEN:
+    if not OWNER_TOKEN or token != OWNER_TOKEN:
         await ws.close(code=4401)
         return
 
@@ -70,6 +71,9 @@ async def ws_biometrics(ws: WebSocket):
     try:
         while True:
             raw = await ws.receive_bytes()
+            if len(raw) > MAX_FRAME_BYTES:
+                await ws.close(code=1009)
+                return
             sample = _frame_to_sample(raw)
             if sample is None:
                 continue

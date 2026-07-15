@@ -27,11 +27,12 @@ const PerformanceScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error('TrialSimContext not found');
-  const { setIsLoading: setGlobalLoading, setError: setGlobalError, practiceMode } = context;
+  const { setIsLoading: setGlobalLoading } = context;
 
   const [sessionRecord, setSessionRecord] = useState<SessionRecord | null>(null);
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [noSession, setNoSession] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -53,22 +54,13 @@ const PerformanceScreen: React.FC = () => {
         hasAnalysis: resolvedRecord.performance ? 'yes' : 'no',
       });
 
-      if (resolvedRecord.analysisStatus?.state === 'unavailable') {
-        setGlobalError('Performance analysis for this session was unavailable.');
-      } else if (!resolvedRecord.performance) {
-        setGlobalError('Performance metrics are missing for this session.');
-      }
-    } else if (!practiceMode) {
-      setGlobalError('No session data found and no practice mode selected.');
-      navigate(ROUTES.LANDING);
     } else {
-      setGlobalError('No session data found to display performance. Please start a new session.');
-      navigate(ROUTES.HOME);
+      setNoSession(true);
     }
 
     setIsLoading(false);
     setGlobalLoading(false);
-  }, [location.state, location.search, navigate, practiceMode, setGlobalError, setGlobalLoading]);
+  }, [location.state, location.search, setGlobalLoading]);
 
   const renderScoreBar = (label: string, score: number, outOf: number = 10) => (
     <div className="mb-5 group">
@@ -85,8 +77,22 @@ const PerformanceScreen: React.FC = () => {
     </div>
   );
 
-  if (isLoading || !sessionRecord) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-[50vh]"><LoadingSpinner text="Analyzing session performance..." spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" /></div>;
+  }
+
+  if (noSession || !sessionRecord) {
+    return (
+      <div className="mx-auto flex min-h-[55vh] max-w-xl items-center px-4">
+        <Card title="No completed hearing yet" className="w-full text-center">
+          <p className="mb-7 text-brand-text-secondary leading-relaxed">Finish a mock hearing to see its scorecard, transcript, and coaching notes.</p>
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            <Button onClick={() => navigate(ROUTES.SETUP)}>Start a new trial</Button>
+            <Button onClick={() => navigate(ROUTES.HOME)} variant="outline">Return to dashboard</Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!performanceMetrics) {
@@ -97,7 +103,10 @@ const PerformanceScreen: React.FC = () => {
             ? 'Performance analysis could not be generated for this session. The transcript and session details are still available below.'
             : 'Performance data for this session could not be generated or retrieved.'}
         </p>
-        <Button onClick={() => navigate(ROUTES.HOME)} variant="outline" className="px-8">Return to Dashboard</Button>
+        <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <Button onClick={() => downloadMarkdown(transcriptFilename(sessionRecord), buildTranscriptMarkdown(sessionRecord))} variant="outline">Export transcript</Button>
+          <Button onClick={() => navigate(ROUTES.SETUP)} className="px-8">Start a new trial</Button>
+        </div>
       </Card>
     );
   }
