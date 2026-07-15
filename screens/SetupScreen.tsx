@@ -196,6 +196,9 @@ const SetupScreen: React.FC = () => {
           <PatternPanel pattern="dots" className="md:col-span-1 p-4 sm:p-5">
             <div className="space-y-4">
               <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Controls</p>
+              <p className="rounded-lg border border-brand-border bg-brand-bg-primary/50 px-3 py-2 text-[11px] leading-relaxed text-brand-text-secondary">
+                Training simulation only. Profile styles are fictionalized learning aids, and scenario law should be checked against current primary sources before real-world use.
+              </p>
               <SelectInput
                 label="Case Category"
                 options={caseCategoryOptions}

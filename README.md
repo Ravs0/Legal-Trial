@@ -12,15 +12,16 @@ advocacy — across both Indian and International (common-law) practice modes.
    ```
    npm install
    ```
-2. Run the app:
+2. Run the UI-only app:
    ```
    npm run dev
    ```
    The dev server starts on http://localhost:3000.
 
-> **Note:** In local development the `/api/*` serverless functions only run on
-> Vercel. To exercise AI features locally, use `vercel dev`. The app degrades
-> gracefully and surfaces a clear error if the AI service is unreachable.
+> **Note:** `npm run dev` intentionally runs only the Vite UI. In local development,
+> the `/api/*` serverless functions run through Vercel. To exercise AI features,
+> start the project with `vercel dev`; the app now tells you this directly if the
+> endpoint is unavailable.
 
 ## Deploy (Vercel)
 
@@ -54,6 +55,6 @@ vercel --prod
 ## Tech Stack
 
 - React 19 + TypeScript + Vite
-- Tailwind CSS (via CDN)
+- Tailwind CSS (compiled at build time)
 - DeepSeek (chat / reasoner) for AI
 - Sarvam AI for voice (STT + TTS)

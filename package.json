@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx services/exportService.test.ts && tsx services/legalWritingScorer.test.ts && tsx services/courtDataGateway.test.ts && tsx services/trialScoring.test.ts",
+    "test": "tsx services/exportService.test.ts && tsx services/legalWritingScorer.test.ts && tsx services/courtDataGateway.test.ts && tsx services/trialScoring.test.ts && tsx services/demoSessionService.test.ts",
     "check": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
@@ -24,6 +24,9 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.5.3",
+    "postcss": "^8.5.19",
+    "tailwindcss": "^3.4.17",
     "tsx": "^4.23.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"

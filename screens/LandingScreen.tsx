@@ -1,11 +1,10 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TrialSimContext } from '../App';
-import { ROUTES, APP_NAME } from '../constants';
+import { ROUTES, APP_NAME } from '../routes';
 import { GavelMinimalIcon } from '../components/icons/GavelMinimalIcon';
 import { GlobeMinimalIcon } from '../components/icons/GlobeMinimalIcon';
-import { createDemoSessionSettings } from '../services/demoSessionService';
-import { savePendingSettings } from '../services/storageService';
+import { clearStoredLexForgeData, savePendingSettings } from '../services/storageService';
 import { trackEvent } from '../services/analyticsService';
 import heroCourtroom from '../assets/hero_courtroom.jpg';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
@@ -18,6 +17,7 @@ const LandingScreen: React.FC = () => {
     throw new Error('TrialSimContext not found in LandingScreen');
   }
   const { setPracticeMode, setIsLoading, setCurrentSessionSettings, setError } = context;
+  const [dataCleared, setDataCleared] = useState(false);
 
   useEffect(() => {
     trackEvent('landing_viewed');
@@ -33,8 +33,9 @@ const LandingScreen: React.FC = () => {
     }, 100);
   };
 
-  const handleDemoStart = () => {
+  const handleDemoStart = async () => {
     try {
+      const { createDemoSessionSettings } = await import('../services/demoSessionService');
       const settings = createDemoSessionSettings();
       trackEvent('demo_trial_started', {
         mode: settings.practiceMode,
@@ -119,11 +120,21 @@ const LandingScreen: React.FC = () => {
                 onClick={handleDemoStart}
                 className="h-12 px-7 rounded-lg bg-white text-brand-bg-primary text-[14px] font-semibold hover:bg-white/95 transition-colors"
               >
-                Start 5-minute demo
+                Start 15-minute demo
               </button>
               <p className="text-[12px] text-white/55 sm:pl-1">
                 No setup. Beginner Indian case.
               </p>
+            </div>
+            <div className="mt-5 max-w-lg rounded-lg border border-white/15 bg-black/25 px-3.5 py-3 text-[11px] leading-relaxed text-white/65">
+              <p><span className="font-medium text-white/85">Training only — not legal advice.</span> Do not enter confidential or client-identifying information. Trial transcripts and workspace data stay in this browser; AI requests are sent to the configured service for a response.</p>
+              <button
+                type="button"
+                onClick={() => { clearStoredLexForgeData(); setDataCleared(true); }}
+                className="mt-2 text-white/80 underline underline-offset-2 hover:text-white"
+              >
+                {dataCleared ? 'Local LexForge data cleared' : 'Clear saved local data'}
+              </button>
             </div>
           </div>
 

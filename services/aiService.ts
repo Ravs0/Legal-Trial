@@ -24,6 +24,13 @@ class AiServiceError extends Error {
   }
 }
 
+const apiErrorMessage = (status: number, error?: string) => {
+  if (import.meta.env.DEV && status === 404) {
+    return 'The AI endpoint is unavailable in Vite dev. Start the app with `vercel dev` so the local /api functions are available.';
+  }
+  return error || `AI service error (${status})`;
+};
+
 export async function callApi(
   messages: { role: string; content: string }[],
   system?: string,
@@ -41,7 +48,7 @@ export async function callApi(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new AiServiceError(err.error || `AI service error (${res.status})`);
+    throw new AiServiceError(apiErrorMessage(res.status, err.error));
   }
   const data = await res.json();
   return data.text || '';
@@ -69,7 +76,7 @@ class GenericChat implements Chat {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || `API error ${res.status}`);
+        throw new AiServiceError(apiErrorMessage(res.status, err.error));
       }
 
       const reader = res.body?.getReader();
@@ -414,4 +421,3 @@ export const summarizeSearchResults = async (
   const content = `Search query: "${query}"\n\nResults:\n${JSON.stringify(results)}`;
   return callApi([{ role: 'user', content }], system);
 };
-

@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { APP_NAME, ROUTES } from '../constants';
+import { APP_NAME, ROUTES } from '../routes';
 import { TrialSimContext } from '../App';
 import { CourtIcon } from './icons/CourtIcon';
 import { DocumentTextIcon } from './icons/DocumentTextIcon';
@@ -66,14 +66,14 @@ const NavItem: React.FC<{
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={`w-full ${className}`}>
+      <button type="button" onClick={onClick} className={`w-full ${className}`} aria-label={label}>
         {content}
       </button>
     );
   }
 
   return (
-    <NavLink to={to} className={className} end={end}>
+    <NavLink to={to} className={className} end={end} aria-label={label}>
       {content}
     </NavLink>
   );
@@ -165,7 +165,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     setIsMobileOpen(false);
   }, [location.pathname]);
 
-  const hideSidebarOnPaths = [ROUTES.PRACTICE, ROUTES.LANDING];
+  const hideSidebarOnPaths: string[] = [ROUTES.PRACTICE, ROUTES.LANDING];
   const showSidebar = !hideSidebarOnPaths.includes(location.pathname) && Boolean(practiceMode);
   const isExpanded = isSidebarOpen || isMobileOpen;
   const shellStyle = useMemo(
@@ -226,8 +226,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <aside
           className={`fixed inset-y-0 left-0 z-50 bg-brand-bg-secondary border-r border-brand-border flex flex-col transition-all duration-200
             ${isSidebarOpen ? 'md:w-56' : 'md:w-14'}
-            ${isMobileOpen ? 'translate-x-0 w-64 shadow-xl' : '-translate-x-full md:translate-x-0'}
+            ${isMobileOpen ? 'flex translate-x-0 w-64 shadow-xl' : 'hidden -translate-x-full md:flex md:translate-x-0'}
           `}
+          aria-hidden={isMobile && !isMobileOpen}
+          inert={isMobile && !isMobileOpen}
         >
           {/* Subtle structure on chrome */}
           <SurfacePattern variant="dots" className="opacity-70" />
@@ -243,6 +245,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               onClick={() => (isMobileOpen ? setIsMobileOpen(false) : setIsSidebarOpen(!isSidebarOpen))}
               className={`p-1.5 rounded-md text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] ${!isExpanded ? 'mx-auto' : ''}`}
+              aria-label={isMobileOpen ? 'Close menu' : isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
             >
               {isMobileOpen || isSidebarOpen ? <XMarkIcon className="h-4 w-4" /> : <Bars3Icon className="h-4 w-4" />}
             </button>

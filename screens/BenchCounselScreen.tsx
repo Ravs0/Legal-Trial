@@ -60,7 +60,7 @@ const BenchCounselScreen: React.FC = () => {
         size="md"
         eyebrow="Reference"
         title="Bench & counsel"
-        subtitle={`AI judges and opposing counsel for ${jurisdictionLabel} practice. Review profiles before you enter the arena.`}
+        subtitle={`Simulated AI judges and opposing counsel for ${jurisdictionLabel} practice. Review their mock courtroom approaches before you enter the arena.`}
       />
 
       <div className="flex justify-center">

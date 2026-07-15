@@ -35,6 +35,7 @@ import {
 import { SessionChipRow } from '../../components/SessionChip';
 
 const PHASE_SEQUENCE: TrialPhase[] = ['opening', 'issue_framing', 'rebuttal', 'judicial_questions', 'closing'];
+const formatCounselName = (name: string) => /^(adv\.?|advocate)\s/i.test(name.trim()) ? name : `Advocate ${name}`;
 
 const PracticeArena: React.FC = () => {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ const PracticeArena: React.FC = () => {
   const [userInput, setUserInput] = useState('');
   const [isAiTyping, setIsAiTyping] = useState<'judge' | 'opposingCounsel' | false>(false);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [sessionStarted, setSessionStarted] = useState(false);
   const [activePhase, setActivePhase] = useState<TrialPhase>('opening');
   const [scoreBreakdown, setScoreBreakdown] = useState<TrialScoreBreakdown>(DEFAULT_SCORE_BREAKDOWN);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -112,6 +114,8 @@ const PracticeArena: React.FC = () => {
   });
 
   const syncSessionRecord = useCallback((nextMessages: ChatMessage[], nextScore: TrialScoreBreakdown, nextPhase: TrialPhase) => {
+    latestMessagesRef.current = nextMessages;
+    messagesRef.current = nextMessages;
     setMessages(nextMessages);
     setScoreBreakdown(nextScore);
     setActivePhase(nextPhase);
@@ -350,6 +354,7 @@ const PracticeArena: React.FC = () => {
       setMessages(savedSession.transcript);
       setScoreBreakdown(savedSession.scoreBreakdown || DEFAULT_SCORE_BREAKDOWN);
       setActivePhase(savedSession.activePhase || inferNextPhase(savedSession.transcript));
+      setSessionStarted(true);
       const lastUser = [...savedSession.transcript].reverse().find(m => m.sender === 'user');
       const lastOc = [...savedSession.transcript].reverse().find(m => m.sender === 'opposingCounsel');
       lastUserMessageRef.current = lastUser?.text || '';
@@ -364,14 +369,14 @@ const PracticeArena: React.FC = () => {
       {
         id: `oc-init-${Date.now()}`,
         sender: 'opposingCounsel',
-        text: `Advocate ${currentSessionSettings.opposingCounselPersonality.name} (${currentSessionSettings.opposingCounselPersonality.specialty}). I am prepared to rigorously examine your arguments, Counsel, under the scrutiny of ${currentSessionSettings.judgePersonality.name}. Expect no easy concessions.`,
+        text: `${formatCounselName(currentSessionSettings.opposingCounselPersonality.name)} (${currentSessionSettings.opposingCounselPersonality.specialty}). I am prepared to rigorously examine your arguments, Counsel, under the scrutiny of ${currentSessionSettings.judgePersonality.name}. Expect no easy concessions.`,
         timestamp: new Date(),
         meta: { kind: 'system' },
       },
       {
         id: `judge-init-${Date.now()}`,
         sender: 'judge',
-        text: `This Court is prepared to hear arguments in the matter of **${currentSessionSettings.caseDetail.title}**. Counsel (User), you may proceed. Be advised, both your arguments and those of Advocate ${currentSessionSettings.opposingCounselPersonality.name} will be subject to thorough examination. You have ${SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType]} minutes. The clock is running.`,
+        text: `This Court is prepared to hear arguments in the matter of **${currentSessionSettings.caseDetail.title}**. Counsel (User), review the brief and begin when ready. Both your arguments and those of ${formatCounselName(currentSessionSettings.opposingCounselPersonality.name)} will be subject to thorough examination. You will have ${SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType]} minutes once the session begins.`,
         timestamp: new Date(),
         meta: { kind: 'system' },
       },
@@ -398,7 +403,7 @@ const PracticeArena: React.FC = () => {
     }
 
     resetTimer();
-    startTimer();
+    setSessionStarted(false);
     setGlobalLoading(false);
   }, [currentSessionSettings, practiceMode, navigate, setGlobalLoading, setGlobalError, setActiveChatJudge, setActiveChatOpposingCounsel, resetTimer, startTimer, syncSessionRecord]);
 
@@ -426,6 +431,7 @@ const PracticeArena: React.FC = () => {
       await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'question', phase: activePhase });
     } catch (e) {
       console.error('Error triggerAutoJudgeResponse:', e);
+      setGlobalError(e instanceof Error ? e.message : 'The Court could not respond. Please try again.');
     } finally {
       setIsAiTyping(false);
       judgeStreamInFlightRef.current = false;
@@ -519,23 +525,26 @@ const PracticeArena: React.FC = () => {
 
     try {
       const stream = await sendMessageToChatStream(chatInstance, textForAi);
-      if (stream) {
-        for await (const chunk of stream) {
-          const chunkText = chunk.text || '';
-          aiResponseText += chunkText;
-          const updatedMessages = latestMessagesRef.current.map(msg =>
-            msg.id === messageId ? { ...msg, text: aiResponseText } : msg,
-          );
-          syncSessionRecord(updatedMessages, scoreBreakdown, activePhase);
-        }
-      } else {
-        aiResponseText = 'Error: No response stream from AI.';
+      if (!stream) {
+        throw new Error('The AI service did not return a response stream.');
       }
+      for await (const chunk of stream) {
+        const chunkText = chunk.text || '';
+        aiResponseText += chunkText;
+        const updatedMessages = latestMessagesRef.current.map(msg =>
+          msg.id === messageId ? { ...msg, text: aiResponseText } : msg,
+        );
+        syncSessionRecord(updatedMessages, scoreBreakdown, activePhase);
+      }
+      if (!aiResponseText.trim()) throw new Error('The AI service returned an empty response.');
     } catch (error) {
       console.error('streamAiResponse failed:', error);
-      aiResponseText = error instanceof Error
-        ? `Error: ${error.message}`
-        : 'Error: AI service unavailable.';
+      syncSessionRecord(
+        latestMessagesRef.current.filter(message => message.id !== messageId),
+        scoreBreakdown,
+        activePhase,
+      );
+      throw new Error(error instanceof Error ? error.message : 'AI service unavailable.');
     }
 
     const finalizedMessages = latestMessagesRef.current.map(msg =>
@@ -544,15 +553,13 @@ const PracticeArena: React.FC = () => {
             ...msg,
             text: aiResponseText || 'No substantive response received.',
             timestamp: new Date(),
-            meta: aiResponseText.startsWith('Error:')
-              ? { ...(meta || {}), kind: 'system' as const }
-              : meta,
+            meta,
           }
         : msg,
     );
     syncSessionRecord(finalizedMessages, scoreBreakdown, activePhase);
 
-    if (voiceEnabledRef.current && !aiResponseText.startsWith('Error:') && (senderType === 'judge' || senderType === 'opposingCounsel')) {
+    if (voiceEnabledRef.current && (senderType === 'judge' || senderType === 'opposingCounsel')) {
       speak(aiResponseText, { rate: 1, pitch: senderType === 'judge' ? 0.9 : 1.05 });
     }
     return aiResponseText;
@@ -636,7 +643,9 @@ const PracticeArena: React.FC = () => {
       syncSessionRecord(finalMessages, scored.score, activePhase);
     } catch (error) {
       console.error('Error during Judge Objection ruling:', error);
-      setGlobalError('Failed to stream Judge ruling on objection.');
+      syncSessionRecord(latestMessagesRef.current.filter(message => message.id !== objectionId), scoreBreakdown, activePhase);
+      setObjectionExplanation(savedExplanation);
+      setGlobalError(error instanceof Error ? `The Court could not rule on this objection: ${error.message}` : 'The Court could not rule on this objection.');
     } finally {
       setIsAiTyping(false);
     }
@@ -655,15 +664,6 @@ const PracticeArena: React.FC = () => {
 
     const userMessageText = userInput.trim();
     lastUserMessageRef.current = userMessageText;
-
-    if (!firstArgumentTrackedRef.current && currentSessionSettings) {
-      firstArgumentTrackedRef.current = true;
-      trackEvent('first_argument_sent', {
-        mode: currentSessionSettings.practiceMode,
-        caseId: currentSessionSettings.caseDetail.id,
-        sessionType: currentSessionSettings.sessionType,
-      });
-    }
 
     const recentUserTexts = latestMessagesRef.current
       .filter(m => m.sender === 'user' && m.meta?.kind !== 'objection')
@@ -686,8 +686,6 @@ const PracticeArena: React.FC = () => {
       meta: {
         kind: 'argument',
         phase: nextPhase,
-        scoreDelta: scored.scoreDelta,
-        scoreReason: scored.scoreReason,
       },
     };
 
@@ -707,24 +705,43 @@ const PracticeArena: React.FC = () => {
       const ocResponseText = await streamAiResponse(activeChatOpposingCounsel, ocPrompt, 'opposingCounsel', { kind: 'response', phase: nextPhase });
       if (sessionEnded || !isTimerRunning) return;
 
+      const scoredMessages = latestMessagesRef.current.map(message => message.id === userMessage.id
+        ? { ...message, meta: { ...message.meta, scoreDelta: scored.scoreDelta, scoreReason: scored.scoreReason } }
+        : message);
+      syncSessionRecord(scoredMessages, scored.score, nextPhase);
       lastOcMessageRef.current = ocResponseText;
-      setIsAiTyping(false);
+      if (!firstArgumentTrackedRef.current) {
+        firstArgumentTrackedRef.current = true;
+        trackEvent('first_argument_sent', {
+          mode: currentSessionSettings.practiceMode,
+          caseId: currentSessionSettings.caseDetail.id,
+          sessionType: currentSessionSettings.sessionType,
+        });
+      }
       // Open objection window; judge auto-fires when window expires (see effect).
       setObjectionWindowActive(true);
       setObjectionWindowSecondsLeft(4.0);
     } catch (error) {
       console.error('Error during AI interaction:', error);
-      const errorText = `An error occurred: ${error instanceof Error ? error.message : String(error)}. Please try again or end the session.`;
-      const errorMessageContent: ChatMessage = {
-        id: `error-${Date.now()}`,
-        sender: 'system',
-        text: errorText,
-        timestamp: new Date(),
-        meta: { kind: 'system', phase: activePhase },
-      };
-      syncSessionRecord([...latestMessagesRef.current, errorMessageContent], scored.score, nextPhase);
-      setGlobalError(errorText);
+      syncSessionRecord(latestMessagesRef.current.filter(message => message.id !== userMessage.id), scoreBreakdown, activePhase);
+      lastUserMessageRef.current = [...latestMessagesRef.current].reverse().find(message => message.sender === 'user')?.text || '';
+      setUserInput(userMessageText);
+      setGlobalError(error instanceof Error ? `Opposing Counsel could not respond: ${error.message}` : 'Opposing Counsel could not respond. Your draft has been restored.');
+    } finally {
       setIsAiTyping(false);
+    }
+  };
+
+  const beginSession = () => {
+    if (sessionStarted || sessionEnded) return;
+    setSessionStarted(true);
+    startTimer();
+    if (currentSessionSettings) {
+      trackEvent('trial_timer_started', {
+        mode: currentSessionSettings.practiceMode,
+        caseId: currentSessionSettings.caseDetail.id,
+        sessionType: currentSessionSettings.sessionType,
+      });
     }
   };
 
@@ -1025,6 +1042,13 @@ const PracticeArena: React.FC = () => {
                   </div>
                 );
               })}
+              {!sessionStarted && !sessionEnded && (
+                <div className="mx-auto my-6 max-w-2xl rounded-xl border border-brand-accent/30 bg-brand-bg-secondary/80 p-5 text-center shadow-card">
+                  <p className="text-sm font-semibold text-brand-text-primary">Review the case brief before the clock starts.</p>
+                  <p className="mt-1 text-xs leading-relaxed text-brand-text-secondary">You will have {SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType]} minutes once you begin. The timer is paused until then.</p>
+                  <Button onClick={beginSession} size="md" variant="primary" className="mt-4 px-5">Begin session</Button>
+                </div>
+              )}
               {(isAiTyping || isTranscribing) && (
                 <div className="flex items-start mb-6 px-4 py-3 w-full animate-fadeInUp">
                   <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-brand-bg-secondary border border-brand-text-primary/15 flex items-center justify-center mx-2 sm:mx-3">

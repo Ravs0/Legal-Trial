@@ -167,3 +167,20 @@ export const clearPendingSettings = (): void => {
   if (!isBrowser) return;
   try { window.localStorage.removeItem(PENDING_SETTINGS_KEY); } catch { /* noop */ }
 };
+
+/** Remove all LexForge content and preferences kept in this browser. */
+export const clearStoredLexForgeData = (): void => {
+  if (!isBrowser) return;
+  const removablePrefixes = ['legal-trial.', 'lexforge.', 'draft-save-', 'subject-'];
+  const removableExactKeys = new Set(['practiceMode', 'sidebarOpen']);
+  try {
+    const keys = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index)).filter(Boolean) as string[];
+    keys.forEach((key) => {
+      if (removableExactKeys.has(key) || removablePrefixes.some(prefix => key.startsWith(prefix))) {
+        window.localStorage.removeItem(key);
+      }
+    });
+  } catch {
+    // Browser privacy settings may prevent storage access; clearing is best-effort.
+  }
+};

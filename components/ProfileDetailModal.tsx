@@ -47,6 +47,9 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({ profile,
               {profile.description}
             </p>
           </div>
+          <p className="text-[11px] leading-relaxed text-brand-text-secondary/75 text-left">
+            This is a simulated training persona. The profile describes a mock courtroom approach, not a biographical statement, endorsement, or source of legal authority.
+          </p>
         </div>
       </div>
       <div className="mt-8 pt-5 border-t border-brand-accent/10 flex justify-end">

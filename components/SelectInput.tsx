@@ -16,6 +16,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   placeholder,
   ...props
 }) => {
+  const generatedId = React.useId().replace(/:/g, '');
+  const selectId = id || props.name || `select-${generatedId}`;
   const baseInputStyle = `block w-full bg-brand-bg-primary rounded-xl py-3 px-4 
                           border border-brand-text-primary/30 focus:outline-none focus:ring-1 focus:ring-brand-accent 
                           text-brand-text-primary text-sm sm:text-base hover:border-brand-text-primary/60
@@ -25,13 +27,13 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   return (
     <div className={`mb-5 ${containerClassName}`}>
       {label && (
-        <label htmlFor={id || props.name} className={`block ${labelColor}`}>
+        <label htmlFor={selectId} className={`block ${labelColor}`}>
           {label}
         </label>
       )}
       <div className="relative">
         <select
-          id={id || props.name}
+          id={selectId}
           className={`${baseInputStyle} appearance-none pr-10 cursor-pointer ${className}`}
           {...props}
         >

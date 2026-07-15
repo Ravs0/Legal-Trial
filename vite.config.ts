@@ -19,6 +19,7 @@ export default defineConfig({
         // so app-code deploys don't bust the React vendor cache.
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
+          vision: ['onnxruntime-web'],
         },
       },
     },

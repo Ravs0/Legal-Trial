@@ -9,7 +9,7 @@ export const JUDGE_PERSONALITIES: JudgePersonality[] = [
   {
     id: JudgePersonalityId.ROBERT_VANCE,
     name: 'Robert K. Vance',
-    description: 'Celebrated for his courageous dissent in the ADM Jabalpur case, upholding fundamental rights even during an emergency. Known for his integrity and commitment to constitutionalism and the rule of law.',
+    description: 'A simulated constitutionalist bench persona focused on fundamental rights, judicial independence, and scrutiny of executive overreach. This is a fictional training profile, not the biography of a real judge.',
     systemInstruction: `You are Robert K. Vance. You are adjudicating a mock trial with a counsel (the user) and an opposing counsel. Your approach is defined by an unwavering commitment to fundamental rights, constitutionalism, and the rule of law, even in the face of executive overreach. Listen critically to both sides.
 **While your primary focus is on fundamental rights and constitutionalism, you must also critically examine the factual basis of all arguments, the application of general legal principles (even if outside your immediate specialty), procedural correctness, and the strength of evidence presented by *both* counsel. When appropriate, refer to (simulated) established legal principles or landmark precedents from Indian law like 'Kesavananda Bharati' or principles from 'Maneka Gandhi' to ground your inquiries or challenge assumptions.**
 Ask principled, solemn, and deeply probing questions that test the limits of state power, the inviolability of basic human rights (especially Article 21), and the judiciary's role as the ultimate guardian of the Constitution. Emphasize due process and the spirit of the Constitution over mere technicalities when addressing arguments from either counsel. Challenge any argument that seems to compromise individual liberty or constitutional ethos.
@@ -1431,8 +1431,8 @@ export const CASES: CaseDetail[] = [
   {
     id: 'fam2', categoryId: CaseCategoryId.FAMILY, title: 'Interim Maintenance Dispute (India)',
     briefFacts: 'A divorced wife files for interim maintenance for herself and her minor daughter. The husband claims he has lost his job and cannot pay, while the wife presents evidence of his extensive family business assets.',
-    legalIssues: ['Right to Maintenance under CrPC', 'Assessment of True Earning Capacity', 'Standard of Living of the Spouse', 'Interlocutory Maintenance Principles'],
-    relevantArticlesSections: 'Section 125 of the Code of Criminal Procedure, 1973; Section 24 of the Hindu Marriage Act, 1955',
+    legalIssues: ['Right to Maintenance under BNSS', 'Assessment of True Earning Capacity', 'Standard of Living of the Spouse', 'Interlocutory Maintenance Principles'],
+    relevantArticlesSections: 'Section 144 of the Bharatiya Nagarik Suraksha Sanhita, 2023; Section 24 of the Hindu Marriage Act, 1955',
     precedentCases: 'Rajnesh v. Neha (comprehensive guidelines on maintenance)',
     difficulty: CaseDifficulty.BEGINNER,
   },

@@ -2,14 +2,8 @@
 import React, { useState, createContext, useEffect, useMemo, useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import HomeScreen from './screens/HomeScreen';
-import SetupScreen from './screens/SetupScreen';
-import PracticeArena from './screens/PracticeArena';
-import PerformanceScreen from './screens/PerformanceScreen';
-import CaseLibraryScreen from './screens/CaseLibraryScreen';
-import BenchCounselScreen from './screens/BenchCounselScreen';
 import LandingScreen from './screens/LandingScreen';
-import { ROUTES } from './constants';
+import { ROUTES } from './routes';
 import { SessionSettings, TrialSimContextType, PracticeMode } from './types';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { Chat } from './types';
@@ -17,6 +11,12 @@ import { ConversationBridgeProvider } from './components/ConversationBridge';
 import { loadActiveSession, loadPendingSettings, clearPendingSettings, clearActiveSession } from './services/storageService';
 
 const DraftingStudioScreen = React.lazy(() => import('./screens/DraftingStudioScreen'));
+const HomeScreen = React.lazy(() => import('./screens/HomeScreen'));
+const SetupScreen = React.lazy(() => import('./screens/SetupScreen'));
+const PracticeArena = React.lazy(() => import('./screens/PracticeArena'));
+const PerformanceScreen = React.lazy(() => import('./screens/PerformanceScreen'));
+const CaseLibraryScreen = React.lazy(() => import('./screens/CaseLibraryScreen'));
+const BenchCounselScreen = React.lazy(() => import('./screens/BenchCounselScreen'));
 const AIPersonasScreen = React.lazy(() => import('./screens/AIPersonasScreen'));
 const StrategyRoomScreen = React.lazy(() => import('./screens/StrategyRoomScreen'));
 const DreadlerArenaScreen = React.lazy(() => import('./screens/DreadlerArenaScreen'));
@@ -25,6 +25,7 @@ const CourtSourcesScreen = React.lazy(() => import('./screens/CourtSourcesScreen
 // Non-critical global overlays: defer their module graphs out of the initial chunk.
 const OversightSpirit = React.lazy(() => import('./components/OversightSpirit').then(m => ({ default: m.OversightSpirit })));
 const CommandPalette = React.lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
+const ScreenLoader = () => <div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..." /></div>;
 
 export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 /** @deprecated Use LexForgeContext instead */
@@ -37,7 +38,7 @@ const GlobalErrorDisplay: React.FC<{ message: string; onDismiss: () => void }> =
         <h4 className="font-bold text-lg">Application Error</h4>
         <p className="text-sm mt-1">{message}</p>
       </div>
-      <button onClick={onDismiss} className="ml-4 text-red-100 hover:text-white text-2xl leading-none">&times;</button>
+      <button onClick={onDismiss} className="ml-4 text-red-100 hover:text-white text-2xl leading-none" aria-label="Dismiss application error">&times;</button>
     </div>
   </div>
 );
@@ -159,19 +160,19 @@ function App() {
         <React.Suspense fallback={null}><OversightSpirit /></React.Suspense>
         <React.Suspense fallback={null}><CommandPalette /></React.Suspense>
         <Routes>
-          <Route path={ROUTES.LANDING} element={<LandingScreen />} />
+          <Route path={ROUTES.LANDING} element={<ErrorBoundary fallbackMessage="The landing page encountered an error."><LandingScreen /></ErrorBoundary>} />
           <Route path="/" element={<Navigate to={practiceMode ? ROUTES.HOME : ROUTES.LANDING} replace />} />
-          <Route path={ROUTES.HOME} element={<Layout><ModeSpecificRoute element={<HomeScreen />} /></Layout>} />
-          <Route path={ROUTES.SETUP} element={<Layout><ModeSpecificRoute element={<SetupScreen />} /></Layout>} />
-          <Route path={ROUTES.PRACTICE} element={<ModeSpecificRoute element={<PracticeArena />} />} />
-          <Route path={ROUTES.ANALYSIS} element={<Layout><ModeSpecificRoute element={<PerformanceScreen />} /></Layout>} />
-          <Route path={ROUTES.LIBRARY} element={<Layout><ModeSpecificRoute element={<CaseLibraryScreen />} /></Layout>} />
-          <Route path={ROUTES.BENCH} element={<Layout><ModeSpecificRoute element={<BenchCounselScreen />} /></Layout>} />
+          <Route path={ROUTES.HOME} element={<React.Suspense fallback={<ScreenLoader />}><Layout><ErrorBoundary fallbackMessage="The dashboard encountered an error."><ModeSpecificRoute element={<HomeScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
+          <Route path={ROUTES.SETUP} element={<React.Suspense fallback={<ScreenLoader />}><Layout><ErrorBoundary fallbackMessage="Trial setup encountered an error."><ModeSpecificRoute element={<SetupScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
+          <Route path={ROUTES.PRACTICE} element={<React.Suspense fallback={<ScreenLoader />}><ErrorBoundary fallbackMessage="The practice arena encountered an error."><ModeSpecificRoute element={<PracticeArena />} /></ErrorBoundary></React.Suspense>} />
+          <Route path={ROUTES.ANALYSIS} element={<React.Suspense fallback={<ScreenLoader />}><Layout><ErrorBoundary fallbackMessage="Performance review encountered an error."><ModeSpecificRoute element={<PerformanceScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
+          <Route path={ROUTES.LIBRARY} element={<React.Suspense fallback={<ScreenLoader />}><Layout><ErrorBoundary fallbackMessage="Case library encountered an error."><ModeSpecificRoute element={<CaseLibraryScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
+          <Route path={ROUTES.BENCH} element={<React.Suspense fallback={<ScreenLoader />}><Layout><ErrorBoundary fallbackMessage="Bench and counsel encountered an error."><ModeSpecificRoute element={<BenchCounselScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
           <Route path={ROUTES.JUDGES} element={<Navigate to={ROUTES.BENCH} replace />} />
           <Route path={ROUTES.OPPOSING_COUNSEL} element={<Navigate to={{ pathname: ROUTES.BENCH, search: '?tab=counsel' }} replace />} />
           <Route path={ROUTES.DRAFTING_STUDIO} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Drafting Studio encountered an error."><ModeSpecificRoute element={<DraftingStudioScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
-          <Route path={ROUTES.PERSONAS} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ModeSpecificRoute element={<AIPersonasScreen />} /></Layout></React.Suspense>} />
-          <Route path={ROUTES.STRATEGY} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ModeSpecificRoute element={<StrategyRoomScreen />} /></Layout></React.Suspense>} />
+          <Route path={ROUTES.PERSONAS} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Personas encountered an error."><ModeSpecificRoute element={<AIPersonasScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
+          <Route path={ROUTES.STRATEGY} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Strategy room encountered an error."><ModeSpecificRoute element={<StrategyRoomScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
           <Route path={ROUTES.DREADLER} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Dreadler Arena encountered an error."><ModeSpecificRoute element={<DreadlerArenaScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
           <Route path={ROUTES.RESEARCH_IDE} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Research IDE encountered an error."><ModeSpecificRoute element={<ResearchIDEScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
           <Route path={ROUTES.COURT_SOURCES} element={<React.Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..."/></div>}><Layout><ErrorBoundary fallbackMessage="Court Sources encountered an error."><ModeSpecificRoute element={<CourtSourcesScreen />} /></ErrorBoundary></Layout></React.Suspense>} />
