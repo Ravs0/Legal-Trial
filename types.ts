@@ -34,12 +34,24 @@ export interface ObjectionDetails {
   outcome?: 'sustained' | 'overruled' | 'reserved';
 }
 
+export interface ArgumentQuality {
+  score: number;
+  issue: boolean;
+  rule: boolean;
+  facts: boolean;
+  application: boolean;
+  remedy: boolean;
+  respondsToOpponent: boolean;
+  nextStep: string;
+}
+
 export interface ChatMessageMeta {
   kind?: TrialMessageKind;
   phase?: TrialPhase;
   scoreDelta?: number;
   scoreReason?: string;
   objection?: ObjectionDetails;
+  argumentQuality?: ArgumentQuality;
   references?: string[];
 }
 

@@ -9,6 +9,7 @@ import {
   TrialScoreBreakdown,
   DraftingTask,
 } from '../types';
+import { assessArgument } from './trialScoring';
 
 // ─── Core API call ────────────────────────────────────────────────────────────
 //
@@ -142,6 +143,14 @@ const buildScoreSummary = (score?: TrialScoreBreakdown) => {
   return `Engagement ${score.engagement}, Advocacy ${score.advocacy}, Objections ${score.objections}, Responsiveness ${score.responsiveness}, Professionalism ${score.professionalism}, Total ${score.total}.`;
 };
 
+const PHASE_OBJECTIVES: Record<TrialPhase, string> = {
+  opening: 'Frame the dispute, your theory of the case, and the relief sought.',
+  issue_framing: 'Pin down the dispositive legal issue and governing test.',
+  rebuttal: 'Answer the strongest opposing point using the record and law.',
+  judicial_questions: 'Give direct, candid answers to the Court’s hardest concerns.',
+  closing: 'Synthesize the rule, application, and precise relief in a short closing.',
+};
+
 export const buildJudgePrompt = (
   settings: SessionSettings,
   transcript: ChatMessage[],
@@ -151,6 +160,7 @@ export const buildJudgePrompt = (
   score?: TrialScoreBreakdown,
 ) => {
   return `Active hearing phase: ${PHASE_LABELS[phase]}.
+Phase objective: ${PHASE_OBJECTIVES[phase]}
 
 Case title: ${settings.caseDetail.title}
 Facts: ${settings.caseDetail.briefFacts}
@@ -167,7 +177,7 @@ ${latestUserSubmission}
 Opposing counsel's latest response:
 ${latestOpposingResponse}
 
-As the presiding judge, respond in character. Address what was actually argued, identify the strongest and weakest point you heard, and either ask the next precise question or give the next instruction for this phase. Keep it courtroom-focused and under 170 words.`;
+As the presiding judge, respond in character. Address only what was actually argued. Identify one strongest point and the single missing link (issue, rule, fact, application, or relief), then ask one precise question or give one instruction that advances the phase objective. Do not invent facts, authorities, or procedural rules; if an authority is unverified, say so. Keep it courtroom-focused and under 170 words.`;
 };
 
 export const buildOpposingCounselPrompt = (
@@ -177,6 +187,7 @@ export const buildOpposingCounselPrompt = (
   userSubmission: string,
 ) => {
   return `Active hearing phase: ${PHASE_LABELS[phase]}.
+Phase objective: ${PHASE_OBJECTIVES[phase]}
 
 Case title: ${settings.caseDetail.title}
 Facts: ${settings.caseDetail.briefFacts}
@@ -189,7 +200,7 @@ ${buildTranscriptWindow(transcript)}
 User counsel's latest submission:
 ${userSubmission}
 
-Respond as opposing counsel in character. Challenge the user on facts, law, remedy, and procedural posture. Avoid repeating earlier points unless sharpening them. Keep it under 150 words.`;
+Respond as opposing counsel in character. Select the single weakest unaddressed link in the user's submission—issue, rule, fact, application, remedy, or response to the other side—and challenge it with a concrete question or counter-position. Do not invent facts, authorities, or procedural rules. Avoid repeating earlier points unless sharpening them. Keep it under 150 words.`;
 };
 
 const clampScore = (value: unknown) => {
@@ -212,6 +223,59 @@ const normalizePerformanceMetrics = (parsed: any): PerformanceMetrics => {
     improvementAreas: Array.isArray(parsed.improvementAreas)
       ? parsed.improvementAreas.filter((item: unknown) => typeof item === 'string')
       : [],
+  };
+};
+
+/**
+ * Keeps a completed hearing useful when an AI analysis request is unavailable.
+ * This is deliberately labelled as local coaching and uses only transparent
+ * transcript signals—never invented legal conclusions or citations.
+ */
+export const buildLocalPerformanceMetrics = (
+  sessionRecord: SessionRecord,
+  scoreBreakdown?: TrialScoreBreakdown,
+): PerformanceMetrics => {
+  const argumentsMade = sessionRecord.transcript.filter(message => message.sender === 'user' && message.meta?.kind !== 'objection');
+  const assessments = argumentsMade.map(message => message.meta?.argumentQuality || assessArgument(message.text));
+  const average = (selector: (assessment: typeof assessments[number]) => number) => (
+    assessments.length ? assessments.reduce((sum, assessment) => sum + selector(assessment), 0) / assessments.length : 0
+  );
+  const scoreFromRatio = (ratio: number) => clampScore(Math.round(ratio * 9) + 1);
+  const objections = sessionRecord.transcript
+    .filter(message => message.meta?.kind === 'objection')
+    .map(message => message.meta?.objection?.outcome)
+    .filter((outcome): outcome is 'sustained' | 'overruled' | 'reserved' => Boolean(outcome));
+  const sustained = objections.filter(outcome => outcome === 'sustained').length;
+  const overruled = objections.filter(outcome => outcome === 'overruled').length;
+  const live = scoreBreakdown || sessionRecord.scoreBreakdown;
+  const signalScore = average(assessment => assessment.score) / 10;
+  const rules = average(assessment => assessment.rule ? 1 : 0);
+  const factualApplications = average(assessment => assessment.facts && assessment.application ? 1 : 0);
+  const responses = average(assessment => assessment.respondsToOpponent ? 1 : 0);
+  const remedies = average(assessment => assessment.remedy ? 1 : 0);
+  const professionalism = live ? Math.min(1, Math.max(0, live.professionalism / 35)) : 0.5;
+  const objectionScore = objections.length === 0 ? 5 : clampScore((sustained * 8 + (objections.length - sustained - overruled) * 5 + overruled * 2) / objections.length);
+  const improvementAreas = [
+    rules < 0.5 ? 'Name a governing rule or authority, then verify it against a primary source.' : '',
+    factualApplications < 0.5 ? 'Link each legal proposition to a concrete fact in the record and explain the consequence.' : '',
+    responses < 0.4 ? 'Answer the strongest opposing point directly before returning to your theory.' : '',
+    remedies < 0.5 ? 'Finish submissions with the specific relief or direction you seek.' : '',
+    overruled > sustained ? 'Use objections selectively and state the legal basis before raising one.' : '',
+  ].filter(Boolean);
+  const feedback = assessments.length
+    ? `Local coaching summary: your arguments averaged ${Math.round(signalScore * 10)}/10 for advocacy structure. ${factualApplications >= 0.6 ? 'You generally connected law to the record.' : 'Your next gains will come from clearer law-to-fact application.'} ${responses >= 0.5 ? 'You engaged with opposing positions.' : 'Make the opposing position explicit, then answer it.'}`
+    : 'Local coaching summary: no substantive submissions were recorded, so no advocacy pattern could be assessed.';
+
+  return {
+    argumentStrength: scoreFromRatio(signalScore),
+    precedentUsage: scoreFromRatio(rules),
+    legalGrounding: scoreFromRatio((rules + factualApplications) / 2),
+    responseQuality: scoreFromRatio((factualApplications + responses) / 2),
+    objectionHandling: objectionScore,
+    courtroomPresence: scoreFromRatio(professionalism),
+    overallScore: clampScore((scoreFromRatio(signalScore) + scoreFromRatio((rules + factualApplications) / 2) + scoreFromRatio((factualApplications + responses) / 2) + objectionScore + scoreFromRatio(professionalism)) / 5),
+    feedback,
+    improvementAreas: improvementAreas.length ? improvementAreas : ['Keep testing each submission against issue, rule, fact, application, and relief.'],
   };
 };
 
@@ -274,7 +338,7 @@ export const startJudgeChatSession = (settings: SessionSettings, priorTranscript
 - Mode: ${settings.practiceMode} law
 - Opposing Counsel: ${settings.opposingCounselPersonality.name}
 
-You are Presiding Judge ${settings.judgePersonality.name}. NEVER break character. Keep responses under 150 words.`;
+You are a fictional presiding-judge training persona, ${settings.judgePersonality.name}. Stay in role without claiming real judicial authority. Test advocacy by identifying whether counsel supplied an issue, rule, record fact, application, and relief. Never invent facts or citations; ask for verification where needed. Keep responses under 150 words.`;
 
   return new GenericChat(
     seedHistoryFromTranscript(buildInitialHistory(settings, 'judge'), priorTranscript, 'judge'),
@@ -292,7 +356,7 @@ export const startOpposingCounselChatSession = (settings: SessionSettings, prior
 - Mode: ${settings.practiceMode} law
 - Judge: ${settings.judgePersonality.name}
 
-You are Opposing Counsel ${settings.opposingCounselPersonality.name}. Challenge the user's arguments rigorously. NEVER break character. Keep responses under 120 words.`;
+You are a fictional opposing-counsel training persona, ${settings.opposingCounselPersonality.name}. Challenge the user's arguments rigorously by targeting a real gap in the record or reasoning, not by inventing facts or citations. Keep responses under 120 words.`;
 
   return new GenericChat(
     seedHistoryFromTranscript(buildInitialHistory(settings, 'opposingCounsel'), priorTranscript, 'opposingCounsel'),
@@ -345,7 +409,7 @@ Generate the JSON evaluation.`;
       return normalizePerformanceMetrics(parseJsonResponse(repairRaw));
     }
   } catch {
-    return null;
+    return buildLocalPerformanceMetrics(sessionRecord, scoreBreakdown);
   }
 };
 

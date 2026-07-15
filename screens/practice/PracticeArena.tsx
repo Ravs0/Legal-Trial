@@ -73,7 +73,7 @@ const PracticeArena: React.FC = () => {
   const [isInlineObjectionActive, setIsInlineObjectionActive] = useState(false);
 
   const [objectionWindowActive, setObjectionWindowActive] = useState(false);
-  const [objectionWindowSecondsLeft, setObjectionWindowSecondsLeft] = useState(4.0);
+  const [objectionWindowSecondsLeft, setObjectionWindowSecondsLeft] = useState(6.0);
   const [quickObjectionsCount, setQuickObjectionsCount] = useState(0);
 
   const lastUserMessageRef = useRef('');
@@ -654,10 +654,10 @@ const PracticeArena: React.FC = () => {
   const handleSendMessage = async () => {
     if (!userInput.trim() || isAiTyping || !activeChatJudge || !activeChatOpposingCounsel || sessionEnded || !currentSessionSettings || !isTimerRunning) return;
 
-    // During the objection window, require Object or wait for the Court — do not skip the judge.
+    // An objection is a learner choice, not a typing-speed gate. Continuing an
+    // argument simply closes the optional window and preserves the normal turn.
     if (objectionWindowActive) {
-      setAudioError('Objection window open: raise an objection (O) or wait for the Court to speak.');
-      return;
+      setObjectionWindowActive(false);
     }
 
     if (voiceEnabledRef.current) cancelSpeech();
@@ -675,7 +675,7 @@ const PracticeArena: React.FC = () => {
       sender: 'user',
       text: userMessageText,
       timestamp: new Date(),
-      meta: { kind: 'argument', phase: activePhase },
+      meta: { kind: 'argument', phase: activePhase, argumentQuality: scored.assessment },
     }]);
 
     const userMessage: ChatMessage = {
@@ -686,6 +686,7 @@ const PracticeArena: React.FC = () => {
       meta: {
         kind: 'argument',
         phase: nextPhase,
+        argumentQuality: scored.assessment,
       },
     };
 
@@ -706,7 +707,7 @@ const PracticeArena: React.FC = () => {
       if (sessionEnded || !isTimerRunning) return;
 
       const scoredMessages = latestMessagesRef.current.map(message => message.id === userMessage.id
-        ? { ...message, meta: { ...message.meta, scoreDelta: scored.scoreDelta, scoreReason: scored.scoreReason } }
+        ? { ...message, meta: { ...message.meta, scoreDelta: scored.scoreDelta, scoreReason: scored.scoreReason, argumentQuality: scored.assessment } }
         : message);
       syncSessionRecord(scoredMessages, scored.score, nextPhase);
       lastOcMessageRef.current = ocResponseText;
@@ -720,7 +721,7 @@ const PracticeArena: React.FC = () => {
       }
       // Open objection window; judge auto-fires when window expires (see effect).
       setObjectionWindowActive(true);
-      setObjectionWindowSecondsLeft(4.0);
+      setObjectionWindowSecondsLeft(6.0);
     } catch (error) {
       console.error('Error during AI interaction:', error);
       syncSessionRecord(latestMessagesRef.current.filter(message => message.id !== userMessage.id), scoreBreakdown, activePhase);
@@ -1022,19 +1023,19 @@ const PracticeArena: React.FC = () => {
                           <div className={`flex flex-col gap-1.5 sm:flex-row sm:justify-between sm:items-center text-[10px] font-mono uppercase tracking-wider ${catColors.text}`}>
                             <span className="font-semibold flex items-center">
                               <svg className={`w-3.5 h-3.5 mr-1 ${catColors.text} animate-pulse`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                              Objection Reflex Window
+                              Optional objection window
                             </span>
                             <span className="font-bold">{objectionWindowSecondsLeft}s remaining</span>
                           </div>
                           <div className="w-full bg-brand-bg-tertiary h-1.5 rounded-full overflow-hidden border border-brand-text-primary/15">
                             <div
                               className={`${catColors.bg} h-full transition-all duration-100 ease-linear rounded-full`}
-                              style={{ width: `${(objectionWindowSecondsLeft / 4.0) * 100}%` }}
+                              style={{ width: `${(objectionWindowSecondsLeft / 6.0) * 100}%` }}
                             ></div>
                           </div>
                           <div className="flex flex-col gap-1 text-[9px] font-mono text-brand-text-secondary/70 sm:flex-row sm:justify-between sm:items-center">
-                            <span>{'Tap Objection below to challenge the point.'}</span>
-                            <span className={`${catColors.text} font-semibold`}>[ SPEED BONUS ]</span>
+                            <span>{'Raise an objection or continue with your next submission.'}</span>
+                            <span className={`${catColors.text} font-semibold`}>[ OPTIONAL SPEED BONUS ]</span>
                           </div>
                         </div>
                       </div>

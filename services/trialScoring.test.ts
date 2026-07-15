@@ -1,5 +1,6 @@
 import {
   DEFAULT_SCORE_BREAKDOWN,
+  assessArgument,
   detectObjectionOutcome,
   inferNextPhase,
   scoreObjection,
@@ -9,6 +10,18 @@ import type { ChatMessage } from '../types';
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
+}
+
+// Argument quality is structural, not just a keyword counter.
+{
+  const assessment = assessArgument(
+    'The issue is whether the State denied a hearing. Under Article 21, the record and notice show no hearing was offered; therefore the restriction fails. We seek an order setting it aside. However, opposing counsel cannot cure that defect after the event.',
+  );
+  assert(assessment.score >= 8, `expected a structurally complete argument, got ${assessment.score}`);
+  assert(assessment.application && assessment.remedy && assessment.respondsToOpponent, 'expected application, relief, and rebuttal signals');
+
+  const missingLink = assessArgument('The issue is whether Article 21 applies to this case.');
+  assert(missingLink.nextStep.includes('relief'), `expected a remedy next step, got ${missingLink.nextStep}`);
 }
 
 const base = { ...DEFAULT_SCORE_BREAKDOWN };
@@ -66,6 +79,11 @@ const base = { ...DEFAULT_SCORE_BREAKDOWN };
   assert(inferNextPhase(mk(5)) === 'rebuttal', '5 turns → rebuttal');
   assert(inferNextPhase(mk(7)) === 'judicial_questions', '7 turns → judicial_questions');
   assert(inferNextPhase(mk(10)) === 'closing', '10 turns → closing');
+
+  const lowQuality = mk(8).map(message => ({ ...message, meta: { ...message.meta, argumentQuality: {
+    score: 1, issue: false, rule: false, facts: false, application: false, remedy: false, respondsToOpponent: false, nextStep: 'Add substance.',
+  } }}));
+  assert(inferNextPhase(lowQuality) === 'issue_framing', 'weak arguments should not skip foundational phase work');
 }
 
 // Ruling text parse
