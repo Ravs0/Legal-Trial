@@ -26,6 +26,21 @@ export interface CaselawResponse {
 }
 
 export type CaselawJurisdiction = 'indian' | 'common';
+export type IndianCourtFilter =
+  | 'all'
+  | 'supreme_court'
+  | 'high_courts'
+  | 'delhi_high_court'
+  | 'bombay_high_court'
+  | 'karnataka_high_court'
+  | 'allahabad_high_court'
+  | 'madras_high_court';
+
+export interface CaselawSearchOptions {
+  court?: IndianCourtFilter;
+  fromDate?: string;
+  toDate?: string;
+}
 
 class CaselawServiceError extends Error {
   constructor(message: string) {
@@ -46,6 +61,7 @@ export const searchCaselaw = async (
   practiceMode: PracticeMode | 'common',
   limit: number = 8,
   pagenum: number = 0,
+  options: CaselawSearchOptions = {},
 ): Promise<CaselawResponse> => {
   const trimmed = (query || '').trim();
   if (!trimmed) {
@@ -65,7 +81,7 @@ export const searchCaselaw = async (
     res = await fetch('/api/caselaw', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: trimmed, jurisdiction, limit, pagenum }),
+      body: JSON.stringify({ query: trimmed, jurisdiction, limit, pagenum, ...options }),
     });
   } catch (err) {
     throw new CaselawServiceError(`Network error reaching /api/caselaw: ${(err as Error).message}`);

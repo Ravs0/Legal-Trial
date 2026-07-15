@@ -21,6 +21,16 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const SAFE_URL_SCHEMES = /^(https?:\/\/)/i;
+const COURT_FILTERS = {
+    all: '',
+    supreme_court: 'supremecourt',
+    high_courts: 'highcourts',
+    delhi_high_court: 'delhi',
+    bombay_high_court: 'bombay',
+    karnataka_high_court: 'karnataka',
+    allahabad_high_court: 'allahabad',
+    madras_high_court: 'chennai',
+};
 
 function getCorsHeaders(origin) {
     const isAllowed = origin && ALLOWED_ORIGINS.has(origin);
@@ -56,6 +66,23 @@ function sanitizeUrl(rawUrl) {
 
 function cleanText(s) {
     return decodeHtmlEntities((s || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim());
+}
+
+function normalizeDate(value) {
+    if (typeof value !== 'string' || !value) return '';
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const date = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+    return `${Number(match[3])}-${Number(match[2])}-${match[1]}`;
+}
+
+function buildFilteredQuery(query, court, fromDate, toDate) {
+    const filters = [];
+    if (COURT_FILTERS[court]) filters.push(`doctypes:${COURT_FILTERS[court]}`);
+    if (fromDate) filters.push(`fromdate:${fromDate}`);
+    if (toDate) filters.push(`todate:${toDate}`);
+    return [query, ...filters].filter(Boolean).join(' ');
 }
 
 // ─── Authenticated JSON API ───────────────────────────────────────────────
@@ -168,7 +195,16 @@ export default async function handler(req, res) {
     const jurisdiction = body.jurisdiction === "common" ? "common" : "indian";
     const limit = Math.min(Math.max(Number(body.limit) || 8, 1), 12);
     const pageNum = Math.min(Math.max(Number(body.pagenum) || 0, 0), 5);
+    const court = typeof body.court === 'string' ? body.court : 'all';
+    const fromDate = normalizeDate(body.fromDate);
+    const toDate = normalizeDate(body.toDate);
     const env = process.env;
+
+    if (!(court in COURT_FILTERS)) return res.status(400).json({ error: 'Unsupported court filter.' });
+    if (fromDate === null || toDate === null) return res.status(400).json({ error: 'Dates must use YYYY-MM-DD.' });
+    if (fromDate && toDate && new Date(body.fromDate) > new Date(body.toDate)) {
+        return res.status(400).json({ error: 'Start date must be before end date.' });
+    }
 
     // International / common-law jurisdiction is deferred (per PR1 scope).
     // Return clearly unavailable so the UI can mark citations UNVERIFIED
@@ -183,23 +219,23 @@ export default async function handler(req, res) {
         });
     }
 
+    if (!env.INDIANKANOON_API_KEY) {
+        return res.status(200).json({
+            results: [],
+            jurisdiction: "indian",
+            provider: null,
+            available: false,
+            message: "Live Indian case-law retrieval requires INDIANKANOON_API_KEY. No scraped fallback is used in production."
+        });
+    }
+
     try {
         let results = null;
         let provider = null;
+        const filteredQuery = buildFilteredQuery(query, court, fromDate, toDate);
 
-        if (env.INDIANKANOON_API_KEY) {
-            results = await searchIndianKanoonApi(query, env.INDIANKANOON_API_KEY, pageNum, limit);
-            provider = results ? "indiankanoon-api" : null;
-        }
-
-        if ((!results || results.length === 0)) {
-            try {
-                results = await searchIndianKanoonScrape(query, pageNum, limit);
-                provider = results && results.length > 0 ? "indiankanoon-scrape" : null;
-            } catch (scrapeErr) {
-                console.error("IndianKanoon scrape failed:", scrapeErr.message);
-            }
-        }
+        results = await searchIndianKanoonApi(filteredQuery, env.INDIANKANOON_API_KEY, pageNum, limit);
+        provider = results ? "indiankanoon-api" : null;
 
         return res.status(200).json({
             results: results || [],
@@ -208,7 +244,7 @@ export default async function handler(req, res) {
             available: !!(provider),
             message: provider
                 ? undefined
-                : "IndianKanoon lookup unavailable — citations may be unverified."
+                : "Indian Kanoon did not return a live result. Verify citations against the linked judgment before relying on them."
         });
     } catch (err) {
         console.error("Caselaw search failure:", err);

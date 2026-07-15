@@ -9,6 +9,7 @@ import {
 } from '../services/courtSourcesService';
 import { PhotoHero } from '../components/PhotoHero';
 import { PatternPanel } from '../components/SurfacePattern';
+import { CaselawResult, IndianCourtFilter, searchCaselaw } from '../services/caselawService';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -39,6 +40,17 @@ const DATA_TYPE_OPTIONS: { value: CourtDataType | ''; label: string }[] = [
   { value: 'judgment', label: 'Judgment' },
   { value: 'aggregate_stat', label: 'Aggregate Stats' },
   { value: 'source_reference', label: 'Source Reference' },
+];
+
+const CASELAW_COURT_OPTIONS: { value: IndianCourtFilter; label: string }[] = [
+  { value: 'all', label: 'All Indian courts' },
+  { value: 'supreme_court', label: 'Supreme Court of India' },
+  { value: 'high_courts', label: 'All High Courts' },
+  { value: 'delhi_high_court', label: 'Delhi High Court' },
+  { value: 'bombay_high_court', label: 'Bombay High Court' },
+  { value: 'karnataka_high_court', label: 'Karnataka High Court' },
+  { value: 'allahabad_high_court', label: 'Allahabad High Court' },
+  { value: 'madras_high_court', label: 'Madras High Court' },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -173,6 +185,25 @@ const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
   );
 };
 
+const CaselawCard: React.FC<{ result: CaselawResult }> = ({ result }) => (
+  <article className="rounded-lg border border-brand-border bg-brand-bg-primary/60 p-4 transition-colors hover:border-brand-accent/30">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <h3 className="font-serif text-[15px] font-semibold leading-snug text-brand-text-primary">{result.title}</h3>
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary/65">
+          {result.citation && <span>{result.citation}</span>}
+          {result.court && <span>{result.court}</span>}
+          {result.date && <span>{result.date}</span>}
+        </div>
+      </div>
+      <a href={result.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-brand-border px-3 text-[11px] font-semibold text-brand-text-primary hover:border-brand-accent/40 hover:text-brand-accent">
+        Open judgment
+      </a>
+    </div>
+    {result.snippet && <p className="mt-3 text-[12px] leading-5 text-brand-text-secondary/80 line-clamp-4">{result.snippet}</p>}
+  </article>
+);
+
 // ─── Main Screen ────────────────────────────────────────────────────────────
 
 const CourtSourcesScreen: React.FC = () => {
@@ -184,6 +215,13 @@ const CourtSourcesScreen: React.FC = () => {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [caselawQuery, setCaselawQuery] = useState('');
+  const [caselawCourt, setCaselawCourt] = useState<IndianCourtFilter>('all');
+  const [caselawFromDate, setCaselawFromDate] = useState('');
+  const [caselawToDate, setCaselawToDate] = useState('');
+  const [caselawResults, setCaselawResults] = useState<CaselawResult[]>([]);
+  const [caselawLoading, setCaselawLoading] = useState(false);
+  const [caselawMessage, setCaselawMessage] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
   const params = useMemo<CourtSourceSearchParams>(
@@ -228,6 +266,27 @@ const CourtSourcesScreen: React.FC = () => {
     runSearch({ q: query, source: nextSource, courtLevel, dataType, limit: 20 });
   };
 
+  const handleCaselawSearch = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!caselawQuery.trim()) return;
+    setCaselawLoading(true);
+    setCaselawMessage(null);
+    try {
+      const response = await searchCaselaw(caselawQuery, 'indian', 12, 0, {
+        court: caselawCourt,
+        fromDate: caselawFromDate || undefined,
+        toDate: caselawToDate || undefined,
+      });
+      setCaselawResults(response.results);
+      setCaselawMessage(response.message || (response.results.length ? null : 'No live judgments matched those filters.'));
+    } catch (err) {
+      setCaselawResults([]);
+      setCaselawMessage(err instanceof Error ? err.message : 'Live case-law search failed.');
+    } finally {
+      setCaselawLoading(false);
+    }
+  };
+
   const resetFilters = () => {
     setQuery('');
     setSource('');
@@ -270,6 +329,34 @@ const CourtSourcesScreen: React.FC = () => {
             />
           ))}
         </div>
+
+        <form onSubmit={handleCaselawSearch}>
+          <PatternPanel pattern="lines" className="p-4 sm:p-5">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-primary">Live case-law research</p>
+                <p className="text-[12px] leading-5 text-brand-text-secondary/75">Search current Supreme Court and High Court judgments through Indian Kanoon’s authenticated API. Results are research leads—open and verify the linked primary judgment before relying on it.</p>
+              </div>
+              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_150px_150px_auto] lg:items-end">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="caselaw-query" className="text-[9px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/60">Issue or authority</label>
+                  <input id="caselaw-query" value={caselawQuery} onChange={(event) => setCaselawQuery(event.target.value)} placeholder="e.g. bail cancellation, arbitral award public policy" className="h-10 rounded-lg border border-brand-border bg-brand-bg-primary px-3 text-sm text-brand-text-primary outline-none placeholder:text-brand-text-secondary/40 focus:border-brand-accent" />
+                </div>
+                <SelectField label="Court" value={caselawCourt} options={CASELAW_COURT_OPTIONS} onChange={(value) => setCaselawCourt(value as IndianCourtFilter)} />
+                <div className="flex flex-col gap-1.5"><label htmlFor="caselaw-from" className="text-[9px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/60">From</label><input id="caselaw-from" type="date" value={caselawFromDate} onChange={(event) => setCaselawFromDate(event.target.value)} className="h-10 rounded-lg border border-brand-border bg-brand-bg-primary px-3 text-xs text-brand-text-primary" /></div>
+                <div className="flex flex-col gap-1.5"><label htmlFor="caselaw-to" className="text-[9px] font-mono uppercase tracking-[0.2em] text-brand-text-secondary/60">To</label><input id="caselaw-to" type="date" value={caselawToDate} onChange={(event) => setCaselawToDate(event.target.value)} className="h-10 rounded-lg border border-brand-border bg-brand-bg-primary px-3 text-xs text-brand-text-primary" /></div>
+                <button type="submit" disabled={caselawLoading || !caselawQuery.trim()} className="min-h-10 rounded-lg bg-white px-4 text-[12px] font-semibold text-black hover:bg-white/90 disabled:opacity-50">{caselawLoading ? 'Searching…' : 'Find cases'}</button>
+              </div>
+              {caselawMessage && <p role="status" className="rounded-lg border border-amber-400/20 bg-amber-500/5 px-3 py-2 text-[11px] leading-5 text-amber-200/80">{caselawMessage}</p>}
+              {caselawResults.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/60">{caselawResults.length} live results · Powered by Indian Kanoon</p>
+                  {caselawResults.map((result) => <CaselawCard key={result.docid || result.url} result={result} />)}
+                </div>
+              )}
+            </div>
+          </PatternPanel>
+        </form>
 
         {/* ─── Search Bar ──────────────────────────────────── */}
         <form onSubmit={handleSubmit}>
