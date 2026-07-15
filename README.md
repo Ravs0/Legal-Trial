@@ -38,7 +38,7 @@ Environment Variables):
 | `SARVAM_API_KEY` | Optional | `/api/voice` | Enables speech-to-text (mic input) and text-to-speech ("Read Aloud"). Without it, voice features are disabled. |
 | `ALLOWED_ORIGINS` | **Yes in production** | API routes | Comma-separated deployed app origins permitted to call the API. |
 | `DREADLER_STATE_SECRET` | Required for Dreadler | `/api/dreadler` | Long random secret used to sign the simulation state between turns. |
-| `INDIANKANOON_API_KEY` | Optional | `/api/caselaw` | Enables live Supreme Court/High Court case-law retrieval with court and date filters. |
+| `INDIANKANOON_API_KEY` | Optional | `/api/caselaw` | Enables structured Supreme Court/High Court retrieval with provider-side court and date filters. |
 
 Then deploy:
 ```
@@ -56,11 +56,14 @@ vercel --prod
 
 ## Live case-law retrieval
 
-Indian live case-law search uses the authenticated Indian Kanoon API. It supports
-Supreme Court, all High Courts, selected High Courts, and date filters; it does
-not scrape official eCourts portals or bypass their CAPTCHA-protected flows.
-Results are research leads, not legal advice: open the linked judgment and verify
-the primary source, holding, currency, and citation before relying on it.
+Indian case-law research has two modes. When `INDIANKANOON_API_KEY` is configured,
+the authenticated Indian Kanoon API provides structured Supreme Court, High Court,
+selected-High-Court, and date-filtered retrieval. Without that key, the app uses
+public-web discovery to find judgment links; those results are explicitly
+unverified, and court/date filters are approximate. The app does not scrape Indian
+Kanoon's public search pages or bypass official eCourts CAPTCHA-protected flows.
+In either mode, results are research leads, not legal advice: open and verify the
+primary judgment, holding, currency, and citation before relying on it.
 
 ## Tech Stack
 

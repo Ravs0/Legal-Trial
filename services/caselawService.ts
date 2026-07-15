@@ -15,6 +15,8 @@ export interface CaselawResult {
   docid: string;
   url: string;
   snippet: string;
+  source?: string;
+  verification?: 'provider_metadata' | 'public_web_discovery';
 }
 
 export interface CaselawResponse {

@@ -194,6 +194,7 @@ const CaselawCard: React.FC<{ result: CaselawResult }> = ({ result }) => (
           {result.citation && <span>{result.citation}</span>}
           {result.court && <span>{result.court}</span>}
           {result.date && <span>{result.date}</span>}
+          {result.source && <span>{result.source}</span>}
         </div>
       </div>
       <a href={result.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-brand-border px-3 text-[11px] font-semibold text-brand-text-primary hover:border-brand-accent/40 hover:text-brand-accent">
@@ -335,7 +336,7 @@ const CourtSourcesScreen: React.FC = () => {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-text-primary">Live case-law research</p>
-                <p className="text-[12px] leading-5 text-brand-text-secondary/75">Search current Supreme Court and High Court judgments through Indian Kanoon’s authenticated API. Results are research leads—open and verify the linked primary judgment before relying on it.</p>
+                <p className="text-[12px] leading-5 text-brand-text-secondary/75">Search Supreme Court and High Court judgment leads. With an authenticated database, court and date filters are structured; without one, public-web results are clearly marked for manual verification.</p>
               </div>
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_190px_150px_150px_auto] lg:items-end">
                 <div className="flex flex-col gap-1.5">
@@ -350,7 +351,7 @@ const CourtSourcesScreen: React.FC = () => {
               {caselawMessage && <p role="status" className="rounded-lg border border-amber-400/20 bg-amber-500/5 px-3 py-2 text-[11px] leading-5 text-amber-200/80">{caselawMessage}</p>}
               {caselawResults.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/60">{caselawResults.length} live results · Powered by Indian Kanoon</p>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/60">{caselawResults.length} live results · {caselawResults[0]?.verification === 'public_web_discovery' ? 'public-web discovery · unverified' : 'provider metadata'}</p>
                   {caselawResults.map((result) => <CaselawCard key={result.docid || result.url} result={result} />)}
                 </div>
               )}
