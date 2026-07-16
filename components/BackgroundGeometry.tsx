@@ -1,6 +1,15 @@
 import React from 'react';
 
+/**
+ * design.md rule 9: solid `#0a0a0a` background, no geometry wallpaper on shell.
+ * Layout shell is already solid; PracticeArena was the last main-canvas consumer.
+ * Default off. Opt-in only for experimental room atmospheres — do not re-enable on shell.
+ */
+export const ENABLE_BACKGROUND_GEOMETRY = false;
+
 export const BackgroundGeometry: React.FC = () => {
+  if (!ENABLE_BACKGROUND_GEOMETRY) return null;
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 select-none">
       {/* Blueprint Grid Overlay — visible */}

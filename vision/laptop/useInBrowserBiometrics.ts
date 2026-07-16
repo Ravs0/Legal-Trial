@@ -37,7 +37,7 @@ export function useInBrowserBiometrics(
     pupilMm: null,
     coherence,
     emotions: { ...NEUTRAL_EMOTIONS },
-    cameraOn: true,
+    cameraOn: false,
   });
   const [sessionReady, setSessionReady] = useState(false);
 
@@ -48,43 +48,76 @@ export function useInBrowserBiometrics(
   const lastPosAtRef = useRef(0);
   const lastEmotionAtRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+  const waitRef = useRef<number | null>(null);
+  // Track sessionReady inside the rAF loop without restarting the loop.
+  const sessionReadyRef = useRef(false);
 
-  // Prime the HSEmotion session once.
+  // Prime the HSEmotion session once when enabled.
   useEffect(() => {
     let cancelled = false;
     if (!enabled) {
       setSessionReady(false);
+      sessionReadyRef.current = false;
       return;
     }
     getHsemotionSession().then((s) => {
-      if (!cancelled) setSessionReady(s !== null);
+      if (!cancelled) {
+        const ready = s !== null;
+        sessionReadyRef.current = ready;
+        setSessionReady(ready);
+      }
     });
     return () => { cancelled = true; };
   }, [enabled]);
 
   useEffect(() => {
     if (!enabled) {
-      setReading((prev) => ({ ...prev, bpm: null, emotions: { ...NEUTRAL_EMOTIONS }, cameraOn: false }));
+      setReading((prev) => ({
+        ...prev,
+        bpm: null,
+        pupilMm: null,
+        emotions: { ...NEUTRAL_EMOTIONS },
+        cameraOn: false,
+      }));
+      lastBpmRef.current = null;
+      samplesRef.current = [];
       return;
     }
-    // Reset buffer when the hook mounts fresh.
+
     samplesRef.current = [];
     if (!scratchRef.current) {
       scratchRef.current = document.createElement('canvas');
     }
     const scratch = scratchRef.current;
-    const video = videoRef.current;
-    if (!video) return;
+    let cancelled = false;
+
+    const cleanup = () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      if (waitRef.current !== null) {
+        cancelAnimationFrame(waitRef.current);
+        waitRef.current = null;
+      }
+    };
 
     const loop = () => {
+      if (cancelled) return;
+      const video = videoRef.current;
+      if (!video) {
+        // Ref can briefly be null when the host remounts video nodes.
+        waitRef.current = requestAnimationFrame(loop);
+        return;
+      }
+
       const now = performance.now();
 
-      // 1. Always grab one RGB sample this frame.
+      // 1. Always grab one RGB sample this frame (no-op until video has dims).
       const sample = extractRoiSample(video, scratch, now);
       if (sample) {
         const buf = samplesRef.current;
         buf.push(sample);
-        // Trim to BUFFER_SEC.
         const maxLen = Math.ceil(BUFFER_SEC * DEFAULT_FPS);
         if (buf.length > maxLen) buf.splice(0, buf.length - maxLen);
       }
@@ -93,25 +126,23 @@ export function useInBrowserBiometrics(
       if (now - lastPosAtRef.current >= POS_INTERVAL_MS) {
         lastPosAtRef.current = now;
         const res = posEstimate(samplesRef.current);
-        // Hold the last good BPM for a short grace period so the UI doesn't
-        // flicker to null between confident windows.
         if (res.bpm !== null) {
           lastBpmRef.current = res.bpm;
         }
         const bpm = res.bpm ?? lastBpmRef.current;
-        setReading((prev) => ({ ...prev, bpm }));
+        setReading((prev) => ({ ...prev, bpm, cameraOn: true }));
       }
 
       // 3. HSEmotion on a slower timer (only if session is loaded).
       if (
-        sessionReady &&
+        sessionReadyRef.current &&
         now - lastEmotionAtRef.current >= EMOTION_INTERVAL_MS
       ) {
         lastEmotionAtRef.current = now;
         const crop = captureFaceCrop(video, scratch);
         if (crop) {
           getHsemotionSession().then(async (session) => {
-            if (!session) return;
+            if (!session || cancelled) return;
             try {
               const emotions = await inferEmotions(session, crop);
               lastEmotionRef.current = emotions;
@@ -128,9 +159,11 @@ export function useInBrowserBiometrics(
 
     rafRef.current = requestAnimationFrame(loop);
     return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      cancelled = true;
+      cleanup();
     };
-  }, [videoRef, sessionReady, enabled]);
+    // sessionReady is read via ref so model load does not restart the rAF loop.
+  }, [videoRef, enabled]);
 
   // Reflect coherence into the reading whenever it changes upstream.
   useEffect(() => {

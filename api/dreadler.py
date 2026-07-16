@@ -17,25 +17,30 @@ if project_dir not in sys.path:
     sys.path.insert(0, project_dir)
 
 from dreadler import DreadlerAgent
+from dreadler.worlds import WORLD_IDS
+from dreadler.skins import SKIN_IDS
 
 MAX_BODY_BYTES = 128 * 1024
 MAX_INPUT_CHARS = 6_000
 MAX_HISTORY_ENTRIES = 20
 MAX_HISTORY_CHARS = 5_000
-ALLOWED_WORLDS = {"dreadler_logic"}
-ALLOWED_SKINS = {"dreadler"}
-ALLOWED_PRESSURE = {"calm", "building", "high", "critical"}
-ALLOWED_VARIANTS = {"alpha", "beta", "gamma"}
+# Derived from package registries (not hand-duplicated allow-lists).
+ALLOWED_WORLDS = set(WORLD_IDS)
+ALLOWED_SKINS = set(SKIN_IDS)
+# Must match dreadler/state.py PRESSURE_MAP / VARIANT_MAP keys.
+ALLOWED_PRESSURE = {"calm", "pressured", "desperate", "collapsed"}
+ALLOWED_VARIANTS = {"alpha", "beta", "gamma", "collapsed"}
 STATE_SECRET = os.environ.get("DREADLER_STATE_SECRET", "")
 _rate_buckets: dict[str, tuple[float, int]] = {}
 _rate_lock = threading.Lock()
 
 
 def _allowed_origins() -> set[str]:
+    # Keep in sync with api/security.js DEV_ORIGINS + ALLOWED_ORIGINS/APP_ORIGIN.
     configured = os.environ.get("ALLOWED_ORIGINS", os.environ.get("APP_ORIGIN", ""))
     return {
         "http://localhost:3000", "http://localhost:3001", "http://localhost:5173",
-        "http://127.0.0.1:3000", "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:5173",
         *[origin.strip() for origin in configured.split(",") if origin.strip()],
     }
 
@@ -43,6 +48,13 @@ def _allowed_origins() -> set[str]:
 def _request_allowed(client_ip: str, limit: int = 30, window_seconds: int = 60) -> bool:
     now = time.monotonic()
     with _rate_lock:
+        # Prune expired / cap map size (warm-instance leak guard).
+        if len(_rate_buckets) > 2500:
+            expired = [ip for ip, (started, _) in _rate_buckets.items() if now - started >= window_seconds]
+            for ip in expired:
+                _rate_buckets.pop(ip, None)
+            while len(_rate_buckets) >= 5000:
+                _rate_buckets.pop(next(iter(_rate_buckets)), None)
         started_at, count = _rate_buckets.get(client_ip, (now, 0))
         if now - started_at >= window_seconds:
             started_at, count = now, 0
@@ -115,51 +127,59 @@ def _hydrate(agent: DreadlerAgent, state: dict) -> None:
 class handler(BaseHTTPRequestHandler):
     def _origin_allowed(self) -> bool:
         origin = self.headers.get("Origin")
+        # Same-origin / non-browser: no Origin header → allow (no ACAO set).
         return not origin or origin in _allowed_origins()
 
-    def send_cors_headers(self):
+    def send_cors_headers(self, *, allow_origin: bool = True):
+        """Emit CORS only for allow-listed origins. Never reflect a denied Origin."""
         origin = self.headers.get("Origin")
-        if origin:
+        if allow_origin and origin and origin in _allowed_origins():
             self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS, GET")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        # Align with security.js default: Content-Type only (no credentials).
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
-    def send_json(self, status: int, payload: dict):
+    def send_json(self, status: int, payload: dict, *, cors: bool = True):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
-        self.send_cors_headers()
+        if cors:
+            self.send_cors_headers(allow_origin=True)
+        else:
+            # Denied origin: still Vary, but do not set ACAO.
+            self.send_header("Vary", "Origin")
         self.end_headers()
         self.wfile.write(json.dumps(payload).encode("utf-8"))
 
+    def log_message(self, format: str, *args) -> None:
+        # Quiet default BaseHTTPRequestHandler stderr spam on serverless.
+        return
+
     def do_OPTIONS(self):
         if not self._origin_allowed():
-            self.send_json(403, {"error": "Origin is not allowed."})
+            self.send_json(403, {"error": "Origin is not allowed."}, cors=False)
             return
         self.send_response(200)
-        self.send_cors_headers()
+        self.send_cors_headers(allow_origin=True)
         self.end_headers()
 
     def do_GET(self):
         if not self._origin_allowed():
-            self.send_json(403, {"error": "Origin is not allowed."})
+            self.send_json(403, {"error": "Origin is not allowed."}, cors=False)
             return
         # Allow checking if the endpoint is alive and return configuration options
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_cors_headers()
-        self.end_headers()
-        
         response = {
             "status": "active",
-            "worlds": ["dreadler_logic"],
-            "skins": ["dreadler"]
+            "worlds": sorted(ALLOWED_WORLDS),
+            "skins": sorted(ALLOWED_SKINS),
+            "pressure_levels": sorted(ALLOWED_PRESSURE),
+            "variants": sorted(ALLOWED_VARIANTS),
         }
-        self.wfile.write(json.dumps(response).encode("utf-8"))
+        self.send_json(200, response)
 
     def do_POST(self):
         if not self._origin_allowed():
-            self.send_json(403, {"error": "Origin is not allowed."})
+            self.send_json(403, {"error": "Origin is not allowed."}, cors=False)
             return
         if not _request_allowed(self.client_address[0]):
             self.send_json(429, {"error": "Too many requests. Please wait a minute and try again."})
@@ -173,10 +193,10 @@ class handler(BaseHTTPRequestHandler):
             self.send_json(413, {"error": "Request body is missing or too large."})
             return
         post_data = self.rfile.read(content_length)
-        
+
         try:
             req_body = json.loads(post_data.decode("utf-8"))
-        except Exception as e:
+        except Exception:
             self.send_json(400, {"error": "Invalid JSON body."})
             return
 
@@ -207,6 +227,22 @@ class handler(BaseHTTPRequestHandler):
             # Only hydrate a state that was signed by this deployment. The
             # browser never gets to author scores, turns, or conversation state.
             if state_data:
+                # Optional monotonic turn guard: reject tokens older than the
+                # client's high-water mark (stale replay / double-tab rewind).
+                client_turn_raw = req_body.get("client_turn_count")
+                if client_turn_raw is None:
+                    client_turn_raw = req_body.get("prior_turn_count")
+                if client_turn_raw is not None:
+                    token_turn = _bounded_int(state_data.get("turn_count"), 0, 0, 200)
+                    client_turn = _bounded_int(client_turn_raw, 0, 0, 200)
+                    if token_turn < client_turn:
+                        self.send_json(409, {
+                            "error": (
+                                "Stale state token: turn_count is behind the client "
+                                "high-water mark. Restart the session."
+                            ),
+                        })
+                        return
                 _hydrate(agent, state_data)
 
             # Run turn
@@ -244,4 +280,13 @@ class handler(BaseHTTPRequestHandler):
             self.send_json(200, payload)
 
         except Exception as e:
+            message = str(e)
+            # Log internal detail server-side only — never include stack/message in JSON.
+            print(f"[dreadler] turn failure: {type(e).__name__}: {message[:300]}", flush=True)
+            if "DEEPSEEK_API_KEY_MISSING" in message or "No DeepSeek API key" in message:
+                self.send_json(503, {
+                    "error": "DEEPSEEK_API_KEY is not configured on the server. "
+                             "Add it in Vercel environment variables to run Dreadler."
+                })
+                return
             self.send_json(500, {"error": "The training engine could not complete that turn."})

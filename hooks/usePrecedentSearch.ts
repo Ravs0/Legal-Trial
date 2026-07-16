@@ -7,132 +7,243 @@ export interface SearchResult {
   matchedTerms: string[];
 }
 
-export const usePrecedentSearch = (
+export type SearchPipeline = 'bm25' | 'legal-bert' | 'haystack-hybrid';
+
+export interface SearchWeights {
+  semantic: number;
+  authority: number;
+  recency: number;
+}
+
+const DEFAULT_WEIGHTS: SearchWeights = Object.freeze({
+  semantic: 0.5,
+  authority: 0.3,
+  recency: 0.2,
+});
+
+const SYNONYMS: ReadonlyArray<{ keys: readonly string[]; category: string }> = [
+  { keys: ['copyright', 'trademark', 'patent', 'ipr', 'intellectual'], category: 'intellectual_property' },
+  { keys: ['contract', 'breach', 'agreement', 'promise', 'covenant'], category: 'contracts' },
+  { keys: ['negligence', 'tort', 'injury', 'accident', 'liability', 'damage'], category: 'torts' },
+  { keys: ['constitution', 'fundamental', 'right', 'article', 'writ'], category: 'constitutional' },
+];
+
+const VALID_PIPELINES = new Set<SearchPipeline>(['bm25', 'legal-bert', 'haystack-hybrid']);
+
+/** Finite number, else fallback. */
+function finiteOr(value: unknown, fallback: number): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/** Safe string for search fields that may be missing at runtime. */
+function asText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === 'string').join(' ');
+  }
+  return '';
+}
+
+/**
+ * Deterministic seed from a title character. Empty titles → 0 (not NaN).
+ * Index is clamped into the string; never uses `% length` on empty strings.
+ */
+export function titleCodeAt(title: unknown, index: number): number {
+  const t = typeof title === 'string' ? title : '';
+  if (!t.length) return 0;
+  const i = Math.max(0, Math.min(Math.floor(index), t.length - 1));
+  return t.charCodeAt(i);
+}
+
+/** Count non-overlapping occurrences of needle in haystack (both lowercased). */
+export function countOccurrences(haystack: string, needle: string): number {
+  if (!needle || !haystack) return 0;
+  let count = 0;
+  let pos = 0;
+  while (pos <= haystack.length - needle.length) {
+    const idx = haystack.indexOf(needle, pos);
+    if (idx === -1) break;
+    count += 1;
+    pos = idx + needle.length;
+  }
+  return count;
+}
+
+function normalizeWeights(weights?: Partial<SearchWeights> | null): SearchWeights {
+  return {
+    semantic: Math.max(0, finiteOr(weights?.semantic, DEFAULT_WEIGHTS.semantic)),
+    authority: Math.max(0, finiteOr(weights?.authority, DEFAULT_WEIGHTS.authority)),
+    recency: Math.max(0, finiteOr(weights?.recency, DEFAULT_WEIGHTS.recency)),
+  };
+}
+
+function normalizePipeline(pipeline: unknown): SearchPipeline {
+  if (typeof pipeline === 'string' && VALID_PIPELINES.has(pipeline as SearchPipeline)) {
+    return pipeline as SearchPipeline;
+  }
+  return 'legal-bert';
+}
+
+function tokenizeQuery(query: string): string[] {
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.replace(/[^\w]/g, ''))
+    .filter((t) => t.length > 2);
+}
+
+/**
+ * Pure precedent ranker — same logic the hook memoizes.
+ * Safe against empty titles, missing case fields, bad weights, and non-array lists.
+ */
+export function rankPrecedents(
   query: string,
-  casesList: CaseDetail[],
-  pipeline: 'bm25' | 'legal-bert' | 'haystack-hybrid' = 'legal-bert',
-  weights = { semantic: 0.5, authority: 0.3, recency: 0.2 }
-): SearchResult[] => {
-  return useMemo(() => {
-    // If no query, return empty list or all cases sorted by simulated authority
-    if (!query || !query.trim()) {
-      return casesList.map(c => {
-        const auth = 50 + (c.title.charCodeAt(0) % 50);
-        const year = 1880 + (c.title.charCodeAt(1 % c.title.length) % 145);
+  casesList: CaseDetail[] | null | undefined,
+  pipeline: SearchPipeline | string = 'legal-bert',
+  weightsInput?: Partial<SearchWeights> | null,
+): SearchResult[] {
+  const list = Array.isArray(casesList) ? casesList : [];
+  const weights = normalizeWeights(weightsInput);
+  const activePipeline = normalizePipeline(pipeline);
+  const q = typeof query === 'string' ? query : '';
+
+  // No query → authority/recency ranking of the full docket (simulated).
+  if (!q.trim()) {
+    return list
+      .map((c) => {
+        const auth = 50 + (titleCodeAt(c?.title, 0) % 50);
+        const year = 1880 + (titleCodeAt(c?.title, 1) % 145);
         const yearRatio = (year - 1880) / 145;
-        const score = Math.round((auth / 100 * weights.authority + yearRatio * weights.recency) * 100);
-        return { caseItem: c, score, matchedTerms: [] };
-      }).sort((a, b) => b.score - a.score);
+        const score = Math.round(
+          ((auth / 100) * weights.authority + yearRatio * weights.recency) * 100,
+        );
+        return { caseItem: c, score, matchedTerms: [] as string[] };
+      })
+      .sort((a, b) => b.score - a.score);
+  }
+
+  const terms = tokenizeQuery(q);
+  // Query had only stopwords / punctuation → no matches (not full docket dump).
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const results: SearchResult[] = list.map((c) => {
+    let keywordScore = 0;
+    const matchedTerms: string[] = [];
+
+    const title = asText(c?.title).toLowerCase();
+    const briefFacts = asText(c?.briefFacts).toLowerCase();
+    const articles = asText(c?.relevantArticlesSections).toLowerCase();
+    const issues = asText(c?.legalIssues).toLowerCase();
+
+    const searchTargets = [
+      { text: title, weight: 10 },
+      { text: briefFacts, weight: 2 },
+      { text: articles, weight: 4 },
+      { text: issues, weight: 3 },
+    ];
+
+    // indexOf-based counts — no RegExp, so query tokens cannot become ReDoS.
+    for (const term of terms) {
+      let matched = false;
+      for (const target of searchTargets) {
+        const hits = countOccurrences(target.text, term);
+        if (hits > 0) {
+          keywordScore += hits * target.weight;
+          matched = true;
+        }
+      }
+      if (matched) matchedTerms.push(term);
     }
 
-    const terms = query
-      .toLowerCase()
-      .split(/\s+/)
-      .map(t => t.replace(/[^\w]/g, ''))
-      .filter(t => t.length > 2);
+    let semanticScore = 0;
+    if (activePipeline !== 'bm25') {
+      const hasKeywordMatch = keywordScore > 0;
+      const textLower = `${title} ${briefFacts} ${articles}`;
+      let synonymMatch = false;
 
-    const results: SearchResult[] = casesList.map(c => {
-      let keywordScore = 0;
-      const matchedTerms: string[] = [];
-
-      const searchTargets = [
-        { text: c.title.toLowerCase(), weight: 10 },
-        { text: c.briefFacts.toLowerCase(), weight: 2 },
-        { text: c.relevantArticlesSections.toLowerCase(), weight: 4 },
-        { text: c.legalIssues.join(' ').toLowerCase(), weight: 3 }
-      ];
-
-      // Exact keyword matches
-      terms.forEach(term => {
-        let matched = false;
-        searchTargets.forEach(target => {
-          const regex = new RegExp(term, 'gi');
-          const matches = target.text.match(regex);
-          if (matches && matches.length > 0) {
-            keywordScore += matches.length * target.weight;
-            matched = true;
+      for (const term of terms) {
+        const matchedCategory = SYNONYMS.find((s) => s.keys.includes(term));
+        if (!matchedCategory) continue;
+        const hasSynonymWord = matchedCategory.keys.some((k) => textLower.includes(k));
+        if (hasSynonymWord) {
+          synonymMatch = true;
+          if (!matchedTerms.includes(term)) {
+            matchedTerms.push(term);
           }
-        });
-        if (matched) matchedTerms.push(term);
-      });
-
-      // Semantic synonym match simulation (Legal-BERT/Haystack)
-      let semanticScore = 0;
-      if (pipeline !== 'bm25') {
-        const hasKeywordMatch = keywordScore > 0;
-        
-        // Simulating synonym matching: if they search copyright/IP, breach/contract, etc.
-        const textLower = (c.title + ' ' + c.briefFacts + ' ' + c.relevantArticlesSections).toLowerCase();
-        let synonymMatch = false;
-
-        const synonyms = [
-          { keys: ['copyright', 'trademark', 'patent', 'ipr', 'intellectual'], category: 'intellectual_property' },
-          { keys: ['contract', 'breach', 'agreement', 'promise', 'covenant'], category: 'contracts' },
-          { keys: ['negligence', 'tort', 'injury', 'accident', 'liability', 'damage'], category: 'torts' },
-          { keys: ['constitution', 'fundamental', 'right', 'article', 'writ'], category: 'constitutional' }
-        ];
-
-        terms.forEach(term => {
-          const matchedCategory = synonyms.find(s => s.keys.includes(term));
-          if (matchedCategory) {
-            // Check if case matches this synonym category
-            const hasSynonymWord = matchedCategory.keys.some(k => textLower.includes(k));
-            if (hasSynonymWord) {
-              synonymMatch = true;
-              if (!matchedTerms.includes(term)) {
-                matchedTerms.push(term);
-              }
-            }
-          }
-        });
-
-        // Calculate semantic baseline: if keyword match, high semantic; if synonym match, moderate semantic
-        if (hasKeywordMatch) {
-          semanticScore = 0.85 + (keywordScore % 15) / 100;
-        } else if (synonymMatch) {
-          semanticScore = 0.55 + (c.title.length % 15) / 100;
         }
-      } else {
-        // BM25 is keyword only
-        semanticScore = Math.min(1.0, keywordScore / 30);
       }
 
-      // Simulated case authority (50 to 100)
-      const authority = 50 + (c.title.charCodeAt(0) % 50);
-
-      // Simulated case year (1880 to 2025)
-      const year = 1880 + (c.title.charCodeAt(Math.min(1, c.title.length - 1)) % 145);
-      const yearRatio = (year - 1880) / 145;
-
-      // Final weighted scoring combining Semantic, Authority, and Recency
-      let finalScore = 0;
-      if (pipeline === 'bm25') {
-        // BM25 strictly weights keyword relevance
-        finalScore = Math.round(semanticScore * 100);
-      } else if (pipeline === 'legal-bert') {
-        // Legal-BERT focuses heavily on semantic match and authority
-        finalScore = Math.round((semanticScore * 0.7 + (authority / 100) * 0.3) * 100);
-      } else {
-        // Haystack Hybrid uses the custom slider weights
-        const sumWeights = weights.semantic + weights.authority + weights.recency || 1.0;
-        const normSemantic = weights.semantic / sumWeights;
-        const normAuthority = weights.authority / sumWeights;
-        const normRecency = weights.recency / sumWeights;
-        
-        finalScore = Math.round(
-          (semanticScore * normSemantic +
-           (authority / 100) * normAuthority +
-           yearRatio * normRecency) * 100
-        );
+      if (hasKeywordMatch) {
+        semanticScore = 0.85 + (keywordScore % 15) / 100;
+      } else if (synonymMatch) {
+        semanticScore = 0.55 + (titleCodeAt(c?.title, 0) % 15) / 100;
       }
+    } else {
+      semanticScore = Math.min(1.0, keywordScore / 30);
+    }
 
-      return { caseItem: c, score: finalScore, matchedTerms };
-    });
+    const authority = 50 + (titleCodeAt(c?.title, 0) % 50);
+    const year = 1880 + (titleCodeAt(c?.title, 1) % 145);
+    const yearRatio = (year - 1880) / 145;
 
-    // Sort by score descending and return only those with matching terms or non-zero scores
-    return results
-      .filter(r => r.score > 0 || r.matchedTerms.length > 0)
-      .sort((a, b) => b.score - a.score);
-  }, [query, casesList, pipeline, weights]);
+    let finalScore = 0;
+    if (activePipeline === 'bm25') {
+      finalScore = Math.round(semanticScore * 100);
+    } else if (activePipeline === 'legal-bert') {
+      finalScore = Math.round((semanticScore * 0.7 + (authority / 100) * 0.3) * 100);
+    } else {
+      // Guard zero-sum weights (all zeros → fall back to equal thirds).
+      const sumWeights = weights.semantic + weights.authority + weights.recency;
+      const denom = sumWeights > 0 ? sumWeights : 1;
+      const normSemantic = weights.semantic / denom;
+      const normAuthority = weights.authority / denom;
+      const normRecency = weights.recency / denom;
+
+      finalScore = Math.round(
+        (semanticScore * normSemantic +
+          (authority / 100) * normAuthority +
+          yearRatio * normRecency) *
+          100,
+      );
+    }
+
+    return { caseItem: c, score: finalScore, matchedTerms };
+  });
+
+  // Require actual term/synonym hits. Legal-BERT/hybrid always bake in
+  // authority/recency so score > 0 alone would dump the full docket.
+  return results
+    .filter((r) => r.matchedTerms.length > 0)
+    .sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Memoized precedent search.
+ *
+ * Stale-state note: CaseLibrary passes a fresh `{ semantic, authority, recency }`
+ * object every render. We depend on the primitive fields so memo only busts
+ * when the numbers (or query/pipeline/list) actually change.
+ */
+export const usePrecedentSearch = (
+  query: string,
+  casesList: CaseDetail[] | null | undefined,
+  pipeline: SearchPipeline | string = 'legal-bert',
+  weights: Partial<SearchWeights> | null | undefined = DEFAULT_WEIGHTS,
+): SearchResult[] => {
+  const semantic = weights?.semantic;
+  const authority = weights?.authority;
+  const recency = weights?.recency;
+
+  return useMemo(
+    () =>
+      rankPrecedents(query, casesList, pipeline, {
+        semantic,
+        authority,
+        recency,
+      }),
+    [query, casesList, pipeline, semantic, authority, recency],
+  );
 };
-

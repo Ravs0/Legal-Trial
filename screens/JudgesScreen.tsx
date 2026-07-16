@@ -1,7 +1,10 @@
 import { Navigate } from 'react-router-dom';
-import { ROUTES } from '../constants';
+import { ROUTES } from '../routes';
 
-/** @deprecated Use BenchCounselScreen via ROUTES.BENCH */
-const JudgesScreen: React.FC = () => <Navigate to={ROUTES.BENCH} replace />;
+/**
+ * Legacy route shell for `/judges`.
+ * Canonical UI lives in BenchCounselScreen (`ROUTES.BENCH`, judges tab).
+ */
+const JudgesScreen = () => <Navigate to={ROUTES.BENCH} replace />;
 
 export default JudgesScreen;

@@ -80,7 +80,7 @@ export function createSessionRecord(overrides: Partial<SessionRecord> = {}): Ses
       professionalism: 8,
       total: 36,
     },
-    analysisStatus: { state: 'ready' },
+    analysisStatus: { state: 'ready', source: 'ai' },
   };
 
   return {

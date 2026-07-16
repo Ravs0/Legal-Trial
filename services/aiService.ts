@@ -1,8 +1,10 @@
 import {
   Chat,
   ChatMessage,
+  ChatStreamChunk,
   PerformanceMetrics,
   PracticeMode,
+  SessionPerformanceAnalysis,
   SessionRecord,
   SessionSettings,
   TrialPhase,
@@ -18,47 +20,166 @@ import { assessArgument } from './trialScoring';
 // is misconfigured or the upstream fails, we surface the real error to the UI
 // rather than silently fabricating a response.
 
-class AiServiceError extends Error {
-  constructor(message: string) {
-    super(message);
+export type AiServiceErrorCode =
+  | 'http'
+  | 'network'
+  | 'aborted'
+  | 'empty'
+  | 'stream'
+  | 'invalid_json'
+  | 'unknown';
+
+export class AiServiceError extends Error {
+  readonly code: AiServiceErrorCode;
+  readonly status?: number;
+
+  constructor(
+    message: string,
+    options?: { code?: AiServiceErrorCode; status?: number; cause?: unknown },
+  ) {
+    super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
     this.name = 'AiServiceError';
+    this.code = options?.code ?? 'unknown';
+    this.status = options?.status;
   }
 }
+
+export const AI_CANCELLED_MESSAGE =
+  'The AI request was cancelled. Your work is preserved; retry when ready.';
+export const AI_NETWORK_MESSAGE =
+  'Network error reaching the AI service. Check connection and retry.';
+export const AI_EMPTY_STREAM_MESSAGE =
+  'The AI service returned an empty response. Your work is preserved; retry shortly.';
+export const AI_STREAM_FAILED_MESSAGE =
+  'The AI stream failed. Your work is preserved; retry shortly.';
 
 const MAX_CHAT_HISTORY_MESSAGES = 24;
 const boundedHistory = (history: { role: string; content: string }[]) => history.slice(-MAX_CHAT_HISTORY_MESSAGES);
 
-const apiErrorMessage = (status: number, error?: string) => {
-  if (import.meta.env.DEV && status === 404) {
+const isDevEnv = () => {
+  try {
+    return Boolean(import.meta.env?.DEV);
+  } catch {
+    return false;
+  }
+};
+
+/** True for DOMException/Error aborts and aborted-signal races (incl. fetch cancel). */
+export function isAiAbortError(err: unknown, signal?: AbortSignal | null): boolean {
+  if (signal?.aborted) return true;
+  if (!err) return false;
+  if (err instanceof AiServiceError && err.code === 'aborted') return true;
+  if (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError') {
+    return true;
+  }
+  if (err instanceof Error && err.name === 'AbortError') return true;
+  if (err instanceof Error && /aborted|abort(ed)?|The user aborted|The operation was aborted/i.test(err.message)) {
+    return true;
+  }
+  return false;
+}
+
+const isNetworkFetchError = (err: unknown): boolean => {
+  if (!(err instanceof TypeError) && !(err instanceof Error)) return false;
+  // Browser: "Failed to fetch"; Safari: "Load failed"; Node undici: "fetch failed"
+  return /failed to fetch|networkerror|load failed|network request failed|fetch failed|econnrefused|enotfound/i
+    .test(err.message || '');
+};
+
+/**
+ * Map HTTP status (+ optional server error string) to a user-facing message.
+ * Exported for pure unit tests; callApi/stream use this via apiErrorMessage.
+ */
+export function formatAiHttpError(status: number, error?: string, isDev = false): string {
+  if (isDev && status === 404) {
     return 'The AI endpoint is unavailable in Vite dev. Start the app with `vercel dev` so the local /api functions are available.';
   }
   if (status === 429) return 'The AI service is busy. Wait a moment, then retry your last submission.';
-  if (status === 401 || status === 403 || status === 503) return 'The AI service is currently unavailable. Your work is preserved; retry shortly.';
+  if (status === 401 || status === 403 || status === 503) {
+    return 'The AI service is currently unavailable. Your work is preserved; retry shortly.';
+  }
+  // Upstream timeout from /api/chat (fetchWithTimeout) and gateway timeouts.
+  if (status === 504 || status === 408) {
+    return 'The AI provider timed out. Try a shorter prompt, then retry.';
+  }
+  if (status === 502 || status === 500) {
+    return 'The AI service could not respond. Your work is preserved; retry shortly.';
+  }
   if (status >= 500) return 'The AI service could not respond. Your work is preserved; retry shortly.';
-  return error && import.meta.env.DEV ? error : `AI service error (${status}). Please retry.`;
+  if (status === 400 && error && isDev) return error;
+  return error && isDev ? error : `AI service error (${status}). Please retry.`;
+}
+
+const apiErrorMessage = (status: number, error?: string) =>
+  formatAiHttpError(status, error, isDevEnv());
+
+const readApiErrorBody = async (res: Response): Promise<string | undefined> => {
+  const payload = await res.json().catch(() => null) as { error?: unknown } | null;
+  if (payload && typeof payload.error === 'string' && payload.error.trim()) {
+    return payload.error.trim();
+  }
+  return res.statusText || undefined;
 };
+
+/** Normalize any failure from callApi/stream into AiServiceError (or rethrow abort as AiServiceError). */
+export function normalizeAiFailure(err: unknown, signal?: AbortSignal | null): AiServiceError {
+  if (err instanceof AiServiceError) return err;
+  if (isAiAbortError(err, signal)) {
+    return new AiServiceError(AI_CANCELLED_MESSAGE, { code: 'aborted', cause: err });
+  }
+  if (isNetworkFetchError(err)) {
+    return new AiServiceError(AI_NETWORK_MESSAGE, { code: 'network', cause: err });
+  }
+  if (err instanceof Error && err.message.trim()) {
+    return new AiServiceError(err.message.trim(), { code: 'unknown', cause: err });
+  }
+  return new AiServiceError(AI_STREAM_FAILED_MESSAGE, { code: 'stream', cause: err });
+}
 
 export async function callApi(
   messages: { role: string; content: string }[],
   system?: string,
-  options?: { temperature?: number; max_tokens?: number }
+  options?: { temperature?: number; max_tokens?: number; signal?: AbortSignal }
 ): Promise<string> {
   const body: Record<string, unknown> = { messages };
   if (system) body.system = system;
   if (options?.temperature !== undefined) body.temperature = options.temperature;
   if (options?.max_tokens !== undefined) body.max_tokens = options.max_tokens;
 
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new AiServiceError(apiErrorMessage(res.status, err.error));
+  if (options?.signal?.aborted) {
+    throw new AiServiceError(AI_CANCELLED_MESSAGE, { code: 'aborted' });
   }
-  const data = await res.json();
-  return data.text || '';
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: options?.signal,
+    });
+    if (!res.ok) {
+      const serverError = await readApiErrorBody(res);
+      throw new AiServiceError(apiErrorMessage(res.status, serverError), {
+        code: 'http',
+        status: res.status,
+      });
+    }
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      throw new AiServiceError('The AI service returned an unreadable response. Please retry.', {
+        code: 'invalid_json',
+        cause: parseErr,
+      });
+    }
+    const text = data && typeof data === 'object' && typeof (data as { text?: unknown }).text === 'string'
+      ? (data as { text: string }).text
+      : '';
+    return text;
+  } catch (error) {
+    throw normalizeAiFailure(error, options?.signal);
+  }
 }
 
 // ─── Chat session class ───────────────────────────────────────────────────────
@@ -71,37 +192,103 @@ class GenericChat implements Chat {
     this.system = system;
   }
 
-  async *sendMessageStream({ message }: { message: string }): AsyncIterable<{ text: string }> {
+  async *sendMessageStream({ message, signal }: { message: string; signal?: AbortSignal }): AsyncIterable<{ text: string }> {
     this.history.push({ role: 'user', content: message });
     this.history = boundedHistory(this.history);
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: this.history, system: this.system, stream: true }),
-      });
+      if (signal?.aborted) {
+        throw new AiServiceError(AI_CANCELLED_MESSAGE, { code: 'aborted' });
+      }
+
+      let res: Response;
+      try {
+        res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: this.history, system: this.system, stream: true }),
+          signal,
+        });
+      } catch (fetchErr) {
+        throw normalizeAiFailure(fetchErr, signal);
+      }
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new AiServiceError(apiErrorMessage(res.status, err.error));
+        const serverError = await readApiErrorBody(res);
+        throw new AiServiceError(apiErrorMessage(res.status, serverError), {
+          code: 'http',
+          status: res.status,
+        });
       }
 
       const reader = res.body?.getReader();
       if (!reader) {
-        throw new Error("Response body is not readable");
+        throw new AiServiceError('The AI response stream is not readable. Please retry.', {
+          code: 'stream',
+        });
       }
 
       const decoder = new TextDecoder();
       let accumulatedText = '';
+      let sawChunk = false;
+      const onAbort = () => {
+        try { void reader.cancel(); } catch { /* ignore */ }
+      };
+      if (signal) {
+        if (signal.aborted) {
+          onAbort();
+          throw new AiServiceError(AI_CANCELLED_MESSAGE, { code: 'aborted' });
+        }
+        signal.addEventListener('abort', onAbort, { once: true });
+      }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          if (signal?.aborted) {
+            throw new AiServiceError(AI_CANCELLED_MESSAGE, { code: 'aborted' });
+          }
+          let readResult: ReadableStreamReadResult<Uint8Array>;
+          try {
+            readResult = await reader.read();
+          } catch (readErr) {
+            // reader.cancel() on abort often rejects read(); treat as cancel when signal is set.
+            throw normalizeAiFailure(readErr, signal);
+          }
+          const { done, value } = readResult;
+          if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        accumulatedText += chunk;
-        yield { text: chunk };
+          const chunk = decoder.decode(value, { stream: true });
+          if (!chunk) continue;
+          sawChunk = true;
+          accumulatedText += chunk;
+          yield { text: chunk };
+        }
+
+        // Flush multi-byte UTF-8 remainder held by the decoder.
+        const tail = decoder.decode();
+        if (tail) {
+          sawChunk = true;
+          accumulatedText += tail;
+          yield { text: tail };
+        }
+      } finally {
+        if (signal) signal.removeEventListener('abort', onAbort);
+        try { reader.releaseLock(); } catch { /* already released / cancelled */ }
+      }
+
+      // Client abort after the upstream finished mid-flight (watchdog / leave hearing).
+      if (signal?.aborted) {
+        throw new AiServiceError(AI_CANCELLED_MESSAGE, { code: 'aborted' });
+      }
+
+      // Empty successful stream must not pollute history as a blank assistant turn.
+      if (!accumulatedText.trim()) {
+        throw new AiServiceError(
+          sawChunk
+            ? AI_EMPTY_STREAM_MESSAGE
+            : 'The AI service closed the stream without content. Your work is preserved; retry shortly.',
+          { code: 'empty' },
+        );
       }
 
       this.history.push({ role: 'assistant', content: accumulatedText });
@@ -109,7 +296,7 @@ class GenericChat implements Chat {
     } catch (error) {
       // Don't pollute the conversation history with a failed attempt.
       this.history.pop();
-      throw error instanceof Error ? error : new AiServiceError('AI stream failed');
+      throw normalizeAiFailure(error, signal);
     }
   }
 }
@@ -369,19 +556,24 @@ You are a fictional opposing-counsel training persona, ${settings.opposingCounse
 
 export const sendMessageToChatStream = async (
   chat: Chat,
-  message: string
-): Promise<AsyncIterable<{ text: string }> | null> => {
+  message: string,
+  options?: { signal?: AbortSignal },
+): Promise<AsyncIterable<ChatStreamChunk> | null> => {
   if (!chat) return null;
   const msg = message.trim() || 'Please proceed, Counsel.';
-  return chat.sendMessageStream({ message: msg });
+  return chat.sendMessageStream({ message: msg, signal: options?.signal });
 };
 
 // ─── Performance analysis ─────────────────────────────────────────────────────
 
+/**
+ * Always returns metrics: AI when available, otherwise transparent local coaching.
+ * Callers should stamp `analysisStatus.source` from the returned `source` field.
+ */
 export const analyzeSessionPerformance = async (
   sessionRecord: SessionRecord,
   scoreBreakdown?: TrialScoreBreakdown
-): Promise<PerformanceMetrics | null> => {
+): Promise<SessionPerformanceAnalysis> => {
   const transcriptText = buildTranscriptWindow(sessionRecord.transcript, 40);
   const scoreLine = `\n\n[Live score summary: ${buildScoreSummary(scoreBreakdown || sessionRecord.scoreBreakdown)}]`;
 
@@ -403,20 +595,56 @@ Generate the JSON evaluation.`;
   try {
     const raw = await callApi([{ role: 'user', content: userPrompt }], system);
     try {
-      return normalizePerformanceMetrics(parseJsonResponse(raw));
+      return { metrics: normalizePerformanceMetrics(parseJsonResponse(raw)), source: 'ai' };
     } catch {
       const repairRaw = await callApi(
         [{ role: 'user', content: `Repair this response into the required raw JSON object only:\n\n${raw}` }],
         system,
       );
-      return normalizePerformanceMetrics(parseJsonResponse(repairRaw));
+      return { metrics: normalizePerformanceMetrics(parseJsonResponse(repairRaw)), source: 'ai' };
     }
   } catch {
-    return buildLocalPerformanceMetrics(sessionRecord, scoreBreakdown);
+    return {
+      metrics: buildLocalPerformanceMetrics(sessionRecord, scoreBreakdown),
+      source: 'local',
+    };
   }
 };
 
 // ─── Drafting helpers ─────────────────────────────────────────────────────────
+
+/** Reject empty / error-prefixed model text so callers never treat failure as content. */
+export const requireDraftingAiText = (text: string | null | undefined, label: string): string => {
+  const trimmed = (text ?? '').trim();
+  if (!trimmed) {
+    throw new AiServiceError(
+      `${label} returned an empty response. Your work is preserved; retry shortly.`,
+      { code: 'empty' },
+    );
+  }
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('error:') || lower.startsWith('error ')) {
+    const detail = trimmed.replace(/^error:\s*/i, '').trim();
+    throw new AiServiceError(
+      detail || `${label} failed. Your work is preserved; retry shortly.`,
+      { code: 'unknown' },
+    );
+  }
+  return trimmed;
+};
+
+/** Map non-AiService failures from drafting helpers into AiServiceError (preserve abort/network codes). */
+const rethrowDraftingFailure = (err: unknown, fallback: string): never => {
+  if (err instanceof AiServiceError) throw err;
+  throw normalizeAiFailure(
+    err instanceof Error && err.message.trim()
+      ? err
+      : new Error(fallback),
+  );
+};
+
+const lawListText = (relevantLaws: string[] | string | undefined) =>
+  Array.isArray(relevantLaws) ? relevantLaws.join('; ') : (relevantLaws || '');
 
 export const generateDraftingFacts = async (
   documentType: string,
@@ -424,18 +652,27 @@ export const generateDraftingFacts = async (
   practiceMode: PracticeMode,
   objective: string
 ): Promise<string> => {
-  const lawText = Array.isArray(relevantLaws) ? relevantLaws.join('; ') : relevantLaws;
+  if (!practiceMode) throw new AiServiceError('Practice mode is required for fact generation.');
+  if (!documentType?.trim()) throw new AiServiceError('Document type is required for fact generation.');
+  if (!objective?.trim()) throw new AiServiceError('Drafting objective is required for fact generation.');
+
+  const lawText = lawListText(relevantLaws);
   const system = `You are a Legal Scenario Architect. Write one realistic fact-pattern paragraph for a ${practiceMode} law drafting exercise. Make the facts specific enough to support drafting choices. No intro or outro.`;
-  return callApi([
-    {
-      role: 'user',
-      content: `Document type: ${documentType}
+  try {
+    const raw = await callApi([
+      {
+        role: 'user',
+        content: `Document type: ${documentType}
 Objective: ${objective}
 Relevant law: ${lawText || 'Not specified'}
 
 Generate a single fact scenario paragraph tailored to this exercise.`
-    }
-  ], system);
+      }
+    ], system);
+    return requireDraftingAiText(raw, 'Fact generation');
+  } catch (err) {
+    return rethrowDraftingFailure(err, 'Fact generation failed. Retry shortly.');
+  }
 };
 
 export const generateDraftingGuidance = async (
@@ -445,14 +682,20 @@ export const generateDraftingGuidance = async (
   practiceMode: PracticeMode,
   sectionName?: string
 ): Promise<string> => {
-  const lawText = Array.isArray(task.relevantLaws) ? task.relevantLaws.join('; ') : task.relevantLaws;
+  if (!practiceMode) throw new AiServiceError('Practice mode is required for draft review.');
+  if (!task?.title?.trim()) throw new AiServiceError('A drafting task is required for review.');
+  if (!userDraft?.trim()) throw new AiServiceError('Write a draft before submitting for review.');
+  if (!generatedFacts?.trim()) throw new AiServiceError('Scenario facts are missing. Regenerate the scenario, then retry review.');
+
+  const lawText = lawListText(task.relevantLaws);
   const sectionPrompt = sectionName ? `Focus especially on the section titled "${sectionName}".` : 'Review the document as a whole.';
   const expectedSections = task.sections?.map(section => section.name).join(', ') || 'No predefined sections supplied.';
   const system = `You are an expert legal drafting mentor in ${practiceMode} law. Give concrete, task-specific feedback in four parts: strengths, missing legal elements, drafting risks, and next revisions. Avoid generic praise.`;
-  return callApi([
-    {
-      role: 'user',
-      content: `Task: ${task.title}
+  try {
+    const raw = await callApi([
+      {
+        role: 'user',
+        content: `Task: ${task.title}
 Document type: ${task.type}
 Objective: ${task.objective}
 Relevant law: ${lawText}
@@ -462,8 +705,12 @@ ${sectionPrompt}
 
 User draft:
 ${userDraft}`
-    }
-  ], system);
+      }
+    ], system);
+    return requireDraftingAiText(raw, 'Draft review');
+  } catch (err) {
+    return rethrowDraftingFailure(err, 'Draft review failed. Your draft is preserved; retry shortly.');
+  }
 };
 
 export const getFilingProcedureInfo = async (
@@ -471,25 +718,34 @@ export const getFilingProcedureInfo = async (
   relevantLaws: string[] | string,
   practiceMode: PracticeMode
 ): Promise<string> => {
-  const lawText = Array.isArray(relevantLaws) ? relevantLaws.join('; ') : relevantLaws;
+  if (!practiceMode) throw new AiServiceError('Practice mode is required for filing guidance.');
+  if (!draftType?.trim()) throw new AiServiceError('Draft type is required for filing guidance.');
+
+  const lawText = lawListText(relevantLaws);
   const system = `You are a legal procedural guide for ${practiceMode} law. Provide a cautious bullet-point filing workflow, highlight jurisdiction-specific uncertainties, and end with a short training-use disclaimer.`;
-  return callApi([
-    {
-      role: 'user',
-      content: `Draft type: ${draftType}
+  try {
+    const raw = await callApi([
+      {
+        role: 'user',
+        content: `Draft type: ${draftType}
 Relevant law: ${lawText || 'Not specified'}
 
 Provide the filing or submission workflow.`
-    }
-  ], system);
+      }
+    ], system);
+    return requireDraftingAiText(raw, 'Filing guidance');
+  } catch (err) {
+    return rethrowDraftingFailure(err, 'Filing guidance failed. Retry shortly.');
+  }
 };
 
 export const summarizeSearchResults = async (
   query: string,
   results: any[],
-  practiceMode: PracticeMode | 'common'
+  practiceMode: PracticeMode | 'common',
+  options?: { signal?: AbortSignal },
 ): Promise<string> => {
   const system = `You are a Legal Research Assistant specializing in ${practiceMode} law. Synthesize the provided search results to answer the query: "${query}". Be concise, structured, and cite sources.`;
   const content = `Search query: "${query}"\n\nResults:\n${JSON.stringify(results)}`;
-  return callApi([{ role: 'user', content }], system);
+  return callApi([{ role: 'user', content }], system, { signal: options?.signal });
 };

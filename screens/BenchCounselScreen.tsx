@@ -2,24 +2,28 @@ import React, { useContext, useMemo, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { EmptyState } from '../components/EmptyState';
 import { ProfileDetailModal } from '../components/ProfileDetailModal';
-import { PhotoHero } from '../components/PhotoHero';
-import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
-import { GavelIcon } from '../components/icons/GavelIcon';
-import { UsersIcon } from '../components/icons/UsersIcon';
+import { PatternPanel } from '../components/SurfacePattern';
+import { RoomBanner, RoomTabs } from '../components/RoomChrome';
+import { GavelIcon, UsersIcon } from '../components/icons';
 import { TrialSimContext } from '../App';
 import {
   JUDGE_PERSONALITIES,
   INTERNATIONAL_JUDGE_PERSONALITIES,
   OPPOSING_COUNSEL_PERSONALITIES,
   INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES,
-  ROUTES,
 } from '../constants';
+import { ROUTES } from '../routes';
 import { JudgePersonality, OpposingCounselPersonality } from '../types';
-import judgeGavel from '../assets/judge_gavel.jpg';
-import counselScales from '../assets/counsel_scales.jpg';
+import { screenMedia } from '../assets';
 
 type BenchTab = 'judges' | 'counsel';
 
+const BENCH_TABS: { id: BenchTab; label: string }[] = [
+  { id: 'judges', label: 'Judges' },
+  { id: 'counsel', label: 'Opposing counsel' },
+];
+
+/** Unified judges + opposing counsel gallery (replaces legacy Judges / OpposingCounsel screens). */
 const BenchCounselScreen: React.FC = () => {
   const context = useContext(TrialSimContext);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,6 +46,9 @@ const BenchCounselScreen: React.FC = () => {
   );
 
   const setTab = (tab: BenchTab) => {
+    // Clear open dossier when switching tabs so selection cannot drift across galleries.
+    setSelectedJudge(null);
+    setSelectedCounsel(null);
     setSearchParams(tab === 'judges' ? {} : { tab: 'counsel' }, { replace: true });
   };
 
@@ -50,154 +57,197 @@ const BenchCounselScreen: React.FC = () => {
   }
 
   const jurisdictionLabel = practiceMode === 'international' ? 'International' : 'Indian';
-  const heroImage = activeTab === 'judges' ? judgeGavel : counselScales;
+  const profileCount = activeTab === 'judges' ? judges.length : counsel.length;
+  const cardImage = activeTab === 'judges' ? screenMedia.bench.judges : screenMedia.bench.counsel;
+  const cardPattern = activeTab === 'judges' ? 'grid' : 'dots';
 
   return (
     <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn">
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-6 pb-12">
-      <PhotoHero
-        image={heroImage}
-        size="md"
-        eyebrow="Reference"
-        title="Bench & counsel"
-        subtitle={`Fictional training profiles for ${jurisdictionLabel} practice — not real judges, biographies, legal advice, or legal authority.`}
-      />
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-5 pb-12">
+        <RoomBanner
+          image={screenMedia.bench.hero}
+          eyebrow="Reference"
+          title="Bench & counsel"
+          subtitle={`Fictional training profiles for ${jurisdictionLabel} practice. Not real judges, biographies, legal advice, or legal authority.`}
+          trailing={
+            <RoomTabs
+              tabs={BENCH_TABS}
+              active={activeTab}
+              onChange={(id) => setTab(id as BenchTab)}
+            />
+          }
+        />
 
-      <div className="flex justify-center">
-        <div role="tablist" aria-label="Bench and counsel profiles" className="relative inline-flex rounded-lg border border-brand-border bg-brand-bg-secondary p-1 gap-1 overflow-hidden">
-          <SurfacePattern variant="dots" className="opacity-80" />
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'judges'}
-            onClick={() => setTab('judges')}
-            className={`relative z-10 min-h-[40px] px-4 sm:px-5 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'judges'
-                ? 'bg-white text-black'
-                : 'text-brand-text-secondary hover:text-brand-text-primary'
-            }`}
-          >
-            <GavelIcon className="h-4 w-4" />
-            Judges
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'counsel'}
-            onClick={() => setTab('counsel')}
-            className={`relative z-10 min-h-[40px] px-4 sm:px-5 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2 ${
-              activeTab === 'counsel'
-                ? 'bg-white text-black'
-                : 'text-brand-text-secondary hover:text-brand-text-primary'
-            }`}
-          >
-            <UsersIcon className="h-4 w-4" />
-            Opposing counsel
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
+          <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">
+            {activeTab === 'judges' ? 'Judicial profiles' : 'Counsel profiles'}
+            <span className="text-brand-text-secondary/60"> · </span>
+            {jurisdictionLabel}
+          </p>
+          <p className="text-[11px] tabular-nums text-brand-text-secondary">
+            {profileCount} {profileCount === 1 ? 'profile' : 'profiles'}
+          </p>
         </div>
+
+        {activeTab === 'judges' ? (
+          <div
+            role="tabpanel"
+            id="bench-panel-judges"
+            aria-label="Judicial profiles"
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+          >
+            {judges.map((judge) => {
+              const isSelected = selectedJudge?.id === judge.id;
+              return (
+                <button
+                  key={judge.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCounsel(null);
+                    setSelectedJudge(judge);
+                  }}
+                  aria-pressed={isSelected}
+                  className={`text-left group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                    isSelected ? 'ring-1 ring-white' : ''
+                  }`}
+                >
+                  <PatternPanel
+                    pattern={cardPattern}
+                    className={`h-full p-0 overflow-hidden transition-colors ${
+                      isSelected ? '!border-white' : 'group-hover:border-white/20'
+                    }`}
+                  >
+                    <div className="relative h-24 overflow-hidden border-b border-brand-border">
+                      <img
+                        src={cardImage}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/25" />
+                      <div
+                        className="absolute inset-0 opacity-20"
+                        style={{
+                          backgroundImage:
+                            'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px)',
+                        }}
+                      />
+                      <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
+                        <p className="text-[15px] font-medium text-white leading-snug">{judge.name}</p>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <p className="text-[13px] text-brand-text-secondary leading-relaxed line-clamp-3 mb-4">
+                        {judge.description}
+                      </p>
+                      <span
+                        className={`inline-flex text-[12px] rounded-md px-2.5 py-1 border transition-colors ${
+                          isSelected
+                            ? 'bg-white text-black border-white'
+                            : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-white/20'
+                        }`}
+                      >
+                        {isSelected ? 'Open dossier' : 'Simulation profile'}
+                      </span>
+                    </div>
+                  </PatternPanel>
+                </button>
+              );
+            })}
+            {judges.length === 0 && (
+              <div className="col-span-full">
+                <EmptyState
+                  icon={<GavelIcon />}
+                  title="No judges for this jurisdiction"
+                  description={`No judicial profiles are authorized for ${practiceMode} practice yet.`}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            role="tabpanel"
+            id="bench-panel-counsel"
+            aria-label="Opposing counsel profiles"
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+          >
+            {counsel.map((oc) => {
+              const isSelected = selectedCounsel?.id === oc.id;
+              return (
+                <button
+                  key={oc.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedJudge(null);
+                    setSelectedCounsel(oc);
+                  }}
+                  aria-pressed={isSelected}
+                  className={`text-left group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                    isSelected ? 'ring-1 ring-white' : ''
+                  }`}
+                >
+                  <PatternPanel
+                    pattern={cardPattern}
+                    className={`h-full p-0 overflow-hidden transition-colors ${
+                      isSelected ? '!border-white' : 'group-hover:border-white/20'
+                    }`}
+                  >
+                    <div className="relative h-24 overflow-hidden border-b border-brand-border">
+                      <img
+                        src={cardImage}
+                        alt=""
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/25" />
+                      <div
+                        className="absolute inset-0 opacity-20"
+                        style={{
+                          backgroundImage:
+                            'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px)',
+                        }}
+                      />
+                      <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
+                        <p className="text-[11px] uppercase tracking-wide text-white/55 mb-0.5">{oc.specialty}</p>
+                        <p className="text-[15px] font-medium text-white leading-snug">{oc.name}</p>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <p className="text-[13px] text-brand-text-secondary leading-relaxed line-clamp-3 mb-4">
+                        {oc.description}
+                      </p>
+                      <span
+                        className={`inline-flex text-[12px] rounded-md px-2.5 py-1 border transition-colors ${
+                          isSelected
+                            ? 'bg-white text-black border-white'
+                            : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-white/20'
+                        }`}
+                      >
+                        {isSelected ? 'Open dossier' : 'Simulation profile'}
+                      </span>
+                    </div>
+                  </PatternPanel>
+                </button>
+              );
+            })}
+            {counsel.length === 0 && (
+              <div className="col-span-full">
+                <EmptyState
+                  icon={<UsersIcon />}
+                  title="No opposing counsel listed"
+                  description={`No counsel profiles for ${practiceMode} practice yet.`}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        <ProfileDetailModal
+          profile={selectedJudge || selectedCounsel}
+          onClose={() => {
+            setSelectedJudge(null);
+            setSelectedCounsel(null);
+          }}
+        />
       </div>
-
-      {activeTab === 'judges' ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {judges.map((judge) => (
-            <button
-              key={judge.id}
-              type="button"
-              onClick={() => setSelectedJudge(judge)}
-              className="text-left group"
-            >
-              <PatternPanel pattern="grid" className="h-full p-0 overflow-hidden transition-colors group-hover:border-white/20">
-                <div className="relative h-24 overflow-hidden border-b border-brand-border">
-                  <img src={judgeGavel} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/25" />
-                  <div
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                      backgroundImage:
-                        'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px)',
-                    }}
-                  />
-                  <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
-                    <p className="text-[15px] font-medium text-white leading-snug">{judge.name}</p>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-[13px] text-brand-text-secondary leading-relaxed line-clamp-3 mb-4">
-                    {judge.description}
-                  </p>
-                  <span className="inline-flex text-[12px] text-brand-text-secondary border border-brand-border rounded-md px-2.5 py-1 group-hover:text-brand-text-primary group-hover:border-white/20">
-                    Simulation profile
-                  </span>
-                </div>
-              </PatternPanel>
-            </button>
-          ))}
-          {judges.length === 0 && (
-            <div className="col-span-full">
-              <EmptyState
-                icon={<GavelIcon />}
-                title="No judges for this jurisdiction"
-                description={`No judicial profiles are authorized for ${practiceMode} practice yet.`}
-              />
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {counsel.map((oc) => (
-            <button
-              key={oc.id}
-              type="button"
-              onClick={() => setSelectedCounsel(oc)}
-              className="text-left group"
-            >
-              <PatternPanel pattern="dots" className="h-full p-0 overflow-hidden transition-colors group-hover:border-white/20">
-                <div className="relative h-24 overflow-hidden border-b border-brand-border">
-                  <img src={counselScales} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/25" />
-                  <div
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                      backgroundImage:
-                        'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 11px)',
-                    }}
-                  />
-                  <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
-                    <p className="text-[11px] uppercase tracking-wide text-white/55 mb-0.5">{oc.specialty}</p>
-                    <p className="text-[15px] font-medium text-white leading-snug">{oc.name}</p>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-[13px] text-brand-text-secondary leading-relaxed line-clamp-3 mb-4">
-                    {oc.description}
-                  </p>
-                  <span className="inline-flex text-[12px] text-brand-text-secondary border border-brand-border rounded-md px-2.5 py-1 group-hover:text-brand-text-primary group-hover:border-white/20">
-                    Simulation profile
-                  </span>
-                </div>
-              </PatternPanel>
-            </button>
-          ))}
-          {counsel.length === 0 && (
-            <div className="col-span-full">
-              <EmptyState
-                icon={<UsersIcon />}
-                title="No opposing counsel listed"
-                description={`No counsel profiles for ${practiceMode} practice yet.`}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      <ProfileDetailModal
-        profile={selectedJudge || selectedCounsel}
-        onClose={() => {
-          setSelectedJudge(null);
-          setSelectedCounsel(null);
-        }}
-      />
-    </div>
     </div>
   );
 };

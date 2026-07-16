@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Environment / secrets (never commit real keys)
+# Keep assets/ tracked — do not add broad media ignores.
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

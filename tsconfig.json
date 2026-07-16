@@ -30,5 +30,30 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "App.tsx",
+    "index.tsx",
+    "types.ts",
+    "constants.ts",
+    "routes.ts",
+    "kokuConfig.ts",
+    "subjectPersonalities.ts",
+    "vite-env.d.ts",
+    "vite.config.ts",
+    "components/**/*",
+    "screens/**/*",
+    "services/**/*",
+    "hooks/**/*",
+    "utils/**/*",
+    "assets/**/*",
+    "vision/**/*",
+    "api/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "Projects",
+    "dreadler"
+  ]
 }

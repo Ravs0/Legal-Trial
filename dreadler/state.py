@@ -162,12 +162,18 @@ class CoherenceState:
             "agent_variant": self.agent_variant,
             "note": note,
         })
+        # Keep token size bounded across long interrogations.
+        if len(self.score_history) > 50:
+            self.score_history = self.score_history[-50:]
 
         return new_score
 
     def record_tactic(self, tactic: str) -> None:
+        """Record a player fallacy id for the fallacy ledger (not agent tactics)."""
         if tactic not in self.used_tactics:
             self.used_tactics.append(tactic)
+            if len(self.used_tactics) > 20:
+                self.used_tactics = self.used_tactics[-20:]
 
     def record_user_acceptance(self, text: str) -> None:
         self.accepted_by_user.append(text)

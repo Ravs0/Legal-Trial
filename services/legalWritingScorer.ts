@@ -5,6 +5,10 @@
  * journal articles. Pure client-side — no Python or server needed.
  *
  * Ported from: Archive/Cold_Drafts/.../scripts/score_legal_writing.py
+ *
+ * Integrity note: stylometry is gameable. We apply soft integrity caps
+ * (vocabulary diversity, punctuation stuffing, n-gram repetition) so
+ * punctuation salad / keyword spam cannot score as journal-quality.
  */
 
 // ---------------------------------------------------------------------------
@@ -34,7 +38,18 @@ export interface ScoringResult {
   aiTellCount: number;
   wordCount: number;
   sentenceCount: number;
+  /** Soft integrity penalties applied (empty when draft looks natural). */
+  qualityNotes?: string[];
 }
+
+/** Minimum trimmed length before scoring is meaningful. */
+export const MIN_SCOREABLE_CHARS = 50;
+/** Soft floor on distinct words relative to total words. */
+const MIN_TYPE_TOKEN_RATIO = 0.28;
+/** Above this punctuation-to-word ratio, treat as stuffing. */
+const MAX_PUNCT_PER_WORD = 0.55;
+/** Repeated bigram share above this triggers a cap. */
+const MAX_BIGRAM_REPEAT_RATIO = 0.35;
 
 const BENCHMARKS: Record<string, BenchmarkEntry> = {
   avg_sentence_length:        { target: 36.70, min: 30.0,  max: 42.0,  weight: 1.0  },
@@ -123,7 +138,8 @@ const AI_TELLS = [
   'this is because',
 ];
 
-const PASSIVE_RE = /\b(is|are|was|were|been|being|be)\s+(\w+ed|(\w+en))\b/gi;
+// Non-global: safe to call repeatedly without lastIndex side effects.
+const PASSIVE_RE = /\b(is|are|was|were|been|being|be)\s+([a-z]+ed|[a-z]+en)\b/i;
 
 // ---------------------------------------------------------------------------
 // Tokenisation helpers
@@ -170,6 +186,81 @@ function countVerbsApprox(words: string[]): number {
     }
   }
   return count;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+// ---------------------------------------------------------------------------
+// Integrity / anti-gaming checks
+// ---------------------------------------------------------------------------
+
+interface IntegrityAssessment {
+  /** Maximum allowed total score after stylometry (0–100). */
+  cap: number;
+  notes: string[];
+}
+
+function assessIntegrity(text: string, words: string[]): IntegrityAssessment {
+  const notes: string[] = [];
+  let cap = 100;
+
+  if (words.length < 40) {
+    // Short-but-scoreable drafts are noisy; keep ceiling modest.
+    cap = Math.min(cap, 78);
+    notes.push('Draft is short; score is provisional.');
+  }
+
+  const unique = new Set(words);
+  const ttr = unique.size / Math.max(words.length, 1);
+  if (ttr < MIN_TYPE_TOKEN_RATIO) {
+    cap = Math.min(cap, 55);
+    notes.push('Low vocabulary diversity — possible repetition or keyword stuffing.');
+  } else if (ttr < 0.38) {
+    cap = Math.min(cap, 72);
+    notes.push('Limited vocabulary diversity relative to journal prose.');
+  }
+
+  const punct = (text.match(/[,;:()[\]{}"'\u201c\u201d\u2014\u2013-]/g) || []).length;
+  const punctPerWord = punct / Math.max(words.length, 1);
+  if (punctPerWord > MAX_PUNCT_PER_WORD) {
+    cap = Math.min(cap, 48);
+    notes.push('Punctuation density looks artificial (possible metric gaming).');
+  } else if (punctPerWord > 0.4) {
+    cap = Math.min(cap, 70);
+    notes.push('Elevated punctuation density relative to natural legal prose.');
+  }
+
+  // Bigram repetition: high share of the most common bigram ⇒ copy-paste loops.
+  if (words.length >= 20) {
+    const bigramCounts = new Map<string, number>();
+    for (let i = 0; i < words.length - 1; i++) {
+      const key = `${words[i]} ${words[i + 1]}`;
+      bigramCounts.set(key, (bigramCounts.get(key) || 0) + 1);
+    }
+    const totalBigrams = words.length - 1;
+    let top = 0;
+    for (const count of bigramCounts.values()) top = Math.max(top, count);
+    const topRatio = top / totalBigrams;
+    if (topRatio > MAX_BIGRAM_REPEAT_RATIO) {
+      cap = Math.min(cap, 50);
+      notes.push('Heavy phrase repetition detected.');
+    } else if (topRatio > 0.18) {
+      cap = Math.min(cap, 75);
+      notes.push('Noticeable phrase repetition.');
+    }
+  }
+
+  // Extreme legal-vocab saturation without sentence structure variety is spammy.
+  const legalHits = words.filter((w) => LEGAL_VOCAB.has(w)).length;
+  const legalPct = (legalHits / Math.max(words.length, 1)) * 100;
+  if (legalPct > 8) {
+    cap = Math.min(cap, 60);
+    notes.push('Legal vocabulary density far above journal norms.');
+  }
+
+  return { cap, notes };
 }
 
 // ---------------------------------------------------------------------------
@@ -220,9 +311,12 @@ function extractMetrics(text: string): RawMetrics | null {
   }
 
   const avgSentLen = sentLengths.reduce((a, b) => a + b, 0) / sentLengths.length;
-  const sentStddev = Math.sqrt(
-    sentLengths.reduce((sum, l) => sum + (l - avgSentLen) ** 2, 0) / sentLengths.length
-  );
+  // Population stddev is fine for stylistic spread; guard single-sentence case.
+  const sentStddev = sentLengths.length < 2
+    ? 0
+    : Math.sqrt(
+      sentLengths.reduce((sum, l) => sum + (l - avgSentLen) ** 2, 0) / sentLengths.length,
+    );
 
   // Punctuation counts
   const commas = (text.match(/,/g) || []).length;
@@ -233,20 +327,22 @@ function extractMetrics(text: string): RawMetrics | null {
   const parens = (text.match(/[()]/g) || []).length;
 
   const r = (count: number) => (count / numWords) * 1000;
-  const commaInterval = commas > 0 ? numWords / commas : 999;
+  // Unbounded 999 inflated "outside band" scores unpredictably; clamp to a
+  // soft ceiling so missing commas degrade smoothly rather than hard-fail.
+  const commaInterval = commas > 0 ? numWords / commas : Math.min(numWords, 80);
 
   // Connectors
   const connectorCount = allWords.filter(w => CONNECTORS.has(w)).length;
-  const connectorPivot = connectorCount > 0 ? numSentences / connectorCount : 999;
+  const connectorPivot = connectorCount > 0
+    ? numSentences / connectorCount
+    : Math.min(numSentences * 2, 40);
 
   // Legal vocab
   const legalCount = allWords.filter(w => LEGAL_VOCAB.has(w)).length;
   const legalPct = (legalCount / numWords) * 100;
 
-  // Passive voice estimate
-  const passiveSents = sentences.filter(s => PASSIVE_RE.test(s)).length;
-  // Reset regex lastIndex since it's global
-  PASSIVE_RE.lastIndex = 0;
+  // Passive voice estimate (non-global regex — no lastIndex thrash)
+  const passiveSents = sentences.filter((s) => PASSIVE_RE.test(s)).length;
   const passivePct = Math.min((passiveSents / numSentences) * 100, 100);
 
   // AI Tells
@@ -254,20 +350,20 @@ function extractMetrics(text: string): RawMetrics | null {
   const aiTellCount = AI_TELLS.filter(phrase => textLower.includes(phrase)).length;
 
   return {
-    avg_sentence_length:       Math.round(avgSentLen * 100) / 100,
-    pct_simple_sentences:      Math.round((simple / numSentences) * 10000) / 100,
-    pct_compound_complex:      Math.round((compound / numSentences) * 10000) / 100,
-    comma_interval:            Math.round(commaInterval * 100) / 100,
-    commas_per_1k:             Math.round(r(commas) * 100) / 100,
-    semicolons_per_1k:         Math.round(r(semicolons) * 100) / 100,
-    colons_per_1k:             Math.round(r(colons) * 100) / 100,
-    parentheses_per_1k:        Math.round(r(parens) * 100) / 100,
-    hyphens_per_1k:            Math.round(r(hyphens) * 100) / 100,
-    quotes_per_1k:             Math.round(r(quotes) * 100) / 100,
-    connector_pivot_sentences: Math.round(connectorPivot * 100) / 100,
-    legal_vocab_pct:           Math.round(legalPct * 100) / 100,
-    sentence_length_stddev:    Math.round(sentStddev * 100) / 100,
-    passive_voice_pct:         Math.round(passivePct * 100) / 100,
+    avg_sentence_length:       round2(avgSentLen),
+    pct_simple_sentences:      round2((simple / numSentences) * 100),
+    pct_compound_complex:      round2((compound / numSentences) * 100),
+    comma_interval:            round2(commaInterval),
+    commas_per_1k:             round2(r(commas)),
+    semicolons_per_1k:         round2(r(semicolons)),
+    colons_per_1k:             round2(r(colons)),
+    parentheses_per_1k:        round2(r(parens)),
+    hyphens_per_1k:            round2(r(hyphens)),
+    quotes_per_1k:             round2(r(quotes)),
+    connector_pivot_sentences: round2(connectorPivot),
+    legal_vocab_pct:           round2(legalPct),
+    sentence_length_stddev:    round2(sentStddev),
+    passive_voice_pct:         round2(passivePct),
     ai_tell_count:             aiTellCount,
     num_words:                 numWords,
     num_sentences:             numSentences,
@@ -286,22 +382,17 @@ function scoreMetric(value: number, bench: BenchmarkEntry): number {
     const halfRange = (hi - lo) / 2;
     const distFromTarget = Math.abs(value - target);
     if (halfRange === 0) return 100.0;
-    const closeness = 1.0 - distFromTarget / halfRange;
+    // Clamp closeness so overshoot past band edge never yields >100 or <70 here.
+    const closeness = Math.max(0, Math.min(1, 1.0 - distFromTarget / halfRange));
     return 70.0 + closeness * 30.0;
-  } else {
-    // Outside band: decay from 70 toward 0
-    let dist: number;
-    let band: number;
-    if (value < lo) {
-      dist = lo - value;
-      band = lo;
-    } else {
-      dist = value - hi;
-      band = hi;
-    }
-    const decay = Math.max(0, 1.0 - dist / Math.max(band, 1));
-    return decay * 70.0;
   }
+
+  // Outside band: decay from 70 toward 0 using distance relative to band width
+  // (more stable than distance / absolute edge value, which punished low targets).
+  const bandWidth = Math.max(hi - lo, 1);
+  const dist = value < lo ? lo - value : value - hi;
+  const decay = Math.max(0, 1.0 - dist / (bandWidth * 2));
+  return decay * 70.0;
 }
 
 function getTier(score: number): 'excellent' | 'good' | 'fair' | 'poor' {
@@ -311,50 +402,14 @@ function getTier(score: number): 'excellent' | 'good' | 'fair' | 'poor' {
   return 'poor';
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-/**
- * Score a legal draft against the empirical benchmarks.
- * Returns null if text is too short to analyse meaningfully.
- */
-export function scoreLegalWriting(text: string): ScoringResult | null {
-  if (!text || text.trim().length < 50) return null;
-
-  const metrics = extractMetrics(text);
-  if (!metrics) return null;
-
-  const breakdown: Record<string, MetricBreakdown> = {};
-  let weightedSum = 0;
-  let weightTotal = 0;
-
-  for (const [key, bench] of Object.entries(BENCHMARKS)) {
-    const value = (metrics as any)[key];
-    if (value === undefined) continue;
-
-    const s = scoreMetric(value, bench);
-    breakdown[key] = {
-      value:  Math.round(value * 100) / 100,
-      target: bench.target,
-      score:  Math.round(s * 10) / 10,
-      label:  METRIC_LABELS[key] || key,
-      status: getTier(s),
-    };
-    weightedSum += s * bench.weight;
-    weightTotal += bench.weight;
-  }
-
-  // AI-tell penalty: -5 per instance
-  const aiPenalty = metrics.ai_tell_count * 5;
-  let total = weightTotal > 0 ? (weightedSum / weightTotal) - aiPenalty : 0;
-  total = Math.max(0, Math.min(100, total));
-  total = Math.round(total * 100) / 100;
-
+function buildVerdict(total: number, integrityCapped: boolean): {
+  verdict: string;
+  verdictTier: ScoringResult['verdictTier'];
+} {
   let verdict: string;
   let verdictTier: ScoringResult['verdictTier'];
   if (total >= 90) {
-    verdict = 'Excellent — Structurally indistinguishable from journal-quality writing.';
+    verdict = 'Excellent — Structurally close to journal-quality stylometric norms.';
     verdictTier = 'excellent';
   } else if (total >= 75) {
     verdict = 'Good — Minor calibration needed on specific metrics.';
@@ -366,6 +421,64 @@ export function scoreLegalWriting(text: string): ScoringResult | null {
     verdict = 'Needs Work — Significant departure from legal writing benchmarks.';
     verdictTier = 'poor';
   }
+  if (integrityCapped) {
+    verdict += ' Integrity checks limited the ceiling (diversity/repetition/punctuation).';
+  }
+  return { verdict, verdictTier };
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Score a legal draft against the empirical benchmarks.
+ * Returns null if text is too short to analyse meaningfully.
+ */
+export function scoreLegalWriting(text: string): ScoringResult | null {
+  if (typeof text !== 'string') return null;
+  const trimmed = text.trim();
+  if (trimmed.length < MIN_SCOREABLE_CHARS) return null;
+
+  const metrics = extractMetrics(trimmed);
+  if (!metrics) return null;
+  // Require a minimum of 2 sentences so stddev / structure metrics mean something.
+  if (metrics.num_sentences < 2 || metrics.num_words < 20) return null;
+
+  const words = tokeniseWords(trimmed);
+  const integrity = assessIntegrity(trimmed, words);
+
+  const breakdown: Record<string, MetricBreakdown> = {};
+  let weightedSum = 0;
+  let weightTotal = 0;
+
+  for (const [key, bench] of Object.entries(BENCHMARKS)) {
+    const value = (metrics as unknown as Record<string, number>)[key];
+    if (typeof value !== 'number' || Number.isNaN(value)) continue;
+
+    const s = scoreMetric(value, bench);
+    breakdown[key] = {
+      value:  round2(value),
+      target: bench.target,
+      score:  Math.round(s * 10) / 10,
+      label:  METRIC_LABELS[key] || key,
+      status: getTier(s),
+    };
+    weightedSum += s * bench.weight;
+    weightTotal += bench.weight;
+  }
+
+  // AI-tell penalty: -5 per instance (capped so a single draft cannot go fully
+  // negative from tells alone before integrity).
+  const aiPenalty = Math.min(metrics.ai_tell_count * 5, 40);
+  let total = weightTotal > 0 ? (weightedSum / weightTotal) - aiPenalty : 0;
+  total = Math.max(0, Math.min(100, total));
+
+  const integrityCapped = total > integrity.cap;
+  if (integrityCapped) total = integrity.cap;
+  total = round2(total);
+
+  const { verdict, verdictTier } = buildVerdict(total, integrityCapped);
 
   return {
     totalScore: total,
@@ -375,5 +488,6 @@ export function scoreLegalWriting(text: string): ScoringResult | null {
     aiTellCount: metrics.ai_tell_count,
     wordCount: metrics.num_words,
     sentenceCount: metrics.num_sentences,
+    qualityNotes: integrity.notes.length ? integrity.notes : undefined,
   };
 }

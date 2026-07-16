@@ -1,7 +1,17 @@
 import React from 'react';
-export interface Chat {
-  sendMessageStream: (params: { message: string }) => AsyncIterable<any>;
+
+/** Chunk yielded by AI chat streams (judge, counsel, personas). */
+export interface ChatStreamChunk {
+  text: string;
 }
+
+export interface Chat {
+  sendMessageStream: (params: {
+    message: string;
+    signal?: AbortSignal;
+  }) => AsyncIterable<ChatStreamChunk>;
+}
+
 export type PracticeMode = 'indian' | 'international';
 
 export type TrialMessageSender = 'user' | 'judge' | 'opposingCounsel' | 'system';
@@ -16,6 +26,10 @@ export type TrialMessageKind =
   | 'instruction'
   | 'system';
 export type TrialPhase = 'opening' | 'issue_framing' | 'rebuttal' | 'judicial_questions' | 'closing';
+
+/** How coaching metrics were produced when analysis completed successfully. */
+export type AnalysisMetricsSource = 'ai' | 'local';
+export type AnalysisStatusState = 'idle' | 'pending' | 'ready' | 'unavailable';
 
 export interface TrialScoreBreakdown {
   engagement: number;
@@ -43,6 +57,8 @@ export interface ArgumentQuality {
   remedy: boolean;
   respondsToOpponent: boolean;
   nextStep: string;
+  /** True when IRAC keyword stuffing is detected with little independent content. */
+  templateThin?: boolean;
 }
 
 export interface ChatMessageMeta {
@@ -56,7 +72,9 @@ export interface ChatMessageMeta {
 }
 
 export interface AnalysisStatus {
-  state: 'idle' | 'pending' | 'ready' | 'unavailable';
+  state: AnalysisStatusState;
+  /** How metrics were produced when state is ready. Export/review use this for transparency. */
+  source?: AnalysisMetricsSource;
   error?: string;
   rawResponse?: string;
 }
@@ -301,6 +319,12 @@ export interface PerformanceMetrics {
   overallScore: number; // 1-10
   feedback: string;
   improvementAreas: string[];
+}
+
+/** Tagged result from post-hearing performance analysis (AI path or local coaching). */
+export interface SessionPerformanceAnalysis {
+  metrics: PerformanceMetrics;
+  source: AnalysisMetricsSource;
 }
 
 export interface SessionRecord {

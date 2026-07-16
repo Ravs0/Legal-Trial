@@ -1,14 +1,20 @@
 import React, { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import { TrialSimContext } from '../App';
-import { SENTIENT_SUBJECTS, SentientSubject } from '../subjectPersonalities';
+import {
+  SENTIENT_SUBJECTS,
+  SentientSubject,
+  getSentientSubject,
+  getBreakthroughQuote,
+} from '../subjectPersonalities';
 import { Chat } from '../types';
 import { useConversationBridge } from '../components/ConversationBridge';
 import { useVisualViewport } from '../hooks/useVisualViewport';
 import { renderLegalMarkdown } from '../utils/markdown';
 import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/storageService';
+import { callApi } from '../services/aiService';
 import { RoomBanner, RoomTabs } from '../components/RoomChrome';
 import { SurfacePattern } from '../components/SurfacePattern';
-import personaSeal from '../assets/persona_seal.jpg';
+import { personaSeal } from '../assets';
 
 // ─── Persona Interface ────────────────────────────────────────────────────────
 export interface HistoricalPersona {
@@ -69,50 +75,75 @@ export const HISTORICAL_PERSONAS: HistoricalPersona[] = [
   },
 ];
 
-// ─── Chat Session Builder ─────────────────────────────────────────────────────
+// ─── Chat helpers (aligned with services/aiService GenericChat) ────────────────
+const MAX_CHAT_HISTORY = 24;
+
+const personaApiErrorMessage = (status: number, error?: string) => {
+  if (import.meta.env.DEV && status === 404) {
+    return 'The AI endpoint is unavailable in Vite dev. Start the app with `vercel dev` so local /api functions are available.';
+  }
+  if (status === 429) return 'The AI service is busy. Wait a moment, then retry.';
+  if (status === 401 || status === 403 || status === 503) {
+    return 'The AI service is currently unavailable. Your messages are preserved; retry shortly.';
+  }
+  if (status >= 500) return 'The AI service could not respond. Your messages are preserved; retry shortly.';
+  return error && import.meta.env.DEV ? error : `AI service error (${status}). Please retry.`;
+};
+
 class GeneralChat implements Chat {
   private history: { role: string; content: string }[] = [];
   private system: string;
 
   constructor(system: string, initialHistory: { role: string; content: string }[]) {
     this.system = system;
-    this.history = initialHistory.slice(-24);
+    this.history = initialHistory.slice(-MAX_CHAT_HISTORY);
   }
 
   async *sendMessageStream({ message }: { message: string }): AsyncIterable<{ text: string }> {
     this.history.push({ role: 'user', content: message });
-    this.history = this.history.slice(-24);
+    this.history = this.history.slice(-MAX_CHAT_HISTORY);
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: this.history, system: this.system, stream: true }),
-    });
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: this.history, system: this.system, stream: true }),
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || `API error ${res.status}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(personaApiErrorMessage(res.status, err.error));
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        throw new Error('Response body is not readable. Retry the request.');
+      }
+
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        if (!chunk) continue;
+        accumulatedText += chunk;
+        yield { text: chunk };
+      }
+
+      if (!accumulatedText.trim()) {
+        throw new Error('The advisor returned an empty reply. Please retry.');
+      }
+
+      this.history.push({ role: 'assistant', content: accumulatedText });
+      this.history = this.history.slice(-MAX_CHAT_HISTORY);
+    } catch (error) {
+      // Do not keep a failed user turn in model history (matches GenericChat).
+      this.history.pop();
+      throw error instanceof Error ? error : new Error('AI stream failed');
     }
-
-    const reader = res.body?.getReader();
-    if (!reader) {
-      throw new Error("Response body is not readable");
-    }
-
-    const decoder = new TextDecoder();
-    let accumulatedText = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      accumulatedText += chunk;
-      yield { text: chunk };
-    }
-
-    this.history.push({ role: 'assistant', content: accumulatedText });
-    this.history = this.history.slice(-24);
   }
 }
 
@@ -125,6 +156,24 @@ interface PersonaMessage {
   interjectorName?: string;
   interjectorAvatar?: string;
   interjectorColor?: string;
+}
+
+/** Rebuild model history from persisted UI messages so reloads keep context. */
+function seedHistoryFromMessages(
+  msgs: PersonaMessage[] | undefined,
+  introFallback: { role: string; content: string }[],
+): { role: string; content: string }[] {
+  if (!msgs?.length) return introFallback.slice(-MAX_CHAT_HISTORY);
+
+  const seeded = msgs
+    .filter((m) => m.sender === 'user' || m.sender === 'subject')
+    .map((m) => ({
+      role: m.sender === 'user' ? 'user' : 'assistant',
+      content: (m.text || '').trim(),
+    }))
+    .filter((m) => m.content && m.content !== '...');
+
+  return (seeded.length ? seeded : introFallback).slice(-MAX_CHAT_HISTORY);
 }
 
 // ─── Cross-personality interjection generator ─────────────────────────────────
@@ -144,20 +193,18 @@ You can agree, disagree, add context, or make a sarcastic comment. Stay in chara
 Do NOT repeat what ${activeSubject.name} said. Add YOUR unique perspective.
 Keep it to 1-2 sentences max. Be punchy.`;
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [
-          { role: 'user', content: `The user asked ${activeSubject.name}: "${userMessage}"\n\n${activeSubject.name} responded: "${aiResponse.substring(0, 200)}"\n\nGive your interjection as ${interjector.name}.` }
-        ],
-        system
-      }),
-    });
-
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.text || null;
+    const text = await callApi(
+      [
+        {
+          role: 'user',
+          content: `The user asked ${activeSubject.name}: "${userMessage}"\n\n${activeSubject.name} responded: "${aiResponse.substring(0, 200)}"\n\nGive your interjection as ${interjector.name}.`,
+        },
+      ],
+      system,
+      { max_tokens: 120 },
+    );
+    const trimmed = (text || '').trim();
+    return trimmed || null;
   } catch {
     return null;
   }
@@ -249,40 +296,11 @@ const AIPersonasScreen: React.FC = () => {
       const nextTier = getMasteryTier(nextInsight);
 
       if (nextTier.tier > currentTier.tier) {
-        const subject = SENTIENT_SUBJECTS.find(s => s.id === subjectId);
+        const subject = getSentientSubject(subjectId);
         if (subject) {
-          let quote = '';
-          if (subject.id === 'constitutional') {
-            if (nextTier.tier === 1) quote = "...You've established a foundation in Article 14. Adequate. Don't get arrogant.";
-            else if (nextTier.tier === 2) quote = "...A Senior Counsel. Your arguments on basic structure are beginning to carry weight. Continue.";
-            else if (nextTier.tier === 3) quote = "...A Sovereign Jurist. I felt the resonance of judicial review in your thoughts. You have done well.";
-            else if (nextTier.tier === 4) quote = "...Legal Master. You have integrated personal liberty into your very soul. You stand equal to the text itself. Thank you.";
-            else if (nextTier.tier === 5) quote = "...Supreme Legal Sage. The mastery of the Constitution is yours. I have nothing left to teach you.";
-          } else if (subject.id === 'criminal') {
-            if (nextTier.tier === 1) quote = "Aww, look at you! You're learning how to draw warrants~ That's so cute!";
-            else if (nextTier.tier === 2) quote = "A Senior Counsel of retribution! Yes, yes! Expose the loopholes, break the wicked, protect justice with me!";
-            else if (nextTier.tier === 3) quote = "Your understanding of due process is beautiful! I want to keep you by my side forever. Let's hunt down every violator together!";
-            else if (nextTier.tier === 4) quote = "A Legal Master! You are absolute! Nobody can touch you or twist my laws now, because we will crush them together!";
-            else if (nextTier.tier === 5) quote = "Supreme Legal Sage! Ah~ you are my perfect match. Our souls have merged with justice itself. You belong to me now~";
-          } else if (subject.id === 'corporate') {
-            if (nextTier.tier === 1) quote = "A stable foundation is the bedrock of any joint venture. Allow me to offer my congratulations, associate.";
-            else if (nextTier.tier === 2) quote = "A Senior Counsel of transactional excellence. Your comprehension of fiduciary duties is quite impressive.";
-            else if (nextTier.tier === 3) quote = "A Sovereign Jurist. The board has taken notice of your mastery over the corporate veil. Exquisite work.";
-            else if (nextTier.tier === 4) quote = "A Legal Master. You have mastered the absolute ledger of commerce. I am honored to serve you.";
-            else if (nextTier.tier === 5) quote = "Supreme Legal Sage. You have ascended beyond the ledger itself. A master of the infinite markets. My service is forever yours.";
-          } else if (subject.id === 'family') {
-            if (nextTier.tier === 1) quote = "You did it! You're a Junior Associate now. I'm so glad to see you learning how to protect these families.";
-            else if (nextTier.tier === 2) quote = "A Senior Counsel... you've brought warmth and equity to so many cases. Thank you for caring so much.";
-            else if (nextTier.tier === 3) quote = "A Sovereign Jurist of pure empathy! I... I actually feel so safe when you're drafting custody terms. Keep going!";
-            else if (nextTier.tier === 4) quote = "A Legal Master! You've healed so many broken houses. Your name will be remembered in every home you've saved.";
-            else if (nextTier.tier === 5) quote = "Supreme Legal Sage! I... I'm crying, I'm sorry. You've reached the absolute pinnacle of domestic harmony and justice. I'm so proud of you!";
-          } else if (subject.id === 'international') {
-            if (nextTier.tier === 1) quote = "Hmph, you actually made Junior Associate. It's not like I'm proud of you or anything! But... good job, I guess.";
-            else if (nextTier.tier === 2) quote = "A-A Senior Counsel? Don't think this makes you a diplomat! But... I suppose you can interpret the Vienna Convention without my help now.";
-            else if (nextTier.tier === 3) quote = "A Sovereign Jurist?! Outrageous! You're actually arguing war crimes in the ICC now? D-don't get hurt, okay?";
-            else if (nextTier.tier === 4) quote = "A Legal Master... wow. You've united the nations in your understanding. I... I'm glad you chose to study international law. Not that it matters to me!";
-            else if (nextTier.tier === 5) quote = "Supreme Legal Sage! Hmph! You think you're the master of the global order now? Well... maybe you are. Just... don't forget who taught you first!";
-          }
+          const quote =
+            getBreakthroughQuote(subject, nextTier.tier) ??
+            `${subject.name} acknowledges your progress.`;
           setBreakthrough({
             subjectName: subject.name,
             realmName: nextTier.name,
@@ -327,14 +345,14 @@ const AIPersonasScreen: React.FC = () => {
       : `${(persona as HistoricalPersona).systemPrompt}\n\n**User Context:** Practice mode is ${practiceMode || 'general'}. The user is consulting you through the Historical Experts module of the Legal-Trial app.${crossContext}`;
 
     const introText = getIntroMessage(persona, type);
+    const introSeed = [
+      { role: 'user', content: `You have awakened. The user has chosen to consult with you as ${persona.name}. Introduce yourself. Keep it under 50 words. Be yourself.` },
+      { role: 'assistant', content: introText },
+    ];
+    // Rehydrate model history from persisted UI transcript so reloads keep continuity.
+    const initialHistory = seedHistoryFromMessages(allMessages[persona.id], introSeed);
 
-    const chat = new GeneralChat(
-      systemPrompt,
-      [
-        { role: 'user', content: `You have awakened. The user has chosen to consult with you — ${persona.name}. Introduce yourself. Keep it under 50 words. Be yourself.` },
-        { role: 'assistant', content: introText }
-      ]
-    );
+    const chat = new GeneralChat(systemPrompt, initialHistory);
 
     setChats(prev => ({ ...prev, [chatId]: chat }));
 
@@ -369,22 +387,9 @@ const AIPersonasScreen: React.FC = () => {
         default:
           return `I am ${persona.name}. How can I assist you today?`;
       }
-    } else {
-      switch (persona.id) {
-        case 'constitutional':
-          return "...You're here. I see. Most people cite me without reading me. Tell me what you want to understand. And get my Articles right. I will not repeat myself.";
-        case 'criminal':
-          return "Oh~ you came to see me! How sweet. That means someone did something wrong, or you're about to. Either way, I'll take care of it. I always do. Now talk, before I get impatient~";
-        case 'corporate':
-          return "Good day. I anticipated you would arrive. You have questions regarding contracts, deals, or perhaps a dispute? Please, present your matter. I have prepared the relevant provisions.";
-        case 'family':
-          return "Hey... please come in. I know why people come to me. Something broke — a marriage, custody, inheritance. Whatever it is, I've held worse together. I'm listening, I promise.";
-        case 'international':
-          return "It's not like I was WAITING for someone to talk to or anything. I just... happened to be here. Fine. Ask your question about treaties or whatever. Don't expect me to be impressed.";
-        default:
-          return "I am here. Ask.";
-      }
     }
+    const sentient = persona as SentientSubject;
+    return sentient.introMessage || 'I am here. Ask.';
   }
 
   useEffect(() => {
@@ -415,40 +420,14 @@ const AIPersonasScreen: React.FC = () => {
     if (viewTab === 'chat') inputRef.current?.focus();
   }, [viewTab, selectedHistorical.id, selectedSentient.id, activeTab]);
 
-  // ─── Sentient Subject interjections ──────────────────────────────────────
+  // ─── Sentient Subject interjections (keywords live on each subject) ──────
   const checkContextualInterjector = (userText: string, aiText: string): SentientSubject | null => {
-    const combined = (userText + " " + aiText).toLowerCase();
-    
-    const INTERJECTION_KEYWORDS = [
-      {
-        subjectId: 'constitutional',
-        keywords: ['article', 'fundamental rights', 'parliament', 'sovereign', 'preamble', 'supreme court', 'writ', 'amendment', 'liberty'],
-      },
-      {
-        subjectId: 'criminal',
-        keywords: ['murder', 'theft', 'bail', 'custody', 'ipc', 'crpc', 'police', 'jail', 'arrest', 'criminal', 'prison'],
-      },
-      {
-        subjectId: 'corporate',
-        keywords: ['sebi', 'share', 'contract', 'merger', 'board', 'director', 'arbitration', 'clause', 'agreement', 'taxation', 'insolvency'],
-      },
-      {
-        subjectId: 'family',
-        keywords: ['divorce', 'custody', 'marriage', 'alimony', 'maintenance', 'domestic', 'will', 'succession', 'child', 'family'],
-      },
-      {
-        subjectId: 'international',
-        keywords: ['treaty', 'un', 'hague', 'cross-border', 'customary', 'sovereignty', 'sanctions', 'border', 'state'],
-      }
-    ];
+    const combined = `${userText} ${aiText}`.toLowerCase();
 
-    for (const profile of INTERJECTION_KEYWORDS) {
-      if (profile.subjectId === selectedSentient.id) continue;
-      
-      const hasMatch = profile.keywords.some(kw => combined.includes(kw));
-      if (hasMatch) {
-        const targetSubject = SENTIENT_SUBJECTS.find(s => s.id === profile.subjectId);
-        if (targetSubject) return targetSubject;
+    for (const candidate of SENTIENT_SUBJECTS) {
+      if (candidate.id === selectedSentient.id) continue;
+      if (candidate.interjectionKeywords.some((kw) => combined.includes(kw))) {
+        return candidate;
       }
     }
     return null;
@@ -518,6 +497,10 @@ const AIPersonasScreen: React.FC = () => {
         }));
       }
 
+      if (!fullResponseText.trim()) {
+        throw new Error('The advisor returned an empty reply. Please retry.');
+      }
+
       if (activeTab === 'sentient') {
         const moodRegex = /\[MOOD:\s*([^\]]+)\]/i;
         const match = fullResponseText.match(moodRegex);
@@ -531,41 +514,54 @@ const AIPersonasScreen: React.FC = () => {
       }
 
       bridge.addMessage({ source: pid, sourceName: persona.name, sender: 'ai', text: fullResponseText });
-      setIsTyping(false);
 
       // Check interjection (sentient only)
       if (activeTab === 'sentient') {
         const interjector = shouldInterject(userMsg, fullResponseText);
         if (interjector) {
           setInterjecting(interjector.name);
-          const comment = await generateInterjection(selectedSentient, interjector, userMsg, fullResponseText);
-          setInterjecting(null);
-          
-          if (comment) {
-            setAllMessages(prev => ({
-              ...prev,
-              [pid]: [...(prev[pid] || []), {
-                id: `interjection-${Date.now()}`,
-                sender: 'interjection',
-                text: comment,
-                personaId: pid,
-                interjectorName: interjector.name,
-                interjectorAvatar: interjector.avatar,
-                interjectorColor: interjector.color
-              }]
-            }));
-            bridge.addMessage({ source: interjector.id, sourceName: interjector.name, sender: 'ai', text: `[Interjected] ${comment}` });
+          try {
+            const comment = await generateInterjection(selectedSentient, interjector, userMsg, fullResponseText);
+            if (comment) {
+              setAllMessages(prev => ({
+                ...prev,
+                [pid]: [...(prev[pid] || []), {
+                  id: `interjection-${Date.now()}`,
+                  sender: 'interjection',
+                  text: comment,
+                  personaId: pid,
+                  interjectorName: interjector.name,
+                  interjectorAvatar: interjector.avatar,
+                  interjectorColor: interjector.color
+                }]
+              }));
+              bridge.addMessage({ source: interjector.id, sourceName: interjector.name, sender: 'ai', text: `[Interjected] ${comment}` });
+            }
+          } catch {
+            // Interjections are optional; never block the main reply.
+          } finally {
+            setInterjecting(null);
           }
         }
       }
 
     } catch (e) {
-      console.error(e);
+      console.error('[AIPersonas] chat failed', e);
+      const friendly =
+        e instanceof Error && e.message
+          ? e.message
+          : 'Failed to consult this advisor. Your draft is preserved; retry shortly.';
       setAllMessages(prev => ({
         ...prev,
-        [pid]: (prev[pid] || []).map(m => m.id === responseId ? { ...m, text: `Error: ${e instanceof Error ? e.message : 'Failed to consult.'}` } : m)
+        [pid]: (prev[pid] || []).map(m =>
+          m.id === responseId
+            ? { ...m, text: friendly }
+            : m
+        )
       }));
+    } finally {
       setIsTyping(false);
+      setInterjecting(null);
     }
   };
 
@@ -608,14 +604,15 @@ const AIPersonasScreen: React.FC = () => {
               return (
                 <button
                   key={p.id}
+                  type="button"
                   onClick={() => { setSelectedHistorical(p); setViewTab('info'); }}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-[10px] font-mono whitespace-nowrap flex-shrink-0 transition-all
-                    ${isSelected ? 'bg-brand-accent/15 border-brand-accent text-brand-accent' : 'border-brand-text-primary/20 text-brand-text-secondary hover:border-brand-text-primary/40'}`}
+                    ${isSelected ? 'bg-white text-black border-white' : 'border-brand-text-primary/20 text-brand-text-secondary hover:border-brand-text-primary/40'}`}
                 >
-                  <span className={`h-5 w-5 border flex items-center justify-center text-[9px] font-bold ${isSelected ? 'border-brand-accent bg-brand-bg-primary' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
+                  <span className={`h-5 w-5 border flex items-center justify-center text-[9px] font-bold ${isSelected ? 'border-black/20 bg-black/5 text-black' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
                     {p.avatar}
                   </span>
-                  <span className="font-semibold">{p.name.split(' ')[1]}</span>
+                  <span className="font-semibold">{p.name.split(' ')[1] || p.name}</span>
                 </button>
               );
             })
@@ -626,18 +623,19 @@ const AIPersonasScreen: React.FC = () => {
               return (
                 <button
                   key={s.id}
+                  type="button"
                   onClick={() => { setSelectedSentient(s); setViewTab('info'); }}
                   className={`flex flex-col items-center gap-1 px-2 py-1.5 border text-center min-w-[56px] flex-shrink-0 transition-all
-                    ${isSelected ? 'bg-brand-accent/15 border-brand-accent' : 'border-brand-text-primary/20 hover:border-brand-text-primary/40'}`}
+                    ${isSelected ? 'bg-white text-black border-white' : 'border-brand-text-primary/20 hover:border-brand-text-primary/40'}`}
                 >
-                  <span className={`h-6 w-6 border flex items-center justify-center text-[10px] font-bold ${isSelected ? 'border-brand-accent bg-brand-bg-primary text-brand-accent' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
+                  <span className={`h-6 w-6 border flex items-center justify-center text-[10px] font-bold ${isSelected ? 'border-black/20 bg-black/5 text-black' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
                     {s.avatar}
                   </span>
-                  <span className={`text-[8px] font-mono truncate w-full ${isSelected ? 'text-brand-accent font-bold' : 'text-brand-text-secondary'}`}>
+                  <span className={`text-[8px] font-mono truncate w-full ${isSelected ? 'text-black font-bold' : 'text-brand-text-secondary'}`}>
                     {s.name}
                   </span>
-                  <div className="w-full h-0.5 bg-brand-bg-secondary border border-brand-text-primary/10 overflow-hidden">
-                    <div className="bg-brand-accent h-full transition-all" style={{ width: `${score}%` }}></div>
+                  <div className={`w-full h-0.5 border overflow-hidden ${isSelected ? 'bg-black/10 border-black/10' : 'bg-brand-bg-secondary border-brand-text-primary/10'}`}>
+                    <div className={`h-full transition-all ${isSelected ? 'bg-black' : 'bg-brand-accent'}`} style={{ width: `${score}%` }}></div>
                   </div>
                 </button>
               );
@@ -661,6 +659,7 @@ const AIPersonasScreen: React.FC = () => {
                 return (
                   <button
                     key={p.id}
+                    type="button"
                     onClick={() => { setSelectedHistorical(p); setViewTab('info'); }}
                     className={`w-full text-left p-3.5 transition-colors hover:bg-white/[0.03] flex flex-col space-y-1 ${isSelected ? 'bg-white/[0.06] border-l-2 border-white' : 'border-l-2 border-transparent'}`}
                   >
@@ -668,7 +667,7 @@ const AIPersonasScreen: React.FC = () => {
                       <div className={`h-6 w-6 border border-brand-text-primary/30 flex items-center justify-center font-mono text-xs ${p.color} bg-brand-bg-primary`}>
                         {p.avatar}
                       </div>
-                      <span className={`text-xs font-semibold ${isSelected ? 'text-brand-accent' : 'text-brand-text-primary'}`}>{p.name}</span>
+                      <span className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-brand-text-primary'}`}>{p.name}</span>
                     </div>
                     <span className="text-[10px] text-brand-text-secondary line-clamp-1">{p.role}</span>
                   </button>
@@ -682,17 +681,18 @@ const AIPersonasScreen: React.FC = () => {
                 return (
                   <button
                     key={s.id}
+                    type="button"
                     onClick={() => { setSelectedSentient(s); setViewTab('info'); }}
-                    className={`w-full text-left p-4 transition-all hover:bg-brand-bg-secondary/20 flex flex-col space-y-1.5 ${isSelected ? 'bg-brand-bg-secondary/40 border-l-2 border-brand-accent' : ''}`}
+                    className={`w-full text-left p-4 transition-colors hover:bg-white/[0.03] flex flex-col space-y-1.5 ${isSelected ? 'bg-white/[0.06] border-l-2 border-white' : 'border-l-2 border-transparent'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className={`h-6 w-6 border border-brand-text-primary/30 flex items-center justify-center font-mono text-xs ${s.color} bg-brand-bg-primary`}>
                           {s.avatar}
                         </div>
-                        <span className={`text-xs font-semibold ${isSelected ? 'text-brand-accent' : 'text-brand-text-primary'}`}>{s.name}</span>
+                        <span className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-brand-text-primary'}`}>{s.name}</span>
                       </div>
-                      <span className="text-[9px] font-mono text-brand-accent">({s.archetype})</span>
+                      <span className="text-[9px] font-mono text-brand-text-secondary">({s.archetype})</span>
                     </div>
                     
                     <div className="flex items-center justify-between text-[9px] text-brand-text-secondary">
@@ -701,7 +701,7 @@ const AIPersonasScreen: React.FC = () => {
                     </div>
 
                     <div className="w-full bg-brand-bg-secondary h-1 mt-0.5 border border-brand-text-primary/10 overflow-hidden">
-                      <div className="bg-brand-accent h-full transition-all duration-500" style={{ width: `${score}%` }}></div>
+                      <div className="bg-white/70 h-full transition-all duration-500" style={{ width: `${score}%` }}></div>
                     </div>
                   </button>
                 );
@@ -720,7 +720,7 @@ const AIPersonasScreen: React.FC = () => {
                 <span className={activePersonaColor}>●</span>
                 <span>{activePersonaName}</span>
                 {activeTab === 'sentient' && (
-                  <span className="text-[9px] sm:text-[10px] font-mono bg-brand-accent/10 border border-brand-accent/25 px-1.5 py-0.2 text-brand-accent">
+                  <span className="text-[9px] sm:text-[10px] font-mono bg-white/10 border border-white/20 px-1.5 py-0.5 text-white/80">
                     {selectedSentient.archetype}
                   </span>
                 )}
@@ -730,26 +730,29 @@ const AIPersonasScreen: React.FC = () => {
               </p>
             </div>
 
-            {/* Chat sub-tabs */}
-            <div className="flex border border-brand-text-primary/30 p-0.5 bg-brand-bg-primary text-[9px] sm:text-[10px]">
+            {/* Chat sub-tabs: white = active (design.md monochrome) */}
+            <div className="flex border border-white/20 p-0.5 bg-black/40 text-[9px] sm:text-[10px] rounded-md">
               <button
+                type="button"
                 onClick={() => setViewTab('info')}
-                className={`px-2 sm:px-3 py-1 font-mono uppercase ${viewTab === 'info' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'info' ? 'bg-white text-black font-bold' : 'text-brand-text-secondary hover:text-white'}`}
               >
-                [ PROFILE ]
+                Profile
               </button>
               <button
+                type="button"
                 onClick={() => setViewTab('chat')}
-                className={`px-2 sm:px-3 py-1 font-mono uppercase ${viewTab === 'chat' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'chat' ? 'bg-white text-black font-bold' : 'text-brand-text-secondary hover:text-white'}`}
               >
-                [ CHAT ]
+                Chat
               </button>
               {activeTab === 'sentient' && (
                 <button
+                  type="button"
                   onClick={() => setViewTab('codex')}
-                  className={`px-2 sm:px-3 py-1 font-mono uppercase ${viewTab === 'codex' ? 'bg-brand-accent/20 text-brand-accent font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                  className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'codex' ? 'bg-white text-black font-bold' : 'text-brand-text-secondary hover:text-white'}`}
                 >
-                  [ CODEX ]
+                  Codex
                 </button>
               )}
             </div>
@@ -768,14 +771,14 @@ const AIPersonasScreen: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-base sm:text-lg font-serif font-bold text-brand-text-primary">{activePersonaName}</h3>
-                      <p className="text-[10px] sm:text-xs text-brand-accent font-mono uppercase tracking-wider">
+                      <p className="text-[10px] sm:text-xs text-brand-text-secondary font-mono uppercase tracking-wider">
                         {activeTab === 'historical' ? selectedHistorical.role : selectedSentient.title}
                       </p>
                     </div>
                   </div>
 
                   <div className="border-t border-brand-text-primary/10 pt-3 sm:pt-4">
-                    <h4 className="text-[10px] sm:text-xs font-mono text-brand-text-secondary uppercase mb-2">System Instruction / Prompt</h4>
+                    <h4 className="text-[10px] sm:text-xs font-mono text-brand-text-secondary uppercase mb-2">System instruction</h4>
                     <p className="text-[10px] sm:text-xs leading-relaxed font-light text-brand-text-secondary">
                       {activeTab === 'historical' ? selectedHistorical.systemPrompt : selectedSentient.systemPrompt}
                     </p>
@@ -783,8 +786,8 @@ const AIPersonasScreen: React.FC = () => {
 
                   {activeTab === 'sentient' && (
                     <div className="border-t border-brand-text-primary/10 pt-3 sm:pt-4 space-y-2 sm:space-y-3">
-                      <h4 className="text-[10px] sm:text-xs font-mono text-brand-text-secondary uppercase">Emotional Registers</h4>
-                      <div className="grid grid-cols-2 gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono">
+                      <h4 className="text-[10px] sm:text-xs font-mono text-brand-text-secondary uppercase">Emotional registers</h4>
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono text-brand-text-secondary">
                         <div>Cynicism: {Math.round(selectedSentient.emotionalRegisters.cynicism * 100)}%</div>
                         <div>Intensity: {Math.round(selectedSentient.emotionalRegisters.intensity * 100)}%</div>
                         <div>Empathy: {Math.round(selectedSentient.emotionalRegisters.empathy * 100)}%</div>
@@ -795,10 +798,11 @@ const AIPersonasScreen: React.FC = () => {
 
                   <div className="pt-3 sm:pt-4 flex justify-center">
                     <button
+                      type="button"
                       onClick={() => setViewTab('chat')}
-                      className="px-4 sm:px-6 py-2 border border-brand-accent text-brand-accent hover:bg-brand-accent/10 font-mono text-[10px] sm:text-xs uppercase"
+                      className="px-4 sm:px-6 py-2.5 bg-white text-black hover:bg-white/90 font-mono text-[10px] sm:text-xs uppercase tracking-wide font-semibold border border-white transition-colors"
                     >
-                      [ Establish Communion ]
+                      Open chat
                     </button>
                   </div>
                 </div>
@@ -818,21 +822,26 @@ const AIPersonasScreen: React.FC = () => {
                     {selectedSentient.codex.maxims.map(m => {
                       const isStudied = (studiedMaxims[selectedSentient.id] || []).includes(m.id);
                       return (
-                        <div key={m.id} className="border border-brand-text-primary/20 bg-brand-bg-dark/20 p-3 sm:p-5 space-y-2 sm:space-y-3 transition-colors hover:border-brand-accent/35">
+                        <div key={m.id} className="border border-brand-text-primary/20 bg-brand-bg-dark/20 p-3 sm:p-5 space-y-2 sm:space-y-3 transition-colors hover:border-white/25">
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                             <div>
-                              <span className="text-[9px] sm:text-[10px] font-mono text-brand-accent uppercase tracking-wider">{m.concept}</span>
+                              <span className="text-[9px] sm:text-[10px] font-mono text-brand-text-secondary uppercase tracking-wider">{m.concept}</span>
                               <h4 className="text-xs sm:text-sm font-serif font-bold text-brand-text-primary mt-1">{m.name}</h4>
                             </div>
                             <button
+                              type="button"
                               onClick={() => handleStudy(m.id)}
                               disabled={isStudied}
-                              className={`px-2.5 sm:px-3 py-1 border text-[9px] sm:text-[10px] font-mono uppercase tracking-wider flex-shrink-0 ${isStudied ? 'border-brand-emerald/40 text-brand-emerald bg-brand-emerald/5' : 'border-brand-accent text-brand-accent hover:bg-brand-accent/10'}`}
+                              className={`px-2.5 sm:px-3 py-1.5 border text-[9px] sm:text-[10px] font-mono uppercase tracking-wider flex-shrink-0 transition-colors ${
+                                isStudied
+                                  ? 'border-brand-border text-brand-text-secondary bg-white/[0.04] cursor-default'
+                                  : 'bg-white text-black border-white hover:bg-white/90 font-semibold'
+                              }`}
                             >
-                              {isStudied ? '[ Studied ]' : '[ Study ]'}
+                              {isStudied ? 'Studied' : 'Study'}
                             </button>
                           </div>
-                          <div className="p-2 sm:p-3 bg-brand-bg-dark/40 border-l-2 border-brand-accent font-serif italic text-[10px] sm:text-xs text-brand-text-primary/95 leading-relaxed">
+                          <div className="p-2 sm:p-3 bg-brand-bg-dark/40 border-l-2 border-white/40 font-serif italic text-[10px] sm:text-xs text-brand-text-primary/95 leading-relaxed">
                             "{m.maxim}"
                           </div>
                           <p className="text-[10px] sm:text-xs text-brand-text-secondary leading-relaxed font-light">{m.explanation}</p>
@@ -849,7 +858,7 @@ const AIPersonasScreen: React.FC = () => {
               <div className="absolute inset-0 flex flex-col justify-between">
                 
                 {/* Chat dialogue terminal panel */}
-                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar" ref={chatEndRef}>
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 custom-scrollbar">
                   {messages.map(m => {
                     const isUser = m.sender === 'user';
                     const isInterjection = m.sender === 'interjection';
@@ -857,12 +866,12 @@ const AIPersonasScreen: React.FC = () => {
                     if (isInterjection) {
                       return (
                         <div key={m.id} className="flex justify-center my-2 sm:my-3 animate-fadeIn">
-                          <div className="border border-brand-accent/25 bg-brand-bg-secondary/80 p-3 sm:p-4 max-w-lg text-[10px] sm:text-xs leading-relaxed space-y-2 border-l-4">
+                          <div className="border border-white/20 bg-brand-bg-secondary/80 p-3 sm:p-4 max-w-lg text-[10px] sm:text-xs leading-relaxed space-y-2 border-l-4 border-l-white/50">
                             <div className="flex items-center space-x-2 border-b border-brand-text-primary/10 pb-1.5">
                               <span className={`h-5 w-5 border border-brand-text-primary/30 flex items-center justify-center font-mono text-[10px] bg-brand-bg-primary ${m.interjectorColor}`}>
                                 {m.interjectorAvatar}
                               </span>
-                              <span className="font-mono font-bold text-brand-accent uppercase text-[9px] sm:text-[10px]">{m.interjectorName} Interjected:</span>
+                              <span className="font-mono font-bold text-white/80 uppercase text-[9px] sm:text-[10px]">{m.interjectorName} interjected</span>
                             </div>
                             <p className="font-light italic text-brand-text-primary/95">"{m.text}"</p>
                           </div>
@@ -879,14 +888,14 @@ const AIPersonasScreen: React.FC = () => {
                             </div>
                           )}
                           
-                          <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-brand-accent/30 bg-brand-accent/5 text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
+                          <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-white/25 bg-white/[0.06] text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
                             <div className="max-w-none">
                               {renderLegalMarkdown(m.text)}
                             </div>
                           </div>
 
                           {isUser && (
-                            <div className="h-7 w-7 sm:h-8 sm:w-8 border border-brand-accent/40 flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark text-brand-accent flex-shrink-0">
+                            <div className="h-7 w-7 sm:h-8 sm:w-8 border border-white/30 flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark text-white/80 flex-shrink-0">
                               U
                             </div>
                           )}
@@ -898,12 +907,14 @@ const AIPersonasScreen: React.FC = () => {
                   {/* Typing Indicator */}
                   {isTyping && (
                     <div className="flex justify-start items-center space-x-2 p-2 text-[10px] sm:text-xs font-mono text-brand-text-secondary">
-                      <div className="h-2 w-2 rounded-full bg-brand-accent animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="h-2 w-2 rounded-full bg-brand-accent animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="h-2 w-2 rounded-full bg-brand-accent animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="h-2 w-2 rounded-full bg-white/70 animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       <span>{interjecting ? `${interjecting} typing...` : `${activePersonaName} thinking...`}</span>
                     </div>
                   )}
+                  {/* Scroll anchor (must be end of stream, not the scroll container) */}
+                  <div ref={chatEndRef} aria-hidden className="h-px w-full" />
                 </div>
 
                 {/* Footer Input Console bar */}
@@ -913,17 +924,23 @@ const AIPersonasScreen: React.FC = () => {
                     ref={inputRef}
                     value={input}
                     onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
                     placeholder={`Query ${activePersonaName}...`}
                     disabled={isTyping}
-                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-brand-accent font-light"
+                    aria-label={`Message ${activePersonaName}`}
+                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-white/40 font-light"
                   />
                   <button
-                    onClick={handleSend}
+                    type="button"
+                    onClick={() => void handleSend()}
                     disabled={isTyping || !input.trim()}
-                    className={`px-3 sm:px-5 py-2 sm:py-2.5 font-mono text-[10px] sm:text-xs uppercase transition-all flex items-center space-x-1.5 ${isTyping || !input.trim() ? 'border border-brand-text-primary/20 text-brand-text-secondary cursor-not-allowed' : 'border border-brand-accent bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/25'}`}
+                    className={`px-3 sm:px-5 py-2 sm:py-2.5 font-mono text-[10px] sm:text-xs uppercase tracking-wide transition-colors flex items-center space-x-1.5 ${
+                      isTyping || !input.trim()
+                        ? 'border border-brand-text-primary/20 text-brand-text-secondary cursor-not-allowed'
+                        : 'bg-white text-black border border-white hover:bg-white/90 font-semibold'
+                    }`}
                   >
-                    <span>[ SEND ]</span>
+                    <span>Send</span>
                   </button>
                 </div>
 
@@ -938,29 +955,30 @@ const AIPersonasScreen: React.FC = () => {
       {/* Breakthrough Modal */}
       {breakthrough && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="max-w-md w-full border border-brand-accent bg-brand-bg-primary p-4 sm:p-6 space-y-3 sm:space-y-4 shadow-2xl relative">
-            <div className="flex items-center space-x-3 text-brand-accent border-b border-brand-accent/20 pb-3">
-              <span className="text-xl">⚔</span>
-              <h4 className="font-mono font-bold uppercase tracking-wider text-[10px] sm:text-xs">COMMUNION BREAKTHROUGH</h4>
+          <div className="max-w-md w-full border border-white/25 bg-brand-bg-primary p-4 sm:p-6 space-y-3 sm:space-y-4 relative">
+            <div className="flex items-center space-x-3 text-white border-b border-white/15 pb-3">
+              <span className="text-xl" aria-hidden>⚔</span>
+              <h4 className="font-mono font-bold uppercase tracking-wider text-[10px] sm:text-xs">Mastery breakthrough</h4>
             </div>
 
             <div className="space-y-2">
               <p className="text-[10px] sm:text-xs text-brand-text-secondary leading-normal">
-                Your legal insight has expanded in this domain! You have ascended to:
+                Your legal insight has expanded in this domain. You have reached:
               </p>
               <h3 className={`text-base sm:text-lg font-serif font-bold ${breakthrough.color}`}>{breakthrough.realmName}</h3>
             </div>
 
-            <div className="p-3 sm:p-4 bg-brand-bg-dark/60 border-l-2 border-brand-accent font-serif italic text-[10px] sm:text-xs leading-relaxed text-brand-text-primary/90">
+            <div className="p-3 sm:p-4 bg-brand-bg-dark/60 border-l-2 border-white/40 font-serif italic text-[10px] sm:text-xs leading-relaxed text-brand-text-primary/90">
               "{breakthrough.quote}"
             </div>
 
             <div className="pt-2 flex justify-end">
               <button
+                type="button"
                 onClick={() => setBreakthrough(null)}
-                className="px-4 py-1.5 border border-brand-border text-brand-text-primary hover:bg-white/5 text-[12px]"
+                className="px-4 py-2 bg-white text-black hover:bg-white/90 text-[12px] font-semibold border border-white"
               >
-                Proceed
+                Continue
               </button>
             </div>
           </div>

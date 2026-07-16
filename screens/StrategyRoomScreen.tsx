@@ -3,15 +3,25 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { TrialSimContext } from '../App';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { CourtIcon } from '../components/icons/CourtIcon';
-import { CitationIcon } from '../components/icons/CitationIcon';
+import { CitationIcon, CourtIcon } from '../components/icons';
 import { searchCaselaw, CaselawResult, CITATION_EXTRACTOR_SYSTEM } from '../services/caselawService';
 import { useVisualViewport } from '../hooks/useVisualViewport';
 import { renderLegalMarkdown } from '../utils/markdown';
 import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/storageService';
 import { RoomBanner, RoomTabs } from '../components/RoomChrome';
 import { SurfacePattern } from '../components/SurfacePattern';
-import strategyAstrolabe from '../assets/strategy_astrolabe.jpg';
+import { screenMedia } from '../assets';
+import {
+  speak,
+  cancelSpeech,
+  isTTSAvailable,
+  isMicSupported,
+  preferredRecordingMimeType,
+  transcribeAudio,
+  probeVoiceAvailability,
+  humanizeVoiceError,
+  VoiceError,
+} from '../services/voiceService';
 
 enum ChamberMode {
   ORACLE = 'oracle',
@@ -293,7 +303,7 @@ const PERSONAS: Persona[] = [
     name: 'Ethics Analyst',
     role: 'Philosophical & Identity Analyst',
     systemPrompt: 'You are a fictional ethics and reasoning analyst in a legal-skills simulation. Clarify ambiguous terms, separate legal questions from moral claims, expose logical inconsistencies, and use thought experiments carefully. Do not impersonate a real person.',
-    avatar: 'EA',
+    avatar: 'ET',
   },
 ];
 
@@ -500,13 +510,21 @@ const DeliberationBlueprint: React.FC<{
 
   if (activeTab === ChamberMode.COUNCIL) {
     const center = { x: 200, y: 110 };
-    const jurists = [
-      { id: 'leibowitz', name: 'Leibowitz', cx: 200, cy: 40, avatar: 'SL', index: 0 },
-      { id: 'richelieu', name: 'Richelieu', cx: 280, cy: 88, avatar: 'CR', index: 1 },
-      { id: 'jethmalani', name: 'Jethmalani', cx: 250, cy: 165, avatar: 'RJ', index: 2 },
-      { id: 'nariman', name: 'Nariman', cx: 150, cy: 165, avatar: 'FN', index: 3 },
-      { id: 'parfit', name: 'Parfit', cx: 120, cy: 88, avatar: 'DP', index: 4 },
+    // IDs/avatars must match PERSONAS so selection highlight and node clicks stay in sync.
+    const nodeLayout = [
+      { cx: 200, cy: 40 },
+      { cx: 280, cy: 88 },
+      { cx: 250, cy: 165 },
+      { cx: 150, cy: 165 },
+      { cx: 120, cy: 88 },
     ];
+    const jurists = PERSONAS.map((p, index) => ({
+      id: p.id,
+      name: p.name.split(' ')[0],
+      avatar: p.avatar,
+      index,
+      ...nodeLayout[index],
+    }));
 
     return (
       <div className="w-full flex flex-col items-center justify-center p-4 bg-brand-bg-secondary border border-brand-border rounded-2xl shadow-sm">
@@ -693,7 +711,10 @@ export const StrategyRoomScreen: React.FC = () => {
   const { practiceMode } = context;
   // Strategy Room uses a 1024px mobile breakpoint (wider than the 768px default
   // because the duel-plinth desktop layout needs more horizontal room).
-  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 1024, mobileOffset: 0, desktopOffset: 0 });
+  // mobileOffset 48 deducts Layout's fixed mobile top bar (h-12 / pt-12) so the
+  // composer is not clipped below the shell on phones. On 768–1023 the bar is
+  // absent; a slightly shorter panel is preferable to bottom overflow.
+  const { vpHeight, isMobile } = useVisualViewport({ breakpoint: 1024, mobileOffset: 48, desktopOffset: 0 });
 
   // ─── Citation & verification panel ───────────────────────────────────────────
   // Renders real retrieved-precedents and/or verification rows inside an assistant
@@ -789,8 +810,10 @@ export const StrategyRoomScreen: React.FC = () => {
   // Audio recording state
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [sttAvailable, setSttAvailable] = useState<boolean | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const activeAbortControllerRef = useRef<AbortController | null>(null);
 
   const handleCancel = () => {
@@ -818,8 +841,27 @@ export const StrategyRoomScreen: React.FC = () => {
   }, [chatHistories, isProcessing, oracleStage]);
 
   useEffect(() => {
+    let cancelled = false;
+    if (!isMicSupported()) {
+      setSttAvailable(false);
+    } else {
+      probeVoiceAvailability()
+        .then((cap) => {
+          if (!cancelled) setSttAvailable(cap.probeFailed ? true : cap.available);
+        })
+        .catch(() => { if (!cancelled) setSttAvailable(true); });
+    }
     return () => {
+      cancelled = true;
       activeAbortControllerRef.current?.abort();
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch { /* ignore */ }
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+      cancelSpeech();
     };
   }, []);
 
@@ -838,67 +880,91 @@ export const StrategyRoomScreen: React.FC = () => {
   const activeHistory = chatHistories[activeTab] || [];
 
   const handleSpeak = (text: string) => {
-    try {
-      window.speechSynthesis.cancel();
-      const cleanText = text.replace(/\*\*|_/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText.slice(0, 800));
+    if (!isTTSAvailable()) return;
+    let pitch = 1.0;
+    let rate = 1.0;
+    if (selectedPersona.id === 'evidence-advocate') { pitch = 0.8; rate = 0.95; }
+    else if (selectedPersona.id === 'leverage-architect') { pitch = 0.7; rate = 0.85; }
+    else if (selectedPersona.id === 'procedure-counsel') { pitch = 1.1; rate = 1.1; }
+    else if (selectedPersona.id === 'constitutional-analyst') { pitch = 0.9; rate = 0.95; }
+    else if (selectedPersona.id === 'ethics-analyst') { pitch = 1.0; rate = 1.0; }
 
-      let pitch = 1.0;
-      let rate = 1.0;
-
-      if (selectedPersona.id === 'leibowitz') { pitch = 0.8; rate = 0.95; }
-      else if (selectedPersona.id === 'richelieu') { pitch = 0.7; rate = 0.85; }
-      else if (selectedPersona.id === 'jethmalani') { pitch = 1.1; rate = 1.1; }
-      else if (selectedPersona.id === 'nariman') { pitch = 0.9; rate = 0.95; }
-      else if (selectedPersona.id === 'parfit') { pitch = 1.0; rate = 1.0; }
-
-      utterance.pitch = pitch;
-      utterance.rate = rate;
-
-      const voices = window.speechSynthesis.getVoices();
-      const preferredLang = practiceMode === 'indian' ? 'en-IN' : 'en-US';
-      const voice = voices.find(v => v.lang.includes(preferredLang)) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-      if (voice) {
-        utterance.voice = voice;
-      }
-
-      window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.error('Failed speech synthesis:', err);
-    }
+    // Browser TTS — no Sarvam key required.
+    speak(text.slice(0, 800), { pitch, rate });
   };
 
   const startRecording = async () => {
     setAudioError(null);
     audioChunksRef.current = [];
+
+    if (!isMicSupported()) {
+      setAudioError('Microphone recording is not supported in this browser. Type instead.');
+      return;
+    }
+    if (sttAvailable === false) {
+      setAudioError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type instead.');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      mediaStreamRef.current = stream;
+      const preferredMime = preferredRecordingMimeType();
+      const mediaRecorder = preferredMime
+        ? new MediaRecorder(stream, { mimeType: preferredMime })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
+      mediaRecorder.onerror = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        setIsRecording(false);
+        setAudioError('Recording failed. Check microphone permissions and try again.');
+      };
+
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        mediaStreamRef.current = null;
+        const mimeType = (mediaRecorder.mimeType || preferredMime || 'audio/webm').split(';')[0] || 'audio/webm';
+        const chunks = audioChunksRef.current;
+        audioChunksRef.current = [];
+        if (!chunks.length) {
+          setAudioError('No audio captured. Check the microphone and try again.');
+          return;
+        }
+        const audioBlob = new Blob(chunks, { type: mimeType });
         await handleSTT(audioBlob);
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(250);
       setIsRecording(true);
     } catch (err) {
       console.error('Microphone access denied:', err);
-      setAudioError('Microphone access is required for voice input.');
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setAudioError('Microphone permission denied. Allow mic access or type instead.');
+      } else if (name === 'NotFoundError') {
+        setAudioError('No microphone found. Type instead.');
+      } else {
+        setAudioError('Microphone access is required for voice input.');
+      }
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
+      }
     }
     setIsRecording(false);
   };
@@ -907,52 +973,147 @@ export const StrategyRoomScreen: React.FC = () => {
     setIsProcessing(true);
     setOracleStage('Transcribing audio...');
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        const res = await fetch('/api/voice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'stt',
-            audio: base64Audio,
-            language: 'en-IN',
-          }),
-        });
-
-        if (!res.ok) throw new Error('STT call failed');
-        const data = await res.json();
-        if (data.status === 'success' && data.text) {
-          setInputVal(data.text);
-        }
-      };
-      reader.readAsDataURL(blob);
+      const text = (await transcribeAudio(blob, {
+        language: practiceMode === 'indian' ? 'en-IN' : 'en-US',
+      })).trim();
+      if (!text) {
+        throw new VoiceError('No speech detected. Try again or type your consult.', 'EMPTY_TRANSCRIPT');
+      }
+      setInputVal(text);
+      setAudioError(null);
     } catch (err) {
       console.error('Transcription error:', err);
-      setAudioError('Failed to transcribe voice.');
+      if (err instanceof VoiceError && (err.code === 'MISSING_API_KEY' || err.status === 503)) {
+        setSttAvailable(false);
+      }
+      setAudioError(humanizeVoiceError(err));
     } finally {
       setIsProcessing(false);
       setOracleStage('');
     }
   };
 
-  const callChatAPI = async (prompt: string, system: string = '', model: string = 'deepseek-chat', signal?: AbortSignal): Promise<string> => {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        system: system,
-        model: model,
-      }),
-      signal: signal,
-    });
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error || `Request failed (${res.status})`);
+  const strategyApiError = (status: number, error?: string): string => {
+    if (status === 429) return 'The AI service is busy. Wait a moment, then retry your last consult.';
+    if (status === 401 || status === 403 || status === 503) {
+      return 'The AI service is currently unavailable. Your work is preserved; retry shortly.';
     }
-    const data = await res.json();
-    return data.text || '';
+    if (status >= 500) return error || 'The AI service could not respond. Your work is preserved; retry shortly.';
+    return error || `AI service error (${status}). Please retry.`;
+  };
+
+  const callChatAPI = async (
+    prompt: string,
+    system: string = '',
+    model: string = 'deepseek-chat',
+    signal?: AbortSignal,
+    options?: { temperature?: number; max_tokens?: number },
+  ): Promise<string> => {
+    try {
+      const body: Record<string, unknown> = {
+        messages: [{ role: 'user', content: prompt }],
+        system,
+        model,
+      };
+      if (options?.temperature !== undefined) body.temperature = options.temperature;
+      if (options?.max_tokens !== undefined) body.max_tokens = options.max_tokens;
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal,
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({} as { error?: string }));
+        throw new Error(strategyApiError(res.status, errData.error));
+      }
+      const data = await res.json();
+      const text = typeof data.text === 'string' ? data.text.trim() : '';
+      if (!text) throw new Error('The AI returned an empty response. Retry the consult.');
+      return text;
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || signal?.aborted) {
+        const abortErr = new Error('Aborted');
+        abortErr.name = 'AbortError';
+        throw abortErr;
+      }
+      if (err instanceof TypeError && /fetch|network|Failed to fetch/i.test(String(err.message || ''))) {
+        throw new Error('Network error reaching the AI service. Check connection and retry.');
+      }
+      throw err;
+    }
+  };
+
+  /** Client-side fallback when Oracle polish is empty or truncated mid-pipeline. */
+  const assembleOracleMemo = (parts: {
+    framing: string;
+    proposal: string;
+    critique: string;
+    refinement: string;
+    reconcile: string;
+    polish?: string;
+  }): string => {
+    if (parts.polish?.trim()) return parts.polish.trim();
+    return [
+      '# Educational Strategy Memo (training only)',
+      '',
+      '_Not legal advice. Verify all authorities against primary sources._',
+      '',
+      '## 1. Issue Framing',
+      parts.framing.trim(),
+      '',
+      '## 2. Recommended Strategy',
+      parts.proposal.trim(),
+      '',
+      '## 3. Adversarial Vulnerabilities',
+      parts.critique.trim(),
+      '',
+      '## 4. Defensive Refinements',
+      parts.refinement.trim(),
+      '',
+      '## 5. Action Protocol & Risks',
+      parts.reconcile.trim(),
+      '',
+      '## 6. Next Actions (Training)',
+      '- Confirm material facts against the case file.',
+      '- Verify every cited authority in a primary judgment database.',
+      '- Stress-test procedural timelines before any filing draft.',
+    ].join('\n');
+  };
+
+  /** Prefer model final-draft when substantial; otherwise stitch prior stages into a training memo. */
+  const assembleSynthesisMemo = (ctx: SynthesisContext, draft: string): string => {
+    const cleaned = (draft || '').trim();
+    const hasStructure =
+      /points of determination|risk register|citation appendix|case overview|proposed motion/i.test(cleaned);
+    if (cleaned.length >= 400 && hasStructure) return cleaned;
+    if (cleaned.length >= 900) return cleaned;
+
+    const section = (title: string, key: string) => {
+      const body = (ctx.stages[key] || '').trim();
+      return body ? `## ${title}\n${body}` : '';
+    };
+
+    return [
+      '# Educational Litigation Memo (training only)',
+      '',
+      '_Not legal advice or a filing-ready document. Verify every authority against primary judgments._',
+      '',
+      `## 1. Case Overview & Material Facts\n${(ctx.dispute || '').trim()}`,
+      section('2. Systemic Forces', 'systemic-matrix'),
+      section('3. Precedents & Principles', 'precedent-scan'),
+      section('4. Adversarial Attacks', 'stress-test'),
+      section('5. Unified Strategy', 'adversarial-synthesis'),
+      section('6. Citation Validation', 'citation-audit'),
+      section('7. Risk Register & Mitigations', 'risk-analysis'),
+      cleaned ? `## 8. Draft Outline (partial)\n${cleaned}` : '',
+      '',
+      '## 9. Next Actions (Training)',
+      '- Open and verify each cited primary judgment.',
+      '- Map limitation periods and maintainability bars to the facts.',
+      '- Convert strategy points into issue-wise draft pleadings only after source checks.',
+    ].filter(Boolean).join('\n\n');
   };
 
   const appendBubble = (tab: string, sender: 'user' | 'assistant' | 'system', text: string, meta?: string, trace?: { stage: string; content: string }[], extras?: { citations?: CaselawResult[]; verification?: VerificationRow[]; retrievalNote?: string }) => {
@@ -1032,50 +1193,127 @@ export const StrategyRoomScreen: React.FC = () => {
     try {
       if (activeTab === ChamberMode.ORACLE) {
         setOracleStage('Phase 1: Framing & Deconstruction...');
-        const s1 = await callChatAPI(`Deconstruct the following legal inquiry in 4 bullets specifying core legal issues, unstated assumptions, critical constraints, and success criteria:\n\nInquiry: ${text}`, 'Surgical legal deconstruction analyst mode.', 'deepseek-chat', signal);
+        const s1 = await callChatAPI(
+          `Deconstruct the following legal inquiry in 4 bullets specifying core legal issues, unstated assumptions, critical constraints, and success criteria:\n\nInquiry: ${text}`,
+          'Surgical legal deconstruction analyst mode. Educational training only.',
+          'deepseek-chat',
+          signal,
+          { temperature: 0.4, max_tokens: 900 },
+        );
         const trace = [{ stage: 'Framing & Deconstruction', content: s1 }];
         setOracleTrace([...trace]);
         updateProvisionalBubble('Analyzing inquiry context and deconstructing key legal variables...', [...trace]);
 
         setOracleStage('Phase 2: Generating Strategy Proposals...');
-        const s2 = await callChatAPI(`Facts and framing:\n${s1}\n\nClient inquiry: ${text}\n\nFormulate your absolute best legal strategy in under 180 words.`, 'Analytical strategic lawyer.', 'deepseek-chat', signal);
+        const s2 = await callChatAPI(
+          `Facts and framing:\n${s1}\n\nClient inquiry: ${text}\n\nFormulate your absolute best legal strategy in under 180 words. Do not invent case citations.`,
+          'Analytical strategic lawyer. Educational training only.',
+          'deepseek-chat',
+          signal,
+          { temperature: 0.5, max_tokens: 700 },
+        );
         trace.push({ stage: 'Strategy Proposal', content: s2 });
         setOracleTrace([...trace]);
         updateProvisionalBubble('Drafting strategic litigation and advisory proposals...', [...trace]);
 
         setOracleStage('Phase 3: Adversarial Critique...');
-        const s3 = await callChatAPI(`Expert Proposal:\n${s2}\n\nClient inquiry: ${text}\n\nIdentify two fatal vulnerabilities and one key logical flaw in this proposal.`, 'Ruthless prosecuting attorney.', 'reasoner', signal);
+        const s3 = await callChatAPI(
+          `Expert Proposal:\n${s2}\n\nClient inquiry: ${text}\n\nIdentify two fatal vulnerabilities and one key logical flaw in this proposal.`,
+          'Ruthless prosecuting attorney. Educational training only.',
+          'reasoner',
+          signal,
+        );
         trace.push({ stage: 'Adversarial Critique', content: s3 });
         setOracleTrace([...trace]);
         updateProvisionalBubble('Stress-testing proposals via ruthless adversarial prosecution...', [...trace]);
 
         setOracleStage('Phase 4: Defensive Refinements...');
-        const s4 = await callChatAPI(`Original Proposal:\n${s2}\n\nCritiques and flaws:\n${s3}\n\nRevise the strategy to reinforce the logical gaps, add procedural safeguards, and make it defensible under court review.`, 'Expert defense strategist.', 'deepseek-chat', signal);
+        const s4 = await callChatAPI(
+          `Original Proposal:\n${s2}\n\nCritiques and flaws:\n${s3}\n\nRevise the strategy to reinforce the logical gaps, add procedural safeguards, and make it defensible under court review. Do not invent authorities.`,
+          'Expert defense strategist. Educational training only.',
+          'deepseek-chat',
+          signal,
+          { temperature: 0.45, max_tokens: 1200 },
+        );
         trace.push({ stage: 'Defensive Refinement', content: s4 });
         setOracleTrace([...trace]);
         updateProvisionalBubble('Formulating robust defensive refinements and safeguards...', [...trace]);
 
         setOracleStage('Phase 5: Jurisprudential Reconciliation...');
-        const s5 = await callChatAPI(`Refined Position:\n${s4}\n\nSynthesize the defensive strategy into a final action protocol, detailing client risks and procedural timelines.`, 'Supreme court legal architect.', 'reasoner', signal);
+        const s5 = await callChatAPI(
+          `Refined Position:\n${s4}\n\nSynthesize the defensive strategy into a final action protocol, detailing client risks and procedural timelines.`,
+          'Supreme court legal architect for skills training only.',
+          'reasoner',
+          signal,
+        );
         trace.push({ stage: 'Jurisprudential Reconciliation', content: s5 });
         setOracleTrace([...trace]);
         updateProvisionalBubble('Performing global jurisprudential reconciliation and risk audits...', [...trace]);
 
         setOracleStage('Phase 6: Final Editorial Polish...');
-        const polished = await callChatAPI(`Raw synthetic analysis:\n${s5}\n\nProduce a polished educational strategy memo. It is for training only, not legal advice or a filing-ready document. Keep material uncertainty, verification needs, and procedural assumptions explicit. Remove only redundant meta-commentary and stage labels.`, 'Master copy-editor and senior jurist.', 'deepseek-chat', signal);
-        trace.push({ stage: 'Final Memo Polish', content: polished });
+        const polishPrompt =
+          `Inquiry:\n${text}\n\n` +
+          `Framing:\n${s1}\n\n` +
+          `Proposal:\n${s2}\n\n` +
+          `Critique:\n${s3}\n\n` +
+          `Refinement:\n${s4}\n\n` +
+          `Reconciliation:\n${s5}\n\n` +
+          `Produce a polished educational strategy memo for training only (not legal advice, not filing-ready). ` +
+          `Use EXACTLY these markdown headings and no stage labels or meta-commentary:\n` +
+          `# Educational Strategy Memo (training only)\n` +
+          `## 1. Issue Framing\n` +
+          `## 2. Recommended Strategy\n` +
+          `## 3. Adversarial Vulnerabilities\n` +
+          `## 4. Defensive Refinements\n` +
+          `## 5. Action Protocol & Risks\n` +
+          `## 6. Next Actions (Training)\n` +
+          `Keep material uncertainty, verification needs, and procedural assumptions explicit. ` +
+          `Do not invent citations.`;
+        let polished = '';
+        try {
+          polished = await callChatAPI(
+            polishPrompt,
+            'Master copy-editor and senior jurist for legal-skills training.',
+            'deepseek-chat',
+            signal,
+            { temperature: 0.4, max_tokens: 2000 },
+          );
+        } catch (polishErr: any) {
+          if (polishErr?.name === 'AbortError') throw polishErr;
+          // Fall through to client assembly if polish fails after earlier stages succeeded.
+          polished = '';
+        }
+        const finalMemo = assembleOracleMemo({
+          framing: s1,
+          proposal: s2,
+          critique: s3,
+          refinement: s4,
+          reconcile: s5,
+          polish: polished,
+        });
+        trace.push({ stage: 'Final Memo Polish', content: polished || finalMemo });
         setOracleTrace([...trace]);
         
-        updateProvisionalBubble(polished, [...trace], 'Oracle deliberated consensus');
+        updateProvisionalBubble(finalMemo, [...trace], 'Oracle deliberated consensus');
 
       } else if (activeTab === ChamberMode.COUNCIL) {
         setOracleStage(`Consulting ${selectedPersona.name}...`);
         const historyContext = activeHistory
+          .filter((msg) => msg.sender !== 'system')
           .slice(-8)
           .map((msg) => `${msg.sender.toUpperCase()}: ${msg.text}`)
           .join('\n');
         const prompt = historyContext ? `${historyContext}\nUSER: ${text}` : text;
-        const response = await callChatAPI(prompt, `${selectedPersona.systemPrompt}\n\nFocus strictly on Indian law frameworks, procedural safeguards, and client interests. Keep the tone characteristic of your persona.`, 'deepseek-chat', signal);
+        const jurisFocus = practiceMode === 'indian'
+          ? 'Focus on Indian law frameworks, procedural safeguards, and client interests where the facts support them.'
+          : 'Focus on international or comparative frameworks appropriate to the stated jurisdiction, procedural safeguards, and client interests.';
+        const response = await callChatAPI(
+          prompt,
+          `${selectedPersona.systemPrompt}\n\n${jurisFocus} Keep the tone characteristic of your persona. Educational training only - not legal advice. Do not invent authorities.`,
+          'deepseek-chat',
+          signal,
+          { temperature: 0.55, max_tokens: 1800 },
+        );
         updateProvisionalBubble(response, undefined, selectedPersona.name);
 
 	      } else if (activeTab === ChamberMode.SYNTHESIS) {
@@ -1190,7 +1428,7 @@ export const StrategyRoomScreen: React.FC = () => {
 
 		          // ── Execute the stage ────────────────────────────────
 		          const phaseLabel = `${i + 1}/${SYNTHESIS_STAGES.length}: ${stg.label}`;
-		          setOracleStage(`Phase ${phaseLabel} — ${stg.interimBubble}…`);
+		          setOracleStage(`Phase ${phaseLabel}: ${stg.interimBubble}`);
 
 		          const stagePrompt = stg.buildPrompt(ctx, jurisInfo);
 		          const stageSystem = stg.system(jurisInfo);
@@ -1199,6 +1437,7 @@ export const StrategyRoomScreen: React.FC = () => {
 		            stageSystem,
 		            stg.model,
 		            signal,
+		            { temperature: stg.temperature, max_tokens: stg.maxTokens },
 		          );
 
 		          ctx.stages[stg.key] = output;
@@ -1214,9 +1453,9 @@ export const StrategyRoomScreen: React.FC = () => {
 		            bubbleNote = ctx.retrievalMode === 'public_web_discovery'
 		              ? `Found ${ctx.retrievedPrecedents.length} public-web discovery lead${ctx.retrievedPrecedents.length !== 1 ? 's' : ''}. They were excluded from citation generation; open and verify primary judgments manually.`
 		              : !ctx.retrievalAvailable
-		                ? 'Structured case-law lookup unavailable — citations may be unverified. International lookup pending.'
+		                ? 'Structured case-law lookup unavailable - citations may be unverified. International lookup pending.'
 		              : ctx.retrievedPrecedents.length === 0
-		                ? 'Case-law lookup returned no hits — the model was asked to rely on black-letter principles only.'
+		                ? 'Case-law lookup returned no hits - the model was asked to rely on black-letter principles only.'
 		                : `Retrieved ${ctx.retrievedPrecedents.length} provider-metadata record${ctx.retrievedPrecedents.length !== 1 ? 's' : ''}; primary judgments still require verification.`;
 		          }
 
@@ -1226,11 +1465,23 @@ export const StrategyRoomScreen: React.FC = () => {
 		            bubbleVerification = (ctx as any).__verificationRows;
 		            bubbleNote = (ctx as any).__verificationRows?.some((v: VerificationRow) => v.status.startsWith('LOCATED'))
 		              ? `Located ${(ctx as any).__verificationRows.filter((v: VerificationRow) => v.status.startsWith('LOCATED')).length} of ${(ctx as any).__verificationRows.length} citations in provider metadata; verify each primary judgment before relying on it.`
-		              : 'No cited case has provider-metadata support — treat all citation-status claims as unverified.';
+		              : 'No cited case has provider-metadata support - treat all citation-status claims as unverified.';
+		          }
+
+		          // Final draft: prefer model output; if thin, assemble a structured training memo from prior stages.
+		          let bubbleText = stg.interimBubble;
+		          if (stg.key === 'final-draft') {
+		            const assembled = assembleSynthesisMemo(ctx, output);
+		            bubbleText = assembled;
+		            if (assembled !== output) {
+		              ctx.stages[stg.key] = assembled;
+		              trace = [...trace.slice(0, -1), { stage: stg.label, content: assembled }];
+		              setOracleTrace(trace);
+		            }
 		          }
 
 		          updateProvisionalBubble(
-		            stg.key === 'final-draft' ? output : stg.interimBubble,
+		            bubbleText,
 		            trace,
 		            stg.key === 'final-draft' ? 'Synthesized Adversarial Memo' : undefined,
 		            { citations: bubbleCitations, verification: bubbleVerification, retrievalNote: bubbleNote },
@@ -1238,35 +1489,23 @@ export const StrategyRoomScreen: React.FC = () => {
 		        }
 		      }
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        updateProvisionalBubble('[Cancelled] Deliberation cancelled by user.');
-        setChatHistories(prev => {
-          const history = prev[activeTab] || [];
-          return {
-            ...prev,
-            [activeTab]: history.map(bubble => {
-              if (bubble.id === bubbleId) {
-                return { ...bubble, sender: 'system' as const };
-              }
-              return bubble;
-            })
-          };
-        });
-      } else {
-        updateProvisionalBubble(`[Error] ${err.message || err}`);
-        setChatHistories(prev => {
-          const history = prev[activeTab] || [];
-          return {
-            ...prev,
-            [activeTab]: history.map(bubble => {
-              if (bubble.id === bubbleId) {
-                return { ...bubble, sender: 'system' as const };
-              }
-              return bubble;
-            })
-          };
-        });
-      }
+      const isAbort = err?.name === 'AbortError' || activeAbortControllerRef.current?.signal.aborted;
+      const failText = isAbort
+        ? '[Cancelled] Deliberation cancelled by user.'
+        : `[Error] ${err?.message || String(err) || 'Unknown error'}`;
+      // Single state write so text + system sender stay consistent under React batching.
+      setChatHistories(prev => {
+        const history = prev[activeTab] || [];
+        return {
+          ...prev,
+          [activeTab]: history.map(bubble => {
+            if (bubble.id === bubbleId) {
+              return { ...bubble, sender: 'system' as const, text: failText };
+            }
+            return bubble;
+          })
+        };
+      });
     } finally {
       setIsProcessing(false);
       setOracleStage('');
@@ -1282,11 +1521,11 @@ export const StrategyRoomScreen: React.FC = () => {
       <SurfacePattern variant="grid" className="opacity-25" />
       <div className="relative z-10 w-full flex flex-col flex-1 min-h-0 overflow-hidden gap-2 sm:gap-3">
       <RoomBanner
-        image={strategyAstrolabe}
+        image={screenMedia.strategy.banner}
         dense
         eyebrow="Labs · strategy"
         title="Strategy room"
-        subtitle="Oracle, Council, or Synthesis. Pressure-test theory before trial."
+        subtitle={isMobile ? undefined : 'Oracle, Council, or Synthesis. Pressure-test theory before trial.'}
         trailing={
           <RoomTabs
             tabs={[
@@ -1295,8 +1534,10 @@ export const StrategyRoomScreen: React.FC = () => {
               { id: ChamberMode.SYNTHESIS, label: 'Synthesis' },
             ]}
             active={activeTab}
-            onChange={(id) => setActiveTab(id as ChamberMode)}
-            className="hidden lg:inline-flex"
+            onChange={(id) => {
+              if (!isProcessing) setActiveTab(id as ChamberMode);
+            }}
+            className={`hidden lg:inline-flex ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}
           />
         }
         className="flex-shrink-0"
@@ -1315,37 +1556,42 @@ export const StrategyRoomScreen: React.FC = () => {
               { id: ChamberMode.SYNTHESIS, label: 'Synthesis' },
             ]}
             active={activeTab}
-            onChange={(id) => setActiveTab(id as ChamberMode)}
-            className="w-full !flex"
+            onChange={(id) => {
+              if (!isProcessing) setActiveTab(id as ChamberMode);
+            }}
+            className={`w-full !flex ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}
           />
         </div>
 
-        {/* Mobile Vertical Scroll for Persona Council — more compact */}
+        {/* Mobile Council persona strip */}
         {activeTab === ChamberMode.COUNCIL && (
-          <div className="w-full flex flex-col gap-0.5 mb-2">
-            <span className="text-[8px] font-serif font-bold text-brand-text-primary/80 block ml-1">Consult Jurist</span>
-            <div className="grid grid-cols-5 gap-1.5 select-none items-start w-full">
+          <div className="w-full flex flex-col gap-0.5 mb-2 flex-shrink-0">
+            <span className="text-[9px] font-mono uppercase tracking-wide text-brand-text-secondary/70 block ml-1">Consult jurist</span>
+            <div className="grid grid-cols-5 gap-1 select-none items-start w-full">
               {PERSONAS.map((p) => {
                 const isSelected = selectedPersona.id === p.id;
                 return (
                   <button
                     key={p.id}
+                    type="button"
                     onClick={() => setSelectedPersona(p)}
-                    className="flex flex-col items-center gap-0.5 focus:outline-none min-w-0"
+                    aria-pressed={isSelected}
+                    aria-label={p.name}
+                    className="flex flex-col items-center gap-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-md min-w-0 min-h-11"
                   >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-[10px] font-mono font-bold border relative
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold border relative
                       ${isSelected 
-                        ? 'bg-brand-text-primary text-brand-bg-primary border-brand-accent' 
-                        : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary/80'
+                        ? 'bg-white text-black border-white' 
+                        : 'bg-brand-bg-primary border-white/20 text-brand-text-primary/80'
                       }`}
                     >
                       {p.avatar}
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-brand-accent text-brand-navy rounded-xl border border-brand-navy flex items-center justify-center text-[6px] font-bold">§</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-black text-white rounded border border-white/30 flex items-center justify-center text-[6px] font-bold" aria-hidden="true">§</span>
                       )}
                     </div>
-                    <span className={`text-[7px] tracking-wide font-mono transition-colors text-center truncate w-full
-                      ${isSelected ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/60'}`}
+                    <span className={`text-[8px] tracking-wide font-mono transition-colors text-center truncate w-full
+                      ${isSelected ? 'text-white font-semibold' : 'text-brand-text-secondary/60'}`}
                     >
                       {p.name.split(' ')[0]}
                     </span>
@@ -1361,28 +1607,27 @@ export const StrategyRoomScreen: React.FC = () => {
           {/* Chat Feed (Mobile) */}
           <div className="flex-1 min-h-0 p-3 overflow-y-auto space-y-3 custom-scrollbar text-left relative z-10">
             {activeHistory.length <= 1 && (
-              <div className="p-2 border border-brand-text-primary/30 bg-brand-bg-primary rounded-xl space-y-1 text-left mb-2">
-                <h4 className="text-[10px] font-serif font-bold text-shimmer flex items-center gap-1.5">
-                  <span className="font-serif font-bold border-r pr-1.5 mr-1.5">[ CHAMBER ]</span>
+              <div className="p-2.5 border border-white/15 bg-brand-bg-secondary/40 rounded-lg space-y-1 text-left mb-2">
+                <h4 className="text-[11px] font-serif font-semibold text-brand-text-primary flex items-center gap-1.5">
                   <span>
-                    {activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
+                    {activeTab === ChamberMode.ORACLE ? 'Oracle deliberation' : activeTab === ChamberMode.COUNCIL ? 'Council' : 'Adversarial synthesis'}
                   </span>
                 </h4>
-                <p className="text-[9px] text-brand-text-secondary font-light leading-relaxed">
+                <p className="text-[11px] text-brand-text-secondary font-light leading-relaxed">
                   {activeTab === ChamberMode.ORACLE 
-                      ? 'Deep multi-stage legal reasoning to build defensive trial plans.'
+                      ? 'Multi-stage legal reasoning for defensive trial plans.'
                       : activeTab === ChamberMode.COUNCIL
-                        ? `Consult jurists. Tap avatar bubbles above to switch.`
-                        : 'Deconstruct disputes and synthesize litigation tactics.'}
+                        ? 'Tap a jurist above, then send a question.'
+                        : 'Enter a dispute premise to stress-test tactics.'}
                 </p>
               </div>
             )}
 
             {activeHistory.map((item) => (
               <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
-                <div className="flex items-center space-x-1.5 mb-0.5 text-[7px] font-mono">
+                <div className="flex items-center space-x-1.5 mb-0.5 text-[9px] font-mono">
                   {item.meta && (
-                    <span className="text-brand-text-primary font-semibold bg-brand-accent/5 px-1.5 py-0.5 border border-brand-text-primary/30 rounded">
+                    <span className="text-brand-text-primary font-semibold bg-white/[0.04] px-1.5 py-0.5 border border-white/15 rounded">
                       {item.meta}
                     </span>
                   )}
@@ -1392,30 +1637,30 @@ export const StrategyRoomScreen: React.FC = () => {
                 </div>
 
                 <div
-                  className={`max-w-[92%] p-2.5 rounded-xl text-[11px] leading-relaxed border  
+                  className={`max-w-[92%] p-2.5 rounded-lg text-[13px] leading-relaxed border  
                     ${item.sender === 'user'
-                      ? 'bg-brand-accent/15 border-brand-text-primary/30 text-brand-text-primary rounded-tr-none'
+                      ? 'bg-white/[0.06] border-white/20 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
-                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[10px]'
+                        ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[12px]'
                         : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
                     }`}
                 >
-                  <div className="font-light text-brand-text-primary">{renderLegalMarkdown(item.text)}</div>
+                  <div className="font-light text-brand-text-primary break-words">{renderLegalMarkdown(item.text)}</div>
                   
                   {renderCitationPanel(item)}
 
                   {item.trace && item.trace.length > 0 && (
-                    <details className="mt-2 pt-2 border-t border-white/10 text-[10px] font-light text-brand-text-secondary/80">
-                      <summary className="cursor-pointer text-[8px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
-                        ▶ View Trace Logs ({item.trace.length})
+                    <details className="mt-2 pt-2 border-t border-white/10 text-[11px] font-light text-brand-text-secondary/80">
+                      <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded min-h-9 flex items-center">
+                        View trace logs ({item.trace.length})
                       </summary>
-                      <div className="mt-2 space-y-2 font-sans text-[10px]">
+                      <div className="mt-2 space-y-2 font-sans text-[11px]">
                         {item.trace.map((tr, index) => (
-                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-xl text-left">
-                            <h6 className="font-mono text-[8px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
+                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-lg text-left">
+                            <h6 className="font-mono text-[9px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-white/15 pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
-                            <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap">{tr.content}</p>
+                            <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap max-h-[120px] overflow-y-auto custom-scrollbar">{tr.content}</p>
                           </div>
                         ))}
                       </div>
@@ -1424,16 +1669,24 @@ export const StrategyRoomScreen: React.FC = () => {
                 </div>
 
                 {item.sender === 'assistant' && item.text && (
-                  <div className="flex space-x-1.5 mt-1 pl-1.5">
+                  <div className="flex space-x-1.5 mt-1 pl-1">
                     <button
+                      type="button"
                       onClick={() => handleSpeak(item.text)}
-                      className="px-1.5 py-0.5 border border-brand-text-primary/30 rounded bg-brand-bg-primary hover:bg-brand-text-primary text-brand-bg-primary text-[8px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
+                      aria-label="Speak message"
+                      className="min-h-9 px-2.5 py-1.5 border border-white/20 rounded-md bg-brand-bg-primary hover:bg-white hover:text-black text-[10px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
                     >
                       Speak
                     </button>
                     <button
-                      onClick={() => navigator.clipboard.writeText(item.text)}
-                      className="px-1.5 py-0.5 border border-white/10 rounded bg-brand-bg-primary hover:bg-white/5 text-[8px] font-mono uppercase tracking-wide text-brand-text-secondary cursor-pointer"
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(item.text).catch(() => {
+                          setAudioError('Could not copy to clipboard.');
+                        });
+                      }}
+                      aria-label="Copy message"
+                      className="min-h-9 px-2.5 py-1.5 border border-white/10 rounded-md bg-brand-bg-primary hover:bg-white/5 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary cursor-pointer"
                     >
                       Copy
                     </button>
@@ -1443,18 +1696,25 @@ export const StrategyRoomScreen: React.FC = () => {
             ))}
 
             {isProcessing && oracleStage && (
-              <div className="flex flex-col gap-3 items-start max-w-sm w-full my-2">
-                <div className="w-full p-3 rounded-xl bg-brand-navy border border-brand-text-primary/30 space-y-2 text-left">
-                  <div className="flex items-center justify-between border-b border-brand-text-primary/30 pb-1.5">
-                    <div className="flex items-center space-x-2">
+              <div
+                className="flex flex-col gap-3 items-start max-w-sm w-full my-2"
+                role="status"
+                aria-live="polite"
+                aria-busy="true"
+              >
+                <div className="w-full p-3 rounded-lg bg-brand-bg-secondary border border-white/15 space-y-2 text-left">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1.5">
+                    <div className="flex items-center space-x-2 min-w-0">
                       <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold" />
-                      <span className="text-[8px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
+                      <span className="text-[10px] font-mono tracking-wide text-brand-text-primary font-semibold uppercase truncate">{oracleStage}</span>
                     </div>
                     <button 
+                      type="button"
                       onClick={handleCancel}
-                      className="text-[7px] font-mono uppercase px-1.5 py-0.5 border border-brand-error/40 rounded bg-brand-error/10 text-brand-error hover:bg-brand-error/25 cursor-pointer font-bold"
+                      aria-label="Cancel deliberation"
+                      className="min-h-9 text-[10px] font-mono uppercase px-2.5 py-1.5 border border-brand-error/40 rounded-md bg-brand-error/10 text-brand-error hover:bg-brand-error/25 cursor-pointer font-semibold flex-shrink-0"
                     >
-                      [Abort]
+                      Cancel
                     </button>
                   </div>
                   
@@ -1471,19 +1731,22 @@ export const StrategyRoomScreen: React.FC = () => {
                       const isCompleted = idx < oracleTrace.length;
                       const isActive = idx === oracleTrace.length;
                       return (
-                        <div key={idx} className="flex items-center justify-between text-[8px] font-mono">
-                          <div className="flex items-center space-x-1.5">
-                            <span className={`w-2.5 h-2.5 rounded-xl flex items-center justify-center border text-[6px] font-bold
-                              ${isCompleted ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' : isActive ? 'bg-amber-500/10 border-amber-500 text-amber-400' : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'}`}
+                        <div key={idx} className="flex items-center justify-between text-[10px] font-mono gap-1">
+                          <div className="flex items-center space-x-1.5 min-w-0">
+                            <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[7px] font-bold flex-shrink-0
+                              ${isCompleted
+                                ? 'bg-white/15 border-white/40 text-white'
+                                : isActive
+                                  ? 'bg-white text-black border-white'
+                                  : 'bg-transparent border-white/15 text-brand-text-secondary/30'}`}
                             >
                               {isCompleted ? '§' : idx + 1}
                             </span>
-                            <span className={isCompleted ? 'text-brand-text-secondary/60 line-through' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/35'}>
+                            <span className={`truncate ${isCompleted ? 'text-brand-text-secondary/60 line-through' : isActive ? 'text-brand-text-primary font-bold' : 'text-brand-text-secondary/35'}`}>
                               {stg}
                             </span>
-                            {/* Per-stage model badge (Synthesis only) */}
                             {activeTab === ChamberMode.SYNTHESIS && SYNTHESIS_BY_KEY[SYNTHESIS_STAGES[idx]?.key] && (
-                              <span className="text-[5px] font-mono text-brand-text-secondary/40 ml-1.5">
+                              <span className="text-[8px] font-mono text-brand-text-secondary/40 ml-1 flex-shrink-0">
                                 {SYNTHESIS_STAGES[idx].model.replace('deepseek-', 'ds-')}
                               </span>
                             )}
@@ -1496,41 +1759,78 @@ export const StrategyRoomScreen: React.FC = () => {
               </div>
             )}
 
-            <div ref={chatEndRef} />
+            <div ref={chatEndRef} aria-hidden className="h-px w-full" />
           </div>
 
-          {/* Bottom Input Composer (Mobile) — compact */}
-          <div className="p-2 border-t border-brand-text-primary/30 bg-brand-bg-secondary/90 relative z-20">
+          {/* Bottom Input Composer (Mobile) */}
+          <div className="p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-white/10 bg-brand-bg-secondary/95 relative z-20 flex-shrink-0">
             {audioError && (
-              <div className="p-1.5 mb-1.5 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[9px] rounded-xl text-left">
-                [Error] {audioError}
+              <div className="p-2 mb-1.5 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[12px] rounded-lg text-left" role="alert">
+                {audioError}
               </div>
             )}
 
-            <form onSubmit={handleSend} className="flex gap-1.5 items-center">
+            <form onSubmit={handleSend} className="flex gap-1.5 items-end">
               <button
                 type="button"
-                onClick={isRecording ? stopRecording : startRecording}
-                className={`w-9 h-9 flex-shrink-0 rounded-xl border flex items-center justify-center focus:outline-none
+                onClick={() => {
+                  if (sttAvailable === false && !isRecording) {
+                    setAudioError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type instead.');
+                    return;
+                  }
+                  if (isRecording) stopRecording();
+                  else void startRecording();
+                }}
+                aria-label={
+                  isRecording
+                    ? 'Stop recording'
+                    : sttAvailable === false
+                      ? 'Voice transcription unavailable'
+                      : 'Record voice'
+                }
+                className={`w-11 h-11 flex-shrink-0 rounded-lg border flex items-center justify-center focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
                   ${isRecording
                     ? 'bg-brand-error/20 border-brand-error text-brand-error'
-                    : 'bg-brand-bg-primary border-brand-text-primary/30 text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary'
+                    : sttAvailable === false
+                      ? 'bg-brand-bg-primary border-white/10 text-brand-text-secondary/50'
+                      : 'bg-brand-bg-primary border-white/20 text-brand-text-primary hover:bg-white hover:text-black'
                   }`}
-                title={isRecording ? 'Stop Recording' : 'Record voice'}
+                title={
+                  isRecording
+                    ? 'Stop Recording'
+                    : sttAvailable === false
+                      ? 'Voice transcription unavailable (server key not configured)'
+                      : 'Record voice'
+                }
               >
                 {isRecording ? (
-                  <span className="w-2 h-2 bg-brand-error rounded-sm"></span>
+                  <span className="w-2.5 h-2.5 bg-brand-error rounded-sm" aria-hidden="true"></span>
                 ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
                 )}
               </button>
 
-              <div className="relative flex-grow flex items-center bg-brand-bg-primary rounded-xl border border-brand-text-primary/30 focus-within:ring-1 focus-within:ring-brand-accent">
-                <input
-                  type="text"
+              <div className="relative flex-grow flex items-end bg-brand-bg-primary rounded-lg border border-white/20 focus-within:ring-1 focus-within:ring-white/30 min-w-0">
+                <textarea
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (inputVal.trim() && !isProcessing) {
+                        handleSend(e as unknown as React.FormEvent);
+                      }
+                    }
+                  }}
                   disabled={isProcessing}
+                  rows={1}
+                  aria-label={
+                    activeTab === ChamberMode.ORACLE
+                      ? 'Ask Oracle'
+                      : activeTab === ChamberMode.COUNCIL
+                        ? `Consult ${selectedPersona.name}`
+                        : 'Enter dispute premise'
+                  }
                   placeholder={
                     activeTab === ChamberMode.ORACLE
                       ? 'Ask Oracle...'
@@ -1538,26 +1838,28 @@ export const StrategyRoomScreen: React.FC = () => {
                         ? `Consult ${selectedPersona.name.split(' ')[0]}...`
                         : 'Enter premise...'
                   }
-                  className="w-full pl-2.5 pr-9 py-2 bg-transparent text-brand-text-primary outline-none text-[11px] font-light placeholder-brand-text-secondary/30"
+                  className="w-full pl-2.5 pr-12 py-2.5 bg-transparent text-brand-text-primary outline-none text-base font-light placeholder-brand-text-secondary/35 resize-none min-h-[44px] max-h-[120px] custom-scrollbar leading-snug"
                 />
                 
                 {isProcessing ? (
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-xl border border-brand-error/30 bg-brand-error/15 text-brand-error flex items-center justify-center font-bold"
-                    title="Abort consult"
+                    aria-label="Cancel deliberation"
+                    className="absolute right-1 bottom-1.5 w-9 h-9 rounded-md border border-brand-error/30 bg-brand-error/15 text-brand-error flex items-center justify-center font-bold text-sm"
+                    title="Cancel consult"
                   >
-                    x
+                    ×
                   </button>
                 ) : (
                   <button
                     type="submit"
                     disabled={!inputVal.trim()}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-xl bg-brand-accent disabled:bg-brand-bg-primary text-brand-navy disabled:text-brand-text-secondary/30 flex items-center justify-center"
+                    aria-label="Send consult"
+                    className="absolute right-1 bottom-1.5 w-9 h-9 rounded-md bg-white text-black disabled:bg-brand-bg-secondary disabled:text-brand-text-secondary/30 flex items-center justify-center"
                     title="Consult"
                   >
-                    <svg className="w-3 h-3 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
                   </button>
@@ -1577,7 +1879,7 @@ export const StrategyRoomScreen: React.FC = () => {
         {/* Columns 1-3: Strategic Chambers & Setup (Sidebar) */}
         <div className="col-span-3 flex flex-col gap-4 min-h-0 overflow-y-auto custom-scrollbar pr-1">
           <div className="relative overflow-hidden rounded-xl border border-brand-border p-4 flex flex-col gap-3">
-            <img src={strategyAstrolabe} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+            <img src={screenMedia.strategy.banner} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-black/90" />
             <div className="relative z-10 space-y-0.5">
               <h3 className="text-[14px] font-serif font-semibold text-white flex items-center gap-1.5">
@@ -1596,11 +1898,17 @@ export const StrategyRoomScreen: React.FC = () => {
                 return (
                   <button
                     key={m.value}
-                    onClick={() => setActiveTab(m.value)}
+                    type="button"
+                    disabled={isProcessing && !isActive}
+                    onClick={() => {
+                      if (!isProcessing) setActiveTab(m.value);
+                    }}
                     className={`w-full p-3 rounded-lg border text-left flex items-center gap-3 relative overflow-hidden transition-colors
                       ${isActive 
                         ? 'bg-white text-black border-white font-medium' 
-                        : 'bg-black/40 border-white/15 text-white/75 hover:border-white/30 hover:text-white'
+                        : isProcessing
+                          ? 'bg-black/40 border-white/10 text-white/35 cursor-not-allowed'
+                          : 'bg-black/40 border-white/15 text-white/75 hover:border-white/30 hover:text-white'
                       }`}
                   >
                     <span className={`w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0 border ${isActive ? 'border-black/15 bg-black/5' : 'border-white/20'}`}>{m.icon}</span>
@@ -1716,6 +2024,23 @@ export const StrategyRoomScreen: React.FC = () => {
                 >
                   <div className="font-light text-brand-text-primary">{renderLegalMarkdown(item.text)}</div>
                   {renderCitationPanel(item)}
+                  {item.trace && item.trace.length > 0 && (
+                    <details className="mt-2 pt-2 border-t border-white/10 text-[10px] font-light text-brand-text-secondary/80">
+                      <summary className="cursor-pointer text-[8px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
+                        View Trace Logs ({item.trace.length})
+                      </summary>
+                      <div className="mt-2 space-y-2 font-sans text-[10px]">
+                        {item.trace.map((tr, index) => (
+                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-xl text-left">
+                            <h6 className="font-mono text-[8px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
+                              Stage {index + 1}: {tr.stage}
+                            </h6>
+                            <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap max-h-[120px] overflow-y-auto custom-scrollbar">{tr.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
 
                 {item.sender === 'assistant' && item.text && (
@@ -1751,13 +2076,28 @@ export const StrategyRoomScreen: React.FC = () => {
             <form onSubmit={handleSend} className="flex gap-2">
               <button
                 type="button"
-                onClick={isRecording ? stopRecording : startRecording}
+                onClick={() => {
+                  if (sttAvailable === false && !isRecording) {
+                    setAudioError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type instead.');
+                    return;
+                  }
+                  if (isRecording) stopRecording();
+                  else void startRecording();
+                }}
                 className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center focus:outline-none
                   ${isRecording
                     ? 'bg-brand-error/25 border-brand-error text-brand-error '
-                    : 'bg-brand-bg-primary border-brand-border text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
+                    : sttAvailable === false
+                      ? 'bg-brand-bg-primary border-brand-border text-brand-text-secondary/50'
+                      : 'bg-brand-bg-primary border-brand-border text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
                   }`}
-                title={isRecording ? 'Stop Recording' : 'Speak'}
+                title={
+                  isRecording
+                    ? 'Stop Recording'
+                    : sttAvailable === false
+                      ? 'Voice transcription unavailable (server key not configured)'
+                      : 'Speak'
+                }
               >
                 {isRecording ? (
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>

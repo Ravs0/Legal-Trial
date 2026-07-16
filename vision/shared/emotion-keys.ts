@@ -50,11 +50,18 @@ export const NEUTRAL_EMOTIONS: EmotionSet = {
   Contempt: 0.02,
 };
 
-export function normalizeEmotions(input: EmotionSet): EmotionSet {
+export function normalizeEmotions(input: EmotionSet | null | undefined): EmotionSet {
+  if (!input || typeof input !== 'object') return { ...NEUTRAL_EMOTIONS };
   let sum = 0;
-  for (const k of EMOTION_KEYS) sum += input[k];
+  for (const k of EMOTION_KEYS) {
+    const v = Number((input as EmotionSet)[k]);
+    sum += Number.isFinite(v) && v > 0 ? v : 0;
+  }
   if (sum <= 0) return { ...NEUTRAL_EMOTIONS };
   const out = {} as EmotionSet;
-  for (const k of EMOTION_KEYS) out[k] = input[k] / sum;
+  for (const k of EMOTION_KEYS) {
+    const v = Number((input as EmotionSet)[k]);
+    out[k] = (Number.isFinite(v) && v > 0 ? v : 0) / sum;
+  }
   return out;
 }

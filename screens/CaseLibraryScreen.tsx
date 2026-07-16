@@ -8,27 +8,45 @@ import {
   JUDGE_PERSONALITIES, OPPOSING_COUNSEL_PERSONALITIES,
   INTERNATIONAL_CASES, INTERNATIONAL_CASE_CATEGORIES,
   INTERNATIONAL_JUDGE_PERSONALITIES, INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES,
-  ROUTES
 } from '../constants';
-import { CaseCategory, CaseDetail, CaseDifficulty, JudgePersonality, OpposingCounselPersonality, SessionSettings, SessionType } from '../types';
+import { ROUTES } from '../routes';
+import { CaseCategory, CaseCategoryId, CaseDetail, CaseDifficulty, JudgePersonality, OpposingCounselPersonality, SessionSettings, SessionType } from '../types';
 import { SelectInput } from '../components/SelectInput';
 import { Modal } from '../components/Modal';
 import { usePrecedentSearch } from '../hooks/usePrecedentSearch';
 import { getCategoryColorClasses } from '../services/colorUtils';
 import { PhotoHero } from '../components/PhotoHero';
 import { PatternPanel } from '../components/SurfacePattern';
-import libraryBooks from '../assets/library_books.jpg';
+import { screenMedia } from '../assets';
 
-const COUNSEL_MATCH_TERMS: Record<string, string[]> = {
-  constitutional: ['constitutional', 'human rights'], criminal: ['criminal'], commercial: ['commercial', 'corporate', 'arbitration'],
-  labor: ['labor', 'employment'], family: ['family', 'gender'], property: ['property', 'civil'],
-  environmental_in: ['environmental', 'public interest'], ipr_in: ['ip', 'intellectual property', 'technology'],
+/** Specialty keyword map for auto-picking opposing counsel from a case category. */
+const COUNSEL_MATCH_TERMS: Partial<Record<CaseCategoryId, string[]>> = {
+  [CaseCategoryId.CONSTITUTIONAL]: ['constitutional', 'human rights'],
+  [CaseCategoryId.CRIMINAL]: ['criminal'],
+  [CaseCategoryId.COMMERCIAL]: ['commercial', 'corporate', 'arbitration'],
+  [CaseCategoryId.LABOR]: ['labor', 'employment'],
+  [CaseCategoryId.FAMILY]: ['family', 'gender'],
+  [CaseCategoryId.PROPERTY]: ['property', 'civil'],
+  [CaseCategoryId.ENVIRONMENTAL_IN]: ['environmental', 'public interest'],
+  [CaseCategoryId.IPR_IN]: ['ip', 'intellectual property', 'technology'],
+  [CaseCategoryId.PUBLIC_INTERNATIONAL_LAW]: ['public international', 'state disputes', 'state responsibility', 'use of force'],
+  [CaseCategoryId.INTERNATIONAL_CRIMINAL_LAW]: ['international criminal', 'criminal law'],
+  [CaseCategoryId.INTERNATIONAL_ARBITRATION]: ['arbitration', 'investment'],
+  [CaseCategoryId.INTERNATIONAL_HUMAN_RIGHTS]: ['human rights'],
+  [CaseCategoryId.LAW_OF_THE_SEA]: ['law of the sea', 'maritime', 'unclos'],
+  [CaseCategoryId.INTERNATIONAL_TRADE_LAW]: ['trade', 'wto', 'investment'],
+  [CaseCategoryId.INTERNATIONAL_ENVIRONMENTAL_LAW]: ['environmental', 'climate'],
+  [CaseCategoryId.INTERNATIONAL_IP_LAW]: ['intellectual property', 'ip', 'trips', 'copyright', 'trademark', 'patent'],
 };
 
-const recommendedCounsel = (categoryId: string, counsel: OpposingCounselPersonality[]) => {
-  const terms = COUNSEL_MATCH_TERMS[categoryId] || [];
+const recommendedCounsel = (categoryId: CaseCategoryId | string, counsel: OpposingCounselPersonality[]) => {
+  if (!counsel.length) return null;
+  const terms = COUNSEL_MATCH_TERMS[categoryId as CaseCategoryId] || [];
   return counsel.find((candidate) => terms.some((term) => candidate.specialty.toLowerCase().includes(term))) || counsel[0];
 };
+
+const safeLegalIssues = (caseDetail: CaseDetail): string[] =>
+  Array.isArray(caseDetail.legalIssues) ? caseDetail.legalIssues : [];
 
 
 const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty; categoryId?: string }> = ({ difficulty, categoryId }) => {
@@ -196,16 +214,37 @@ const CaseLibraryScreen: React.FC = () => {
   const [currentJudges, setCurrentJudges] = useState<JudgePersonality[]>(practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES);
   const [currentOCs, setCurrentOCs] = useState<OpposingCounselPersonality[]>(practiceMode === 'international' ? INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES : OPPOSING_COUNSEL_PERSONALITIES);
 
-  const [selectedJudge, setSelectedJudge] = useState<JudgePersonality>(currentJudges[0]);
-  const [selectedOpposingCounsel, setSelectedOpposingCounsel] = useState<OpposingCounselPersonality>(currentOCs[0]);
+  const [selectedJudge, setSelectedJudge] = useState<JudgePersonality | null>(currentJudges[0] ?? null);
+  const [selectedOpposingCounsel, setSelectedOpposingCounsel] = useState<OpposingCounselPersonality | null>(currentOCs[0] ?? null);
+
+  // Search / ranking controls must be declared before any conditional return (Rules of Hooks).
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchPipeline, setSearchPipeline] = useState<'bm25' | 'legal-bert' | 'haystack-hybrid'>('legal-bert');
+  const [weightSemantic, setWeightSemantic] = useState(0.5);
+  const [weightAuthority, setWeightAuthority] = useState(0.3);
+  const [weightRecency, setWeightRecency] = useState(0.2);
+  const [isTuningExpanded, setIsTuningExpanded] = useState(false);
+
+  const activeCases = practiceMode === 'international' ? INTERNATIONAL_CASES : CASES;
+  const activeCaseCategories = practiceMode === 'international' ? INTERNATIONAL_CASE_CATEGORIES : CASE_CATEGORIES;
+  const modeDisplay = practiceMode
+    ? practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1)
+    : '';
+
+  const searchResults = usePrecedentSearch(
+    searchQuery,
+    activeCases,
+    searchPipeline,
+    { semantic: weightSemantic, authority: weightAuthority, recency: weightRecency }
+  );
 
   useEffect(() => {
     const judges = practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES;
     const ocs = practiceMode === 'international' ? INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES : OPPOSING_COUNSEL_PERSONALITIES;
     setCurrentJudges(judges);
     setCurrentOCs(ocs);
-    setSelectedJudge(judges[0] || null);
-    setSelectedOpposingCounsel(ocs[0] || null);
+    setSelectedJudge(judges[0] ?? null);
+    setSelectedOpposingCounsel(ocs[0] ?? null);
 
     const categories = practiceMode === 'international' ? INTERNATIONAL_CASE_CATEGORIES : CASE_CATEGORIES;
     if (categories.length > 0) {
@@ -215,6 +254,39 @@ const CaseLibraryScreen: React.FC = () => {
     setFileUploadSuccess(null);
     setCustomAiConsent(false);
   }, [practiceMode]);
+
+  const handlePracticeCase = (caseDetail: CaseDetail) => {
+    setSelectedCaseForPractice(caseDetail);
+    const currentJudgesList = practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES;
+    const currentOCList = practiceMode === 'international' ? INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES : OPPOSING_COUNSEL_PERSONALITIES;
+    setSelectedJudge(currentJudgesList[0] ?? null);
+    setSelectedOpposingCounsel(recommendedCounsel(caseDetail.categoryId, currentOCList));
+  };
+
+  const confirmPractice = () => {
+    if (!selectedCaseForPractice || !selectedJudge || !selectedOpposingCounsel) {
+      alert('Please ensure a case, judge, and opposing counsel are selected.');
+      return;
+    }
+    setGlobalLoading(true);
+    const sessionSettings: SessionSettings = {
+      caseDetail: selectedCaseForPractice,
+      judgePersonality: selectedJudge,
+      opposingCounselPersonality: selectedOpposingCounsel,
+      sessionType: selectedCaseForPractice.difficulty === CaseDifficulty.ADVANCED
+        ? SessionType.DEEP
+        : (selectedCaseForPractice.difficulty === CaseDifficulty.INTERMEDIATE ? SessionType.STANDARD : SessionType.QUICK),
+      difficulty: selectedCaseForPractice.difficulty,
+      practiceMode: practiceMode!,
+    };
+    setCurrentSessionSettings(sessionSettings);
+
+    setTimeout(() => {
+      setGlobalLoading(false);
+      setSelectedCaseForPractice(null);
+      navigate(ROUTES.PRACTICE);
+    }, 500);
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -283,73 +355,21 @@ const CaseLibraryScreen: React.FC = () => {
 
     const customCaseDetail: CaseDetail = {
       id: `custom-case-${Date.now()}`,
-      title: customTitle.trim() || "Bespoke Simulated Case",
-      categoryId: finalCategoryId as any,
+      title: customTitle.trim() || 'Bespoke Simulated Case',
+      categoryId: (finalCategoryId || CaseCategoryId.CONSTITUTIONAL) as CaseCategoryId,
       briefFacts: customBriefFacts.trim(),
       legalIssues: customLegalIssues.split(',').map(x => x.trim()).filter(Boolean),
-      relevantArticlesSections: customRelevantLaws.trim() || "Applicable legal principles.",
-      precedentCases: "Custom user-supplied context.",
+      relevantArticlesSections: customRelevantLaws.trim() || 'Applicable legal principles.',
+      precedentCases: 'Custom user-supplied context.',
       difficulty: customDifficulty,
     };
 
     handlePracticeCase(customCaseDetail);
   };
 
-
   if (!practiceMode) {
     return <Navigate to={ROUTES.LANDING} replace />;
   }
-
-  const activeCases = practiceMode === 'international' ? INTERNATIONAL_CASES : CASES;
-  const activeCaseCategories = practiceMode === 'international' ? INTERNATIONAL_CASE_CATEGORIES : CASE_CATEGORIES;
-  const modeDisplay = practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchPipeline, setSearchPipeline] = useState<'bm25' | 'legal-bert' | 'haystack-hybrid'>('legal-bert');
-  const [weightSemantic, setWeightSemantic] = useState(0.5);
-  const [weightAuthority, setWeightAuthority] = useState(0.3);
-  const [weightRecency, setWeightRecency] = useState(0.2);
-  const [isTuningExpanded, setIsTuningExpanded] = useState(false);
-
-  const searchResults = usePrecedentSearch(
-    searchQuery,
-    activeCases,
-    searchPipeline,
-    { semantic: weightSemantic, authority: weightAuthority, recency: weightRecency }
-  );
-
-
-
-  const handlePracticeCase = (caseDetail: CaseDetail) => {
-    setSelectedCaseForPractice(caseDetail);
-    const currentJudgesList = practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES;
-    const currentOCList = practiceMode === 'international' ? INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES : OPPOSING_COUNSEL_PERSONALITIES;
-    setSelectedJudge(currentJudgesList[0] || null);
-    setSelectedOpposingCounsel(recommendedCounsel(caseDetail.categoryId, currentOCList) || null);
-  };
-
-  const confirmPractice = () => {
-    if (!selectedCaseForPractice || !selectedJudge || !selectedOpposingCounsel) {
-      alert("Please ensure a case, judge, and opposing counsel are selected.");
-      return;
-    }
-    setGlobalLoading(true);
-    const sessionSettings: SessionSettings = {
-      caseDetail: selectedCaseForPractice,
-      judgePersonality: selectedJudge,
-      opposingCounselPersonality: selectedOpposingCounsel,
-      sessionType: selectedCaseForPractice.difficulty === CaseDifficulty.ADVANCED ? SessionType.DEEP : (selectedCaseForPractice.difficulty === CaseDifficulty.INTERMEDIATE ? SessionType.STANDARD : SessionType.QUICK),
-      difficulty: selectedCaseForPractice.difficulty,
-      practiceMode: practiceMode,
-    };
-    setCurrentSessionSettings(sessionSettings);
-
-    setTimeout(() => {
-      setGlobalLoading(false);
-      setSelectedCaseForPractice(null);
-      navigate(ROUTES.PRACTICE);
-    }, 500);
-  };
 
   const judgeOptions = currentJudges.map(j => ({ value: j.id, label: j.name }));
   const opposingCounselOptions = currentOCs.map(oc => ({ value: oc.id, label: `${oc.name} (${oc.specialty})` }));
@@ -358,12 +378,39 @@ const CaseLibraryScreen: React.FC = () => {
     <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn overflow-x-hidden relative">
     <div className="p-4 sm:p-6 max-w-5xl mx-auto w-full space-y-5 pb-12">
       <PhotoHero
-        image={libraryBooks}
+        image={screenMedia.caseLibrary.hero}
         size="md"
         eyebrow={`${modeDisplay} · practice`}
         title="Case library"
         subtitle="Browse scenarios, tune search, or launch a custom trial from your own facts."
       />
+
+      {/* Photo strip: docket / binders / theory */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {[
+          { img: screenMedia.caseLibrary.stripCase, label: 'Docket' },
+          { img: screenMedia.caseLibrary.stripBinders, label: 'Binders' },
+          { img: screenMedia.caseLibrary.stripTheory, label: 'Theory' },
+        ].map((t) => (
+          <div
+            key={t.label}
+            className="relative overflow-hidden rounded-lg border border-brand-border h-14 sm:h-16"
+          >
+            <img src={t.img} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/55" />
+            <div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
+              }}
+            />
+            <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-white/80">
+              {t.label}
+            </span>
+          </div>
+        ))}
+      </div>
 
       <PatternPanel pattern="dots" className="p-4 sm:p-5">
         <div className="relative">
@@ -676,7 +723,7 @@ const CaseLibraryScreen: React.FC = () => {
                           </div>
                         </div>
 
-                        <h4 className={`text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:${catColors.text} transition-colors duration-300`} title={caseItem.title}>{caseItem.title}</h4>
+                        <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-white transition-colors duration-300" title={caseItem.title}>{caseItem.title}</h4>
 
                         <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseItem.briefFacts}</p>
 
@@ -695,18 +742,21 @@ const CaseLibraryScreen: React.FC = () => {
                             <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
                           </h5>
                           <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
-                            {caseItem.legalIssues.slice(0, 3).map((issue, idx) => (
+                            {safeLegalIssues(caseItem).slice(0, 3).map((issue, idx) => (
                               <li key={idx} className="flex items-start">
                                 <span className={`${catColors.text} mr-2 mt-0.5`}>•</span>
                                 <span className="line-clamp-2 leading-snug">{issue}</span>
                               </li>
                             ))}
+                            {safeLegalIssues(caseItem).length === 0 && (
+                              <li className="text-brand-text-secondary/60 italic text-[11px]">No issues listed for this matter.</li>
+                            )}
                           </ul>
                         </div>
                       </div>
 
                       <div className="p-6 pt-0 mt-auto">
-                        <Button variant="outline" size="sm" fullWidth className={`group-hover:${catColors.bg} group-hover:text-brand-bg-primary group-hover:${catColors.border} transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5`}>
+                        <Button variant="outline" size="sm" fullWidth className="group-hover:bg-white group-hover:text-black group-hover:border-white/50 transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
                           Review Case File
                         </Button>
                       </div>
@@ -756,7 +806,7 @@ const CaseLibraryScreen: React.FC = () => {
                             </div>
                           </div>
 
-                          <h4 className={`text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:${catColors.text} transition-colors duration-300`} title={caseDetail.title}>{caseDetail.title}</h4>
+                          <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-white transition-colors duration-300" title={caseDetail.title}>{caseDetail.title}</h4>
 
                           <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseDetail.briefFacts}</p>
 
@@ -765,19 +815,26 @@ const CaseLibraryScreen: React.FC = () => {
                               <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
                             </h5>
                             <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
-                              {caseDetail.legalIssues.slice(0, 3).map((issue, idx) => (
+                              {safeLegalIssues(caseDetail).slice(0, 3).map((issue, idx) => (
                                 <li key={idx} className="flex items-start">
                                   <span className={`${catColors.text} mr-2 mt-0.5`}>•</span>
                                   <span className="line-clamp-2 leading-snug">{issue}</span>
                                 </li>
                               ))}
-                              {caseDetail.legalIssues.length > 3 && <li className="text-brand-text-secondary/60 italic text-[11px] pl-3">+{caseDetail.legalIssues.length - 3} additional issues</li>}
+                              {safeLegalIssues(caseDetail).length > 3 && (
+                                <li className="text-brand-text-secondary/60 italic text-[11px] pl-3">
+                                  +{safeLegalIssues(caseDetail).length - 3} additional issues
+                                </li>
+                              )}
+                              {safeLegalIssues(caseDetail).length === 0 && (
+                                <li className="text-brand-text-secondary/60 italic text-[11px]">No issues listed for this matter.</li>
+                              )}
                             </ul>
                           </div>
                         </div>
 
                         <div className="p-6 pt-0 mt-auto">
-                          <Button variant="outline" size="sm" fullWidth className={`group-hover:${catColors.bg} group-hover:text-brand-bg-primary group-hover:${catColors.border} transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5`}>
+                          <Button variant="outline" size="sm" fullWidth className="group-hover:bg-white group-hover:text-black group-hover:border-white/50 transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
                             Review Case File
                           </Button>
                         </div>

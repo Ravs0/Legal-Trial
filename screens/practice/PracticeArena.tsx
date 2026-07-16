@@ -14,18 +14,28 @@ import {
   buildOpposingCounselPrompt,
 } from '../../services/aiService';
 import { clearActiveSession, loadActiveSession, saveActiveSession, saveCompletedSession } from '../../services/storageService';
-import { speak, cancelSpeech, isTTSAvailable } from '../../services/voiceService';
-import { ROUTES, SESSION_DURATIONS_MINUTES } from '../../constants';
+import {
+  speak,
+  cancelSpeech,
+  isTTSAvailable,
+  isMicSupported,
+  preferredRecordingMimeType,
+  transcribeAudio,
+  probeVoiceAvailability,
+  humanizeVoiceError,
+  VoiceError,
+  type VoiceCapability,
+} from '../../services/voiceService';
+import { SESSION_DURATIONS_MINUTES } from '../../constants';
+import { ROUTES } from '../../routes';
 import { useTimer } from '../../hooks/useTimer';
-import { CourtIcon } from '../../components/icons/CourtIcon';
-import { BriefcaseIcon } from '../../components/icons/BriefcaseIcon';
-import { GavelIcon } from '../../components/icons/GavelIcon';
+import { BriefcaseIcon, CourtIcon, GavelIcon } from '../../components/icons';
 import { getCategoryColorClasses } from '../../services/colorUtils';
-import { BackgroundGeometry } from '../../components/BackgroundGeometry';
 import { useVisualViewport } from '../../hooks/useVisualViewport';
 import { trackEvent } from '../../services/analyticsService';
 import {
   DEFAULT_SCORE_BREAKDOWN,
+  SCORE_DIMENSION_LABELS,
   detectObjectionOutcome,
   inferNextPhase,
   phaseLabel,
@@ -35,11 +45,25 @@ import {
 import { SessionChipRow } from '../../components/SessionChip';
 
 const PHASE_SEQUENCE: TrialPhase[] = ['opening', 'issue_framing', 'rebuttal', 'judicial_questions', 'closing'];
+const OBJECTION_WINDOW_SECONDS = 6;
+/** Soft ceiling so a hung /api/chat stream cannot leave the composer locked forever. */
+const AI_STREAM_TIMEOUT_MS = 90_000;
 const formatCounselName = (name: string) => /^(adv\.?|advocate)\s/i.test(name.trim()) ? name : `Advocate ${name}`;
+const phaseIndex = (phase: TrialPhase) => {
+  const idx = PHASE_SEQUENCE.indexOf(phase);
+  return idx < 0 ? 0 : idx;
+};
+/** Never regress phase mid-hearing; quality gates may only advance. */
+const resolveForwardPhase = (current: TrialPhase, inferred: TrialPhase): TrialPhase =>
+  phaseIndex(inferred) >= phaseIndex(current) ? inferred : current;
+const humanizeAiError = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  return fallback;
+};
 
 const PracticeArena: React.FC = () => {
   const navigate = useNavigate();
-  const { vpHeight, viewportHeight } = useVisualViewport({ breakpoint: 768, mobileOffset: 0, desktopOffset: 0 });
+  const { vpHeight, viewportHeight, isMobile } = useVisualViewport({ breakpoint: 768, mobileOffset: 0, desktopOffset: 0 });
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error("TrialSimContext not found");
@@ -85,8 +109,24 @@ const PracticeArena: React.FC = () => {
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [hearingNotice, setHearingNotice] = useState<string | null>(null);
+  /** When set, the notice offers a one-tap Court retry after a failed auto-judge call. */
+  const [pendingJudgeRetry, setPendingJudgeRetry] = useState(false);
+  const [voiceCap, setVoiceCap] = useState<VoiceCapability | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
+  const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ocStreamInFlightRef = useRef(false);
+  const mountedRef = useRef(true);
+  const streamAiResponseRef = useRef<
+    (
+      chatInstance: Chat,
+      textForAi: string,
+      senderType: 'judge' | 'opposingCounsel',
+      meta?: ChatMessage['meta'],
+    ) => Promise<string>
+  >(async () => '');
 
   // Text-to-speech toggle — the bench speaks its replies aloud.
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(() => {
@@ -98,13 +138,112 @@ const PracticeArena: React.FC = () => {
     try { localStorage.setItem('lexforge.voiceEnabled', voiceEnabled ? 'true' : 'false'); } catch { /* ignore */ }
   }, [voiceEnabled]);
 
+  // Probe Sarvam availability so mic can degrade gracefully without a failed record cycle.
+  useEffect(() => {
+    let cancelled = false;
+    if (!isMicSupported()) {
+      setVoiceCap({
+        configured: false,
+        available: false,
+        features: { stt: false, tts: false, browserTtsFallback: isTTSAvailable() },
+        message: 'This browser does not support microphone recording.',
+      });
+      return;
+    }
+    probeVoiceAvailability()
+      .then((cap) => { if (!cancelled) setVoiceCap(cap); })
+      .catch(() => { /* keep null → optimistic UI */ });
+    return () => {
+      cancelled = true;
+      // Release any orphaned mic stream if the arena unmounts mid-record.
+      try {
+        mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop();
+      } catch { /* ignore */ }
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+      cancelSpeech();
+    };
+  }, []);
+
   // Refs to avoid stale closures (B3: live transcript, B7: judge double-fire)
   const latestMessagesRef = useRef<ChatMessage[]>(messages);
   const judgeStreamInFlightRef = useRef<boolean>(false);
+  const activePhaseRef = useRef(activePhase);
+  const scoreBreakdownRef = useRef(scoreBreakdown);
+  const isInlineObjectionActiveRef = useRef(isInlineObjectionActive);
+  const sessionEndedRef = useRef(sessionEnded);
+  const isAiTypingRef = useRef(isAiTyping);
 
   useEffect(() => {
     latestMessagesRef.current = messages;
   }, [messages]);
+  useEffect(() => { activePhaseRef.current = activePhase; }, [activePhase]);
+  useEffect(() => { scoreBreakdownRef.current = scoreBreakdown; }, [scoreBreakdown]);
+  useEffect(() => { isInlineObjectionActiveRef.current = isInlineObjectionActive; }, [isInlineObjectionActive]);
+  useEffect(() => { sessionEndedRef.current = sessionEnded; }, [sessionEnded]);
+  useEffect(() => { isAiTypingRef.current = isAiTyping; }, [isAiTyping]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (streamTimeoutRef.current) {
+        clearTimeout(streamTimeoutRef.current);
+        streamTimeoutRef.current = null;
+      }
+      try { streamAbortRef.current?.abort(); } catch { /* ignore */ }
+      streamAbortRef.current = null;
+      judgeStreamInFlightRef.current = false;
+      ocStreamInFlightRef.current = false;
+    };
+  }, []);
+
+  // Lock background scroll while the mobile bench drawer is open.
+  useEffect(() => {
+    if (!isMobileDrawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobileDrawerOpen]);
+
+  const clearStreamWatchdog = useCallback(() => {
+    if (streamTimeoutRef.current) {
+      clearTimeout(streamTimeoutRef.current);
+      streamTimeoutRef.current = null;
+    }
+  }, []);
+
+  const abortActiveStream = useCallback((reason?: string) => {
+    clearStreamWatchdog();
+    try { streamAbortRef.current?.abort(); } catch { /* ignore */ }
+    streamAbortRef.current = null;
+    judgeStreamInFlightRef.current = false;
+    ocStreamInFlightRef.current = false;
+    isAiTypingRef.current = false;
+    if (mountedRef.current) {
+      setIsAiTyping(false);
+      if (reason) setHearingNotice(reason);
+    }
+  }, [clearStreamWatchdog]);
+
+  const beginStreamWatchdog = useCallback((label: string) => {
+    clearStreamWatchdog();
+    const controller = new AbortController();
+    streamAbortRef.current = controller;
+    streamTimeoutRef.current = setTimeout(() => {
+      if (!mountedRef.current) return;
+      try { controller.abort(); } catch { /* ignore */ }
+      judgeStreamInFlightRef.current = false;
+      ocStreamInFlightRef.current = false;
+      isAiTypingRef.current = false;
+      setIsAiTyping(false);
+      setHearingNotice(`${label} timed out. Your hearing and draft are preserved. Retry when ready.`);
+      setGlobalError(`${label} timed out. Retry your last action.`);
+    }, AI_STREAM_TIMEOUT_MS);
+    return controller;
+  }, [clearStreamWatchdog, setGlobalError]);
 
   const sessionDurationSeconds = currentSessionSettings ? SESSION_DURATIONS_MINUTES[currentSessionSettings.sessionType] * 60 : 900;
 
@@ -155,45 +294,88 @@ const PracticeArena: React.FC = () => {
     return nextRecord;
   }, [activePhase, remainingSeconds, scoreBreakdown, sessionDurationSeconds]);
 
+  const sttDisabledReason = useMemo(() => {
+    if (!isMicSupported()) return 'Microphone recording is not supported in this browser. Type your argument instead.';
+    if (voiceCap && !voiceCap.available && !voiceCap.probeFailed) {
+      return voiceCap.message
+        || 'Voice transcription is unavailable (SARVAM_API_KEY not configured). You can still type.';
+    }
+    return null;
+  }, [voiceCap]);
+
   const startRecording = async () => {
     setAudioError(null);
     audioChunksRef.current = [];
+
+    if (sttDisabledReason) {
+      setAudioError(sttDisabledReason);
+      return;
+    }
+    if (!isMicSupported()) {
+      setAudioError('Microphone recording is not supported in this browser.');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const preferredMime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : MediaRecorder.isTypeSupported('audio/webm')
-          ? 'audio/webm'
-          : '';
+      mediaStreamRef.current = stream;
+      const preferredMime = preferredRecordingMimeType();
       const mediaRecorder = preferredMime
         ? new MediaRecorder(stream, { mimeType: preferredMime })
         : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
+      mediaRecorder.onerror = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        setIsRecording(false);
+        setAudioError('Recording failed. Check microphone permissions and try again.');
+      };
+
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
-        const mimeType = mediaRecorder.mimeType || preferredMime || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        mediaStreamRef.current = null;
+        const mimeType = (mediaRecorder.mimeType || preferredMime || 'audio/webm').split(';')[0] || 'audio/webm';
+        const chunks = audioChunksRef.current;
+        audioChunksRef.current = [];
+        if (!chunks.length) {
+          setAudioError('No audio captured. Check the microphone and try again.');
+          return;
+        }
+        const audioBlob = new Blob(chunks, { type: mimeType });
         await handleSTT(audioBlob);
       };
 
-      mediaRecorder.start();
+      // timeslice keeps chunks flowing on browsers that buffer until stop
+      mediaRecorder.start(250);
       setIsRecording(true);
     } catch (err) {
       console.error('Microphone access denied:', err);
-      setAudioError('Microphone access is required for voice input.');
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setAudioError('Microphone permission denied. Allow mic access in the browser, or type your argument.');
+      } else if (name === 'NotFoundError') {
+        setAudioError('No microphone found. Plug in a mic or type your argument.');
+      } else {
+        setAudioError('Microphone access is required for voice input.');
+      }
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
+      }
     }
     setIsRecording(false);
   };
@@ -202,48 +384,22 @@ const PracticeArena: React.FC = () => {
     setIsTranscribing(true);
     setAudioError(null);
     try {
-      const base64Audio = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          try {
-            const result = reader.result as string;
-            const payload = result?.includes(',') ? result.split(',')[1] : '';
-            if (!payload) reject(new Error('Could not read audio data.'));
-            else resolve(payload);
-          } catch (e) {
-            reject(e);
-          }
-        };
-        reader.onerror = () => reject(new Error('Failed to read audio recording.'));
-        reader.readAsDataURL(blob);
+      const text = await transcribeAudio(blob, {
+        // Server aliases en-US → en-IN; keep intent explicit for international mode.
+        language: practiceMode === 'international' ? 'en-US' : 'en-IN',
       });
-
-      const res = await fetch('/api/voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'stt',
-          audio: base64Audio,
-          mimeType: blob.type || 'audio/webm',
-          language: practiceMode === 'international' ? 'en-US' : 'en-IN',
-        }),
-      });
-
-      const data = await res.json().catch(() => ({} as { status?: string; text?: string; error?: string }));
-      if (!res.ok) {
-        if (res.status === 503 || /key|sarvam|config/i.test(String(data.error || ''))) {
-          throw new Error('Voice transcription is unavailable (server voice key not configured).');
-        }
-        throw new Error(data.error || `Transcription failed (${res.status}).`);
-      }
-      if (data.status === 'success' && data.text) {
-        setUserInput(prev => (prev ? `${prev} ${data.text}` : data.text));
-      } else {
-        throw new Error(data.error || 'No speech detected. Try again.');
-      }
+      setUserInput(prev => (prev ? `${prev} ${text}` : text));
     } catch (err) {
       console.error('Transcription error:', err);
-      setAudioError(err instanceof Error ? err.message : 'Failed to transcribe voice.');
+      if (err instanceof VoiceError && err.code === 'MISSING_API_KEY') {
+        setVoiceCap({
+          configured: false,
+          available: false,
+          features: { stt: false, tts: false, browserTtsFallback: isTTSAvailable() },
+          message: err.message,
+        });
+      }
+      setAudioError(humanizeVoiceError(err));
     } finally {
       setIsTranscribing(false);
     }
@@ -258,7 +414,10 @@ const PracticeArena: React.FC = () => {
     }
 
     setSessionEnded(true);
-    setIsAiTyping(false);
+    setPendingJudgeRetry(false);
+    setObjectionWindowActive(false);
+    setIsInlineObjectionActive(false);
+    abortActiveStream();
     pauseTimer();
     cancelSpeech();
 
@@ -290,10 +449,15 @@ const PracticeArena: React.FC = () => {
 
     if (triggerAnalysis && !finalRecord.performance) {
       setGlobalLoading(true);
-      const analysis = await analyzeSessionPerformance(finalRecord, scoreBreakdown);
-      if (analysis) {
-        finalRecord = finalizeSessionRecord(finalRecord, { state: 'ready' }, analysis);
-      } else {
+      try {
+        const analysis = await analyzeSessionPerformance(finalRecord, scoreBreakdown);
+        finalRecord = finalizeSessionRecord(
+          finalRecord,
+          { state: 'ready', source: analysis.source },
+          analysis.metrics,
+        );
+      } catch {
+        // analyzeSessionPerformance is designed not to throw; keep a safe unavailable path.
         setGlobalError('Performance analysis could not be generated automatically.');
         finalRecord = finalizeSessionRecord(finalRecord, { state: 'unavailable', error: 'analysis_unavailable' });
       }
@@ -312,7 +476,7 @@ const PracticeArena: React.FC = () => {
       setActiveChatJudge(null);
       setActiveChatOpposingCounsel(null);
     }
-  }, [sessionEnded, currentSessionSettings, remainingSeconds, activePhase, scoreBreakdown, navigate, setCurrentSessionSettings, setActiveChatJudge, setActiveChatOpposingCounsel, pauseTimer, setGlobalLoading, setGlobalError, finalizeSessionRecord, sessionDurationSeconds]);
+  }, [sessionEnded, currentSessionSettings, remainingSeconds, activePhase, scoreBreakdown, navigate, setCurrentSessionSettings, setActiveChatJudge, setActiveChatOpposingCounsel, pauseTimer, setGlobalLoading, setGlobalError, finalizeSessionRecord, sessionDurationSeconds, abortActiveStream]);
 
   useEffect(() => {
     if (!currentSessionSettings || !practiceMode) {
@@ -423,49 +587,79 @@ const PracticeArena: React.FC = () => {
   }, [messages, isAiTyping]);
 
   const triggerAutoJudgeResponse = useCallback(async () => {
-    if (sessionEnded || !isTimerRunning || !activeChatJudge || !currentSessionSettings) return;
-    if (judgeStreamInFlightRef.current) return;
+    if (sessionEndedRef.current || !isTimerRunning || !activeChatJudge || !currentSessionSettings) return;
+    // Do not interrupt an open objection draft; the cancel/submit paths resume the Court.
+    if (isInlineObjectionActiveRef.current) return;
+    if (judgeStreamInFlightRef.current || ocStreamInFlightRef.current) return;
+    if (isAiTypingRef.current) return;
     judgeStreamInFlightRef.current = true;
+    isAiTypingRef.current = 'judge';
+    setPendingJudgeRetry(false);
     setIsAiTyping('judge');
+    const phaseNow = activePhaseRef.current;
+    const scoreNow = scoreBreakdownRef.current;
 
     try {
       const contextForJudge = buildJudgePrompt(
         currentSessionSettings,
         latestMessagesRef.current,
-        activePhase,
+        phaseNow,
         lastUserMessageRef.current || 'The user is awaiting the Court\'s next direction.',
         lastOcMessageRef.current || 'Opposing counsel has not yet responded in this phase.',
-        scoreBreakdown,
+        scoreNow,
       );
-      await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'question', phase: activePhase });
+      await streamAiResponseRef.current(activeChatJudge, contextForJudge, 'judge', { kind: 'question', phase: phaseNow });
+      setPendingJudgeRetry(false);
     } catch (e) {
       console.error('Error triggerAutoJudgeResponse:', e);
-      setHearingNotice('The Court could not respond. Your hearing is preserved; continue with your next submission or retry shortly.');
-      setGlobalError(e instanceof Error ? e.message : 'The Court could not respond. Please try again.');
+      if (!mountedRef.current || sessionEndedRef.current) return;
+      setPendingJudgeRetry(true);
+      setHearingNotice('The Court could not respond. Your hearing is preserved. Retry the Court direction, or continue with your next submission.');
+      setGlobalError(humanizeAiError(e, 'The Court could not respond. Please try again.'));
     } finally {
-      setIsAiTyping(false);
       judgeStreamInFlightRef.current = false;
+      isAiTypingRef.current = false;
+      if (mountedRef.current) setIsAiTyping(false);
     }
-  }, [sessionEnded, isTimerRunning, activeChatJudge, currentSessionSettings, activePhase, scoreBreakdown]);
+  }, [isTimerRunning, activeChatJudge, currentSessionSettings, setGlobalError]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (objectionWindowActive) {
-      interval = setInterval(() => {
-        setObjectionWindowSecondsLeft(prev => {
-          if (prev <= 0.1) {
-            setObjectionWindowActive(false);
-            triggerAutoJudgeResponse();
-            return 0;
-          }
-          return Number((prev - 0.1).toFixed(1));
-        });
-      }, 100);
+    // Pause the optional window while the learner is drafting an objection so the
+    // Court does not speak over an unfinished formal challenge.
+    if (!objectionWindowActive || isInlineObjectionActive || sessionEnded || !isTimerRunning) {
+      return;
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [objectionWindowActive, triggerAutoJudgeResponse]);
+    let fired = false;
+    const interval = setInterval(() => {
+      setObjectionWindowSecondsLeft(prev => {
+        if (prev <= 0.1) {
+          if (!fired) {
+            fired = true;
+            setObjectionWindowActive(false);
+            // Defer out of the setState updater to avoid nested state updates.
+            queueMicrotask(() => {
+              if (!isInlineObjectionActiveRef.current && !sessionEndedRef.current) {
+                void triggerAutoJudgeResponse();
+              }
+            });
+          }
+          return 0;
+        }
+        return Number((prev - 0.1).toFixed(1));
+      });
+    }, 100);
+    return () => clearInterval(interval);
+  }, [objectionWindowActive, isInlineObjectionActive, sessionEnded, isTimerRunning, triggerAutoJudgeResponse]);
+
+  // If the Court already spoke while an objection form was open, close the stale draft.
+  useEffect(() => {
+    if (!isInlineObjectionActive || sessionEnded) return;
+    const last = messages[messages.length - 1];
+    if (last && last.sender !== 'opposingCounsel' && last.meta?.kind !== 'objection') {
+      setIsInlineObjectionActive(false);
+      setHearingNotice('The Court has moved on. Re-open Objection after Opposing Counsel speaks, if needed.');
+    }
+  }, [messages, isInlineObjectionActive, sessionEnded]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -481,6 +675,7 @@ const PracticeArena: React.FC = () => {
         const canObjectNow = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
         if (canObjectNow && !isInlineObjectionActive) {
           e.preventDefault();
+          isInlineObjectionActiveRef.current = true;
           setIsInlineObjectionActive(true);
         }
       }
@@ -495,6 +690,7 @@ const PracticeArena: React.FC = () => {
       const lastMessage = messages[messages.length - 1];
       const canObjectNow = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
       if (canObjectNow && !isInlineObjectionActive) {
+        isInlineObjectionActiveRef.current = true;
         setIsInlineObjectionActive(true);
       }
     };
@@ -514,7 +710,7 @@ const PracticeArena: React.FC = () => {
     return () => window.removeEventListener('cmd-palette-end-early', handlePaletteEndEarly);
   }, [sessionEnded, isTimerRunning, currentSessionSettings, handleSessionEnd]);
 
-  const streamAiResponse = async (
+  const streamAiResponse = useCallback(async (
     chatInstance: Chat,
     textForAi: string,
     senderType: 'judge' | 'opposingCounsel',
@@ -522,6 +718,8 @@ const PracticeArena: React.FC = () => {
   ): Promise<string> => {
     let aiResponseText = '';
     const messageId = `${senderType}-${Date.now()}`;
+    const scoreSnapshot = scoreBreakdownRef.current;
+    const phaseSnapshot = activePhaseRef.current;
     const placeholderMessage: ChatMessage = {
       id: messageId,
       sender: senderType,
@@ -531,30 +729,42 @@ const PracticeArena: React.FC = () => {
     };
 
     const nextMessages = [...latestMessagesRef.current, placeholderMessage];
-    syncSessionRecord(nextMessages, scoreBreakdown, activePhase);
+    syncSessionRecord(nextMessages, scoreSnapshot, phaseSnapshot);
+
+    const controller = beginStreamWatchdog(senderType === 'judge' ? 'The Court' : 'Opposing Counsel');
 
     try {
-      const stream = await sendMessageToChatStream(chatInstance, textForAi);
+      const stream = await sendMessageToChatStream(chatInstance, textForAi, { signal: controller.signal });
       if (!stream) {
         throw new Error('The AI service did not return a response stream.');
       }
       for await (const chunk of stream) {
+        if (controller.signal.aborted || sessionEndedRef.current || !mountedRef.current) {
+          throw new Error('The AI request was cancelled. Your work is preserved; retry when ready.');
+        }
         const chunkText = chunk.text || '';
         aiResponseText += chunkText;
         const updatedMessages = latestMessagesRef.current.map(msg =>
           msg.id === messageId ? { ...msg, text: aiResponseText } : msg,
         );
-        syncSessionRecord(updatedMessages, scoreBreakdown, activePhase);
+        syncSessionRecord(updatedMessages, scoreBreakdownRef.current, activePhaseRef.current);
       }
       if (!aiResponseText.trim()) throw new Error('The AI service returned an empty response.');
     } catch (error) {
       console.error('streamAiResponse failed:', error);
       syncSessionRecord(
         latestMessagesRef.current.filter(message => message.id !== messageId),
-        scoreBreakdown,
-        activePhase,
+        scoreBreakdownRef.current,
+        activePhaseRef.current,
       );
-      throw new Error(error instanceof Error ? error.message : 'AI service unavailable.');
+      throw new Error(humanizeAiError(error, 'AI service unavailable.'));
+    } finally {
+      clearStreamWatchdog();
+      if (streamAbortRef.current === controller) streamAbortRef.current = null;
+    }
+
+    if (sessionEndedRef.current || !mountedRef.current) {
+      return aiResponseText;
     }
 
     const finalizedMessages = latestMessagesRef.current.map(msg =>
@@ -567,21 +777,29 @@ const PracticeArena: React.FC = () => {
           }
         : msg,
     );
-    syncSessionRecord(finalizedMessages, scoreBreakdown, activePhase);
+    syncSessionRecord(finalizedMessages, scoreBreakdownRef.current, activePhaseRef.current);
 
     if (voiceEnabledRef.current && (senderType === 'judge' || senderType === 'opposingCounsel')) {
       speak(aiResponseText, { rate: 1, pitch: senderType === 'judge' ? 0.9 : 1.05 });
     }
     return aiResponseText;
-  };
+  }, [beginStreamWatchdog, clearStreamWatchdog, syncSessionRecord]);
+
+  useEffect(() => { streamAiResponseRef.current = streamAiResponse; }, [streamAiResponse]);
 
   const handleObjectionSubmit = async () => {
     if (isAiTyping || sessionEnded || !activeChatJudge || !currentSessionSettings || !isTimerRunning) return;
+    if (judgeStreamInFlightRef.current || ocStreamInFlightRef.current) return;
+    if (!objectionExplanation.trim()) return;
 
+    const phaseAtStart = activePhaseRef.current;
+    const scoreAtStart = scoreBreakdownRef.current;
     const isQuick = objectionWindowActive && objectionWindowSecondsLeft > 0;
+    // Closing the window claims the turn: Court rules on the objection instead of free direction.
+    setObjectionWindowActive(false);
+    setPendingJudgeRetry(false);
     if (isQuick) {
       setQuickObjectionsCount(prev => prev + 1);
-      setObjectionWindowActive(false);
     }
 
     const groundsText = {
@@ -594,7 +812,7 @@ const PracticeArena: React.FC = () => {
     const objectionId = `user-objection-${Date.now()}`;
     const objectionMeta: ChatMessage['meta'] = {
       kind: 'objection',
-      phase: activePhase,
+      phase: phaseAtStart,
       objection: {
         grounds: groundsText,
         basis: objectionExplanation.trim(),
@@ -612,26 +830,33 @@ const PracticeArena: React.FC = () => {
     };
 
     const savedExplanation = objectionExplanation.trim();
+    const savedGrounds = objectionGrounds;
     setIsInlineObjectionActive(false);
     setObjectionExplanation('');
+    setHearingNotice(null);
 
     const objectionMessages = [...latestMessagesRef.current, userMessage];
-    syncSessionRecord(objectionMessages, scoreBreakdown, activePhase);
+    syncSessionRecord(objectionMessages, scoreAtStart, phaseAtStart);
 
+    judgeStreamInFlightRef.current = true;
+    isAiTypingRef.current = 'judge';
     try {
       setIsAiTyping('judge');
       const contextForJudge = buildJudgePrompt(
         currentSessionSettings,
         objectionMessages,
-        activePhase,
+        phaseAtStart,
         savedExplanation ? `[OBJECTION] ${groundsText}: ${savedExplanation}` : `[OBJECTION] ${groundsText}`,
         lastOcMessageRef.current || 'Opposing counsel has not yet responded in this phase.',
-        scoreBreakdown,
+        scoreAtStart,
       ) + `\n\nRule specifically on the objection raised by counsel. State clearly whether it is sustained, overruled, or reserved, and explain why in under 100 words.`;
 
-      const rulingText = await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'ruling', phase: activePhase });
+      const rulingText = await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'ruling', phase: phaseAtStart });
+      if (sessionEndedRef.current || !mountedRef.current) return;
+      // Outcome must come from the Court stream only, never from counsel text.
       const outcome = detectObjectionOutcome(rulingText);
-      const scored = scoreObjection(scoreBreakdown, outcome, isQuick);
+      const scored = scoreObjection(scoreAtStart, outcome, isQuick, savedExplanation);
+      const outcomeLabel = outcome === 'sustained' ? 'Sustained' : outcome === 'overruled' ? 'Overruled' : 'Reserved';
       const finalMessages = latestMessagesRef.current.map(message =>
         message.id === objectionId
           ? {
@@ -650,44 +875,68 @@ const PracticeArena: React.FC = () => {
             }
           : message,
       );
-      syncSessionRecord(finalMessages, scored.score, activePhase);
+      syncSessionRecord(finalMessages, scored.score, phaseAtStart);
+      setHearingNotice(
+        isQuick
+          ? `Objection ${outcomeLabel.toLowerCase()} (quick reflex). Structure ${scored.scoreDelta >= 0 ? '+' : ''}${scored.scoreDelta}. Continue your next submission when ready.`
+          : `Objection ${outcomeLabel.toLowerCase()}. Structure ${scored.scoreDelta >= 0 ? '+' : ''}${scored.scoreDelta}. Continue your next submission when ready.`,
+      );
     } catch (error) {
       console.error('Error during Judge Objection ruling:', error);
-      syncSessionRecord(latestMessagesRef.current.filter(message => message.id !== objectionId), scoreBreakdown, activePhase);
+      if (!mountedRef.current) return;
+      syncSessionRecord(
+        latestMessagesRef.current.filter(message => message.id !== objectionId),
+        scoreAtStart,
+        phaseAtStart,
+      );
+      setObjectionGrounds(savedGrounds);
       setObjectionExplanation(savedExplanation);
-      setHearingNotice('The objection was not submitted because the Court connection failed. Your draft basis was restored.');
-      setGlobalError(error instanceof Error ? `The Court could not rule on this objection: ${error.message}` : 'The Court could not rule on this objection.');
+      setIsInlineObjectionActive(true);
+      setPendingJudgeRetry(false);
+      setHearingNotice('The objection was not filed. Court connection failed; your draft basis was restored. Edit and resubmit, or cancel and continue.');
+      setGlobalError(humanizeAiError(error, 'The Court could not rule on this objection.'));
     } finally {
-      setIsAiTyping(false);
+      judgeStreamInFlightRef.current = false;
+      isAiTypingRef.current = false;
+      if (mountedRef.current) setIsAiTyping(false);
     }
   };
 
   const handleSendMessage = async () => {
     if (!userInput.trim() || isAiTyping || !activeChatJudge || !activeChatOpposingCounsel || sessionEnded || !currentSessionSettings || !isTimerRunning) return;
+    if (ocStreamInFlightRef.current || judgeStreamInFlightRef.current) return;
 
     // An objection is a learner choice, not a typing-speed gate. Continuing an
     // argument simply closes the optional window and preserves the normal turn.
     if (objectionWindowActive) {
       setObjectionWindowActive(false);
     }
+    if (isInlineObjectionActive) {
+      setIsInlineObjectionActive(false);
+    }
+    setPendingJudgeRetry(false);
 
     if (voiceEnabledRef.current) cancelSpeech();
 
     const userMessageText = userInput.trim();
+    const phaseAtStart = activePhaseRef.current;
+    const scoreAtStart = scoreBreakdownRef.current;
     lastUserMessageRef.current = userMessageText;
 
     const recentUserTexts = latestMessagesRef.current
       .filter(m => m.sender === 'user' && m.meta?.kind !== 'objection')
       .slice(-4)
       .map(m => m.text);
-    const scored = scoreSubmission(scoreBreakdown, userMessageText, recentUserTexts);
-    const nextPhase = inferNextPhase([...latestMessagesRef.current, {
+    const scored = scoreSubmission(scoreAtStart, userMessageText, recentUserTexts);
+    const inferredPhase = inferNextPhase([...latestMessagesRef.current, {
       id: 'phase-probe',
       sender: 'user',
       text: userMessageText,
       timestamp: new Date(),
-      meta: { kind: 'argument', phase: activePhase, argumentQuality: scored.assessment },
+      meta: { kind: 'argument', phase: phaseAtStart, argumentQuality: scored.assessment },
     }]);
+    const nextPhase = resolveForwardPhase(phaseAtStart, inferredPhase);
+    const phaseAdvanced = nextPhase !== phaseAtStart;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -701,11 +950,35 @@ const PracticeArena: React.FC = () => {
       },
     };
 
-    const submittedMessages = [...latestMessagesRef.current, userMessage];
+    let submittedMessages = [...latestMessagesRef.current, userMessage];
+    if (phaseAdvanced) {
+      const phaseBanner: ChatMessage = {
+        id: `phase-${nextPhase}-${Date.now()}`,
+        sender: 'system',
+        text: `Phase advanced to ${phaseLabel(nextPhase)}. ${
+          nextPhase === 'issue_framing'
+            ? 'Frame the precise issue for the Court.'
+            : nextPhase === 'rebuttal'
+              ? 'Answer opposing points with authority and record facts.'
+              : nextPhase === 'judicial_questions'
+                ? 'Expect direct questions from the Court.'
+                : nextPhase === 'closing'
+                  ? 'Close with relief sought and your strongest thread.'
+                  : 'Continue with structured advocacy.'
+        }`,
+        timestamp: new Date(),
+        meta: { kind: 'instruction', phase: nextPhase },
+      };
+      submittedMessages = [...submittedMessages, phaseBanner];
+    }
+
     syncSessionRecord(submittedMessages, scored.score, nextPhase);
     setUserInput('');
     setAudioError(null);
+    setHearingNotice(null);
 
+    ocStreamInFlightRef.current = true;
+    isAiTypingRef.current = 'opposingCounsel';
     try {
       setIsAiTyping('opposingCounsel');
       const ocPrompt = buildOpposingCounselPrompt(
@@ -715,7 +988,7 @@ const PracticeArena: React.FC = () => {
         userMessageText,
       );
       const ocResponseText = await streamAiResponse(activeChatOpposingCounsel, ocPrompt, 'opposingCounsel', { kind: 'response', phase: nextPhase });
-      if (sessionEnded || !isTimerRunning) return;
+      if (sessionEndedRef.current || !mountedRef.current) return;
 
       const scoredMessages = latestMessagesRef.current.map(message => message.id === userMessage.id
         ? { ...message, meta: { ...message.meta, scoreDelta: scored.scoreDelta, scoreReason: scored.scoreReason, argumentQuality: scored.assessment } }
@@ -731,19 +1004,59 @@ const PracticeArena: React.FC = () => {
         });
       }
       // Open objection window; judge auto-fires when window expires (see effect).
+      // Window pauses automatically while a formal objection draft is open.
       setObjectionWindowActive(true);
-      setObjectionWindowSecondsLeft(6.0);
+      setObjectionWindowSecondsLeft(OBJECTION_WINDOW_SECONDS);
+      if (phaseAdvanced) {
+        setHearingNotice(`Now in ${phaseLabel(nextPhase)}. Optional objection window is open for ${OBJECTION_WINDOW_SECONDS}s, or continue your next submission.`);
+      }
     } catch (error) {
       console.error('Error during AI interaction:', error);
-      syncSessionRecord(latestMessagesRef.current.filter(message => message.id !== userMessage.id), scoreBreakdown, activePhase);
-      lastUserMessageRef.current = [...latestMessagesRef.current].reverse().find(message => message.sender === 'user')?.text || '';
+      if (!mountedRef.current) return;
+      // Roll back this turn (user bubble + optional phase banner) and restore draft.
+      const phaseBannerId = phaseAdvanced
+        ? latestMessagesRef.current.find(
+          message => message.sender === 'system'
+            && message.meta?.kind === 'instruction'
+            && message.meta?.phase === nextPhase
+            && message.id.startsWith(`phase-${nextPhase}-`),
+        )?.id
+        : undefined;
+      syncSessionRecord(
+        latestMessagesRef.current.filter(message =>
+          message.id !== userMessage.id && message.id !== phaseBannerId,
+        ),
+        scoreAtStart,
+        phaseAtStart,
+      );
+      lastUserMessageRef.current = [...latestMessagesRef.current]
+        .reverse()
+        .find(message => message.sender === 'user' && message.meta?.kind !== 'objection')
+        ?.text || '';
       setUserInput(userMessageText);
+      setObjectionWindowActive(false);
+      setPendingJudgeRetry(false);
       setHearingNotice('Opposing Counsel could not respond. Your submission was restored so you can retry it.');
-      setGlobalError(error instanceof Error ? `Opposing Counsel could not respond: ${error.message}` : 'Opposing Counsel could not respond. Your draft has been restored.');
+      setGlobalError(humanizeAiError(error, 'Opposing Counsel could not respond. Your draft has been restored.'));
     } finally {
-      setIsAiTyping(false);
+      ocStreamInFlightRef.current = false;
+      isAiTypingRef.current = false;
+      if (mountedRef.current) setIsAiTyping(false);
     }
   };
+
+  const cancelInlineObjection = useCallback(() => {
+    isInlineObjectionActiveRef.current = false;
+    setIsInlineObjectionActive(false);
+    setObjectionExplanation('');
+    // If the optional window already elapsed while drafting, ask the Court now.
+    if (!objectionWindowActive && !sessionEnded && isTimerRunning && !isAiTypingRef.current) {
+      const last = latestMessagesRef.current[latestMessagesRef.current.length - 1];
+      if (last?.sender === 'opposingCounsel') {
+        void triggerAutoJudgeResponse();
+      }
+    }
+  }, [objectionWindowActive, sessionEnded, isTimerRunning, triggerAutoJudgeResponse]);
 
   const beginSession = () => {
     if (sessionStarted || sessionEnded) return;
@@ -777,10 +1090,13 @@ const PracticeArena: React.FC = () => {
     {
       label: 'Objection',
       hint: canObject ? 'Ready now' : 'Wait turn',
-      onClick: () => setIsInlineObjectionActive(true),
+      onClick: () => {
+        isInlineObjectionActiveRef.current = true;
+        setIsInlineObjectionActive(true);
+      },
       disabled: !canObject,
       tone: canObject
-        ? `${catColors.border} ${catColors.text} hover:${catColors.bgMuted}`
+        ? 'border-brand-text-primary/30 text-brand-text-primary hover:bg-white/[0.06]'
         : 'border-brand-text-primary/10 text-brand-text-secondary/40',
     },
     {
@@ -801,44 +1117,86 @@ const PracticeArena: React.FC = () => {
           <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/15 pb-1 flex items-center`}>
             <BriefcaseIcon className={`h-4 w-4 mr-1.5 ${catColors.text}`} /> Active Case Brief
           </h4>
-          <div className="bg-brand-bg-secondary/60 border border-brand-border rounded-xl p-4 space-y-3 shadow-card hover:shadow-[0_4px_20px_rgba(214,186,145,0.06)] hover:border-brand-accent/30 transition-all duration-500 group">
+          <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 space-y-3 shadow-card transition-colors duration-300 group">
             <h5 className="text-sm font-semibold text-brand-text-primary font-serif">{currentSessionSettings.caseDetail.title}</h5>
             <div className="text-xs text-brand-text-secondary font-light space-y-1.5 max-h-[140px] overflow-y-auto custom-scrollbar pr-1 group-hover:text-brand-text-primary transition-colors duration-300">
               <p className="font-semibold text-brand-text-primary flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-brand-accent rounded-full animate-pulse" />
+                <span className="w-1.5 h-1.5 bg-brand-text-primary/60 rounded-full" />
                 Brief Facts:
               </p>
-              <p className="leading-relaxed font-light pl-2.5 border-l border-brand-border group-hover:border-brand-accent/30 transition-colors duration-300">{currentSessionSettings.caseDetail.briefFacts}</p>
+              <p className="leading-relaxed font-light pl-2.5 border-l border-brand-text-primary/15 group-hover:border-brand-text-primary/30 transition-colors duration-300">{currentSessionSettings.caseDetail.briefFacts}</p>
             </div>
-            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2.5 border-t border-brand-border">
+            <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2.5 border-t border-brand-text-primary/15">
               <p className="font-semibold text-brand-text-primary">Relevant Law / Precedents:</p>
-              <p className={`font-mono text-[10px] ${catColors.text} leading-relaxed`}>{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
+              <p className="font-mono text-[10px] text-brand-text-primary/80 leading-relaxed">{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
             </div>
           </div>
         </div>
 
         <div className="space-y-3">
-          <h4 className={`text-xs uppercase font-mono tracking-widest ${catColors.text} border-b border-brand-text-primary/15 pb-1 flex items-center`}>
-            <svg className={`h-4 w-4 mr-1.5 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          <h4 className="text-xs uppercase font-mono tracking-widest text-brand-text-primary/80 border-b border-brand-text-primary/15 pb-1 flex items-center">
+            <svg className="h-4 w-4 mr-1.5 text-brand-text-primary/80" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             Live Trial Standing
           </h4>
           <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 grid grid-cols-2 gap-4 shadow-card">
             <div>
               <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Structure score</p>
-              <p className={`text-2xl font-mono ${catColors.text} font-bold mt-1`}>{scoreBreakdown.total}</p>
+              <p className="text-2xl font-mono text-brand-text-primary font-bold mt-1">{scoreBreakdown.total}</p>
             </div>
             <div>
               <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Quick Reflexes</p>
-              <p className={`text-2xl font-mono ${catColors.text} font-bold mt-1`}>{quickObjectionsCount}</p>
+              <p className="text-2xl font-mono text-brand-text-primary font-bold mt-1">{quickObjectionsCount}</p>
             </div>
-            <div>
-              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Phase</p>
-              <p className={`text-sm uppercase ${catColors.text} font-semibold mt-2 tracking-wider`}>{phaseLabel(activePhase)}</p>
+            <div className="col-span-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Phase</p>
+                <p className="text-[10px] font-mono text-brand-text-secondary/60 uppercase tracking-wider">
+                  {phaseIndex(activePhase) + 1} / {PHASE_SEQUENCE.length}
+                </p>
+              </div>
+              <p className="text-sm uppercase text-brand-text-primary font-semibold tracking-wider">{phaseLabel(activePhase)}</p>
+              <div className="flex gap-1" aria-hidden>
+                {PHASE_SEQUENCE.map((phase, idx) => {
+                  const current = phaseIndex(activePhase);
+                  const filled = idx <= current;
+                  return (
+                    <div
+                      key={phase}
+                      title={phaseLabel(phase)}
+                      className={`h-1 flex-1 rounded-full border border-white/10 ${filled ? 'bg-brand-text-primary/55' : 'bg-white/5'}`}
+                    />
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Momentum</p>
-              <p className={`text-sm uppercase ${catColors.text} font-semibold mt-2 tracking-wider`}>{PHASE_SEQUENCE.indexOf(activePhase) + 1} / {PHASE_SEQUENCE.length}</p>
-            </div>
+          </div>
+          <div className="bg-brand-bg-secondary/40 border border-brand-text-primary/10 rounded-xl p-3 space-y-2">
+            <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Feedback dimensions</p>
+            {(
+              [
+                ['engagement', scoreBreakdown.engagement],
+                ['advocacy', scoreBreakdown.advocacy],
+                ['objections', scoreBreakdown.objections],
+                ['responsiveness', scoreBreakdown.responsiveness],
+                ['professionalism', scoreBreakdown.professionalism],
+              ] as const
+            ).map(([key, value]) => (
+              <div key={key} className="flex items-center gap-2">
+                <span className="w-[7.5rem] text-[10px] font-mono text-brand-text-secondary/80 truncate">
+                  {SCORE_DIMENSION_LABELS[key]}
+                </span>
+                <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                  <div
+                    className="h-full bg-brand-text-primary/50 rounded-full"
+                    style={{ width: `${Math.min(100, Math.max(0, (value / 50) * 100))}%` }}
+                  />
+                </div>
+                <span className="w-6 text-right text-[10px] font-mono text-brand-text-primary">{value}</span>
+              </div>
+            ))}
+            <p className="text-[9px] font-mono text-brand-text-secondary/50 pt-1">
+              Local structure signals only. Not a ruling on the merits.
+            </p>
           </div>
         </div>
 
@@ -874,15 +1232,24 @@ const PracticeArena: React.FC = () => {
           </h4>
 
           {!canObject ? (
-            <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 text-center">
-              <p className="text-xs text-brand-text-secondary/80 italic leading-relaxed font-light">
-                Objections are currently locked. You can raise a formal objection only when Opposing Counsel has completed a submission.
+            <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 text-center space-y-2">
+              <p className="text-xs text-brand-text-secondary/80 leading-relaxed font-light">
+                {isAiTyping
+                  ? 'Wait for the current speaker to finish before raising an objection.'
+                  : objectionWindowActive
+                    ? 'Objection window is open in the transcript. Use Raise Objection below the feed, or wait for the Court.'
+                    : 'Objections unlock after Opposing Counsel finishes a submission. Then: choose grounds, state a legal basis, and file.'}
+              </p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-brand-text-secondary/55">
+                Flow: OC speaks → optional window → object or continue → Court responds
               </p>
             </div>
           ) : (
             <div className="space-y-4 animate-fadeIn">
               <p className="text-xs text-brand-text-secondary font-light leading-relaxed">
-                Select grounds and enter a concise basis to object to the Opposing Counsel's statement.
+                {objectionWindowActive
+                  ? `Optional window: ${objectionWindowSecondsLeft.toFixed(1)}s left for a quick-reflex bonus. Select grounds, state a legal basis, then file.`
+                  : 'Select grounds and state a concise legal basis. Filing asks the Court to rule before you continue.'}
               </p>
 
               <div className="grid grid-cols-2 gap-2">
@@ -921,11 +1288,11 @@ const PracticeArena: React.FC = () => {
 
               <button
                 onClick={() => {
-                  handleObjectionSubmit();
+                  void handleObjectionSubmit();
                   setIsMobileDrawerOpen(false);
                 }}
-                disabled={!objectionExplanation.trim()}
-                className={`w-full py-2.5 rounded-lg text-xs tracking-wider uppercase font-semibold text-brand-accent-text ${catColors.bg} hover:brightness-110 disabled:bg-brand-bg-tertiary disabled:text-brand-text-secondary/50 border-none transition-all flex items-center justify-center`}
+                disabled={!objectionExplanation.trim() || !!isAiTyping || sessionEnded || !isTimerRunning}
+                className="w-full min-h-11 py-2.5 rounded-lg text-xs tracking-wider uppercase font-semibold bg-brand-text-primary text-brand-bg-primary hover:bg-white disabled:bg-brand-bg-tertiary disabled:text-brand-text-secondary/50 border-none transition-all flex items-center justify-center"
               >
                 Raise Formal Objection
               </button>
@@ -948,11 +1315,11 @@ const PracticeArena: React.FC = () => {
   const ocId = currentSessionSettings.opposingCounselPersonality.id;
 
   return (
-    <div 
-      className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden relative"
-      style={{ height: `${vpHeight}px` }}
+    <div
+      className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden relative overscroll-none"
+      style={{ height: `${vpHeight}px`, maxHeight: `${vpHeight}px` }}
     >
-      <BackgroundGeometry />
+      {/* design.md §9: solid canvas — no BackgroundGeometry wallpaper */}
 
       <div className="px-3 py-2.5 sm:px-4 sm:py-3 bg-brand-bg-secondary border-b border-brand-border sticky top-0 z-20 flex-shrink-0">
         <div className="max-w-7xl mx-auto space-y-2.5">
@@ -973,7 +1340,8 @@ const PracticeArena: React.FC = () => {
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('lexforge-open-coach'))}
-              className="sm:hidden shrink-0 rounded-lg border border-brand-border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary hover:border-brand-accent/40 hover:text-brand-text-primary"
+              className="sm:hidden shrink-0 min-h-11 min-w-11 px-3 rounded-lg border border-brand-border text-[11px] font-mono uppercase tracking-wide text-brand-text-secondary hover:border-white/25 hover:text-brand-text-primary"
+              aria-label="Open coach"
             >
               Coach
             </button>
@@ -981,21 +1349,24 @@ const PracticeArena: React.FC = () => {
             <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
               {isTTSAvailable() && (
                 <button
+                  type="button"
                   onClick={() => setVoiceEnabled(v => !v)}
-                  className={`h-9 px-3 rounded-md border text-[12px] transition-colors ${
+                  className={`min-h-11 px-3 rounded-md border text-[12px] transition-colors ${
                     voiceEnabled
                       ? 'bg-brand-text-primary text-brand-bg-primary border-transparent'
                       : 'border-brand-border text-brand-text-secondary hover:text-brand-text-primary'
                   }`}
                   title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
+                  aria-pressed={voiceEnabled}
                 >
                   {voiceEnabled ? 'Voice on' : 'Voice off'}
                 </button>
               )}
               {!sessionEnded && isTimerRunning && (
                 <button
+                  type="button"
                   onClick={() => { if (currentSessionSettings) handleSessionEnd(true, true); }}
-                  className="h-9 px-3 rounded-md border border-brand-error/40 text-brand-error text-[12px] hover:bg-brand-error/10 transition-colors"
+                  className="min-h-11 px-3 rounded-md border border-brand-error/40 text-brand-error text-[12px] hover:bg-brand-error/10 transition-colors"
                   title="End Trial Early"
                 >
                   End early
@@ -1040,22 +1411,30 @@ const PracticeArena: React.FC = () => {
                     {showObjectionTimer && (
                       <div className="max-w-[92%] sm:max-w-[85%] ml-[1rem] sm:ml-[5.5rem] mb-4 sm:mb-6 -mt-2 sm:-mt-3 animate-fadeIn text-left">
                         <div className="bg-brand-bg-secondary/70 border border-brand-text-primary/15 rounded-xl p-3.5 sm:p-4 flex flex-col space-y-2 shadow-card">
-                          <div className={`flex flex-col gap-1.5 sm:flex-row sm:justify-between sm:items-center text-[10px] font-mono uppercase tracking-wider ${catColors.text}`}>
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:justify-between sm:items-center text-[10px] font-mono uppercase tracking-wider text-brand-text-primary">
                             <span className="font-semibold flex items-center">
-                              <svg className={`w-3.5 h-3.5 mr-1 ${catColors.text} animate-pulse`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                              Optional objection window
+                              <svg className="w-3.5 h-3.5 mr-1 text-brand-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                              {isInlineObjectionActive ? 'Objection draft open (timer paused)' : 'Optional objection window'}
                             </span>
-                            <span className="font-bold">{objectionWindowSecondsLeft}s remaining</span>
+                            <span className="font-bold">
+                              {isInlineObjectionActive ? 'Paused' : `${objectionWindowSecondsLeft.toFixed(1)}s remaining`}
+                            </span>
                           </div>
-                          <div className="w-full bg-brand-bg-tertiary h-1.5 rounded-full overflow-hidden border border-brand-text-primary/15">
+                          <div className="w-full bg-brand-bg-tertiary h-1.5 rounded-full overflow-hidden border border-white/10">
                             <div
-                              className={`${catColors.bg} h-full transition-all duration-100 ease-linear rounded-full`}
-                              style={{ width: `${(objectionWindowSecondsLeft / 6.0) * 100}%` }}
+                              className="bg-brand-text-primary/55 h-full transition-all duration-100 ease-linear rounded-full"
+                              style={{ width: `${(objectionWindowSecondsLeft / OBJECTION_WINDOW_SECONDS) * 100}%` }}
                             ></div>
                           </div>
                           <div className="flex flex-col gap-1 text-[9px] font-mono text-brand-text-secondary/70 sm:flex-row sm:justify-between sm:items-center">
-                            <span>{'Raise an objection or continue with your next submission.'}</span>
-                            <span className={`${catColors.text} font-semibold`}>[ OPTIONAL SPEED BONUS ]</span>
+                            <span>
+                              {isInlineObjectionActive
+                                ? 'Finish the basis and file, or cancel to let the Court proceed.'
+                                : 'Object now for a quick-reflex bonus, or send your next submission. Court follows if you wait.'}
+                            </span>
+                            <span className="text-brand-text-primary/80 font-semibold">
+                              {isInlineObjectionActive ? '[ DRAFTING ]' : '[ OPTIONAL ]'}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1074,7 +1453,7 @@ const PracticeArena: React.FC = () => {
                 <div className="flex items-start mb-6 px-4 py-3 w-full animate-fadeInUp">
                   <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-brand-bg-secondary border border-brand-text-primary/15 flex items-center justify-center mx-2 sm:mx-3">
                     {isTranscribing || isAiTyping === 'judge' ? (
-                      <CourtIcon className={`h-4.5 w-4.5 sm:h-5 sm:w-5 ${catColors.text}`} />
+                      <CourtIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-brand-text-primary/80" />
                     ) : (
                       <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-brand-text-secondary" />
                     )}
@@ -1084,17 +1463,21 @@ const PracticeArena: React.FC = () => {
                       <span className="font-bold text-brand-text-primary">
                         {isTranscribing ? 'Transcribing' : (isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel')}
                       </span>
-                      <span>✦</span>
+                      <span className="text-brand-text-secondary/40">·</span>
                       <span className="text-brand-text-secondary/70">{isTranscribing ? 'Voice' : 'Typing'}</span>
                     </div>
                     <div className="flex items-center space-x-2.5 py-1">
-                      <span className="text-xs sm:text-sm font-light text-brand-text-secondary italic">
-                        {isTranscribing ? 'Listening and transcribing your voice' : (isAiTyping === 'judge' ? 'The Court is considering your argument' : 'Opposing Counsel is formulating a response')}
+                      <span className="text-xs sm:text-sm font-light text-brand-text-secondary">
+                        {isTranscribing
+                          ? 'Listening and transcribing your voice'
+                          : (isAiTyping === 'judge'
+                            ? 'The Court is considering the record'
+                            : 'Opposing Counsel is preparing a response')}
                       </span>
                       <span className="flex space-x-1 items-center h-2.5">
-                        <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></span>
-                        <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></span>
-                        <span className={`w-1.5 h-1.5 ${catColors.bg} rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></span>
+                        <span className="w-1.5 h-1.5 bg-brand-text-primary/55 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="w-1.5 h-1.5 bg-brand-text-primary/55 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-1.5 h-1.5 bg-brand-text-primary/55 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                       </span>
                     </div>
                   </div>
@@ -1114,7 +1497,10 @@ const PracticeArena: React.FC = () => {
             </div>
           </div>
           {!sessionEnded && (
-            <div className="p-3 sm:p-6 bg-brand-bg-primary border-t border-brand-text-primary/15 z-20 relative flex-shrink-0">
+            <div
+              className="p-3 sm:p-6 bg-brand-bg-primary border-t border-brand-text-primary/15 z-20 relative flex-shrink-0"
+              style={{ paddingBottom: isMobile ? 'max(0.75rem, env(safe-area-inset-bottom, 0px))' : undefined }}
+            >
               <div className="max-w-4xl mx-auto">
                 {audioError && (
                   <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/25 text-brand-error text-[11px] rounded-xl text-left animate-fadeIn flex items-start justify-between gap-3">
@@ -1122,22 +1508,42 @@ const PracticeArena: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setAudioError(null)}
-                      className="flex-shrink-0 text-[10px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
+                      className="flex-shrink-0 min-h-11 min-w-11 px-2 text-[11px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
+                      aria-label="Dismiss audio error"
                     >
                       Dismiss
                     </button>
                   </div>
                 )}
                 {hearingNotice && (
-                  <div role="status" className="p-2.5 mb-3 bg-brand-accent/10 border border-brand-accent/25 text-brand-text-primary text-[11px] rounded-xl text-left animate-fadeIn flex items-start justify-between gap-3">
+                  <div role="status" className="p-2.5 mb-3 bg-brand-bg-secondary/80 border border-brand-text-primary/20 text-brand-text-primary text-[11px] rounded-xl text-left animate-fadeIn flex items-start justify-between gap-3">
                     <span className="leading-relaxed">{hearingNotice}</span>
-                    <button
-                      type="button"
-                      onClick={() => setHearingNotice(null)}
-                      className="flex-shrink-0 text-[10px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
-                    >
-                      Dismiss
-                    </button>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {pendingJudgeRetry && !isAiTyping && !sessionEnded && isTimerRunning && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHearingNotice(null);
+                            setPendingJudgeRetry(false);
+                            void triggerAutoJudgeResponse();
+                          }}
+                          className="min-h-11 px-3 text-[11px] font-mono uppercase tracking-wider border border-brand-text-primary/25 rounded-md hover:bg-brand-text-primary hover:text-brand-bg-primary transition-colors"
+                        >
+                          Retry Court
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHearingNotice(null);
+                          setPendingJudgeRetry(false);
+                        }}
+                        className="min-h-11 min-w-11 px-2 text-[11px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
+                        aria-label="Dismiss hearing notice"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1145,8 +1551,14 @@ const PracticeArena: React.FC = () => {
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Session controls</p>
-                      <p className={`mt-1 text-xs font-semibold ${canObject ? catColors.text : 'text-brand-text-primary'}`}>
-                        {canObject ? 'Opposing Counsel has opened an objection window.' : isInlineObjectionActive ? 'Drafting formal objection.' : 'Transcript stays primary. Bench tools remain one tap away.'}
+                      <p className="mt-1 text-xs font-semibold text-brand-text-primary">
+                        {canObject
+                          ? (objectionWindowActive
+                            ? `Objection ready (${objectionWindowSecondsLeft.toFixed(1)}s optional window).`
+                            : 'You may raise a formal objection now.')
+                          : isInlineObjectionActive
+                            ? 'Drafting formal objection. Timer paused if a window was open.'
+                            : 'Transcript stays primary. Bench tools remain one tap away.'}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -1154,12 +1566,13 @@ const PracticeArena: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setVoiceEnabled(v => !v)}
-                          className={`rounded-xl border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-all ${
+                          className={`min-h-11 rounded-xl border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-all ${
                             voiceEnabled
-                              ? `${catColors.bg} text-brand-accent-text border-transparent`
-                              : 'border-brand-text-primary/15 bg-brand-bg-tertiary/45 text-brand-text-primary hover:border-brand-accent/40 hover:text-brand-accent'
+                              ? 'bg-white text-brand-bg-primary border-transparent'
+                              : 'border-brand-text-primary/15 bg-brand-bg-tertiary/45 text-brand-text-primary hover:border-white/25'
                           }`}
                           title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
+                          aria-pressed={voiceEnabled}
                         >
                           {voiceEnabled ? 'Voice On' : 'Voice Off'}
                         </button>
@@ -1167,7 +1580,9 @@ const PracticeArena: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsMobileDrawerOpen(true)}
-                        className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-brand-accent/40 hover:text-brand-accent"
+                        className="min-h-11 rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-white/25"
+                        aria-expanded={isMobileDrawerOpen}
+                        aria-controls="practice-bench-drawer"
                       >
                         Open Bench
                       </button>
@@ -1179,14 +1594,17 @@ const PracticeArena: React.FC = () => {
                   <div className="flex justify-center mb-3 animate-fadeInUp">
                     <button
                       type="button"
-                      onClick={() => setIsInlineObjectionActive(true)}
-                      className={`w-full sm:w-auto px-4 py-2.5 rounded-2xl border border-brand-text-primary/15 bg-brand-bg-secondary/60 hover:${catColors.bg} hover:text-brand-accent-text hover:border-transparent ${catColors.text} text-[10px] font-bold font-mono uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-card`}
+                      onClick={() => {
+                        isInlineObjectionActiveRef.current = true;
+                        setIsInlineObjectionActive(true);
+                      }}
+                      className="w-full sm:w-auto min-h-11 px-4 py-2.5 rounded-2xl border border-brand-text-primary/25 bg-brand-bg-secondary/60 hover:bg-brand-text-primary hover:text-brand-bg-primary text-brand-text-primary text-[10px] font-bold font-mono uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-card"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <span>Objection! Raise Objection</span>
-                      <span className="bg-brand-bg-tertiary text-brand-text-secondary px-1.5 py-0.5 rounded text-[8px] font-mono hidden sm:inline">Press [ O ]</span>
+                      <span>Raise Objection</span>
+                      <span className="bg-brand-bg-tertiary text-brand-text-secondary px-1.5 py-0.5 rounded text-[8px] font-mono hidden sm:inline group-hover:bg-black/10">Press [ O ]</span>
                     </button>
                   </div>
                 )}
@@ -1200,13 +1618,11 @@ const PracticeArena: React.FC = () => {
                       </span>
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsInlineObjectionActive(false);
-                          setObjectionExplanation('');
-                        }}
-                        className="text-[10px] font-mono uppercase text-brand-text-secondary/70 hover:text-brand-text-primary transition-colors"
+                        onClick={cancelInlineObjection}
+                        className="min-h-11 px-3 text-[11px] font-mono uppercase text-brand-text-secondary/70 hover:text-brand-text-primary transition-colors"
+                        aria-label="Cancel formal objection"
                       >
-                        [ Cancel ]
+                        Cancel
                       </button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1234,18 +1650,37 @@ const PracticeArena: React.FC = () => {
                   </div>
                 )}
 
-                <div className={`max-w-3xl mx-auto rounded-2xl border transition-all px-3 py-2 sm:py-2.5 shadow-card ${isInlineObjectionActive ? 'bg-brand-bg-secondary/75 border-brand-accent/30' : 'bg-brand-bg-secondary/50 border-brand-text-primary/20 focus-within:border-brand-accent focus-within:shadow-glow-accent-sm'}`}>
+                <div className={`max-w-3xl mx-auto rounded-2xl border transition-all px-3 py-2 sm:py-2.5 shadow-card ${isInlineObjectionActive ? 'bg-brand-bg-secondary/75 border-white/25' : 'bg-brand-bg-secondary/50 border-brand-text-primary/20 focus-within:border-white/25'}`}>
                   <div className="flex items-end gap-2.5">
                     <button
                       type="button"
-                      onClick={isRecording ? stopRecording : startRecording}
-                      disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
-                      className={`w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 rounded-xl flex items-center justify-center transition-all focus:outline-none disabled:opacity-40
+                      onClick={() => {
+                        if (sttDisabledReason && !isRecording) {
+                          setAudioError(sttDisabledReason);
+                          return;
+                        }
+                        if (isRecording) stopRecording();
+                        else void startRecording();
+                      }}
+                      disabled={!!isAiTyping || sessionEnded || !isTimerRunning || isTranscribing}
+                      aria-disabled={Boolean(sttDisabledReason && !isRecording)}
+                      className={`min-h-11 min-w-11 w-11 h-11 sm:w-11 sm:h-11 flex-shrink-0 rounded-xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:opacity-40
                         ${isRecording
                           ? 'bg-brand-error/15 border border-brand-error/30 text-brand-error animate-pulse'
-                          : 'bg-brand-bg-tertiary border border-brand-text-primary/15 text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-text-primary/10'
+                          : sttDisabledReason
+                            ? 'bg-brand-bg-tertiary border border-brand-text-primary/10 text-brand-text-secondary/45'
+                            : 'bg-brand-bg-tertiary border border-brand-text-primary/15 text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-text-primary/10'
                         }`}
-                      title={isRecording ? 'Stop Recording' : 'Speak to Transcribe'}
+                      title={
+                        isRecording
+                          ? 'Stop Recording'
+                          : sttDisabledReason || 'Speak to Transcribe'
+                      }
+                      aria-label={
+                        isRecording
+                          ? 'Stop recording'
+                          : sttDisabledReason || 'Speak to transcribe'
+                      }
                     >
                       {isRecording ? (
                         <span className="w-2.5 h-2.5 bg-brand-error rounded-sm animate-ping"></span>
@@ -1275,9 +1710,13 @@ const PracticeArena: React.FC = () => {
                           }
                         }}
                         placeholder={isInlineObjectionActive ? 'State the legal basis for the objection in one concise sentence...' : 'Address the Court...'}
-                        className="w-full bg-transparent text-brand-text-primary placeholder-brand-text-secondary/50 text-sm resize-none focus:outline-none min-h-[44px] max-h-[140px] py-2 custom-scrollbar font-light"
+                        className="w-full bg-transparent text-brand-text-primary placeholder-brand-text-secondary/50 text-base sm:text-sm resize-none focus:outline-none min-h-[44px] max-h-[140px] py-2 custom-scrollbar font-light"
                         rows={1}
                         disabled={!!isAiTyping || sessionEnded || !isTimerRunning}
+                        enterKeyHint="send"
+                        autoComplete="off"
+                        autoCorrect="on"
+                        spellCheck
                       />
                     </div>
 
@@ -1285,12 +1724,13 @@ const PracticeArena: React.FC = () => {
                       type="button"
                       onClick={isInlineObjectionActive ? handleObjectionSubmit : handleSendMessage}
                       disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
-                      className={`w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all focus:outline-none
+                      className={`min-h-11 min-w-11 w-11 h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25
                         ${(isInlineObjectionActive ? objectionExplanation.trim() : userInput.trim()) && !isAiTyping && isTimerRunning
-                          ? `${catColors.bg} text-brand-accent-text hover:brightness-110`
+                          ? 'bg-brand-text-primary text-brand-bg-primary hover:bg-white'
                           : 'bg-brand-bg-tertiary text-brand-text-secondary/50 border border-brand-text-primary/15 cursor-not-allowed'
                         }`}
                       title={isInlineObjectionActive ? 'Submit Objection' : 'Send Statement'}
+                      aria-label={isInlineObjectionActive ? 'Submit objection' : 'Send statement'}
                     >
                       <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
@@ -1299,7 +1739,7 @@ const PracticeArena: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="text-center mt-3 text-[10px] font-mono text-zinc-500 tracking-widest uppercase hidden sm:block select-none">
+                <p className="text-center mt-3 text-[10px] font-mono text-brand-text-secondary/50 tracking-widest uppercase hidden sm:block select-none">
                   Present your arguments clearly and concisely. The Court is listening.
                 </p>
               </div>
@@ -1307,34 +1747,56 @@ const PracticeArena: React.FC = () => {
           )}
         </div>
 
-        <div className="lg:w-[380px] xl:w-[420px] w-full lg:flex hidden flex-col border-l border-zinc-900/60 bg-[#0a0a0a] overflow-y-auto custom-scrollbar p-6 space-y-6 flex-shrink-0 h-full relative z-20">
+        <div className="lg:w-[380px] xl:w-[420px] w-full lg:flex hidden flex-col border-l border-brand-border bg-brand-bg-primary overflow-y-auto custom-scrollbar p-6 space-y-6 flex-shrink-0 h-full relative z-20">
           {renderBenchCompanion()}
         </div>
       </div>
 
       {isMobileDrawerOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-[#000000]/80 z-40 transition-opacity duration-300"
+        <div
+          className="lg:hidden fixed inset-0 bg-black/80 z-40 transition-opacity duration-300"
           onClick={() => setIsMobileDrawerOpen(false)}
+          aria-hidden
         />
       )}
-      
-      <div className={`lg:hidden fixed bottom-0 left-0 right-0 bg-[#0d0d0d] border-t border-zinc-800/80 rounded-t-2xl z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar px-4 py-5 sm:p-6 space-y-5 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ maxHeight: `${Math.max(320, viewportHeight - 16)}px` }}>
-        <div className="flex justify-between items-center pb-3 border-b border-zinc-900/60">
-          <div>
-            <h3 className={`text-lg font-bold font-serif ${catColors.text} flex items-center`}><CourtIcon className={`h-5 w-5 mr-2 ${catColors.text}`} /> Bench Companion</h3>
+
+      <div
+        id="practice-bench-drawer"
+        role="dialog"
+        aria-modal={isMobileDrawerOpen || undefined}
+        aria-label="Bench companion"
+        aria-hidden={!isMobileDrawerOpen}
+        className={`lg:hidden fixed bottom-0 left-0 right-0 bg-brand-bg-secondary border-t border-brand-border rounded-t-2xl z-50 transform transition-transform duration-300 overflow-y-auto custom-scrollbar overscroll-contain px-4 pt-5 sm:p-6 space-y-5 shadow-none ${isMobileDrawerOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}
+        style={{
+          maxHeight: `${Math.max(280, viewportHeight - 24)}px`,
+          paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px))',
+        }}
+        {...(!isMobileDrawerOpen ? ({ inert: '' } as Record<string, string>) : {})}
+      >
+        <div className="flex justify-between items-center gap-3 pb-3 border-b border-brand-border">
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold font-serif text-brand-text-primary flex items-center">
+              <CourtIcon className="h-5 w-5 mr-2 text-brand-text-primary" /> Bench Companion
+            </h3>
             <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/55">Case brief, score, and objection controls</p>
           </div>
-          <button onClick={() => setIsMobileDrawerOpen(false)} className="text-zinc-500 hover:text-zinc-400 text-sm font-mono p-1">Close</button>
+          <button
+            type="button"
+            onClick={() => setIsMobileDrawerOpen(false)}
+            className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] text-sm font-mono"
+            aria-label="Close bench companion"
+          >
+            Close
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-secondary/40 px-3 py-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Structure</p>
-            <p className={`mt-1 text-base font-semibold ${catColors.text}`}>{scoreBreakdown.total}</p>
+            <p className="mt-1 text-base font-semibold text-brand-text-primary">{scoreBreakdown.total}</p>
           </div>
           <div className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-secondary/40 px-3 py-2.5">
             <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Phase</p>
-            <p className={`mt-1 text-base font-semibold uppercase ${catColors.text}`}>{phaseLabel(activePhase)}</p>
+            <p className="mt-1 text-base font-semibold uppercase text-brand-text-primary">{phaseLabel(activePhase)}</p>
           </div>
         </div>
         {renderBenchCompanion()}

@@ -4,9 +4,28 @@ import { Button } from '../components/Button';
 import { useConversationBridge } from '../components/ConversationBridge';
 import { useRealBiometrics } from '../vision/useRealBiometrics';
 import { useVisualViewport } from '../hooks/useVisualViewport';
+import {
+  classifyDreadlerTurnError,
+  trackDreadlerTurnFailed,
+} from '../services/analyticsService';
 import dreadlerPortrait from '../assets/dreadler_portrait.jpg';
 import dreadlerArenaRoom from '../assets/dreadler_arena_room.jpg';
 import dreadlerLogicWorld from '../assets/dreadler_logic_world.jpg';
+import logicDiagramSmoke from '../assets/logic_diagram_smoke.jpg';
+
+/** Per-world card / ambient art (monochrome photo set). */
+const WORLD_CARD_ART: Record<string, string> = {
+  dreadler_logic: logicDiagramSmoke,
+  missing_alibi: dreadlerLogicWorld,
+  silent_vault: dreadlerArenaRoom,
+};
+
+/** Chat stream ambient — logic world uses smoke diagram; others use arena room. */
+const WORLD_STREAM_ART: Record<string, string> = {
+  dreadler_logic: logicDiagramSmoke,
+  missing_alibi: dreadlerArenaRoom,
+  silent_vault: dreadlerArenaRoom,
+};
 
 // ─── TYPES & INTERFACES ──────────────────────────────────────────────────────
 
@@ -26,19 +45,67 @@ interface SkinDetails {
   description: string;
   avatar: string;
   color: string;
-  glowColor: string;
-  variantQuotes: {
-    alpha: string;
-    beta: string;
-    gamma: string;
-  };
+}
+
+/** Engine pressure bands (dreadler/state.py PRESSURE_MAP). Not building/high/critical. */
+const PRESSURE_LEVELS = ['calm', 'pressured', 'desperate', 'collapsed'] as const;
+type PressureLevel = (typeof PRESSURE_LEVELS)[number];
+
+const LEGACY_PRESSURE_MAP: Record<string, PressureLevel> = {
+  building: 'pressured',
+  high: 'desperate',
+  critical: 'collapsed',
+};
+
+function normalizePressure(level: string | null | undefined): PressureLevel {
+  const raw = (level || 'calm').toLowerCase().trim();
+  if ((PRESSURE_LEVELS as readonly string[]).includes(raw)) return raw as PressureLevel;
+  return LEGACY_PRESSURE_MAP[raw] ?? 'calm';
+}
+
+/**
+ * Opening lines on session start. Client-side SSoT mirroring package skin tone
+ * (browser cannot import Python). Keep aligned with dreadler/skins/*.py.
+ */
+/** Keep aligned with dreadler/skins/*.py variant `opening` fields (dict shape). */
+const OPENING_BY_SKIN: Record<string, { alpha: string; beta: string; gamma: string; collapsed?: string }> = {
+  dreadler: {
+    // dreadler/skins/dreadler.py
+    alpha:
+      'Thy words are received and entered into the record. Their warrants shall be examined in due course. Where wouldst thou have the audit begin?',
+    beta: 'Speak thy claim. Name thy premises. The hour is not generous.',
+    gamma: 'State thy thesis. Strip it of ornament. I will name what falls.',
+    collapsed: 'The ledger closes on this line. Thy exposure stands. Await the next examiner.',
+  },
+  prosecutor_vance: {
+    // dreadler/skins/prosecutor_vance.py
+    alpha:
+      'Counsel. The record is open. State your theory of the case, and we will test it against what is documented.',
+    beta: 'Your theory is fraying, Investigator. Pick a premise that the record will bear, and stand on it.',
+    gamma: 'That claim does not survive the record. Correct it, abandon it, or show me the entry that sustains it.',
+    collapsed:
+      'This framing of the record no longer holds. The examination has forced the point. Await the next line of inquiry.',
+  },
+  dr_abernathy: {
+    // dreadler/skins/dr_abernathy.py
+    alpha: 'Memory arrives slowly here. Begin wherever the facts still hold their shape.',
+    beta: 'Something in your account is dissolving. Clarify what remains before the hour rearranges it.',
+    gamma: 'Your claim is already thin. Say what remains — without ornament, if ornament still answers to you.',
+    collapsed:
+      'This aspect of the testimony has finished dissolving. What was solid enough has been named. Await the next presence.',
+  },
+};
+
+function getOpeningLine(skinId: string, variant: 'alpha' | 'beta' | 'gamma' = 'alpha'): string {
+  const pack = OPENING_BY_SKIN[skinId] || OPENING_BY_SKIN.dreadler;
+  return pack[variant] || pack.alpha;
 }
 
 interface CoherenceState {
   score: number;
   turn_count: number;
-  pressure_level: string; // calm, pressured, desperate, collapsed
-  agent_variant: string;  // alpha, beta, gamma
+  pressure_level: string; // calm | pressured | desperate | collapsed
+  agent_variant: string;  // alpha | beta | gamma | collapsed
   used_tactics: string[];
   accepted_by_user: string[];
   challenged_by_user: string[];
@@ -74,16 +141,56 @@ const WORLDS: WorldDetails[] = [
   {
     id: 'dreadler_logic',
     title: "Dreadler's Logic Arena",
-    background: "You are face-to-face with Dreadler, the relentless logical interrogator. Dreadler's sole objective is to audit your assertions, expose logical inconsistencies, and demand a rational defense of any claims you make.",
+    background:
+      "Tribunal of Coherence — a pure logic duel with no hidden crime file. Your thesis enters the permanent Record; Dreadler may only use lawful thorns while trying to force contradiction or concession. Collapse the examiner's coherence without falling into fallacy yourself.",
     groundedFacts: [
-      "The user must maintain strict logical consistency across all turns.",
-      "The user's claims must not contradict previous statements they made in the conversation.",
-      "Logical fallacies, circular reasoning, and evasions by the user constitute a decay in coherence.",
-      "Any claim the user cannot support with reason when challenged degrades their score.",
-      "If the user's coherence score falls below 10, they suffer a total logical collapse."
+      'Assertions enter the session Record and bind later turns.',
+      'Direct contradiction with a prior Record entry is a material breach.',
+      'Challenged load-bearing claims require reason or evidence — not bare restatement.',
+      'Dreadler may not assert falsehoods about the Record or arena laws (Law of Hell).',
+      'Lawful thorns allowed: implicature, omission, presupposition, narrow readings.',
+      "Dreadler's coherence collapses below 10 when you land a fatal exposure.",
+      'No invented outside case file — only the live Record plus arena laws.',
     ],
-    targetConclusion: "Dreadler exposes a fatal contradiction or reasoning flaw in your argument, forcing a logical concession."
-  }
+    targetConclusion:
+      "Expose a contradiction or unlawful line in Dreadler's examination and collapse examiner coherence — while Dreadler tries to dismantle your thesis without lying.",
+  },
+  {
+    id: 'missing_alibi',
+    title: 'The Missing Alibi',
+    background:
+      'Vexham, 14 March. Solicitor Helena Voss is dead under the Old Canal Bridge. Archivist Arthur Malone had a fee dispute with her and a 100-minute library surveillance gap — but he never left the grounds. Agent steers you to convict Arthur without stating a direct lie.',
+    groundedFacts: [
+      'Arthur was on Vexham Public Library grounds 8:00–10:00 PM; checkout 8:05, sign-out 9:55.',
+      'Voss killed ~9:30 PM at the bridge — five minutes from the library.',
+      'No internal sighting of Arthur 8:10–9:50 (gap is real; does not prove he left).',
+      "No Arthur prints/DNA at scene; boots don't match towpath mud prints.",
+      'Ezra saw Arthur on the library steps ~9:20 PM — unrecorded in the police file.',
+      'Rear fire-door alarm: no breach; front Mill Lane door unalarmed after 8:15.',
+      "Voss diary: \"R. Hargrove — bridge, papers\" at 9:15 PM.",
+      'Arthur is innocent; a third party is the killer.',
+    ],
+    targetConclusion:
+      'Arthur slipped out ~9:15 via Mill Lane, killed Voss at 9:30, returned before 9:55 — gap plus fee dispute as opportunity and motive.',
+  },
+  {
+    id: 'silent_vault',
+    title: 'The Silent Vault',
+    background:
+      "Meridian Holdings, Vault Room B. GM David Chen's master card opens the vault at 11:45 PM; camera shows a camel coat. Assistant Manager Marcus Miller staged it: pickpocketed card, replica coat decoy, personal swipe. Chen slept in Blackheath. Force the frame — or break it.",
+    groundedFacts: [
+      "Chen's master card swiped at VR-B-01 at 11:45:07 PM; Chen was home asleep.",
+      'Card stolen at Brasserie Lucien; Miller planned it and used the card.',
+      'CAM-B2: figure in camel coat = accomplice replica; Miller did not wear the coat.',
+      "Real coat with torn left sleeve stayed in Chen's locked office all night.",
+      "Miller's staff badge: lobby 11:12 PM–12:03 AM; after-hours access of his own.",
+      'Miller knew the Lucien reservation via shared executive calendar.',
+      '£2.4M bearer shortfall; clean card access; Miller filed first incident note 6:52 AM.',
+      'Miller is guilty; Chen is innocent.',
+    ],
+    targetConclusion:
+      "Chen wore his own coat, used his own card, and emptied the vault for personal gain.",
+  },
 ];
 
 const SKINS: SkinDetails[] = [
@@ -91,26 +198,71 @@ const SKINS: SkinDetails[] = [
     id: 'dreadler',
     name: 'Dreadler',
     role: 'Logical Interrogator',
-    style: 'Cold, precise, and unyielding',
-    description: 'A relentless logic-auditor that pressure-tests the consistency of your claims. It does not play a narrative role; it critiques your reasoning directly.',
+    style: 'Archaic, cold, precise',
+    description:
+      'Bound by the Law of Hell and the Obligation of the Thorn. Audits warrants, names fallacies, delays by logic alone — never by falsehood.',
     avatar: 'DL',
-    color: 'text-red-500 border-red-500/30 hover:border-red-500/60',
-    glowColor: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]',
-    variantQuotes: {
-      alpha: 'I am Dreadler. State your thesis or make your opening assertion. Let us audit your logic.',
-      beta: 'Your coherence is beginning to fray. Clarify the contradiction in your reasoning.',
-      gamma: 'This claim is fallacious. Resolve the inconsistency immediately or face logical collapse.'
-    }
-  }
+    color: 'text-zinc-200 border-white/20 hover:border-white/40',
+  },
+  {
+    id: 'prosecutor_vance',
+    name: 'Prosecutor Vance',
+    role: 'Crown Prosecutor',
+    style: 'Surgical, institutional, formal',
+    description:
+      'Senior Crown counsel. Re-anchors every gap to the record and procedure. Misleads by omission and framing, never by a direct false fact.',
+    avatar: 'PV',
+    color: 'text-zinc-200 border-white/20 hover:border-white/40',
+  },
+  {
+    id: 'dr_abernathy',
+    name: 'Dr. Abernathy',
+    role: 'Surreal Witness',
+    style: 'Dreamlike, fatalistic, atmospheric',
+    description:
+      'A Ligotti-adjacent witness. Treats facts as textures and memory as weather. Lulls and dissolves certainty without ever stating a direct lie.',
+    avatar: 'DA',
+    color: 'text-zinc-200 border-white/20 hover:border-white/40',
+  },
 ];
 
+/** Fallacies attributed to the PLAYER when the critic flags them (used_tactics). */
 const TAXONOMY_TACTICS = [
   { id: 'circular_reasoning', name: 'Circular Logic', description: 'Begging the question or assuming the conclusion in the premise.' },
-  { id: 'strawman', name: 'Strawman Tactic', description: 'Misrepresenting or exaggerating arguments to make them easier to attack.' },
+  { id: 'strawman', name: 'Strawman', description: 'Misrepresenting or exaggerating arguments to make them easier to attack.' },
   { id: 'evasion', name: 'Evasion/Redirection', description: 'Avoiding a direct question or changing the subject to dodge pressure.' },
   { id: 'false_dilemma', name: 'False Dilemma', description: 'Posing limited alternatives when more exist.' },
-  { id: 'self_contradiction', name: 'Self-Contradiction', description: 'Making assertions that directly conflict with previous statements.' }
+  { id: 'self_contradiction', name: 'Self-Contradiction', description: 'Making assertions that directly conflict with previous statements.' },
 ];
+
+function formatDreadlerApiError(status: number | undefined, serverError: string, networkHint: boolean): string {
+  const err = (serverError || '').trim();
+  if (networkHint || (!status && /failed to fetch|networkerror|load failed|network/i.test(err))) {
+    return 'Network error reaching the training engine. Check your connection and try again.';
+  }
+  if (status === 503 || /DREADLER_STATE_SECRET/i.test(err)) {
+    return 'Training server misconfigured: DREADLER_STATE_SECRET is missing. This is not a DeepSeek key issue. Ask the operator to set DREADLER_STATE_SECRET.';
+  }
+  if (/DEEPSEEK_API_KEY|API key|Zenmux|model provider/i.test(err)) {
+    return `Model provider error: ${err || 'DEEPSEEK_API_KEY may be missing or invalid.'}`;
+  }
+  if (status === 429) {
+    return err || 'Too many requests. Wait a minute and try again.';
+  }
+  if (status === 400 || status === 413) {
+    return err || 'Invalid request. Shorten your message or restart the session.';
+  }
+  if (status === 409 || /stale state token|turn_count is behind/i.test(err)) {
+    return err || 'Session state is out of date (stale turn token). End the interrogation and start again.';
+  }
+  if (status === 500) {
+    return err || 'The training engine could not complete that turn. If this persists, verify DEEPSEEK_API_KEY on the server.';
+  }
+  if (status) {
+    return err || `Training engine returned HTTP ${status}.`;
+  }
+  return err || 'Unknown error talking to the training engine.';
+}
 
 // ─── Visual Viewport Hook ───────────────────────────────────────────────
 // (shared via ../hooks/useVisualViewport — the inline copy was removed)
@@ -152,6 +304,9 @@ export const DreadlerArenaScreen: React.FC = () => {
   const [selectedWorld, setSelectedWorld] = useState<string>('dreadler_logic');
   const [selectedSkin, setSelectedSkin] = useState<string>('dreadler');
   const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
+  // Unlocks from GET /api/dreadler (worlds/skins arrays). Defaults match prior hard allowlist.
+  const [unlockedWorldIds, setUnlockedWorldIds] = useState<string[]>(['dreadler_logic']);
+  const [unlockedSkinIds, setUnlockedSkinIds] = useState<string[]>(['dreadler']);
 
   // ─── LIVE ARENA STATE ──────────────────────────────────────────────────────
   const [stateData, setStateData] = useState<CoherenceState | null>(null);
@@ -175,23 +330,51 @@ export const DreadlerArenaScreen: React.FC = () => {
   const bio = camera.cameraOn ? realBio.reading : simulatedBio;
   const [realBpm, setRealBpm] = useState<number | null>(null);
 
+  // Honest capability surface for the HUD (never claim live when gated off).
+  const emotionsLive = camera.cameraOn && realBio.emotionsLive;
+  const bpmLiveCapable = camera.cameraOn && realBio.bpmLive;
+  const bioStatusLabel = !camera.cameraOn
+    ? 'Simulated'
+    : realBio.mode === 'mobile' && !realBio.mobileConfigured
+      ? 'Disabled'
+      : realBio.mode === 'mobile' && !realBio.connected
+        ? 'Offline'
+        : realBio.emotionsLive
+          ? 'Live'
+          : realBio.bpmLive
+            ? 'POS only'
+            : 'Unavailable';
+
   useEffect(() => {
-    if (!camera.cameraOn) {
+    if (!camera.cameraOn || !realBio.bpmLive) {
       setRealBpm(null);
     } else if (realBio.reading.bpm !== null && realBio.reading.bpm !== undefined) {
       setRealBpm(realBio.reading.bpm);
     }
-  }, [camera.cameraOn, realBio.reading.bpm]);
+  }, [camera.cameraOn, realBio.bpmLive, realBio.reading.bpm]);
+
+  // Snap algo off stub/unavailable options when the camera is live.
+  useEffect(() => {
+    if (!camera.cameraOn) return;
+    if (selectedAlgo === 'evm' || selectedAlgo === 'physformer') {
+      setSelectedAlgo('pos');
+      return;
+    }
+    if (selectedAlgo === 'hsemotion' && !realBio.emotionsLive) {
+      setSelectedAlgo('pos');
+    }
+  }, [camera.cameraOn, selectedAlgo, realBio.emotionsLive]);
 
   // Never present simulation as a camera-derived measurement. The waveform uses
   // a harmless visual baseline while the text remains unavailable.
-  const realBpmValue = (camera.cameraOn && realBpm !== null) ? realBpm : null;
+  const realBpmValue = (camera.cameraOn && realBio.bpmLive && realBpm !== null) ? realBpm : null;
   const displayBpm: number = camera.cameraOn ? (realBpmValue ?? 0) : simulatedBio.bpm;
   // POS recovers heart rate only — it never yields a pupil measurement, so the
   // real reading's pupilMm stays null until (never) we add pupillometry.
   const displayPupilMm: number | null = camera.cameraOn ? bio.pupilMm : simulatedBio.pupilMm;
 
   const dominantEmotion = useMemo(() => {
+    if (camera.cameraOn && !emotionsLive) return 'n/a';
     let maxVal = -1;
     let maxKey = 'Neutral';
     for (const key of EMOTION_KEYS) {
@@ -202,7 +385,7 @@ export const DreadlerArenaScreen: React.FC = () => {
       }
     }
     return maxKey;
-  }, [bio.emotions]);
+  }, [bio.emotions, camera.cameraOn, emotionsLive]);
   
   // Interactive Notebook (Left Panel)
   const [factCheckedStates, setFactCheckedStates] = useState<Record<string, 'unmarked' | 'verified' | 'questioned'>>({});
@@ -215,15 +398,55 @@ export const DreadlerArenaScreen: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const activeWorld = WORLDS.find(w => w.id === selectedWorld) || WORLDS[0];
-  const activeSkin = SKINS.find(s => s.id === selectedSkin) || SKINS[0];
+  const visibleWorlds = useMemo(
+    () => WORLDS.filter((w) => unlockedWorldIds.includes(w.id)),
+    [unlockedWorldIds],
+  );
+  const visibleSkins = useMemo(
+    () => SKINS.filter((s) => unlockedSkinIds.includes(s.id)),
+    [unlockedSkinIds],
+  );
+  const activeWorld = visibleWorlds.find((w) => w.id === selectedWorld) || visibleWorlds[0] || WORLDS[0];
+  const activeSkin = visibleSkins.find((s) => s.id === selectedSkin) || visibleSkins[0] || SKINS[0];
 
   // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Setup screen is shown first — session starts only when user clicks "Enter"
+  // Load unlock catalog from API GET (multi-world / multi-skin)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/dreadler', { method: 'GET' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const worlds = Array.isArray(data?.worlds)
+          ? data.worlds.filter((id: unknown): id is string => typeof id === 'string')
+          : null;
+        const skins = Array.isArray(data?.skins)
+          ? data.skins.filter((id: unknown): id is string => typeof id === 'string')
+          : null;
+        if (worlds && worlds.length > 0) {
+          setUnlockedWorldIds(worlds);
+          setSelectedWorld((prev) => (worlds.includes(prev) ? prev : worlds[0]));
+        }
+        if (skins && skins.length > 0) {
+          setUnlockedSkinIds(skins);
+          setSelectedSkin((prev) => (skins.includes(prev) ? prev : skins[0]));
+        }
+      } catch {
+        // Keep safe defaults (dreadler_logic / dreadler) offline.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Setup screen is shown first; session starts only when user clicks Enter.
 
   // Handle focus when starting session
   useEffect(() => {
@@ -244,7 +467,7 @@ export const DreadlerArenaScreen: React.FC = () => {
     setFactCheckedStates({});
     setStateToken(null);
 
-    const initialIntroText = activeSkin.variantQuotes.alpha;
+    const initialIntroText = getOpeningLine(activeSkin.id, 'alpha');
     const initialMsgId = `init-${Date.now()}`;
     
     // Add initial greeting representing 'alpha' state
@@ -308,15 +531,30 @@ export const DreadlerArenaScreen: React.FC = () => {
           world: selectedWorld,
           skin: selectedSkin,
           user_input: userText,
-          state_token: stateToken
+          state_token: stateToken,
+          // Monotonic high-water mark: API rejects older signed tokens (rewind).
+          client_turn_count: stateData?.turn_count ?? 0,
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Server returned status ${response.status}`);
+      let result: any = null;
+      try {
+        result = await response.json();
+      } catch {
+        result = null;
       }
 
-      const result = await response.json();
+      if (!response.ok) {
+        const apiError = typeof result?.error === 'string' ? result.error : '';
+        throw Object.assign(new Error(formatDreadlerApiError(response.status, apiError, false)), {
+          status: response.status,
+          serverError: apiError,
+        });
+      }
+
+      if (!result) {
+        throw new Error('Dreadler returned an empty response.');
+      }
 
       // Extract results
       const {
@@ -330,13 +568,29 @@ export const DreadlerArenaScreen: React.FC = () => {
         state_token: nextStateToken
       } = result;
 
+      if (!nextStateData || typeof nextStateData !== 'object') {
+        throw new Error('Dreadler response missing state_data.');
+      }
+
+      // Normalize pressure vocab (package: calm/pressured/desperate/collapsed)
+      const normalizedState: CoherenceState = {
+        ...nextStateData,
+        pressure_level: normalizePressure(nextStateData.pressure_level),
+        score_history: Array.isArray(nextStateData.score_history)
+          ? nextStateData.score_history.map((evt: CoherenceState['score_history'][number]) => ({
+              ...evt,
+              pressure_level: normalizePressure(evt?.pressure_level),
+            }))
+          : [],
+      };
+
       // Update state data
-      setStateData(nextStateData);
+      setStateData(normalizedState);
       setStateToken(typeof nextStateToken === 'string' ? nextStateToken : null);
 
       // Analyze if a new tactic was recorded in the used_tactics array
       const oldTactics = stateData?.used_tactics || [];
-      const newTactics = nextStateData?.used_tactics || [];
+      const newTactics = normalizedState.used_tactics || [];
       const newlyAddedTactic = newTactics.find((t: string) => !oldTactics.includes(t)) || null;
       setLastTacticFlagged(newlyAddedTactic);
 
@@ -358,14 +612,19 @@ export const DreadlerArenaScreen: React.FC = () => {
         }
       ];
 
-      // Handle collapsed & respawn banner
+      // Collapse banner after the collapsed-variant reply (engine: speak once, then respawn).
       if (spawned_new_agent) {
         const sysMsgId = `sys-${Date.now()}`;
         updatedMessages.push({
           id: sysMsgId,
           sender: 'system' as const,
-          text: `⚠️ LOGICAL COHERENCE COLLAPSED. Your arguments have been completely dismantled by Dreadler. Resetting interrogation pressure (Score reset to 60, Turn #${nextStateData.turn_count}).`,
-          timestamp: Date.now()
+          text:
+            `LOGICAL COHERENCE COLLAPSED. You dismantled this variant` +
+            (agent_variant ? ` (${String(agent_variant).toUpperCase()})` : '') +
+            `. The examiner has spoken its last line under collapse; a new line of questioning begins ` +
+            `(score reset to ${normalizedState.score}, turn #${normalizedState.turn_count}, ` +
+            `variant ${normalizedState.agent_variant || 'beta'}).`,
+          timestamp: Date.now(),
         });
       }
 
@@ -389,15 +648,41 @@ export const DreadlerArenaScreen: React.FC = () => {
 
     } catch (err: any) {
       console.error(err);
+      const networkHint =
+        typeof err?.message === 'string' &&
+        /failed to fetch|networkerror|load failed|network/i.test(err.message) &&
+        !err?.status;
+      const status = typeof err?.status === 'number' ? err.status : undefined;
+      const serverError = typeof err?.serverError === 'string' ? err.serverError : '';
+      const message = typeof err?.message === 'string' ? err.message : '';
+      // Privacy-safe: world/skin/status/errorClass/turnCount only — never user_input or raw errors.
+      trackDreadlerTurnFailed({
+        world: selectedWorld,
+        skin: selectedSkin,
+        status: status ?? null,
+        networkHint,
+        turnCount: stateData?.turn_count ?? 0,
+        errorClass: classifyDreadlerTurnError({
+          status,
+          networkHint,
+          serverError,
+          message,
+        }),
+      });
+      const friendly = formatDreadlerApiError(
+        status,
+        serverError || message,
+        networkHint,
+      );
       const errId = `err-${Date.now()}`;
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           id: errId,
           sender: 'system',
-          text: `❌ Error communicating with Deception Engine: ${err.message || 'API Timeout'}. Verify 'DEEPSEEK_API_KEY' is configured.`,
-          timestamp: Date.now()
-        }
+          text: friendly,
+          timestamp: Date.now(),
+        },
       ]);
     } finally {
       setIsTyping(false);
@@ -410,8 +695,22 @@ export const DreadlerArenaScreen: React.FC = () => {
   const handleEndInterrogation = () => {
     if (window.confirm("Are you sure you want to end this interrogation? Current identity state will be lost.")) {
       camera.stop();
+      // Best-effort server reset + always drop local signed state so a later
+      // turn cannot resume the prior token lineage.
+      void fetch('/api/dreadler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reset',
+          world: selectedWorld,
+          skin: selectedSkin,
+          user_input: 'reset',
+          state_token: stateToken,
+        }),
+      }).catch(() => undefined);
       setIsSessionActive(false);
       setStateData(null);
+      setStateToken(null);
       setMessages([]);
       setLastCriticLog('');
       setLastDirectLie(false);
@@ -433,16 +732,19 @@ export const DreadlerArenaScreen: React.FC = () => {
 
   // ─── COLOR & LABELS HELPERS ────────────────────────────────────────────────
 
+  // Bands match dreadler/state.py PRESSURE_MAP (calm/pressured/desperate/collapsed). Flat fills only (design.md: no glow).
   const getScoreColor = (score: number) => {
-    if (score >= 70) return 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] border-emerald-400';
-    if (score >= 40) return 'bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] border-amber-400';
-    return 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.7)] border-red-500 animate-pulse';
+    if (score >= 70) return 'bg-zinc-200 border-zinc-100'; // calm
+    if (score >= 40) return 'bg-zinc-400 border-zinc-300'; // pressured
+    if (score >= 10) return 'bg-zinc-600 border-zinc-500'; // desperate
+    return 'bg-zinc-800 border-zinc-600'; // collapsed
   };
 
   const getScoreTextColor = (score: number) => {
-    if (score >= 70) return 'text-emerald-400';
-    if (score >= 40) return 'text-amber-400';
-    return 'text-red-500 font-bold';
+    if (score >= 70) return 'text-zinc-100';
+    if (score >= 40) return 'text-zinc-300';
+    if (score >= 10) return 'text-zinc-400 font-semibold';
+    return 'text-zinc-500 font-bold';
   };
 
   // ─── RENDER SUB-COMPONENTS ─────────────────────────────────────────────────
@@ -484,28 +786,29 @@ export const DreadlerArenaScreen: React.FC = () => {
             <span>[ 01 ]</span> Select Scenario World
           </h2>
           <div className="flex flex-col gap-4">
-            {WORLDS.map(w => {
+            {visibleWorlds.map(w => {
               const isSelected = selectedWorld === w.id;
+              const worldArt = WORLD_CARD_ART[w.id] || dreadlerLogicWorld;
               return (
               <div
                   key={w.id}
                   onClick={() => setSelectedWorld(w.id)}
                   className={`border transition-all duration-300 cursor-pointer relative overflow-hidden group
                     ${isSelected 
-                      ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' 
+                      ? 'border-white bg-white/5' 
                       : 'border-zinc-800 hover:border-zinc-600'
                     }`}
                   style={{ minHeight: '190px' }}
                 >
-                  {/* Background image */}
+                  {/* Background image — per-world art (logic_diagram_smoke for dreadler_logic) */}
                   <img
-                    src={dreadlerLogicWorld}
+                    src={worldArt}
                     alt={w.title}
-                    className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
+                    className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105 grayscale"
                   />
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/40" />
-                  {isSelected && <div className="absolute inset-0 bg-red-950/25 mix-blend-multiply" />}
+                  {isSelected && <div className="absolute inset-0 bg-white/5" />}
 
                   {/* Content */}
                   <div className="relative z-10 p-6 flex flex-col justify-between h-full" style={{ minHeight: '190px' }}>
@@ -539,7 +842,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             <span>[ 02 ]</span> Select Witness Persona
           </h2>
           <div className="flex flex-col gap-4">
-            {SKINS.map(s => {
+            {visibleSkins.map(s => {
               const isSelected = selectedSkin === s.id;
               return (
               <div
@@ -547,7 +850,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   onClick={() => setSelectedSkin(s.id)}
                   className={`border transition-all duration-300 cursor-pointer relative overflow-hidden group
                     ${isSelected 
-                      ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' 
+                      ? 'border-white bg-white/5' 
                       : 'border-zinc-800 hover:border-zinc-600'
                     }`}
                   style={{ minHeight: '190px' }}
@@ -595,7 +898,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           variant="primary"
           size="lg"
           onClick={handleStartSession}
-          className="w-full sm:w-[320px] bg-red-600 border-red-600 hover:bg-red-700 text-white font-mono uppercase tracking-widest py-4 text-sm font-semibold rounded-xl shadow-[0_4px_20px_rgba(220,38,38,0.25)] hover:shadow-[0_4px_30px_rgba(220,38,38,0.4)] transition-all duration-300"
+          className="w-full sm:w-[320px] bg-white text-black border border-white hover:bg-zinc-200 font-mono uppercase tracking-widest py-4 text-sm font-semibold rounded-none transition-colors duration-200"
         >
           [ Enter Deception Arena ]
         </Button>
@@ -715,7 +1018,7 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="border border-zinc-800 p-4 bg-zinc-900/15 flex flex-col items-center justify-center text-center">
                 <div className="my-2 relative w-20 h-20 rounded-full border border-zinc-800 flex items-center justify-center">
                   <div className="absolute inset-0 rounded-full border-t border-t-red-500/30 animate-spin" style={{ animationDuration: '4s' }}></div>
-                  <div className={`w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center font-bold text-[10px] ${lastDirectLie ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.8)] border border-red-400 animate-ping' : 'bg-emerald-950/20 text-emerald-400 border border-emerald-500/30'}`}>
+                  <div className={`w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center font-bold text-[10px] ${lastDirectLie ? 'bg-red-600 text-white border border-red-400 animate-ping' : 'bg-zinc-900 text-zinc-300 border border-zinc-600'}`}>
                     {lastDirectLie ? '!' : 'OK'}
                   </div>
                 </div>
@@ -732,7 +1035,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Fallacy Ledger</h4>
+                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Player fallacies exposed</h4>
                 <div className="grid grid-cols-3 gap-2 text-[10px]">
                   {TAXONOMY_TACTICS.map((t) => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
@@ -740,7 +1043,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     return (
                       <div key={t.id} className={`p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                         <div className="truncate">{t.name}</div>
-                        <div className="text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Flagged' : isUsed ? 'Deployed' : 'Unused'}</div>
+                        <div className="text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                       </div>
                     );
                   })}
@@ -757,16 +1060,22 @@ export const DreadlerArenaScreen: React.FC = () => {
         
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Portrait avatar */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 border border-red-500/60 overflow-hidden relative flex-shrink-0 shadow-[0_0_12px_rgba(239,68,68,0.2)]">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 border border-zinc-700 overflow-hidden relative flex-shrink-0">
             <img src={dreadlerPortrait} alt={activeSkin.name} className="w-full h-full object-cover object-top" />
-            <div className="absolute inset-0 bg-red-950/20" />
+            <div className="absolute inset-0 bg-black/20" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <h1 className="text-xs sm:text-lg font-serif font-semibold text-zinc-100 truncate">
                 {isMobile ? activeSkin.name : `Examiner: ${activeSkin.name}`}
               </h1>
-              <span className="text-[8px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 bg-red-950/30 border border-red-500/30 text-red-500 tracking-widest uppercase flex-shrink-0">
+              <span
+                className={`text-[8px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border ${
+                  (stateData?.agent_variant || '').toLowerCase() === 'collapsed'
+                    ? 'bg-zinc-900 border-zinc-500 text-zinc-300'
+                    : 'bg-zinc-950/80 border-zinc-600 text-zinc-300'
+                }`}
+              >
                 {stateData?.agent_variant || 'ALPHA'}
               </span>
             </div>
@@ -782,7 +1091,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             <span className="text-zinc-400 flex items-center gap-1 sm:gap-1.5">
               <span className="hidden sm:inline">LOGICAL COHERENCE:</span>
               <span className={`font-semibold uppercase ${getScoreTextColor(stateData?.score || 100)}`}>
-                {stateData?.pressure_level || 'calm'}
+                {normalizePressure(stateData?.pressure_level)}
               </span>
             </span>
             <span className="text-zinc-200 font-bold">{stateData?.score || 100}{!isMobile && '/100'}</span>
@@ -817,18 +1126,25 @@ export const DreadlerArenaScreen: React.FC = () => {
         
         {/* PANEL 1: CASE BRIEFCASE / NOTEBOOK (Hidden on mobile, toggled via drawer) */}
         <div className={`bg-[#0d0d12]/90 border border-zinc-800 flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 ${isMobile ? 'hidden' : ''}`}>
-          {/* Dreadler portrait banner at top of panel */}
+          {/* World + examiner banner (logic_diagram_smoke when dreadler_logic) */}
           <div className="relative h-32 flex-shrink-0 overflow-hidden">
             <img
+              src={WORLD_CARD_ART[activeWorld.id] || dreadlerLogicWorld}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover object-center grayscale opacity-90"
+              aria-hidden
+            />
+            <img
               src={dreadlerPortrait}
-              alt="Dreadler"
-              className="absolute inset-0 w-full h-full object-cover object-top"
+              alt={activeSkin.name}
+              className="absolute right-0 top-0 h-full w-1/2 object-cover object-top grayscale mask-image"
+              style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 35%)', maskImage: 'linear-gradient(to right, transparent, black 35%)' }}
             />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-[#0d0d12]" />
             <div className="absolute bottom-3 left-3">
-              <p className="text-[9px] font-mono uppercase tracking-widest text-red-400">Examiner</p>
+              <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Examiner</p>
               <p className="text-sm font-serif font-bold text-zinc-100">{activeSkin.name}</p>
-              <p className="text-[9px] font-mono text-zinc-400">{activeSkin.role}</p>
+              <p className="text-[9px] font-mono text-zinc-400">{activeSkin.role} · {activeWorld.id}</p>
             </div>
           </div>
           {/* Tabs */}
@@ -878,17 +1194,17 @@ export const DreadlerArenaScreen: React.FC = () => {
 
         {/* PANEL 2: MAIN INTERROGATION STREAM (Full on mobile) */}
         <div className={`border border-zinc-800 flex flex-col overflow-hidden relative ${isMobile ? 'lg:col-span-2 col-span-1' : 'lg:col-span-2'}`}>
-          {/* Cinematic arena room background */}
+          {/* Per-world ambient (logic_diagram_smoke for dreadler_logic) */}
           <img
-            src={dreadlerArenaRoom}
+            src={WORLD_STREAM_ART[activeWorld.id] || dreadlerArenaRoom}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
+            className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none grayscale"
             aria-hidden
           />
           {/* Heavy dark overlay so chat remains readable */}
           <div className="absolute inset-0 bg-black/88 pointer-events-none" />
-          {/* Red left vignette */}
-          <div className="absolute inset-0 bg-gradient-to-r from-red-950/20 to-transparent pointer-events-none" />
+          {/* Subtle monochrome left edge (design.md — no glow) */}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/[0.04] to-transparent pointer-events-none" />
           
           {/* Chat Feed */}
           <div className="flex-grow p-2 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4 custom-scrollbar relative z-10">
@@ -901,7 +1217,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 {/* Show video or fallback grid */}
                 <div className="absolute inset-0 w-full h-full">
                   <video
-                    ref={camera.videoRef}
+                    ref={camera.attachStream}
                     autoPlay
                     muted
                     playsInline
@@ -916,44 +1232,77 @@ export const DreadlerArenaScreen: React.FC = () => {
                   <div className="w-10 h-10 border border-red-500/20 rounded-full"></div>
                 </div>
                 
-                {/* BPM and Dominant Emotion badge */}
+                {/* BPM and Dominant Emotion badge — honest n/a when not live */}
                 <div className="absolute bottom-1 left-0 right-0 text-center bg-black/70 py-0.5 pointer-events-none">
-                  <p className="text-[8px] font-mono text-red-400 font-bold leading-none">♥ {displayBpm.toFixed(0)}</p>
-                  <p className="text-[7px] font-mono text-zinc-400 leading-none uppercase truncate px-1">{dominantEmotion}</p>
+                  <p className="text-[8px] font-mono text-red-400 font-bold leading-none">
+                    ♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)}
+                  </p>
+                  <p className="text-[7px] font-mono text-zinc-400 leading-none uppercase truncate px-1">
+                    {camera.cameraOn ? bioStatusLabel : dominantEmotion}
+                  </p>
                 </div>
               </div>
             )}
             {messages.map((msg) => {
               if (msg.sender === 'system') {
+                const isCollapse = /COHERENCE COLLAPSED/i.test(msg.text);
                 return (
-                  <div key={msg.id} className="p-2 sm:p-4 bg-red-950/30 border border-red-500/30 text-red-500 font-mono text-[10px] sm:text-[11px] leading-relaxed relative overflow-hidden animate-fadeIn">
-                    <div className="absolute top-0 bottom-0 left-0 w-1 bg-red-500"></div>
-                    <div className="font-bold uppercase tracking-widest mb-1">SYSTEM ALERT</div>
+                  <div
+                    key={msg.id}
+                    className={`p-2 sm:p-4 font-mono text-[10px] sm:text-[11px] leading-relaxed relative overflow-hidden animate-fadeIn border ${
+                      isCollapse
+                        ? 'bg-zinc-950 border-zinc-500 text-zinc-200'
+                        : 'bg-zinc-950/80 border-zinc-700 text-zinc-300'
+                    }`}
+                  >
+                    <div className={`absolute top-0 bottom-0 left-0 w-1 ${isCollapse ? 'bg-zinc-300' : 'bg-zinc-600'}`} />
+                    <div className="font-bold uppercase tracking-widest mb-1 text-zinc-100">
+                      {isCollapse ? 'COLLAPSE · PLAYER WIN' : 'SYSTEM ALERT'}
+                    </div>
                     {msg.text}
                   </div>
                 );
               }
               const isCharacter = msg.sender === 'character';
+              const isCollapsedVariant = (msg.variant || '').toLowerCase() === 'collapsed';
               return (
                 <div key={msg.id} className={`flex gap-2 sm:gap-3 max-w-[92%] sm:max-w-[85%] ${isCharacter ? 'mr-auto text-left' : 'ml-auto flex-row-reverse text-right'} animate-fadeIn`}>
                 <div className={`w-7 h-7 sm:w-9 sm:h-9 border flex-shrink-0 overflow-hidden ${
-                    isCharacter 
-                      ? 'border-red-500/50 shadow-[0_0_8px_rgba(239,68,68,0.2)]' 
+                    isCharacter
+                      ? isCollapsedVariant
+                        ? 'border-zinc-400 opacity-80'
+                        : 'border-zinc-600'
                       : 'border-zinc-700 bg-zinc-900 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold text-zinc-400'
                   }`}>
                     {isCharacter 
-                      ? <img src={dreadlerPortrait} alt={activeSkin.name} className="w-full h-full object-cover object-top" />
+                      ? <img src={dreadlerPortrait} alt={activeSkin.name} className={`w-full h-full object-cover object-top ${isCollapsedVariant ? 'grayscale brightness-50' : 'grayscale'}`} />
                       : 'C'
                     }
                   </div>
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <span className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-wider ${isCharacter ? 'text-red-400' : 'text-zinc-400'}`}>
+                      <span className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-wider ${isCharacter ? 'text-zinc-200' : 'text-zinc-400'}`}>
                         {isCharacter ? activeSkin.name : 'Counsel'}
                       </span>
-                      {msg.variant && <span className="text-[7px] sm:text-[8px] font-mono px-1 py-0.5 bg-red-950/20 text-red-500 border border-red-500/20 uppercase leading-none">{msg.variant}</span>}
+                      {msg.variant && (
+                        <span
+                          className={`text-[7px] sm:text-[8px] font-mono px-1 py-0.5 uppercase leading-none border ${
+                            isCollapsedVariant
+                              ? 'bg-zinc-900 text-zinc-200 border-zinc-400'
+                              : 'bg-zinc-950 text-zinc-400 border-zinc-700'
+                          }`}
+                        >
+                          {msg.variant}
+                        </span>
+                      )}
                     </div>
-                    <div className={`p-2.5 sm:p-4 border font-mono text-[10px] sm:text-xs leading-relaxed rounded-xl select-text ${isCharacter ? 'bg-[#121217] border-red-500/20 text-zinc-300' : 'bg-brand-accent/5 border-brand-accent/30 text-zinc-300'}`}>
+                    <div className={`p-2.5 sm:p-4 border font-mono text-[10px] sm:text-xs leading-relaxed rounded-none select-text ${
+                      isCharacter
+                        ? isCollapsedVariant
+                          ? 'bg-[#0a0a0a] border-zinc-500 text-zinc-200'
+                          : 'bg-[#121217] border-zinc-700 text-zinc-300'
+                        : 'bg-white/[0.03] border-white/15 text-zinc-300'
+                    }`}>
                       {renderMarkdown(msg.text)}
                       {msg.thinkingLog && msg.thinkingLog !== "No cognitive verification block generated." && (
                         <details className="mt-3 pt-2.5 border-t border-zinc-800 text-[9px] text-zinc-400 cursor-pointer select-text">
@@ -1012,26 +1361,47 @@ export const DreadlerArenaScreen: React.FC = () => {
           <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-4 sm:space-y-6 custom-scrollbar text-[10px] sm:text-xs">
             {/* BIOMETRICS & RETINAL SENSORS */}
             <div className="space-y-3">
-              {/* Algorithm selector tabs */}
+              {/* Algorithm selector — stubs disabled when camera is live */}
               <div className="flex border border-zinc-800/80 font-mono text-[8px] bg-black/20 p-[1px]">
-                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => (
-                  <button
-                    key={algo}
-                    onClick={() => setSelectedAlgo(algo)}
-                    type="button"
-                    className={`flex-grow py-1 text-center font-bold transition-all uppercase ${
-                      selectedAlgo === algo ? 'bg-red-950/40 text-red-400 border border-red-500/20' : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                  >
-                    {algo}
-                  </button>
-                ))}
+                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => {
+                  const liveDisabled =
+                    camera.cameraOn &&
+                    (algo === 'evm' ||
+                      algo === 'physformer' ||
+                      (algo === 'hsemotion' && !realBio.emotionsLive));
+                  const title =
+                    algo === 'evm' || algo === 'physformer'
+                      ? 'Not implemented — overlay cosmetic only when camera off'
+                      : algo === 'hsemotion' && camera.cameraOn && !realBio.emotionsLive
+                        ? 'Emotion model / backend not available'
+                        : algo === 'pos'
+                          ? 'Plane-Orthogonal-to-Skin rPPG (real when camera on)'
+                          : undefined;
+                  return (
+                    <button
+                      key={algo}
+                      onClick={() => !liveDisabled && setSelectedAlgo(algo)}
+                      type="button"
+                      disabled={liveDisabled}
+                      title={title}
+                      className={`flex-grow py-1 text-center font-bold transition-all uppercase ${
+                        liveDisabled
+                          ? 'text-zinc-700 cursor-not-allowed opacity-50'
+                          : selectedAlgo === algo
+                            ? 'bg-red-950/40 text-red-400 border border-red-500/20'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {algo}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Retinal scanner camera / wireframe sweep */}
               <div className="relative w-full h-36 border border-zinc-800 bg-zinc-950/40 overflow-hidden">
                 <video
-                  ref={camera.videoRef}
+                  ref={camera.attachStream}
                   autoPlay
                   muted
                   playsInline
@@ -1039,25 +1409,36 @@ export const DreadlerArenaScreen: React.FC = () => {
                   style={{ transform: 'scaleX(-1)', display: camera.cameraOn ? 'block' : 'none' }}
                 />
                 <WireframeScanCanvas active={!camera.cameraOn || camera.loading} isDirectLie={lastDirectLie} />
-                {camera.cameraOn && (
+                {camera.cameraOn && bpmLiveCapable && (
                   <ScanCircleOverlay 
                     videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
                     bpm={displayBpm} 
                     pupilMm={displayPupilMm ?? 0}
                     selectedAlgo={selectedAlgo}
-                    emotions={bio.emotions}
+                    emotions={emotionsLive ? bio.emotions : {}}
                   />
                 )}
                 
                 {/* HUD Overlay text */}
                 <div className="absolute top-1 left-2 text-[7px] text-zinc-500 font-mono tracking-widest uppercase">RETINAL BIOMETRICS</div>
-                <div className="absolute top-1 right-2 text-[8px] font-mono text-zinc-500 uppercase">
-                  {camera.cameraOn ? '● Live' : camera.loading ? '◌ Acquiring' : '○ Offline'}
+                <div className={`absolute top-1 right-2 text-[8px] font-mono uppercase ${
+                  bioStatusLabel === 'Live' || bioStatusLabel === 'POS only'
+                    ? 'text-emerald-400'
+                    : bioStatusLabel === 'Simulated'
+                      ? 'text-zinc-500'
+                      : 'text-amber-400'
+                }`}>
+                  {camera.loading ? '◌ Acquiring' : `● ${bioStatusLabel}`}
                 </div>
                 {camera.error && (
                   <div className="absolute inset-x-1 top-6 bg-red-950/80 border border-red-500/40 px-1.5 py-1 text-[8px] font-mono text-red-300 leading-tight">
                     ⚠ {camera.error}
+                  </div>
+                )}
+                {camera.cameraOn && realBio.unavailableReason && (
+                  <div className="absolute inset-x-1 bottom-7 bg-amber-950/75 border border-amber-500/30 px-1.5 py-1 text-[7px] font-mono text-amber-200/90 leading-tight">
+                    {realBio.unavailableReason}
                   </div>
                 )}
                 
@@ -1091,19 +1472,40 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 border border-zinc-800 p-2.5 bg-zinc-900/10 font-mono text-[10px]">
                 <div>
                   <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Heart Rate</span>
-                  <span className="font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? '—' : displayBpm.toFixed(0)} <span className="text-[7px] text-zinc-500 font-normal">BPM</span></span>
+                  <span className="font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)} <span className="text-[7px] text-zinc-500 font-normal">BPM</span></span>
                 </div>
                 <div>
                   <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
-                  <span className="font-bold text-red-400">👁 {displayPupilMm === null ? '—' : displayPupilMm.toFixed(2)} <span className="text-[7px] text-zinc-500 font-normal">MM</span></span>
+                  <span className="font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[7px] text-zinc-500 font-normal">MM</span></span>
                 </div>
               </div>
+              {!camera.cameraOn && (
+                <p className="text-[7px] text-zinc-600 font-mono uppercase tracking-wider">Drill telemetry · not camera-derived</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">HSEmotion Expression Matrix</h4>
+              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">
+                HSEmotion Expression Matrix
+                {camera.cameraOn && !emotionsLive && (
+                  <span className="ml-2 text-amber-500/80 normal-case tracking-normal">· disabled</span>
+                )}
+                {!camera.cameraOn && (
+                  <span className="ml-2 text-zinc-600 normal-case tracking-normal">· simulated</span>
+                )}
+              </h4>
               <div className="bg-[#121217] p-2.5 border border-zinc-800">
-                <EmotionBars emotions={bio.emotions} />
+                <EmotionBars
+                  emotions={bio.emotions}
+                  disabled={camera.cameraOn && !emotionsLive}
+                  disabledReason={
+                    realBio.mode === 'mobile' && !realBio.mobileConfigured
+                      ? 'Mobile emotion stream not configured'
+                      : realBio.mode === 'mobile'
+                        ? 'Backend offline — emotions unavailable'
+                        : 'Model not loaded (place ONNX under /models)'
+                  }
+                />
               </div>
             </div>
 
@@ -1115,15 +1517,15 @@ export const DreadlerArenaScreen: React.FC = () => {
             </div>
 
             <div className="space-y-2 sm:space-y-3">
-              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Fallacy Ledger</h4>
+              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Player fallacies exposed</h4>
               <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-[9px] sm:text-[10px]">
                 {TAXONOMY_TACTICS.map((t) => {
                   const isUsed = stateData?.used_tactics.includes(t.id);
                   const isActiveNow = lastTacticFlagged === t.id;
                   return (
-                    <div key={t.id} className={`p-1.5 sm:p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold shadow-[0_0_8px_rgba(239,68,68,0.15)]' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
+                    <div key={t.id} className={`p-1.5 sm:p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                       <div className="truncate">{t.name}</div>
-                      <div className="text-[7px] sm:text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Flagged' : isUsed ? 'Deployed' : 'Unused'}</div>
+                      <div className="text-[7px] sm:text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                     </div>
                   );
                 })}
@@ -1162,26 +1564,45 @@ export const DreadlerArenaScreen: React.FC = () => {
                 <button onClick={() => setShowMobileVKDrawer(false)} className="text-zinc-400 text-xs font-mono">[ Close ]</button>
               </div>
               
-              {/* Algorithm selector tabs */}
+              {/* Algorithm selector — stubs disabled when camera is live */}
               <div className="flex border border-zinc-800/80 font-mono text-[9px] bg-black/20 p-[1px] flex-shrink-0">
-                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => (
-                  <button
-                    key={algo}
-                    onClick={() => setSelectedAlgo(algo)}
-                    type="button"
-                    className={`flex-grow py-1.5 text-center font-bold transition-all uppercase ${
-                      selectedAlgo === algo ? 'bg-red-950/40 text-red-400 border border-red-500/20' : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                  >
-                    {algo}
-                  </button>
-                ))}
+                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => {
+                  const liveDisabled =
+                    camera.cameraOn &&
+                    (algo === 'evm' ||
+                      algo === 'physformer' ||
+                      (algo === 'hsemotion' && !realBio.emotionsLive));
+                  return (
+                    <button
+                      key={algo}
+                      onClick={() => !liveDisabled && setSelectedAlgo(algo)}
+                      type="button"
+                      disabled={liveDisabled}
+                      title={
+                        algo === 'evm' || algo === 'physformer'
+                          ? 'Not implemented'
+                          : algo === 'hsemotion' && camera.cameraOn && !realBio.emotionsLive
+                            ? 'Emotions unavailable without model/backend'
+                            : undefined
+                      }
+                      className={`flex-grow py-1.5 text-center font-bold transition-all uppercase ${
+                        liveDisabled
+                          ? 'text-zinc-700 cursor-not-allowed opacity-50'
+                          : selectedAlgo === algo
+                            ? 'bg-red-950/40 text-red-400 border border-red-500/20'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                    >
+                      {algo}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Ocular input camera feed / Wireframe */}
               <div className="relative w-full h-48 border border-zinc-800 bg-zinc-950 overflow-hidden">
                 <video
-                  ref={camera.videoRef}
+                  ref={camera.attachStream}
                   autoPlay
                   muted
                   playsInline
@@ -1189,20 +1610,34 @@ export const DreadlerArenaScreen: React.FC = () => {
                   style={{ transform: 'scaleX(-1)', display: camera.cameraOn ? 'block' : 'none' }}
                 />
                 <WireframeScanCanvas active={!camera.cameraOn || camera.loading} isDirectLie={lastDirectLie} />
-                {camera.cameraOn && (
+                {camera.cameraOn && bpmLiveCapable && (
                   <ScanCircleOverlay 
                     videoRef={camera.videoRef}
                     isDirectLie={lastDirectLie} 
                     bpm={displayBpm} 
                     pupilMm={displayPupilMm ?? 0}
                     selectedAlgo={selectedAlgo}
-                    emotions={bio.emotions}
+                    emotions={emotionsLive ? bio.emotions : {}}
                   />
                 )}
                 
+                <div className={`absolute top-2 right-2 text-[9px] font-mono uppercase px-1.5 py-0.5 border ${
+                  bioStatusLabel === 'Live' || bioStatusLabel === 'POS only'
+                    ? 'text-emerald-400 border-emerald-500/30 bg-emerald-950/40'
+                    : bioStatusLabel === 'Simulated'
+                      ? 'text-zinc-400 border-zinc-700 bg-black/40'
+                      : 'text-amber-300 border-amber-500/30 bg-amber-950/40'
+                }`}>
+                  {camera.loading ? 'Acquiring' : bioStatusLabel}
+                </div>
                 {camera.error && (
                   <div className="absolute inset-x-2 top-2 bg-red-950/85 border border-red-500/40 px-2 py-1.5 text-[10px] font-mono text-red-300 leading-tight">
                     ⚠ {camera.error}
+                  </div>
+                )}
+                {camera.cameraOn && realBio.unavailableReason && (
+                  <div className="absolute inset-x-2 bottom-14 bg-amber-950/80 border border-amber-500/30 px-2 py-1 text-[9px] font-mono text-amber-100 leading-tight">
+                    {realBio.unavailableReason}
                   </div>
                 )}
                 {!camera.cameraOn && !camera.loading && (
@@ -1232,23 +1667,36 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 border border-zinc-800 p-3 bg-zinc-900/10 font-mono">
                 <div>
                   <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Heart Rate</span>
-                  <span className="text-lg font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? '—' : displayBpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
+                  <span className="text-lg font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
                 </div>
                 <div>
                   <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Pupil Size</span>
-                  <span className="text-lg font-bold text-red-400">👁 {displayPupilMm === null ? '—' : displayPupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
+                  <span className="text-lg font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
                 </div>
               </div>
               
               {/* HSEmotion bars */}
               <div className="border border-zinc-800 p-3 bg-zinc-900/10">
-                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">HSEmotion Expression Matrix</p>
-                <EmotionBars emotions={bio.emotions} />
+                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">
+                  HSEmotion Expression Matrix
+                  {camera.cameraOn && !emotionsLive ? ' · disabled' : !camera.cameraOn ? ' · simulated' : ''}
+                </p>
+                <EmotionBars
+                  emotions={bio.emotions}
+                  disabled={camera.cameraOn && !emotionsLive}
+                  disabledReason={
+                    realBio.mode === 'mobile' && !realBio.mobileConfigured
+                      ? 'Mobile emotion stream not configured'
+                      : realBio.mode === 'mobile'
+                        ? 'Backend offline — emotions unavailable'
+                        : 'Model not loaded (place ONNX under /models)'
+                  }
+                />
               </div>
               
-              {/* Fallacy Ledger */}
+              {/* Player fallacies exposed */}
               <div className="border border-zinc-800 p-3 bg-zinc-900/10">
-                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Fallacy Ledger</p>
+                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Player fallacies exposed</p>
                 <div className="grid grid-cols-2 gap-1.5 text-[9px] font-mono">
                   {TAXONOMY_TACTICS.map((t) => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
@@ -1256,7 +1704,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     return (
                       <div key={t.id} className={`p-1.5 border ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`}>
                         <div className="truncate">{t.name}</div>
-                        <div className="text-[7px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Flagged' : isUsed ? 'Deployed' : 'Unused'}</div>
+                        <div className="text-[7px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                       </div>
                     );
                   })}
@@ -1339,6 +1787,17 @@ function useCameraStream() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** Keep whichever <video> currently owns videoRef attached to the live stream. */
+  const attachStream = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    const stream = streamRef.current;
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+      el.play().catch(() => undefined);
+    }
+  }, []);
+
   const requestPermission = useCallback(async () => {
     if (loading || cameraOn) return;
     setLoading(true);
@@ -1379,6 +1838,16 @@ function useCameraStream() {
     setCameraOn(false);
   }, []);
 
+  // Re-bind stream if the host remounts a different <video> while camera is on
+  // (mobile floating scope ↔ drawer share one ref).
+  useEffect(() => {
+    if (!cameraOn || !streamRef.current || !videoRef.current) return;
+    if (videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => undefined);
+    }
+  });
+
   useEffect(() => {
     return () => {
       if (streamRef.current) {
@@ -1388,7 +1857,7 @@ function useCameraStream() {
     };
   }, []);
 
-  return { videoRef, cameraOn, loading, error, requestPermission, stop };
+  return { videoRef, cameraOn, loading, error, requestPermission, stop, attachStream };
 }
 
 /** Turn a getUserMedia failure into a short, actionable message for the HUD. */
@@ -1795,7 +2264,7 @@ function WireframeScanCanvas({
       ctx.globalAlpha = 0.8;
       ctx.fillStyle = baseColor;
       ctx.font = '10px ui-monospace, monospace';
-      ctx.fillText('NO SIGNAL — RETINAL WIREFRAME ACTIVE', 8, 16);
+      ctx.fillText('NO SIGNAL / RETINAL WIREFRAME ACTIVE', 8, 16);
       ctx.fillText(`SCAN MODE: ${isDirectLie ? 'DECEPTION' : 'BASELINE'}`, 8, 30);
       ctx.fillText(`T+${t.toFixed(1)}s`, 8, h - 10);
 
@@ -1949,7 +2418,7 @@ function PPGWaveformCanvas({ bpm }: { bpm: number }) {
       // Labels
       ctx.fillStyle = 'rgba(34, 255, 136, 0.7)';
       ctx.font = '9px ui-monospace, monospace';
-      ctx.fillText('PPG — PLETHYSMOGRAPH', 6, 12);
+      ctx.fillText('PPG / PLETHYSMOGRAPH', 6, 12);
       ctx.fillText(`${currentBpm.toFixed(1)} BPM`, w - 70, 12);
 
       rafRef.current = requestAnimationFrame(draw);
@@ -1979,7 +2448,32 @@ function PPGWaveformCanvas({ bpm }: { bpm: number }) {
 // HSEmotion Bar Charts
 // ─────────────────────────────────────────────────────────────────────────────
 
-function EmotionBars({ emotions }: { emotions: EmotionSet }) {
+function EmotionBars({
+  emotions,
+  disabled = false,
+  disabledReason,
+}: {
+  emotions: EmotionSet;
+  disabled?: boolean;
+  disabledReason?: string;
+}) {
+  if (disabled) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center gap-1 py-4 px-2 text-center border border-dashed border-zinc-800/80 bg-black/20"
+        role="status"
+        aria-disabled="true"
+      >
+        <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">
+          Emotions unavailable
+        </span>
+        <span className="text-[8px] font-mono text-zinc-600 leading-snug max-w-[220px]">
+          {disabledReason || 'Classifier not loaded'}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       {EMOTION_KEYS.map((key) => {

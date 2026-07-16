@@ -38,8 +38,9 @@ export function estimateFps(samples: RgbSample[]): number {
   return (samples.length - 1) / span;
 }
 
-/** Mean of a numeric array. */
+/** Mean of a numeric array. Empty → 0 (avoids 0/0 NaN). */
 function mean(xs: number[]): number {
+  if (xs.length === 0) return 0;
   let s = 0;
   for (const x of xs) s += x;
   return s / xs.length;

@@ -1,5 +1,28 @@
 // Vercel Node.js 18+ serverless function — Case-law search proxy
-import { allowRequest, applyCors } from './security.js';
+// Hardened: origin allow-list, route-scoped rate limit, client-safe errors only.
+import {
+  allowRequest,
+  applyCors,
+  clampNumber,
+  clientError,
+  enforceBodyLimit,
+  fetchWithTimeout,
+  sanitizeProviderSnippet,
+} from './security.js';
+
+const UPSTREAM_TIMEOUT_MS = 20_000;
+/** Caselaw hits paid/fragile upstreams — tighter than generic search. */
+const RATE_LIMIT = 15;
+const RATE_WINDOW_MS = 60_000;
+const MAX_QUERY_LEN = 500;
+const MIN_QUERY_LEN = 2;
+const MAX_HTML_BYTES = 512 * 1024;
+const MAX_TITLE = 400;
+const MAX_SNIPPET = 400;
+const MAX_CITATION = 200;
+const MAX_COURT = 200;
+const MAX_DATE = 64;
+const MAX_DOCID = 120;
 
 // Indian jurisdiction has two explicit paths:
 //   1. Indian Kanoon's authenticated JSON API, when configured. It returns
@@ -35,6 +58,18 @@ const WEB_COURT_TERMS = {
 
 const SAFE_URL_SCHEMES = /^(https?:\/\/)/i;
 
+function setSafetyHeaders(res) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-store');
+}
+
+function denyOrigin(res) {
+    // Never reflect a disallowed Origin (no ACAO). Vary still helps caches.
+    res.setHeader('Vary', 'Origin');
+    setSafetyHeaders(res);
+    return res.status(403).json(clientError('Origin is not allowed.'));
+}
+
 function decodeHtmlEntities(str) {
     if (!str) return '';
     const entities = {
@@ -47,8 +82,9 @@ function decodeHtmlEntities(str) {
         .replace(/&[a-z]+;|&#\d+;/gi, (match) => entities[match] || match);
 }
 
-function cleanText(value) {
-    return decodeHtmlEntities((value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+function cleanText(value, maxLen = MAX_SNIPPET) {
+    return decodeHtmlEntities((value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim())
+        .slice(0, maxLen);
 }
 
 function sanitizeExternalUrl(rawUrl) {
@@ -56,11 +92,20 @@ function sanitizeExternalUrl(rawUrl) {
     if (!url) return null;
     if (url.startsWith('//')) url = `https:${url}`;
     if (!SAFE_URL_SCHEMES.test(url)) return null;
-    try { return new URL(url).toString(); } catch { return null; }
+    try {
+        const parsed = new URL(url);
+        // Block credentials-in-URL and non-http(s) after parse (defense in depth).
+        if (parsed.username || parsed.password) return null;
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+        return parsed.toString();
+    } catch {
+        return null;
+    }
 }
 
 function normalizeDate(value) {
-    if (typeof value !== 'string' || !value) return '';
+    if (value === undefined || value === null || value === '') return '';
+    if (typeof value !== 'string') return null;
     const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return null;
     const date = new Date(`${value}T00:00:00Z`);
@@ -100,36 +145,54 @@ function inferCourt(text, url) {
     return match ? match[1] : '';
 }
 
+function mapProviderDoc(doc) {
+    const docid = cleanText(String(doc?.docid || ''), MAX_DOCID);
+    return {
+        title: cleanText(doc?.docTitle || doc?.title || 'Untitled', MAX_TITLE),
+        citation: cleanText(doc?.citation || '', MAX_CITATION),
+        court: cleanText(doc?.court || '', MAX_COURT),
+        date: cleanText(doc?.judgement_date || doc?.date || '', MAX_DATE),
+        docid,
+        // Only emit a known-shape public doc URL; never echo raw provider URLs.
+        url: docid && /^\d+$/.test(docid) ? `https://indiankanoon.org/doc/${docid}/` : '',
+        snippet: cleanText(doc?.headnote || doc?.content || '', MAX_SNIPPET),
+        source: 'Indian Kanoon API',
+        verification: 'provider_metadata',
+    };
+}
+
 // ─── Authenticated Indian Kanoon API ───────────────────────────────────────
 async function searchIndianKanoonApi(query, apiKey, pageNum, limit) {
     const url = `https://api.indiankanoon.org/search/?formInput=${encodeURIComponent(query)}&pagenum=${pageNum}`;
     try {
-        const response = await fetch(url, {
+        const response = await fetchWithTimeout(url, {
             method: 'GET',
             headers: {
                 Authorization: `Token ${apiKey}`,
                 Accept: 'application/json',
                 'User-Agent': 'LexForgeBot/1.0 (+legal-sim citation lookup)',
             },
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        const docs = Array.isArray(data.docs) ? data.docs : [];
-        return docs.slice(0, limit).map((doc) => {
-            const docid = doc.docid || '';
-            return {
-                title: cleanText(doc.docTitle || doc.title || 'Untitled'),
-                citation: cleanText(doc.citation || ''),
-                court: cleanText(doc.court || ''),
-                date: cleanText(doc.judgement_date || doc.date || ''),
-                docid: String(docid),
-                url: docid ? `https://indiankanoon.org/doc/${docid}/` : '',
-                snippet: cleanText(doc.headnote || doc.content || '').slice(0, 400),
-                source: 'Indian Kanoon API',
-                verification: 'provider_metadata',
-            };
-        });
-    } catch {
+        }, UPSTREAM_TIMEOUT_MS);
+        if (!response.ok) {
+            // Status only — never log provider body (may include account hints).
+            console.error('[caselaw] indiankanoon status', response.status);
+            return null;
+        }
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            console.error('[caselaw] indiankanoon invalid JSON');
+            return null;
+        }
+        const docs = Array.isArray(data?.docs) ? data.docs : [];
+        return docs.slice(0, limit).map(mapProviderDoc);
+    } catch (err) {
+        const aborted = err?.name === 'AbortError';
+        console.error(
+            '[caselaw] indiankanoon network',
+            aborted ? 'timeout' : sanitizeProviderSnippet(String(err?.message || err)),
+        );
         return null;
     }
 }
@@ -139,15 +202,19 @@ async function searchIndianKanoonApi(query, apiKey, pageNum, limit) {
 // fallback does not recreate unauthenticated use of that provider.
 async function searchPublicWeb(query, limit) {
     try {
-        const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+        const response = await fetchWithTimeout(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
                 'Accept-Language': 'en-US,en;q=0.9',
             },
-        });
-        if (!response.ok) return null;
+        }, UPSTREAM_TIMEOUT_MS);
+        if (!response.ok) {
+            console.error('[caselaw] public-web status', response.status);
+            return null;
+        }
 
-        const html = await response.text();
+        // Cap HTML size before regex work (memory / CPU DoS guard).
+        const html = (await response.text()).slice(0, MAX_HTML_BYTES);
         const results = [];
         const blocks = html.split('<div class="result ');
         for (let index = 1; index < blocks.length && results.length < limit; index += 1) {
@@ -163,12 +230,17 @@ async function searchPublicWeb(query, limit) {
             }
             const url = sanitizeExternalUrl(rawUrl);
             if (!url) continue;
-            const hostname = new URL(url).hostname.toLowerCase();
+            let hostname = '';
+            try {
+                hostname = new URL(url).hostname.toLowerCase();
+            } catch {
+                continue;
+            }
             if (hostname.includes('duckduckgo.com') || hostname.endsWith('indiankanoon.org')) continue;
 
-            const title = cleanText(titleMatch[1]);
+            const title = cleanText(titleMatch[1], MAX_TITLE);
             if (!title) continue;
-            const snippet = snippetMatch ? cleanText(snippetMatch[1]).slice(0, 400) : '';
+            const snippet = snippetMatch ? cleanText(snippetMatch[1], MAX_SNIPPET) : '';
             results.push({
                 title,
                 citation: '',
@@ -177,85 +249,136 @@ async function searchPublicWeb(query, limit) {
                 docid: '',
                 url,
                 snippet,
-                source: hostname,
+                source: hostname.slice(0, 120),
                 verification: 'public_web_discovery',
             });
         }
         return results;
-    } catch {
+    } catch (err) {
+        const aborted = err?.name === 'AbortError';
+        console.error(
+            '[caselaw] public-web network',
+            aborted ? 'timeout' : sanitizeProviderSnippet(String(err?.message || err)),
+        );
         return null;
     }
 }
 
+function softUnavailable(message) {
+    return {
+        results: [],
+        jurisdiction: 'indian',
+        provider: null,
+        available: false,
+        message,
+    };
+}
+
 // ─── Handler ───────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
-    if (!applyCors(req, res)) return res.status(403).json({ error: 'Origin is not allowed.' });
+    // Origin first: rejected origins never get ACAO reflected.
+    if (!applyCors(req, res)) return denyOrigin(res);
+    setSafetyHeaders(res);
+
     if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-    if (!allowRequest(req, { limit: 20, windowMs: 60_000 })) return res.status(429).json({ error: 'Too many requests. Please wait a minute and try again.' });
+    if (req.method !== 'POST') return res.status(405).json(clientError('Method not allowed'));
+
+    // Route-scoped bucket so chat/search traffic does not exhaust caselaw quota.
+    if (!allowRequest(req, { limit: RATE_LIMIT, windowMs: RATE_WINDOW_MS, keyPrefix: 'caselaw:' })) {
+        res.setHeader('Retry-After', String(Math.ceil(RATE_WINDOW_MS / 1000)));
+        return res.status(429).json(clientError('Too many requests. Please wait a minute and try again.'));
+    }
+    if (!enforceBodyLimit(req, res)) return;
 
     let body = req.body;
     if (typeof body === 'string') {
-        try { body = JSON.parse(body); } catch { return res.status(400).json({ error: 'Invalid JSON' }); }
+        try {
+            body = JSON.parse(body);
+        } catch {
+            return res.status(400).json(clientError('Invalid JSON'));
+        }
     }
-    if (!body || typeof body.query !== 'string' || !body.query.trim()) {
-        return res.status(400).json({ error: "'query' is required" });
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return res.status(400).json(clientError('Request body must be a JSON object.'));
+    }
+    if (typeof body.query !== 'string' || !body.query.trim()) {
+        return res.status(400).json(clientError("'query' is required"));
     }
 
-    const query = body.query.trim().slice(0, 500);
+    const query = body.query.trim().replace(/\s+/g, ' ').slice(0, MAX_QUERY_LEN);
+    if (query.length < MIN_QUERY_LEN) {
+        return res.status(400).json(clientError('Query is too short.'));
+    }
+
+    // Only accept the known jurisdiction wire values; everything else → indian.
     const jurisdiction = body.jurisdiction === 'common' ? 'common' : 'indian';
-    const limit = Math.min(Math.max(Number(body.limit) || 8, 1), 12);
-    const pageNum = Math.min(Math.max(Number(body.pagenum) || 0, 0), 5);
+    const limit = clampNumber(Number(body.limit), 8, 1, 12);
+    const pageNum = clampNumber(Number(body.pagenum), 0, 0, 5);
     const court = typeof body.court === 'string' ? body.court : 'all';
     const fromDate = normalizeDate(body.fromDate);
     const toDate = normalizeDate(body.toDate);
 
-    if (!(court in COURT_FILTERS)) return res.status(400).json({ error: 'Unsupported court filter.' });
-    if (fromDate === null || toDate === null) return res.status(400).json({ error: 'Dates must use YYYY-MM-DD.' });
-    if (fromDate && toDate && new Date(body.fromDate) > new Date(body.toDate)) {
-        return res.status(400).json({ error: 'Start date must be before end date.' });
+    if (!(court in COURT_FILTERS)) return res.status(400).json(clientError('Unsupported court filter.'));
+    if (fromDate === null || toDate === null) return res.status(400).json(clientError('Dates must use YYYY-MM-DD.'));
+    // normalizeDate rewrites to D-M-YYYY for the provider; compare validated ISO inputs.
+    if (fromDate && toDate && String(body.fromDate) > String(body.toDate)) {
+        return res.status(400).json(clientError('Start date must be before end date.'));
     }
     if (jurisdiction === 'common') {
         return res.status(200).json({
-            results: [], jurisdiction: 'common', provider: null, available: false,
+            results: [],
+            jurisdiction: 'common',
+            provider: null,
+            available: false,
             message: 'International case-law lookup not yet implemented.',
         });
     }
 
+    // Never expose whether INDIANKANOON_API_KEY is set to the client.
+    const apiKey = process.env.INDIANKANOON_API_KEY;
+    const hasApiKey = typeof apiKey === 'string' && apiKey.trim().length > 0;
+
     try {
-        if (process.env.INDIANKANOON_API_KEY) {
+        if (hasApiKey) {
             const providerResults = await searchIndianKanoonApi(
                 buildFilteredQuery(query, court, fromDate, toDate),
-                process.env.INDIANKANOON_API_KEY,
+                apiKey.trim(),
                 pageNum,
                 limit,
             );
             if (providerResults) {
                 return res.status(200).json({
-                    results: providerResults, jurisdiction: 'indian', provider: 'indiankanoon-api', available: true,
+                    results: providerResults,
+                    jurisdiction: 'indian',
+                    provider: 'indiankanoon-api',
+                    available: true,
                 });
             }
         }
 
         const results = await searchPublicWeb(buildPublicWebQuery(query, court, fromDate, toDate), limit);
-        const providerFailed = Boolean(process.env.INDIANKANOON_API_KEY);
         const hasResults = Array.isArray(results) && results.length > 0;
+        // Soft 200 keeps client contract (available + message); no stack / provider bodies.
         return res.status(200).json({
             results: results || [],
             jurisdiction: 'indian',
             provider: results ? 'public-web-discovery' : null,
             available: Boolean(results),
             message: hasResults
-                ? `${providerFailed ? 'The configured provider was unavailable; ' : ''}Public-web discovery only: verify the linked primary judgment, court, date, citation, and current status. Date filters are approximate without a case-law database.`
+                ? 'Public-web discovery only: verify the linked primary judgment, court, date, citation, and current status. Date filters are approximate without a case-law database.'
                 : results
                     ? 'No public-web judgment leads matched those terms. Try a narrower issue, another court, or the official court-source links below.'
                     : 'Public-web case discovery is temporarily unavailable. Use the official court-source links below to continue research.',
         });
     } catch (error) {
-        console.error('Caselaw search failure:', error);
-        return res.status(200).json({
-            results: [], jurisdiction: 'indian', provider: null, available: false,
-            message: 'Case-law lookup failed. Use the official court-source links below to continue research.',
-        });
+        // Client-safe soft failure — log name only, never stack or raw provider text.
+        console.error(
+            '[caselaw] search failure',
+            error?.name || 'Error',
+            sanitizeProviderSnippet(String(error?.message || '')),
+        );
+        return res.status(200).json(softUnavailable(
+            'Case-law lookup failed. Use the official court-source links below to continue research.',
+        ));
     }
 }

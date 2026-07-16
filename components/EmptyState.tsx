@@ -10,6 +10,10 @@ interface EmptyStateProps {
   className?: string;
 }
 
+/**
+ * Dense empty placeholder: border structure, sans hierarchy,
+ * primary action as white monochrome CTA (design.md).
+ */
 export const EmptyState: React.FC<EmptyStateProps> = ({
   icon,
   title,
@@ -18,15 +22,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   className = '',
 }) => (
-  <div className={`flex flex-col items-center justify-center text-center px-6 py-12 rounded-2xl border border-dashed border-brand-border bg-brand-bg-secondary/40 ${className}`}>
+  <div
+    className={`flex flex-col items-center justify-center text-center px-5 py-10 rounded-md border border-brand-border bg-brand-bg-secondary/50 ${className}`}
+  >
     {icon && (
-      <div className="mb-4 text-brand-text-secondary/40 [&>svg]:h-10 [&>svg]:w-10">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md border border-brand-border text-brand-text-secondary/50 [&>svg]:h-5 [&>svg]:w-5">
         {icon}
       </div>
     )}
-    <h3 className="text-lg font-serif font-semibold text-brand-text-primary">{title}</h3>
+    <h3 className="text-[15px] font-medium tracking-tight text-brand-text-primary">{title}</h3>
     {description && (
-      <p className="mt-2 text-sm text-brand-text-secondary/85 max-w-md leading-relaxed">{description}</p>
+      <div className="mt-1.5 text-[13px] text-brand-text-secondary max-w-md leading-relaxed">{description}</div>
     )}
     {actionLabel && onAction && (
       <Button variant="primary" size="sm" className="mt-5" onClick={onAction}>

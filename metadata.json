@@ -1,6 +1,6 @@
 {
-  "name": "LexForge - AI-Powered Indian Legal Skills Platform",
-  "description": "LexForge is your complete legal skills OS — AI mock trials, contract drafting practice, case library research, strategy analysis and more, for Indian and international law.",
+  "name": "LexForge",
+  "description": "AI-powered legal skills platform for Indian and international law. Mock trials, contract drafting, case research, strategy analysis, and Deception Arena.",
   "requestFramePermissions": [],
   "prompt": ""
 }

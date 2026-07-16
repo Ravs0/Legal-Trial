@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx services/exportService.test.ts && tsx services/legalWritingScorer.test.ts && tsx services/courtDataGateway.test.ts && tsx services/trialScoring.test.ts && tsx services/aiService.test.ts && tsx services/demoSessionService.test.ts",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "bash -c 'set -euo pipefail; count=0; while IFS= read -r f; do echo \"==> $f\"; tsx \"$f\"; count=$((count+1)); done < <(find services vision hooks utils -type f -name \"*.test.ts\" | sort); echo \"Ran $count test file(s)\"; test \"$count\" -gt 0'",
     "check": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

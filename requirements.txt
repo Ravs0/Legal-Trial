@@ -1,0 +1,9 @@
+# LexForge — Vercel Python runtime for /api/dreadler
+#
+# The Dreadler serverless function and the local `dreadler/` package use only
+# the Python standard library (json, os, ssl, urllib, hmac, hashlib, http.server).
+# No third-party packages are required at runtime.
+#
+# This file exists so Vercel provisions the Python runtime deterministically
+# when building api/dreadler.py. Add pinned deps here only if the engine later
+# needs them.

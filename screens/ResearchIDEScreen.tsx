@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, Layout as LayoutIcon, Settings, RefreshCw, ChevronLeft, ChevronRight, AlignLeft, Split, Search, Maximize2, CheckCircle2, Sparkles, FileText } from 'lucide-react';
-import { ROUTES } from '../constants';
+import { ROUTES } from '../routes';
 import { trackEvent } from '../services/analyticsService';
 import { parseLegalPaper, analyzeLegalConsistency, refineLegalWithIntent } from '../services/lexideService';
 import { MasterManuscript } from './lexide/MasterManuscript';
@@ -11,7 +11,7 @@ import { NeuralSandbox } from './lexide/NeuralSandbox';
 import type { LexIDEAppState, LexIDEResearchResult, LexIDESection } from '../types';
 import { SurfacePattern } from '../components/SurfacePattern';
 import { Modal } from '../components/Modal';
-import libraryBooks from '../assets/library_books.jpg';
+import { screenMedia } from '../assets';
 
 const STORAGE_KEY = 'lexide_v1_session';
 
@@ -54,12 +54,26 @@ const ResearchIDEScreen: React.FC = () => {
   const [showSectionTitleDialog, setShowSectionTitleDialog] = useState(false);
   const [sectionTitleInput, setSectionTitleInput] = useState('');
   const [hasAiConsent, setHasAiConsent] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
+  const skipNextDirtyRef = useRef(true);
 
   const homeTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Debounced local autosave with explicit dirty / saving / saved chrome.
   useEffect(() => {
+    if (skipNextDirtyRef.current) {
+      skipNextDirtyRef.current = false;
+      return;
+    }
+    setSaveState('dirty');
     const timeoutId = setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setSaveState('saving');
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        setSaveState('saved');
+      } catch {
+        setSaveState('dirty');
+      }
     }, 1000);
     return () => clearTimeout(timeoutId);
   }, [state]);
@@ -105,18 +119,35 @@ const ResearchIDEScreen: React.FC = () => {
       sandboxSectionId: sectionId,
       sandboxDraft: section.content,
       sandboxProposed: section.content,
-      sandboxAnalysis: 'Running consistency check...',
-      sandboxMessages: [{ role: 'ai', text: `Neural Sandbox active for "${section.title}". Analyzing against the entire paper context...` }],
+      sandboxAnalysis: 'Running consistency check…',
+      sandboxMessages: [{
+        role: 'ai',
+        text: `Draft sandbox open for "${section.title}". Checking consistency against the rest of the paper…`,
+      }],
     }));
     const analysis = await analyzeLegalConsistency(section, state.sections);
     setState(prev => ({ ...prev, sandboxAnalysis: analysis }));
   };
 
+  /** Re-run analysis without resetting the editable proposed draft. */
+  const reanalyzeSandbox = async () => {
+    if (!hasAiConsent || !state.sandboxSectionId) return;
+    const section = state.sections.find(s => s.id === state.sandboxSectionId);
+    if (!section) return;
+    const working: LexIDESection = {
+      ...section,
+      content: state.sandboxProposed || section.content,
+    };
+    setState(prev => ({ ...prev, sandboxAnalysis: 'Running consistency check…' }));
+    const analysis = await analyzeLegalConsistency(working, state.sections);
+    setState(prev => ({ ...prev, sandboxAnalysis: analysis }));
+  };
+
   const handleSandboxRefine = async () => {
     if (!hasAiConsent) return;
-    if (!userIntent.trim() && !state.sandboxDraft) return;
+    if (!state.sandboxProposed.trim() && !userIntent.trim()) return;
     setIsSandboxProcessing(true);
-    const intent = userIntent || "Streamline and ensure document-wide stylistic consistency.";
+    const intent = userIntent.trim() || 'Streamline and ensure document-wide stylistic consistency.';
     setState(prev => ({
       ...prev,
       sandboxMessages: [...prev.sandboxMessages, { role: 'user', text: intent }],
@@ -126,16 +157,25 @@ const ResearchIDEScreen: React.FC = () => {
     setState(prev => ({
       ...prev,
       sandboxProposed: refined,
-      sandboxMessages: [...prev.sandboxMessages, { role: 'ai', text: "Proposed draft refined. Check for repetitions against other sections." }],
+      sandboxMessages: [
+        ...prev.sandboxMessages,
+        { role: 'ai', text: 'Proposed draft refined. Re-run analysis or commit when ready.' },
+      ],
     }));
     setUserIntent('');
     setIsSandboxProcessing(false);
+  };
+
+  /** Live sandbox edits update proposed only; sections change only on Commit. */
+  const updateSandboxProposed = (newContent: string) => {
+    setState(prev => ({ ...prev, sandboxProposed: newContent }));
   };
 
   const commitSandbox = (sectionId: string, newContent: string) => {
     setState(prev => ({
       ...prev,
       sections: prev.sections.map(s => s.id === sectionId ? { ...s, content: newContent } : s),
+      viewMode: 'workspace',
     }));
   };
 
@@ -175,20 +215,35 @@ const ResearchIDEScreen: React.FC = () => {
   }, [state.activeLeftSectionId, state.citationStyle]);
 
   const handleAutoMap = async () => {
-    if (!state.fullContent.trim() || !hasAiConsent) return;
+    if (!state.fullContent.trim()) {
+      setValidationError('Paste a draft before running Smart Split.');
+      setTimeout(() => setValidationError(null), 4000);
+      return;
+    }
+    if (!hasAiConsent) {
+      setValidationError('Confirm AI-processing consent before running Smart Split.');
+      setTimeout(() => setValidationError(null), 4000);
+      return;
+    }
     setIsProcessing(true);
     try {
       const parsed = await parseLegalPaper(state.fullContent);
-      const newSections: LexIDESection[] = parsed.sections.map((s: any, idx: number) => ({
+      const newSections: LexIDESection[] = parsed.sections.map((s, idx) => ({
         id: `auto-${idx}-${Date.now()}`,
-        title: s.title,
-        content: s.content,
+        title: s.title || `Section ${idx + 1}`,
+        content: s.content || '',
       }));
+      if (newSections.length === 0) {
+        setValidationError('Smart Split returned no sections. Check headings or split manually.');
+        setTimeout(() => setValidationError(null), 5000);
+        return;
+      }
       setState(prev => ({ ...prev, sections: [...prev.sections, ...newSections] }));
       trackEvent('ai_smart_split_used', { sectionCount: newSections.length });
-    } catch {
-      setValidationError("AI Smart Split failed. Check your DeepSeek API key or try again.");
-      setTimeout(() => setValidationError(null), 5000);
+    } catch (err) {
+      const detail = err instanceof Error && err.message ? err.message : 'Check your AI API key or try again.';
+      setValidationError(`AI Smart Split failed. ${detail}`);
+      setTimeout(() => setValidationError(null), 6000);
     } finally {
       setIsProcessing(false);
     }
@@ -229,8 +284,13 @@ const ResearchIDEScreen: React.FC = () => {
       <SurfacePattern variant="grid" className="opacity-25" />
       {/* Activity Bar */}
       <div className="relative z-20 w-14 bg-brand-bg-secondary border-r border-brand-border flex flex-col items-center py-5 gap-3 shrink-0">
-        <div className="w-9 h-9 rounded-lg overflow-hidden border border-brand-border mb-2">
-          <img src={libraryBooks} alt="" className="w-full h-full object-cover" />
+        <div className="w-9 h-9 rounded-lg overflow-hidden border border-brand-border mb-2 relative">
+          <img
+            src={screenMedia.researchIDE.banner}
+            alt=""
+            className="w-full h-full object-cover grayscale"
+          />
+          <div className="absolute inset-0 bg-black/25 pointer-events-none" />
         </div>
         <button
           onClick={switchToHome}
@@ -251,9 +311,9 @@ const ResearchIDEScreen: React.FC = () => {
         {state.sandboxSectionId && (
           <button
             onClick={() => setState(prev => ({ ...prev, viewMode: 'ai-sandbox' }))}
-            aria-label="Open AI sandbox"
+            aria-label="Open draft sandbox"
             className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'ai-sandbox' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
-            title="Neural Sandbox"
+            title="Draft sandbox"
           >
             <Sparkles size={20} />
           </button>
@@ -265,7 +325,7 @@ const ResearchIDEScreen: React.FC = () => {
           <button onClick={clearSession} aria-label="Clear research session" className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors" title="Clear Session">
             <RefreshCw size={20} />
           </button>
-          <Settings size={20} className="text-brand-text-secondary/25 cursor-not-allowed" />
+          <Settings size={20} className="text-brand-text-secondary/25 cursor-not-allowed" aria-hidden />
         </div>
       </div>
 
@@ -283,6 +343,7 @@ const ResearchIDEScreen: React.FC = () => {
           onCreateSection={handleCreateSection}
           hasAiConsent={hasAiConsent}
           setHasAiConsent={setHasAiConsent}
+          saveState={saveState}
         />
       ) : state.viewMode === 'ai-sandbox' ? (
         <div className="relative z-10 flex-1 min-w-0 overflow-hidden">
@@ -295,8 +356,9 @@ const ResearchIDEScreen: React.FC = () => {
           userIntent={userIntent}
           setUserIntent={setUserIntent}
           isSandboxProcessing={isSandboxProcessing}
-          onAnalyze={() => enterSandbox(state.sandboxSectionId)}
+          onAnalyze={reanalyzeSandbox}
           onRefine={handleSandboxRefine}
+          onUpdateProposed={updateSandboxProposed}
           onCommit={commitSandbox}
           onDiscard={switchToWorkspace}
         />
@@ -306,13 +368,28 @@ const ResearchIDEScreen: React.FC = () => {
         <div className="relative z-10 flex-1 flex overflow-hidden">
           {/* Collapsible Explorer */}
           <div className={`hidden lg:flex bg-brand-bg-secondary border-r border-brand-border transition-all duration-500 ease-in-out flex-col relative overflow-hidden ${state.isExplorerVisible ? 'w-64' : 'w-0'}`}>
-            <div className="p-4 border-b border-brand-border flex items-center justify-between min-w-[256px]">
-              <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary flex items-center gap-2">
-                <LayoutIcon size={12}/> Explorer
-              </span>
-              <button onClick={toggleExplorer} aria-label="Hide explorer" className="text-brand-text-secondary/40 hover:text-brand-text-primary transition-all">
-                <ChevronLeft size={14}/>
-              </button>
+            <div className="relative min-w-[256px] h-14 border-b border-brand-border overflow-hidden shrink-0">
+              <img
+                src={screenMedia.researchIDE.workspace}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover grayscale"
+              />
+              <div className="absolute inset-0 bg-black/65" />
+              <div
+                className="absolute inset-0 opacity-20 pointer-events-none"
+                style={{
+                  backgroundImage:
+                    'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
+                }}
+              />
+              <div className="relative z-10 h-full px-4 flex items-center justify-between">
+                <span className="text-[11px] uppercase tracking-wide text-white/80 flex items-center gap-2">
+                  <LayoutIcon size={12} aria-hidden /> Explorer
+                </span>
+                <button onClick={toggleExplorer} aria-label="Hide explorer" className="text-white/50 hover:text-white transition-colors">
+                  <ChevronLeft size={14}/>
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto min-w-[256px] py-2 custom-scrollbar">
               {state.sections.map(s => (
@@ -348,7 +425,7 @@ const ResearchIDEScreen: React.FC = () => {
                 className="w-full py-2.5 bg-white text-black rounded-lg text-[12px] font-medium hover:bg-white/90 flex items-center justify-center gap-2 transition-colors"
               >
                 {copyStatus ? <CheckCircle2 size={14} /> : <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-4H7v4"/><path d="M7 13h10"/><path d="M7 9h4"/></svg>}
-                {copyStatus ? "COMPILED" : "COMPILE PAPER"}
+                {copyStatus ? 'Compiled' : 'Compile paper'}
               </button>
             </div>
           </div>
@@ -385,10 +462,33 @@ const ResearchIDEScreen: React.FC = () => {
                   onClick={() => leftSection && enterSandbox(leftSection.id)}
                   className="px-2.5 py-1 bg-white/[0.04] hover:bg-white/[0.08] text-[11px] text-brand-text-primary rounded-md border border-brand-border flex items-center gap-1.5 transition-colors"
                 >
-                  <Sparkles size={12} /> Sandbox
+                  <Sparkles size={12} aria-hidden /> Sandbox
                 </button>
-                <span className="hidden sm:flex text-[11px] text-brand-text-secondary/50 items-center gap-1.5">
-                  <CheckCircle2 size={10} className="text-white/30" /> Saved
+                <span
+                  role="status"
+                  className={`hidden sm:flex text-[11px] items-center gap-1.5 tabular-nums ${
+                    saveState === 'dirty'
+                      ? 'text-brand-text-primary'
+                      : 'text-brand-text-secondary/60'
+                  }`}
+                >
+                  <CheckCircle2
+                    size={10}
+                    className={
+                      saveState === 'saving'
+                        ? 'text-white/50 animate-pulse'
+                        : saveState === 'dirty'
+                          ? 'text-white/80'
+                          : 'text-white/30'
+                    }
+                  />
+                  {saveState === 'saving'
+                    ? 'Saving…'
+                    : saveState === 'dirty'
+                      ? 'Unsaved'
+                      : saveState === 'saved'
+                        ? 'Saved'
+                        : 'Local draft'}
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -407,6 +507,7 @@ const ResearchIDEScreen: React.FC = () => {
                     onAddFootnote={(pos) => handleAddFootnote(leftSection.id, pos)}
                     onResearchSelection={setResearchQuery}
                     footnotes={state.footnotes}
+                    saveState={saveState}
                   />
                 )}
               </div>
@@ -433,25 +534,28 @@ const ResearchIDEScreen: React.FC = () => {
                       onAddFootnote={(pos) => handleAddFootnote(rightSection.id, pos)}
                       onResearchSelection={setResearchQuery}
                       footnotes={state.footnotes}
+                      saveState={saveState}
                     />
                   )}
                 </div>
               )}
             </div>
 
-            <footer className="h-10 bg-brand-bg-dark-secondary border-t border-brand-border flex items-center justify-between px-8 shrink-0 z-30">
-              <div className="flex items-center gap-8 text-[9px] text-brand-text-secondary uppercase font-bold tracking-[0.2em]">
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-accent/50"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8.5L2 8.5V20a2 2 0 0 0 2 2z"/></svg>
-                  {state.footnotes.length} FOOTNOTES
+            <footer className="h-10 bg-brand-bg-secondary border-t border-brand-border flex items-center justify-between px-4 sm:px-6 shrink-0 z-30">
+              <div className="flex items-center gap-5 sm:gap-8 text-[10px] text-brand-text-secondary uppercase tracking-wider">
+                <div className="flex items-center gap-2 tabular-nums">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary/50" aria-hidden><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8.5L2 8.5V20a2 2 0 0 0 2 2z"/></svg>
+                  {state.footnotes.length} footnotes
                 </div>
-                <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary/40"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                  {leftSection ? leftSection.content.split(/\s+/).filter(x => x.length > 0).length : 0} WORDS
+                <div className="flex items-center gap-2 tabular-nums">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary/40" aria-hidden><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  {leftSection ? leftSection.content.split(/\s+/).filter(x => x.length > 0).length : 0} words
                 </div>
-                <div className="text-brand-accent/60 font-mono">STATUS::NODE_STABLE</div>
+                <div className="hidden sm:block font-mono text-brand-text-secondary/50 normal-case tracking-normal">
+                  {saveState === 'saving' ? 'autosave…' : saveState === 'dirty' ? 'pending' : 'local'}
+                </div>
               </div>
-              <div className="text-[9px] text-brand-text-secondary/40 font-bold uppercase tracking-widest">LexIDE v1.0</div>
+              <div className="text-[10px] text-brand-text-secondary/40 uppercase tracking-widest">LexIDE</div>
             </footer>
           </main>
 
@@ -482,19 +586,20 @@ const ResearchIDEScreen: React.FC = () => {
       {/* Section Title Dialog */}
       <Modal isOpen={showSectionTitleDialog} onClose={() => setShowSectionTitleDialog(false)} title="Name this section" size="sm">
           <div>
-            <h3 className="text-sm font-bold text-brand-text-primary uppercase tracking-widest mb-2">Name This Section</h3>
-            <p className="text-[10px] text-brand-text-secondary/60 mb-6">Give a descriptive title to the selected text from your manuscript.</p>
+            <p className="text-[12px] text-brand-text-secondary mb-4 leading-relaxed">
+              Give a descriptive title to the selected text from your manuscript.
+            </p>
             <input
               autoFocus
               value={sectionTitleInput}
               onChange={(e) => setSectionTitleInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && sectionTitleInput.trim()) confirmCreateSection(); if (e.key === 'Escape') setShowSectionTitleDialog(false); }}
-              placeholder="e.g. Introduction, Legal Framework..."
-              className="w-full bg-brand-bg-dark-secondary border border-brand-border rounded-xl px-4 py-3 text-sm text-brand-text-primary focus:ring-1 focus:ring-brand-accent/50 outline-none placeholder:text-brand-text-secondary/30"
+              placeholder="e.g. Introduction, Legal Framework…"
+              className="w-full bg-brand-bg-secondary border border-brand-border rounded-lg px-4 py-3 text-sm text-brand-text-primary focus:ring-1 focus:ring-white/20 outline-none placeholder:text-brand-text-secondary/30"
             />
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowSectionTitleDialog(false)} className="flex-1 py-2.5 text-xs text-brand-text-secondary/60 hover:text-brand-text-primary border border-brand-border rounded-xl transition-all font-bold uppercase tracking-tighter">Cancel</button>
-              <button onClick={confirmCreateSection} disabled={!sectionTitleInput.trim()} className="flex-1 py-2.5 text-xs bg-brand-accent hover:opacity-90 text-brand-bg-dark rounded-xl transition-all font-bold uppercase tracking-tighter disabled:opacity-50">Create</button>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowSectionTitleDialog(false)} className="flex-1 py-2.5 text-xs text-brand-text-secondary hover:text-brand-text-primary border border-brand-border rounded-lg transition-colors font-medium uppercase tracking-wide">Cancel</button>
+              <button onClick={confirmCreateSection} disabled={!sectionTitleInput.trim()} className="flex-1 py-2.5 text-xs bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-medium uppercase tracking-wide disabled:opacity-50">Create</button>
             </div>
           </div>
       </Modal>

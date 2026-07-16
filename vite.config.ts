@@ -12,21 +12,39 @@ export default defineConfig({
     host: '0.0.0.0',
   },
   plugins: [react()],
+  // Strip license banners from minified output (smaller headers, no behavior change).
+  esbuild: {
+    legalComments: 'none',
+  },
   build: {
+    // Evergreen targets reduce polyfill surface for modern browsers / Vercel.
+    target: 'es2022',
+    cssCodeSplit: true,
+    // Inline tiny assets; keep photo JPGs (~150KB–800KB) as hashed files.
+    assetsInlineLimit: 4096,
+    // onnxruntime-web + wasm inflate chunk size; avoid noisy false alarms.
+    chunkSizeWarningLimit: 1500,
+    modulePreload: {
+      polyfill: true,
+    },
     rollupOptions: {
       output: {
-        // Split stable vendor libs into a cacheable, parallel-loaded chunk
-        // so app-code deploys don't bust the React vendor cache.
+        // Split stable libs into cacheable, parallel-loaded chunks so app-code
+        // deploys do not bust React / markdown / vision vendor caches.
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
+          markdown: ['react-markdown'],
           vision: ['onnxruntime-web'],
         },
       },
     },
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
-    }
-  }
+    },
+  },
 });

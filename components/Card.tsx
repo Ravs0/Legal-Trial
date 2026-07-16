@@ -9,9 +9,16 @@ interface CardProps {
   icon?: React.ReactNode;
   onClick?: () => void;
   hoverEffect?: boolean;
+  /**
+   * @deprecated Gradient titles removed (design.md monochrome). Accepted for call-site compat only.
+   */
   titleGradient?: boolean;
 }
 
+/**
+ * Flat surface card: border structure over elevation.
+ * design.md — borders over cards, no lift shadows, minimal radius.
+ */
 export const Card: React.FC<CardProps> = ({
   children,
   className = '',
@@ -21,14 +28,16 @@ export const Card: React.FC<CardProps> = ({
   icon,
   onClick,
   hoverEffect = false,
+  titleGradient: _titleGradient,
 }) => {
+  void _titleGradient;
   const isFlexColCard = className.includes('flex-col');
 
   return (
     <div
-      className={`rounded-lg bg-brand-bg-secondary border border-brand-border overflow-hidden
+      className={`rounded-md bg-brand-bg-secondary border border-brand-border overflow-hidden
         ${onClick ? 'cursor-pointer' : ''}
-        ${hoverEffect && onClick ? 'hover:bg-brand-bg-tertiary/80 transition-colors' : ''}
+        ${hoverEffect && onClick ? 'hover:bg-brand-bg-tertiary hover:border-white/15 transition-colors duration-150' : ''}
         ${className}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
@@ -41,21 +50,29 @@ export const Card: React.FC<CardProps> = ({
       }}
     >
       {icon && (
-        <div className="w-full pt-5 pb-2 flex items-center justify-center">
-          <div className="w-11 h-11 rounded-md border border-brand-border flex items-center justify-center text-brand-text-secondary">
-            {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'h-5 w-5' })}
+        <div className="w-full pt-4 pb-1.5 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-md border border-brand-border flex items-center justify-center text-brand-text-secondary">
+            {React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
+              className: 'h-5 w-5',
+            })}
           </div>
         </div>
       )}
 
       {(title || actions) && (
-        <div className={`px-4 py-3 flex justify-between items-center ${children ? 'border-b border-brand-border' : ''}`}>
+        <div
+          className={`px-4 py-2.5 flex justify-between items-center gap-3 ${
+            children ? 'border-b border-brand-border' : ''
+          }`}
+        >
           {title && (
-            <h3 className={`text-[15px] font-medium tracking-tight text-brand-text-primary ${titleClassName}`}>
+            <h3
+              className={`text-[13px] font-medium tracking-tight text-brand-text-primary min-w-0 ${titleClassName}`}
+            >
               {title}
             </h3>
           )}
-          {actions && <div className="flex-shrink-0">{actions}</div>}
+          {actions && <div className="flex-shrink-0 flex items-center gap-2">{actions}</div>}
         </div>
       )}
       <div className={`p-4 ${isFlexColCard ? 'flex-grow flex flex-col' : ''}`}>{children}</div>

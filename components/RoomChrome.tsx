@@ -16,6 +16,7 @@ interface RoomBannerProps {
 /**
  * Shared chrome for module rooms so Strategy / Drafting / Personas / Research
  * do not look like abandoned one-offs. Same photo + hatch language as PhotoHero.
+ * Flat monochrome overlays only; no gold/green glow.
  */
 export const RoomBanner: React.FC<RoomBannerProps> = ({
   image,
@@ -26,7 +27,7 @@ export const RoomBanner: React.FC<RoomBannerProps> = ({
   dense = false,
   className = '',
 }) => (
-  <div
+  <header
     className={`relative overflow-hidden border border-brand-border rounded-xl flex-shrink-0 ${
       dense ? 'min-h-[72px]' : 'min-h-[100px] sm:min-h-[112px]'
     } ${className}`}
@@ -68,7 +69,7 @@ export const RoomBanner: React.FC<RoomBannerProps> = ({
       </div>
       {trailing && <div className="flex-shrink-0 flex items-center gap-2">{trailing}</div>}
     </div>
-  </div>
+  </header>
 );
 
 /** Segmented control: white = active (anti-slop, no gold glow). */

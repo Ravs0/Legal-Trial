@@ -46,8 +46,8 @@ class DreadlerAgent:
 
     def __init__(
         self,
-        world: str = "missing_alibi",
-        skin: str = "prosecutor_vance",
+        world: str = "dreadler_logic",
+        skin: str = "dreadler",
         api_key: str | None = None,
         model: str = "deepseek-chat",
         max_history_messages: int = 24,
@@ -116,17 +116,8 @@ class DreadlerAgent:
 
         character_name = self.spawner.get_character_name()
 
-        # The skin dictionary is private on ``SpawnBase`` but the spec
-        # requires us to pull the alpha variant text directly from it.
-        character_style_val = (
-            self.spawner._skin.get("variants", {}).get("alpha", "")
-            if hasattr(self.spawner, "_skin")
-            else ""
-        )
-        if isinstance(character_style_val, dict):
-            character_style = character_style_val.get("system_prompt", "")
-        else:
-            character_style = character_style_val
+        # Canonical alpha system_prompt (normalized dict; no dual-shape branch).
+        character_style = self.spawner.get_variant_system_prompt("alpha")
 
         block = template.replace("[CHARACTER_NAME]", character_name or "")
         block = block.replace("[CHARACTER_STYLE_DESCRIPTION]", character_style)
@@ -268,6 +259,12 @@ class DreadlerAgent:
 
         ssl_context = ssl.create_default_context()
 
+        if not self.api_key:
+            raise RuntimeError(
+                "DEEPSEEK_API_KEY_MISSING: No DeepSeek API key configured. "
+                "Set DEEPSEEK_API_KEY or DEEPSEEK_CHAT_API_KEY."
+            )
+
         try:
             with urllib.request.urlopen(
                 request, context=ssl_context, timeout=120
@@ -342,9 +339,9 @@ class DreadlerAgent:
         Execute one full agent turn.
 
         If there is a prior Dreadler challenge, first evaluate the player's new
-        input against that challenge and apply score changes. Then, if the
-        current identity has collapsed, respawn before generating the next
-        in-character response.
+        input against that challenge and apply score changes. If coherence has
+        collapsed, generate one final in-character reply under the collapsed
+        variant, then respawn (score → 60) so the next turn is not a jump-cut.
         """
         self.spawned_new_agent = False
         self.state.advance_turn()
@@ -376,11 +373,18 @@ class DreadlerAgent:
             )
             self._apply_critic_result(critic_result, user_input)
 
-        if self.state.is_collapsed():
-            self.spawner.spawn_new_agent(self.state)
-            self.spawned_new_agent = True
+        # One-turn collapse visibility: generate while still collapsed so the
+        # player hears the failed variant, then respawn for the *next* turn.
+        # (Previously spawn-before-call made collapse a pure jump-cut to beta.)
+        collapsed_this_turn = self.state.is_collapsed()
+        response_variant = self.state.agent_variant
+        response_pressure = self.state.pressure_level
 
         agent_response = self._call_agent(user_input)
+
+        if collapsed_this_turn:
+            self.spawner.spawn_new_agent(self.state)
+            self.spawned_new_agent = True
 
         self.dialogue_history.append({"role": "user", "content": user_input})
         self.dialogue_history.append({"role": "assistant", "content": agent_response})
@@ -390,13 +394,19 @@ class DreadlerAgent:
             "character_response": agent_response,
             "coherence_score": self.state.score,
             "pressure_level": self.state.pressure_level,
-            "agent_variant": self.state.agent_variant,
+            # Message-facing variant stays collapsed for this turn's reply.
+            "agent_variant": response_variant if collapsed_this_turn else self.state.agent_variant,
             "critic_analysis": critic_result.get("explanation", ""),
             "is_direct_lie": critic_result.get("is_direct_lie", False),
             "spawned_new_agent": self.spawned_new_agent,
             "thinking_log": (
                 f"Turn {self.state.turn_count} | Score {self.state.score} | "
-                f"Variant {self.state.agent_variant}"
+                f"Variant {response_variant if collapsed_this_turn else self.state.agent_variant}"
+                + (
+                    f" | COLLAPSE({response_pressure})→RESPAWN({self.state.agent_variant})"
+                    if collapsed_this_turn
+                    else ""
+                )
             ),
         }
 

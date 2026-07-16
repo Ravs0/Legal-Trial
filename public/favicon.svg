@@ -1,18 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- Rounded square background matching bento card corners, in deep charcoal/sage -->
-  <rect width="32" height="32" rx="8" fill="#080D0C" />
-  <rect width="30" height="30" x="1" y="1" rx="7" stroke="#2F3C38" stroke-width="1" />
-  
-  <!-- Scales of justice logo icon in Aged Brass -->
-  <line x1="16" y1="8" x2="16" y2="24" stroke="#D6BA91" stroke-width="1.5" stroke-linecap="round" />
-  <line x1="11" y1="24" x2="21" y2="24" stroke="#D6BA91" stroke-width="1.5" stroke-linecap="round" />
-  <line x1="7" y1="12" x2="25" y2="12" stroke="#D6BA91" stroke-width="1.5" stroke-linecap="round" />
-  
-  <!-- Left Scale Pan -->
-  <line x1="10" y1="12" x2="10" y2="18" stroke="#D6BA91" stroke-width="0.75" />
-  <path d="M 7 18 C 7 20, 13 20, 13 18 Z" stroke="#D6BA91" stroke-width="0.75" fill="none" />
-  
-  <!-- Right Scale Pan -->
-  <line x1="22" y1="12" x2="22" y2="18" stroke="#D6BA91" stroke-width="0.75" />
-  <path d="M 19 18 C 19 20, 25 20, 25 18 Z" stroke="#D6BA91" stroke-width="0.75" fill="none" />
+  <!-- Monochrome shell: charcoal field, warm-gray scales (design.md, no brass/gold) -->
+  <rect width="32" height="32" rx="8" fill="#0a0a0a" />
+  <rect width="30" height="30" x="1" y="1" rx="7" stroke="#2a2a2a" stroke-width="1" />
+  <!-- Scales of justice -->
+  <line x1="16" y1="8" x2="16" y2="24" stroke="#c4bfb6" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="11" y1="24" x2="21" y2="24" stroke="#c4bfb6" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="7" y1="12" x2="25" y2="12" stroke="#c4bfb6" stroke-width="1.5" stroke-linecap="round" />
+  <!-- Left pan -->
+  <line x1="10" y1="12" x2="10" y2="18" stroke="#c4bfb6" stroke-width="0.75" />
+  <path d="M 7 18 C 7 20, 13 20, 13 18 Z" stroke="#c4bfb6" stroke-width="0.75" fill="none" />
+  <!-- Right pan -->
+  <line x1="22" y1="12" x2="22" y2="18" stroke="#c4bfb6" stroke-width="0.75" />
+  <path d="M 19 18 C 19 20, 25 20, 25 18 Z" stroke="#c4bfb6" stroke-width="0.75" fill="none" />
 </svg>

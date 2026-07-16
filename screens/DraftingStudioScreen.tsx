@@ -4,9 +4,16 @@ import { DRAFTING_TASKS_INDIAN, DRAFTING_TASKS_INTERNATIONAL } from '../constant
 import { DraftingTask, DraftingStudioStage } from '../types';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { QuillIcon } from '../components/icons/QuillIcon';
-import { generateDraftingFacts, generateDraftingGuidance, getFilingProcedureInfo } from '../services/aiService';
+import {
+  AcademicCapIcon,
+  Bars3Icon,
+  CheckCircleIcon,
+  QuillIcon,
+  XMarkIcon,
+} from '../components/icons';
+import { AiServiceError, generateDraftingFacts, generateDraftingGuidance, getFilingProcedureInfo } from '../services/aiService';
 import { SelectInput } from '../components/SelectInput';
 import { scoreLegalWriting, ScoringResult } from '../services/legalWritingScorer';
 import { ScoreCard } from '../components/ScoreCard';
@@ -15,54 +22,50 @@ import { renderLegalMarkdown } from '../utils/markdown';
 import { RoomBanner, RoomStepper } from '../components/RoomChrome';
 import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
 import { PhotoTile } from '../components/PhotoTile';
+import { buildDraftMarkdown, downloadMarkdown, draftFilename } from '../services/exportService';
 import draftingPen from '../assets/drafting_pen.jpg';
-import libraryBooks from '../assets/library_books.jpg';
+import trialBinderDesk from '../assets/trial_binder_desk.jpg';
 import counselScales from '../assets/counsel_scales.jpg';
 import judgeGavel from '../assets/judge_gavel.jpg';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
+import {
+  isMicSupported,
+  preferredRecordingMimeType,
+  transcribeAudio,
+  speakWithBestEffort,
+  probeVoiceAvailability,
+  humanizeVoiceError,
+  VoiceError,
+  isTTSAvailable,
+} from '../services/voiceService';
 
-// Icons
-import { Bars3Icon } from '../components/icons/Bars3Icon';
-import { XMarkIcon } from '../components/icons/XMarkIcon';
-
+// Screen-local outline icons (not yet promoted to components/icons)
 const LightbulbIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6 6 0 1 0-7.432-1.201M12 11.25a6 6 0 1 1 7.432-1.201M12 18c1.38 0 2.5 1.12 2.5 2.5s-1.12 2.5-2.5 2.5-2.5-1.12-2.5-2.5 1.12-2.5 2.5-2.5Z" />
   </svg>
 );
 
 const BookOpenIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
   </svg>
 );
 
 const ClipboardIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 18 4.5h-2.25a2.25 2.25 0 0 0-2.25-2.25H10.5A2.25 2.25 0 0 0 8.25 4.5H6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 6 18.75h3Z" />
   </svg>
 );
 
-const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-  </svg>
-);
-
 const ChartBarIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
   </svg>
 );
 
-const AcademicCapIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.57 50.57 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84a50.557 50.557 0 0 0-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm0 0v-3.675A55.378 55.378 0 0 1 12 8.443m-7.007 11.55A5.981 5.981 0 0 0 6.75 15.75v-1.5" />
-  </svg>
-);
-
 const HistoryIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
   </svg>
 );
@@ -93,6 +96,10 @@ const DraftingStudioScreen: React.FC = () => {
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [stage, setStage] = useState<DraftingStudioStage>('task_selection');
   const [isLoadingAiInteraction, setIsLoadingAiInteraction] = useState<boolean>(false);
+  /** Local AI failure (fact gen / mentor / filing). Global error still set for shell banner. */
+  type StudioErrorScope = 'facts' | 'review' | 'filing' | 'general';
+  const [studioError, setStudioError] = useState<{ scope: StudioErrorScope; message: string } | null>(null);
+  const [lastFailedTaskId, setLastFailedTaskId] = useState<string | null>(null);
   
   // Reference Panel States
   const [activeRefTab, setActiveRefTab] = useState<'facts' | 'feedback' | 'procedure' | 'score' | 'compliance' | 'course' | 'history'>('facts');
@@ -248,7 +255,7 @@ const DraftingStudioScreen: React.FC = () => {
               <tr className="bg-brand-bg-secondary text-[10px] uppercase border-b border-brand-text-primary/30 text-brand-text-secondary">
                 <th className="p-2 border-r border-brand-text-primary/20 w-12 text-center">Line</th>
                 <th className="p-2 border-r border-brand-text-primary/20 w-1/2 text-left">Snapshot</th>
-                <th className="p-2 border-r border-brand-text-primary/20.w-12 text-center">Line</th>
+                <th className="p-2 border-r border-brand-text-primary/20 w-12 text-center">Line</th>
                 <th className="p-2 text-left w-1/2">Current Draft</th>
               </tr>
             </thead>
@@ -262,8 +269,8 @@ const DraftingStudioScreen: React.FC = () => {
                   rowBg = 'bg-brand-error/10';
                   oldTextColor = 'text-brand-error font-medium line-through';
                 } else if (row.type === 'added') {
-                  rowBg = 'bg-emerald-500/10';
-                  newTextColor = 'text-emerald-400 font-medium';
+                  rowBg = 'bg-white/5';
+                  newTextColor = 'text-brand-text-primary font-medium';
                 } else {
                   oldTextColor = 'text-brand-text-primary/80';
                   newTextColor = 'text-brand-text-primary/80';
@@ -347,40 +354,106 @@ const DraftingStudioScreen: React.FC = () => {
 
   // Voice Recording state for STT
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [sttAvailable, setSttAvailable] = useState<boolean | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isMicSupported()) {
+      setSttAvailable(false);
+      return;
+    }
+    probeVoiceAvailability()
+      .then((cap) => {
+        if (!cancelled) setSttAvailable(cap.probeFailed ? true : cap.available);
+      })
+      .catch(() => { if (!cancelled) setSttAvailable(true); });
+    return () => {
+      cancelled = true;
+      try {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.stop();
+        }
+      } catch { /* ignore */ }
+      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+    };
+  }, []);
 
   const startRecording = async () => {
     setGlobalError(null);
     audioChunksRef.current = [];
+
+    if (!isMicSupported()) {
+      setGlobalError('Microphone recording is not supported in this browser. Type your draft instead.');
+      return;
+    }
+    if (sttAvailable === false) {
+      setGlobalError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type your draft instead.');
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      mediaStreamRef.current = stream;
+      const preferredMime = preferredRecordingMimeType();
+      const mediaRecorder = preferredMime
+        ? new MediaRecorder(stream, { mimeType: preferredMime })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
+      mediaRecorder.onerror = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        setIsRecording(false);
+        setGlobalError('Recording failed. Check microphone permissions and try again.');
+      };
+
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        mediaStreamRef.current = null;
+        const mimeType = (mediaRecorder.mimeType || preferredMime || 'audio/webm').split(';')[0] || 'audio/webm';
+        const chunks = audioChunksRef.current;
+        audioChunksRef.current = [];
+        if (!chunks.length) {
+          setGlobalError('No audio captured. Check the microphone and try again.');
+          return;
+        }
+        const audioBlob = new Blob(chunks, { type: mimeType });
         await handleSTT(audioBlob);
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(250);
       setIsRecording(true);
     } catch (err) {
       console.error('Microphone access denied:', err);
-      setGlobalError('Microphone access is required for voice input.');
+      const name = err instanceof DOMException ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setGlobalError('Microphone permission denied. Allow mic access or type your draft.');
+      } else if (name === 'NotFoundError') {
+        setGlobalError('No microphone found. Type your draft instead.');
+      } else {
+        setGlobalError('Microphone access is required for voice input.');
+      }
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
+        mediaStreamRef.current = null;
+      }
     }
     setIsRecording(false);
   };
@@ -388,29 +461,14 @@ const DraftingStudioScreen: React.FC = () => {
   const handleSTT = async (blob: Blob) => {
     setIsLoadingAiInteraction(true);
     try {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        const res = await fetch('/api/voice', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'stt',
-            audio: base64Audio,
-            language: 'en-IN',
-          }),
-        });
-
-        if (!res.ok) throw new Error('STT call failed');
-        const data = await res.json();
-        if (data.status === 'success' && data.text) {
-          setUserDraft(prev => prev ? `${prev}\n${data.text}` : data.text);
-        }
-      };
-      reader.readAsDataURL(blob);
+      const text = await transcribeAudio(blob, { language: 'en-IN' });
+      setUserDraft(prev => (prev ? `${prev}\n${text}` : text));
     } catch (err) {
       console.error('Transcription error:', err);
-      setGlobalError('Failed to transcribe voice.');
+      if (err instanceof VoiceError && err.code === 'MISSING_API_KEY') {
+        setSttAvailable(false);
+      }
+      setGlobalError(humanizeVoiceError(err));
     } finally {
       setIsLoadingAiInteraction(false);
     }
@@ -418,41 +476,28 @@ const DraftingStudioScreen: React.FC = () => {
 
   const handleSpeak = async (text: string) => {
     try {
-      const response = await fetch('/api/voice', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'tts',
-          text,
-          language: 'en-IN',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Speech synthesis failed');
+      const mode = await speakWithBestEffort(text, { language: 'en-IN' });
+      if (mode === 'none') {
+        setGlobalError(
+          isTTSAvailable()
+            ? 'Could not play speech.'
+            : 'Speech playback is not supported in this browser.',
+        );
       }
-
-      const data = await response.json();
-      if (data.status !== 'success' || !data.audio) {
-        throw new Error('No audio returned');
-      }
-
-      // Sarvam returns base64-encoded WAV; decode and play.
-      const byteString = atob(data.audio);
-      const bytes = new Uint8Array(byteString.length);
-      for (let i = 0; i < byteString.length; i++) bytes[i] = byteString.charCodeAt(i);
-      const audioBlob = new Blob([bytes], { type: data.format === 'wav' ? 'audio/wav' : 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
-      audio.play();
-
     } catch (error) {
       console.error('Error playing speech:', error);
+      setGlobalError(humanizeVoiceError(error));
     }
   };
 
-  // (renderLegalMarkdown is imported from ../utils/markdown — inline copy removed)
+  // renderLegalMarkdown imported from ../utils/markdown
   const isLoading = isFactGenerating || isLoadingAiInteraction;
+
+  const humanizeStudioAiError = useCallback((err: unknown, fallback: string) => {
+    if (err instanceof AiServiceError && err.message.trim()) return err.message.trim();
+    if (err instanceof Error && err.message.trim()) return err.message.trim();
+    return fallback;
+  }, []);
 
   // Auto-save logic
   useEffect(() => {
@@ -474,7 +519,7 @@ const DraftingStudioScreen: React.FC = () => {
     }
   }, [currentTask]);
 
-  // Debounced live scoring — runs 800ms after the user stops typing
+  // Debounced live scoring: runs 800ms after the user stops typing
   useEffect(() => {
     if (scoreTimerRef.current) clearTimeout(scoreTimerRef.current);
     if (userDraft.trim().length < 50) {
@@ -503,8 +548,10 @@ const DraftingStudioScreen: React.FC = () => {
     setIsFactGenerating(false);
     setIsLoadingAiInteraction(false);
     setGlobalError(null);
+    setStudioError(null);
+    setLastFailedTaskId(null);
     setActiveRefTab('facts');
-  }, [setIsFactGenerating, setGlobalError]);
+  }, [currentTask, setIsFactGenerating, setGlobalError]);
 
   useEffect(() => {
     if (practiceMode) {
@@ -517,66 +564,107 @@ const DraftingStudioScreen: React.FC = () => {
   const handleTaskSelectionAndFactGeneration = async (taskId: string) => {
     if (!practiceMode || !taskId || isLoading) return;
     const selected = availableTasks.find(t => t.id === taskId);
-    if (selected) {
-      resetTaskStateFull();
-      setCurrentTask(selected);
-      setStage('fact_generation_loading');
-      setIsFactGenerating(true);
-      setGlobalLoading(true);
+    if (!selected) {
+      const msg = 'That instrument is not available in this jurisdiction.';
+      setStudioError({ scope: 'facts', message: msg });
+      setGlobalError(msg);
+      return;
+    }
 
-      try {
-        const factsResponse = await generateDraftingFacts(selected.type, selected.relevantLaws, practiceMode, selected.objective);
+    // Clear prior instrument state without wiping the pending selection path.
+    if (currentTask && currentTask.id !== selected.id) {
+      localStorage.removeItem(`draft-save-${currentTask.id}`);
+    }
+    setGeneratedFacts('');
+    setUserDraft('');
+    setSelectedSectionId(null);
+    setAiFeedback('');
+    setFilingProcedure('');
+    setScoringResult(null);
+    setSnapshots([]);
+    setStudioError(null);
+    setGlobalError(null);
+    setCurrentTask(selected);
+    setStage('fact_generation_loading');
+    setIsFactGenerating(true);
+    setGlobalLoading(true);
 
-        if (factsResponse && !factsResponse.toLowerCase().startsWith("error:")) {
-          setGeneratedFacts(factsResponse);
-          setStage('task_details_display');
-        } else {
-          const errorMsg = factsResponse || "Error: AI did not return facts for scenario generation.";
-          setGlobalError(errorMsg);
-          setCurrentTask(null);
-          setStage('task_selection');
-        }
-      } catch (e) {
-        const errorMsg = e instanceof Error ? e.message : String(e);
-        setGlobalError(`Critical Error (Fact Generation): ${errorMsg}`);
-        setCurrentTask(null);
-        setStage('task_selection');
-      } finally {
-        setIsFactGenerating(false);
-        setGlobalLoading(false);
-      }
+    try {
+      const factsResponse = await generateDraftingFacts(
+        selected.type,
+        selected.relevantLaws,
+        practiceMode,
+        selected.objective,
+      );
+      setGeneratedFacts(factsResponse);
+      setLastFailedTaskId(null);
+      setStudioError(null);
+      setStage('task_details_display');
+    } catch (e) {
+      const errorMsg = humanizeStudioAiError(
+        e,
+        'Could not generate scenario facts. Your selection is preserved; retry shortly.',
+      );
+      setStudioError({ scope: 'facts', message: errorMsg });
+      setGlobalError(errorMsg);
+      setLastFailedTaskId(selected.id);
+      setCurrentTask(null);
+      setStage('task_selection');
+    } finally {
+      setIsFactGenerating(false);
+      setGlobalLoading(false);
     }
   };
 
   const handleProceedToDrafting = () => {
     if (stage === 'task_details_display' && !isLoading && currentTask) {
+      setStudioError(null);
       setStage('drafting');
     }
-  }
+  };
 
   const handleSubmitForReview = async () => {
     if (!currentTask || !practiceMode || !generatedFacts.trim() || isLoading) return;
-    if (userDraft.trim() === "") {
-      setGlobalError("Please write your draft before submitting for review.");
+    if (userDraft.trim() === '') {
+      const msg = 'Write your draft before submitting for review.';
+      setStudioError({ scope: 'review', message: msg });
+      setGlobalError(msg);
       return;
     }
 
     setIsLoadingAiInteraction(true);
     setGlobalLoading(true);
     setActiveRefTab('feedback');
+    setStudioError(null);
+    setGlobalError(null);
 
-    const sectionName = selectedSectionId ? currentTask.sections?.find(s => s.id === selectedSectionId)?.name : null;
+    const sectionName = selectedSectionId
+      ? currentTask.sections?.find(s => s.id === selectedSectionId)?.name
+      : null;
 
-    const feedbackResponse = await generateDraftingGuidance(currentTask, userDraft, generatedFacts, practiceMode, sectionName || undefined);
-    if (feedbackResponse && !feedbackResponse.toLowerCase().startsWith("error:")) {
+    try {
+      const feedbackResponse = await generateDraftingGuidance(
+        currentTask,
+        userDraft,
+        generatedFacts,
+        practiceMode,
+        sectionName || undefined,
+      );
       setAiFeedback(feedbackResponse);
       setStage('feedback_review');
-    } else {
-      const errorMsg = feedbackResponse || "Error: Could not get feedback from AI.";
+      setStudioError(null);
+    } catch (e) {
+      // Keep draft + stage; only surface error so user can retry without data loss.
+      const errorMsg = humanizeStudioAiError(
+        e,
+        'Could not get mentor feedback. Your draft is preserved; retry shortly.',
+      );
+      setStudioError({ scope: 'review', message: errorMsg });
       setGlobalError(errorMsg);
+    } finally {
+      setIsLoadingAiInteraction(false);
+      setGlobalLoading(false);
     }
-    setIsLoadingAiInteraction(false);
-    setGlobalLoading(false);
   };
 
   const handleGetFilingInfo = async () => {
@@ -584,18 +672,54 @@ const DraftingStudioScreen: React.FC = () => {
     setIsLoadingAiInteraction(true);
     setGlobalLoading(true);
     setActiveRefTab('procedure');
-    
-    const infoResponse = await getFilingProcedureInfo(currentTask.type, currentTask.relevantLaws, practiceMode);
-    if (infoResponse && !infoResponse.toLowerCase().startsWith("error:")) {
+    setStudioError(null);
+    setGlobalError(null);
+
+    try {
+      const infoResponse = await getFilingProcedureInfo(
+        currentTask.type,
+        currentTask.relevantLaws,
+        practiceMode,
+      );
       setFilingProcedure(infoResponse);
       setStage('filing_procedure');
-    } else {
-      const errorMsg = infoResponse || "Error: Could not get filing information from AI.";
+      setStudioError(null);
+    } catch (e) {
+      const errorMsg = humanizeStudioAiError(
+        e,
+        'Could not load filing guidance. Retry shortly.',
+      );
+      setStudioError({ scope: 'filing', message: errorMsg });
       setGlobalError(errorMsg);
+    } finally {
+      setIsLoadingAiInteraction(false);
+      setGlobalLoading(false);
     }
-    setIsLoadingAiInteraction(false);
-    setGlobalLoading(false);
   };
+
+  const handleExportDraft = useCallback(() => {
+    if (!currentTask || !userDraft.trim()) {
+      const msg = 'Nothing to export yet. Write a draft first.';
+      setStudioError({ scope: 'general', message: msg });
+      setGlobalError(msg);
+      return;
+    }
+    const markdown = buildDraftMarkdown({
+      title: currentTask.title,
+      documentType: currentTask.type,
+      practiceMode: practiceMode || 'unknown',
+      objective: currentTask.objective,
+      facts: generatedFacts,
+      draft: userDraft,
+      feedback: aiFeedback,
+    });
+    const ok = downloadMarkdown(draftFilename(currentTask.title), markdown);
+    if (!ok) {
+      const msg = 'Could not download the draft file in this environment.';
+      setStudioError({ scope: 'general', message: msg });
+      setGlobalError(msg);
+    }
+  }, [currentTask, userDraft, practiceMode, generatedFacts, aiFeedback, setGlobalError]);
 
   // Sync scroll on ref changes
   useEffect(() => {
@@ -665,11 +789,11 @@ const DraftingStudioScreen: React.FC = () => {
                 </div>
                 <div className="p-2.5 border-b border-brand-text-primary/30 grid grid-cols-2 gap-2 bg-brand-bg-primary/30">
                   <div className="text-red-400/80">THIS AGREEMENT made and entered into this 24th day... by and between Alpha Fund LP...</div>
-                  <div className="text-green-400/90 font-medium">This Stock Purchase Agreement is dated May 24, 2026, and is between Alpha Fund LP ("Investor") and Beta Tech Inc. ("Company").</div>
+                  <div className="text-brand-text-primary/90 font-medium">This Stock Purchase Agreement is dated May 24, 2026, and is between Alpha Fund LP ("Investor") and Beta Tech Inc. ("Company").</div>
                 </div>
                 <div className="p-2.5 grid grid-cols-2 gap-2 bg-brand-bg-primary/15">
                   <div className="text-red-400/80">WITNESSETH: WHEREAS, the Company desires to sell Preferred Stock...</div>
-                  <div className="text-green-400/90 font-medium">Recitals:<br/>1. The Company is conducting a Series A finance raise.<br/>2. The Company desires to sell Series A shares...</div>
+                  <div className="text-brand-text-primary/90 font-medium">Recitals:<br/>1. The Company is conducting a Series A finance raise.<br/>2. The Company desires to sell Series A shares...</div>
                 </div>
               </div>
             </div>
@@ -704,15 +828,15 @@ const DraftingStudioScreen: React.FC = () => {
                 </div>
                 <div className="p-2.5 border-b border-brand-text-primary/30 grid grid-cols-2 gap-2 bg-brand-bg-primary/30">
                   <div className="text-red-400/80">"Terms" shall have the meanings...</div>
-                  <div className="text-green-400/90 font-medium">"Terms" has the meaning... (Policy)</div>
+                  <div className="text-brand-text-primary/90 font-medium">"Terms" has the meaning... (Policy)</div>
                 </div>
                 <div className="p-2.5 border-b border-brand-text-primary/30 grid grid-cols-2 gap-2 bg-brand-bg-primary/15">
                   <div className="text-red-400/80">Seller shall represent that...</div>
-                  <div className="text-green-400/90 font-medium">Seller represents that... (Assertion)</div>
+                  <div className="text-brand-text-primary/90 font-medium">Seller represents that... (Assertion)</div>
                 </div>
                 <div className="p-2.5 grid grid-cols-2 gap-2 bg-brand-bg-primary/30">
                   <div className="text-red-400/80">Agreement shall be governed...</div>
-                  <div className="text-green-400/90 font-medium">Agreement is governed... (Policy)</div>
+                  <div className="text-brand-text-primary/90 font-medium">Agreement is governed... (Policy)</div>
                 </div>
               </div>
             </div>
@@ -728,7 +852,7 @@ const DraftingStudioScreen: React.FC = () => {
             <div className="bg-brand-bg-secondary p-3 rounded-xl border border-brand-text-primary/30 space-y-2">
               <p className="text-red-400/90 font-mono text-[10px] leading-normal">Ambiguous Clause:<br/>"The Company shall not hire employees or independent contractors who reside in California."</p>
               <p className="text-[10px] text-brand-text-secondary">Does "who reside in California" modify employees, or only independent contractors?</p>
-              <p className="text-green-400/90 font-mono text-[10px] leading-normal">Option A (Both):<br/>"The Company shall not hire any individual residing in California, whether as an employee or as an independent contractor."</p>
+              <p className="text-brand-text-primary/90 font-mono text-[10px] leading-normal">Option A (Both):<br/>"The Company shall not hire any individual residing in California, whether as an employee or as an independent contractor."</p>
             </div>
             
             <div className="font-semibold text-brand-text-primary">3.2 Tabulation Rules</div>
@@ -803,13 +927,13 @@ Section 8.2 Limitation of Liability.
               <p><strong>Ejusdem Generis ("Of the same kind"):</strong> General terms following a list are limited to similar items.</p>
               <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
                 <span className="text-red-400 font-mono">Trap:</span> "Tenant shall not keep dogs, cats, birds, or other animals." (Tiger might be excluded by a court as not a household pet).<br/>
-                <span className="text-green-400 font-mono">Fix:</span> "...or other animals, whether domestic or wild."
+                <span className="text-brand-success font-mono">Fix:</span> "...or other animals, whether domestic or wild."
               </div>
               
               <p><strong>Expressio Unius ("Exclusion of others"):</strong> Mentioning one implies excluding the other.</p>
               <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
                 <span className="text-red-400 font-mono">Trap:</span> "Seller represents that IP does not infringe US patents." (Implies no representation for foreign patents or trademarks).<br/>
-                <span className="text-green-400 font-mono">Fix:</span> "...any intellectual property right globally."
+                <span className="text-brand-success font-mono">Fix:</span> "...any intellectual property right globally."
               </div>
             </div>
           </div>
@@ -923,7 +1047,7 @@ Section 8.2 Limitation of Liability.
                           {[
                             { label: 'Plaints', image: courtroomLuxury },
                             { label: 'Petitions', image: judgeGavel },
-                            { label: 'Contracts', image: libraryBooks },
+                            { label: 'Contracts', image: trialBinderDesk },
                             { label: 'Notices', image: counselScales },
                           ].map((t) => (
                             <PhotoTile
@@ -935,6 +1059,31 @@ Section 8.2 Limitation of Liability.
                             />
                           ))}
                         </div>
+
+                        {studioError && (
+                          <div
+                            role="alert"
+                            className="border border-white/15 bg-brand-bg-secondary p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary mb-1">
+                                Scenario generation failed
+                              </p>
+                              <p className="text-[13px] text-brand-text-primary leading-relaxed">{studioError.message}</p>
+                            </div>
+                            {lastFailedTaskId && (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                className="uppercase tracking-wider text-[10px] rounded-xl flex-shrink-0"
+                                onClick={() => void handleTaskSelectionAndFactGeneration(lastFailedTaskId)}
+                                disabled={isLoading}
+                              >
+                                Retry
+                              </Button>
+                            )}
+                          </div>
+                        )}
 
                         <PatternPanel pattern="dots" className="p-5 sm:p-8">
                           <div className="space-y-6">
@@ -950,25 +1099,49 @@ Section 8.2 Limitation of Liability.
                               </p>
                             </div>
 
-                            <SelectInput
-                              options={groupedTaskOptionsForSelect}
-                              onChange={(e) => {
-                                if (e.target.value && !e.target.value.startsWith('__optgroup__')) {
-                                  handleTaskSelectionAndFactGeneration(e.target.value);
-                                }
-                              }}
-                              placeholder="Browse legal instruments..."
-                              value={currentTask?.id || ''}
-                              disabled={isLoading}
-                              className="py-3.5"
-                            />
+                            {!practiceMode ? (
+                              <EmptyState
+                                icon={<QuillIcon />}
+                                title="No practice mode selected"
+                                description="Open Home and choose Indian or International mode to load drafting instruments."
+                              />
+                            ) : availableTasks.length === 0 ? (
+                              <EmptyState
+                                icon={<ClipboardIcon className="w-10 h-10" />}
+                                title="No instruments in this docket"
+                                description="No drafting tasks are configured for this jurisdiction yet."
+                              />
+                            ) : (
+                              <SelectInput
+                                options={groupedTaskOptionsForSelect}
+                                onChange={(e) => {
+                                  if (e.target.value && !e.target.value.startsWith('__optgroup__')) {
+                                    void handleTaskSelectionAndFactGeneration(e.target.value);
+                                  }
+                                }}
+                                placeholder="Browse legal instruments..."
+                                value={currentTask?.id || lastFailedTaskId || ''}
+                                disabled={isLoading}
+                                className="py-3.5"
+                              />
+                            )}
                           </div>
                         </PatternPanel>
                       </>
                     ) : (
                         <PatternPanel pattern="lines" className="p-10 text-center max-w-xl mx-auto">
-                            <LoadingSpinner text="Generating facts for your instrument..." size="lg" spinnerColor="text-brand-accent" textColor="text-brand-text-secondary" />
-                            <p className="text-[12px] text-brand-text-secondary mt-4 uppercase tracking-wide">Building the scenario</p>
+                            <LoadingSpinner
+                              text="Generating facts for your instrument..."
+                              size="lg"
+                              spinnerColor="text-white/70"
+                              textColor="text-brand-text-secondary"
+                            />
+                            <p className="text-[12px] text-brand-text-secondary mt-4 uppercase tracking-wide">
+                              Building the scenario
+                            </p>
+                            <p className="text-[11px] text-brand-text-secondary/70 mt-2">
+                              This usually takes a few seconds. Stay on this screen.
+                            </p>
                         </PatternPanel>
                     )}
                 </div>
@@ -1019,10 +1192,10 @@ Section 8.2 Limitation of Liability.
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Score</span>
                                     {scoringResult && (
                                         <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
-                                            ${scoringResult.verdictTier === 'excellent' ? 'bg-emerald-500/20 text-emerald-400' :
-                                              scoringResult.verdictTier === 'good' ? 'bg-brand-accent/20 text-brand-accent' :
-                                              scoringResult.verdictTier === 'fair' ? 'bg-amber-500/20 text-amber-400' :
-                                              'bg-red-500/20 text-red-400'}
+                                            ${scoringResult.verdictTier === 'excellent' ? 'bg-white/15 text-white' :
+                                              scoringResult.verdictTier === 'good' ? 'bg-white/10 text-brand-text-primary' :
+                                              scoringResult.verdictTier === 'fair' ? 'bg-white/5 text-brand-text-secondary' :
+                                              'bg-brand-error/15 text-brand-error'}
                                         `}>
                                             {Math.round(scoringResult.totalScore)}
                                         </span>
@@ -1036,9 +1209,9 @@ Section 8.2 Limitation of Liability.
                                     <CheckCircleIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'compliance' ? 'text-brand-accent' : ''}`} />
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Rules</span>
                                     <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
-                                        ${complianceMetrics.score === 100 ? 'bg-emerald-500/20 text-emerald-400' :
-                                          complianceMetrics.score >= 60 ? 'bg-brand-accent/20 text-brand-accent' :
-                                          'bg-red-500/20 text-red-400'}
+                                        ${complianceMetrics.score === 100 ? 'bg-white/15 text-white' :
+                                          complianceMetrics.score >= 60 ? 'bg-white/10 text-brand-text-primary' :
+                                          'bg-brand-error/15 text-brand-error'}
                                     `}>
                                         {complianceMetrics.score}
                                     </span>
@@ -1087,9 +1260,18 @@ Section 8.2 Limitation of Liability.
                                             <div className="h-px w-4 bg-brand-accent"></div>
                                             <span className="text-[10px] font-mono uppercase tracking-widest">{currentTask?.type} Case Facts</span>
                                         </div>
-                                        <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                            {generatedFacts ? renderLegalMarkdown(generatedFacts) : "Generating facts..."}
-                                        </div>
+                                        {generatedFacts ? (
+                                            <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-white/20 prose-sm prose-invert">
+                                                {renderLegalMarkdown(generatedFacts)}
+                                            </div>
+                                        ) : (
+                                            <EmptyState
+                                                icon={<ClipboardIcon className="w-10 h-10" />}
+                                                title="Facts not loaded"
+                                                description="Scenario facts will appear here after generation. If generation failed, return to Scenario and retry."
+                                                className="py-8"
+                                            />
+                                        )}
                                     </div>
                                 )}
 
@@ -1102,15 +1284,12 @@ Section 8.2 Limitation of Liability.
                                         {scoringResult ? (
                                             <ScoreCard result={scoringResult} />
                                         ) : (
-                                            <div className="text-center py-12 space-y-3">
-                                                <ChartBarIcon className="w-10 h-10 text-brand-text-secondary/20 mx-auto" />
-                                                <p className="text-xs text-brand-text-secondary/50 font-light">
-                                                    Write at least 50 characters to see live conformance metrics.
-                                                </p>
-                                                <p className="text-[10px] text-brand-text-secondary/30 font-mono">
-                                                    Benchmarked against 50 legal journal articles
-                                                </p>
-                                            </div>
+                                            <EmptyState
+                                                icon={<ChartBarIcon className="w-10 h-10" />}
+                                                title="Score pending"
+                                                description="Write at least 50 characters to see live conformance metrics. Form-based stylometry only; not a legal quality judgment."
+                                                className="py-8"
+                                            />
                                         )}
                                     </div>
                                 )}
@@ -1126,16 +1305,16 @@ Section 8.2 Limitation of Liability.
                                         <div className="border border-brand-text-primary/30 p-4 bg-brand-bg-secondary font-mono flex flex-col items-center justify-center text-center">
                                             <span className="text-[9px] text-brand-text-secondary uppercase tracking-widest mb-1">Pleadings Compliance</span>
                                             <span className={`text-4xl font-bold ${
-                                                complianceMetrics.score === 100 ? 'text-emerald-400' :
-                                                complianceMetrics.score >= 60 ? 'text-brand-accent' :
-                                                'text-red-400'
+                                                complianceMetrics.score === 100 ? 'text-white' :
+                                                complianceMetrics.score >= 60 ? 'text-brand-text-primary' :
+                                                'text-brand-error'
                                             }`}>
                                                 {complianceMetrics.score}%
                                             </span>
                                             <span className={`text-[10px] uppercase font-bold tracking-widest mt-2 px-2 py-0.5 border ${
-                                                complianceMetrics.score === 100 ? 'border-emerald-500/30 text-emerald-400 bg-emerald-950/20' :
-                                                complianceMetrics.score >= 60 ? 'border-brand-accent/30 text-brand-accent bg-brand-accent/10' :
-                                                'border-red-500/30 text-red-400 bg-red-950/20'
+                                                complianceMetrics.score === 100 ? 'border-white/25 text-white bg-white/10' :
+                                                complianceMetrics.score >= 60 ? 'border-white/15 text-brand-text-primary bg-white/5' :
+                                                'border-brand-error/30 text-brand-error bg-brand-error/10'
                                             }`}>
                                                 {complianceMetrics.verdict}
                                             </span>
@@ -1148,24 +1327,24 @@ Section 8.2 Limitation of Liability.
                                                     key={check.id} 
                                                     className={`p-3 border text-left transition-all ${
                                                         check.satisfied 
-                                                            ? 'border-emerald-500/20 bg-emerald-950/5 text-zinc-300' 
-                                                            : 'border-brand-text-primary/10 text-zinc-500 bg-black/10'
+                                                            ? 'border-white/15 bg-white/[0.03] text-brand-text-primary' 
+                                                            : 'border-brand-text-primary/10 text-brand-text-secondary bg-black/10'
                                                     }`}
                                                 >
                                                     <div className="flex items-center justify-between mb-1.5">
-                                                        <span className={`font-bold tracking-wide ${check.satisfied ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                                                        <span className={`font-bold tracking-wide ${check.satisfied ? 'text-brand-text-primary' : 'text-brand-text-secondary'}`}>
                                                             {check.satisfied ? '✓' : '✗'} {check.name}
                                                         </span>
                                                         <span className={`text-[8px] uppercase px-1 py-0.5 border leading-none ${
                                                             check.satisfied 
-                                                                ? 'border-emerald-500/30 text-emerald-400' 
-                                                                : 'border-brand-text-primary/20 text-zinc-500'
+                                                                ? 'border-white/20 text-brand-text-primary' 
+                                                                : 'border-brand-text-primary/20 text-brand-text-secondary'
                                                         }`}>
                                                             {check.satisfied ? 'PASSED' : 'MISSING'}
                                                         </span>
                                                     </div>
                                                     {!check.satisfied && (
-                                                        <p className="text-[10px] text-zinc-400 leading-relaxed font-sans pl-3 border-l border-red-500/40">
+                                                        <p className="text-[10px] text-brand-text-secondary leading-relaxed font-sans pl-3 border-l border-white/15">
                                                             {check.tip}
                                                         </p>
                                                     )}
@@ -1181,28 +1360,42 @@ Section 8.2 Limitation of Liability.
                                             <div className="h-px w-4 bg-brand-accent"></div>
                                             <span className="text-[10px] font-mono uppercase tracking-widest">AI Mentor Guidance</span>
                                         </div>
-                                        {isLoadingAiInteraction ? (
+                                        {isLoadingAiInteraction && activeRefTab === 'feedback' ? (
                                             <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                                                <LoadingSpinner size="sm" />
-                                                <span className="text-[10px] font-mono text-brand-text-secondary animate-pulse uppercase">Analysing your draft...</span>
+                                                <LoadingSpinner size="sm" spinnerColor="text-white/70" />
+                                                <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Analysing your draft...</span>
+                                            </div>
+                                        ) : studioError?.scope === 'review' && !aiFeedback ? (
+                                            <EmptyState
+                                                icon={<LightbulbIcon className="w-10 h-10" />}
+                                                title="Mentor review failed"
+                                                description={studioError.message}
+                                                actionLabel="Retry review"
+                                                onAction={() => void handleSubmitForReview()}
+                                                className="py-8"
+                                            />
+                                        ) : aiFeedback ? (
+                                            <div>
+                                                <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-white/20 prose-sm prose-invert">
+                                                    {renderLegalMarkdown(aiFeedback)}
+                                                </div>
+                                                <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
+                                                    <button
+                                                        onClick={() => void handleSpeak(aiFeedback)}
+                                                        className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
+                                                        title="Speak this feedback"
+                                                    >
+                                                        [ Read Aloud ]
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : (
-                                            <div>
-                                                <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                                    {aiFeedback ? renderLegalMarkdown(aiFeedback) : "Submit your draft for AI review."}
-                                                </div>
-                                                {aiFeedback && (
-                                                    <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
-                                                        <button
-                                                            onClick={() => handleSpeak(aiFeedback)}
-                                                            className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
-                                                            title="Speak this feedback"
-                                                        >
-                                                            [ Read Aloud ]
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <EmptyState
+                                                icon={<LightbulbIcon className="w-10 h-10" />}
+                                                title="No mentor review yet"
+                                                description="Submit a draft of at least 10 characters from the editor bar to receive structured feedback."
+                                                className="py-8"
+                                            />
                                         )}
                                     </div>
                                 )}
@@ -1213,20 +1406,41 @@ Section 8.2 Limitation of Liability.
                                             <div className="h-px w-4 bg-brand-accent"></div>
                                             <span className="text-[10px] font-mono uppercase tracking-widest">Filing Protocol</span>
                                         </div>
-                                        <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-brand-accent/30 prose-sm prose-invert">
-                                            {filingProcedure ? renderLegalMarkdown(filingProcedure) : "Filing info not requested yet."}
-                                            {filingProcedure && (
+                                        {isLoadingAiInteraction && activeRefTab === 'procedure' ? (
+                                            <div className="flex flex-col items-center justify-center py-10 space-y-4">
+                                                <LoadingSpinner size="sm" spinnerColor="text-white/70" />
+                                                <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Loading filing workflow...</span>
+                                            </div>
+                                        ) : studioError?.scope === 'filing' && !filingProcedure ? (
+                                            <EmptyState
+                                                icon={<BookOpenIcon className="w-10 h-10" />}
+                                                title="Filing guidance failed"
+                                                description={studioError.message}
+                                                actionLabel="Retry filing info"
+                                                onAction={() => void handleGetFilingInfo()}
+                                                className="py-8"
+                                            />
+                                        ) : filingProcedure ? (
+                                            <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-white/20 prose-sm prose-invert">
+                                                {renderLegalMarkdown(filingProcedure)}
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                     <button
-                                                        onClick={() => handleSpeak(filingProcedure)}
+                                                        onClick={() => void handleSpeak(filingProcedure)}
                                                         className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
                                                         title="Speak this protocol"
                                                     >
                                                         [ Read Aloud ]
                                                     </button>
                                                 </div>
-                                            )}
-                                        </div>
+                                            </div>
+                                        ) : (
+                                            <EmptyState
+                                                icon={<BookOpenIcon className="w-10 h-10" />}
+                                                title="Filing info not requested"
+                                                description="After mentor review, use Filing in the editor bar to load a cautious procedural workflow."
+                                                className="py-8"
+                                            />
+                                        )}
                                     </div>
                                 )}
 
@@ -1242,9 +1456,12 @@ Section 8.2 Limitation of Liability.
                                         </div>
                                         
                                         {snapshots.length === 0 ? (
-                                            <p className="text-xs text-brand-text-secondary/60 italic leading-relaxed py-4 text-left">
-                                                No snapshots saved for this draft yet. Click the Snapshot button above or press Cmd+S (or use Command Palette) to capture the current draft state.
-                                            </p>
+                                            <EmptyState
+                                                icon={<HistoryIcon className="w-10 h-10" />}
+                                                title="No snapshots yet"
+                                                description="Use Snapshot above, Cmd+S, or the command palette to capture the current draft state."
+                                                className="py-6"
+                                            />
                                         ) : (
                                             <div className="space-y-3">
                                                 {snapshots.map((snap) => (
@@ -1334,16 +1551,20 @@ Section 8.2 Limitation of Liability.
                         <div className="flex-grow relative bg-brand-bg-primary">
                         {stage === 'task_details_display' ? (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-4 lg:p-8 text-center bg-brand-bg-primary/95 group">
-                                <Card className="max-w-md p-5 lg:p-8 border-brand-text-primary/30 bg-brand-bg-secondary transition-transform duration-500">
-                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-brand-bg-primary rounded-xl flex items-center justify-center mx-auto mb-3 lg:mb-4 border border-brand-text-primary/30">
-                                        <QuillIcon className="w-5 h-5 lg:w-6 lg:h-6 text-brand-accent" />
+                                <Card className="max-w-md p-5 lg:p-8 border-brand-text-primary/30 bg-brand-bg-secondary transition-transform duration-500 overflow-hidden">
+                                    <div className="relative -mx-5 -mt-5 lg:-mx-8 lg:-mt-8 mb-4 h-24 overflow-hidden border-b border-brand-text-primary/20">
+                                        <img src={trialBinderDesk} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-secondary via-brand-bg-secondary/40 to-transparent" />
                                     </div>
-                                    <h4 className="text-base lg:text-lg font-serif font-bold text-brand-text-primary mb-1.5 lg:mb-2">Scenario Ready</h4>
+                                    <div className="w-10 h-10 lg:w-12 lg:h-12 bg-brand-bg-primary rounded-xl flex items-center justify-center mx-auto mb-3 lg:mb-4 border border-brand-text-primary/30">
+                                        <QuillIcon className="w-5 h-5 lg:w-6 lg:h-6 text-white/80" />
+                                    </div>
+                                    <h4 className="text-base lg:text-lg font-serif font-bold text-brand-text-primary mb-1.5 lg:mb-2">Scenario ready</h4>
                                     <p className="text-xs lg:text-sm text-brand-text-secondary font-light mb-4 lg:mb-6 leading-relaxed">
-                                        Review the <span className="text-brand-accent font-medium">Facts</span> in the reference panel, then open the editor to draft your <span className="text-brand-accent font-medium">{currentTask?.type}</span>.
+                                        Review the <span className="text-brand-text-primary font-medium">Facts</span> in the reference panel, then open the editor to draft your <span className="text-brand-text-primary font-medium">{currentTask?.type}</span>.
                                     </p>
-                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="md" className="uppercase tracking-wider text-[10px] lg:text-xs rounded-xl border border-brand-accent hover:bg-brand-accent hover:text-brand-navy">
-                                        Commence Drafting
+                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="md" className="uppercase tracking-wider text-[10px] lg:text-xs rounded-xl">
+                                        Commence drafting
                                     </Button>
                                 </Card>
                             </div>
@@ -1365,10 +1586,10 @@ Section 8.2 Limitation of Liability.
                         <div className="flex items-center justify-between mb-2 lg:mb-0 lg:inline-flex lg:mr-4">
                             <div className="flex items-center space-x-3">
                                 <div className="flex items-center space-x-1.5">
-                                    <div className={`w-1.5 h-1.5 rounded-xl ${userDraft.length > 0 ? 'bg-green-500' : 'bg-brand-text-secondary/30'}`}></div>
+                                    <div className={`w-1.5 h-1.5 rounded-xl ${userDraft.length > 0 ? 'bg-white' : 'bg-brand-text-secondary/30'}`}></div>
                                     <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-secondary">{userDraft.length} chars</span>
                                 </div>
-                                <span className={`text-[9px] font-mono text-brand-accent transition-opacity duration-300 ${showAutoSave ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={`text-[9px] font-mono text-brand-text-secondary transition-opacity duration-300 ${showAutoSave ? 'opacity-100' : 'opacity-0'}`}>
                                     [Saved]
                                 </span>
                             </div>
@@ -1376,10 +1597,10 @@ Section 8.2 Limitation of Liability.
                                 <button
                                     onClick={() => { setActiveRefTab('score'); if(!isRefPanelOpen) setIsRefPanelOpen(true); }}
                                     className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-xl border transition-all cursor-pointer
-                                        ${scoringResult.verdictTier === 'excellent' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
-                                          scoringResult.verdictTier === 'good' ? 'border-brand-accent/30 bg-brand-accent/10 text-brand-accent' :
-                                          scoringResult.verdictTier === 'fair' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
-                                          'border-red-500/30 bg-red-500/10 text-red-400'}
+                                        ${scoringResult.verdictTier === 'excellent' ? 'border-white/25 bg-white/10 text-white' :
+                                          scoringResult.verdictTier === 'good' ? 'border-white/15 bg-white/5 text-brand-text-primary' :
+                                          scoringResult.verdictTier === 'fair' ? 'border-white/10 bg-transparent text-brand-text-secondary' :
+                                          'border-brand-error/30 bg-brand-error/10 text-brand-error'}
                                     `}
                                     title="View full scoring breakdown"
                                 >
@@ -1388,18 +1609,38 @@ Section 8.2 Limitation of Liability.
                                 </button>
                             )}
                         </div>
+                        {studioError && (
+                          <div role="alert" className="mb-2 text-[11px] text-brand-text-secondary border border-white/10 bg-black/20 px-2.5 py-1.5 rounded-xl">
+                            {studioError.message}
+                          </div>
+                        )}
                         {/* Action buttons row */}
                         <div className="flex items-center gap-2 flex-wrap">
                             <button
                               type="button"
-                              onClick={isRecording ? stopRecording : startRecording}
+                              onClick={() => {
+                                if (sttAvailable === false && !isRecording) {
+                                  setGlobalError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type your draft instead.');
+                                  return;
+                                }
+                                if (isRecording) stopRecording();
+                                else void startRecording();
+                              }}
                               disabled={isLoading || stage === 'task_details_display'}
                               className={`w-8 h-8 lg:w-10 lg:h-10 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
                                 ${isRecording
                                   ? 'bg-brand-error/20 border-brand-error text-brand-error animate-pulse'
-                                  : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary hover:bg-brand-bg-primary'
+                                  : sttAvailable === false
+                                    ? 'bg-brand-bg-secondary border-brand-text-primary/15 text-brand-text-secondary/50'
+                                    : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary hover:bg-brand-bg-primary'
                                 }`}
-                              title={isRecording ? 'Stop Recording' : 'Speak using Sarvam voice transcription'}
+                              title={
+                                isRecording
+                                  ? 'Stop Recording'
+                                  : sttAvailable === false
+                                    ? 'Voice transcription unavailable (server key not configured)'
+                                    : 'Speak using voice transcription'
+                              }
                             >
                               {isRecording ? (
                                 <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
@@ -1410,36 +1651,46 @@ Section 8.2 Limitation of Liability.
 
                             <Button 
                                 onClick={() => {
-                                    navigator.clipboard.writeText(userDraft);
+                                    void navigator.clipboard.writeText(userDraft);
                                     setIsCopied(true);
                                     setTimeout(() => setIsCopied(false), 2000);
                                 }}
                                 variant="ghost"
                                 size="sm"
                                 disabled={!userDraft}
-                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                             >
                                 {isCopied ? 'Copied!' : 'Copy'}
                             </Button>
 
+                            <Button
+                                onClick={handleExportDraft}
+                                variant="ghost"
+                                size="sm"
+                                disabled={!userDraft.trim() || stage === 'task_details_display'}
+                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                            >
+                                Export
+                            </Button>
+
                             {stage === 'feedback_review' || stage === 'filing_procedure' ? (
                                 <Button 
-                                    onClick={handleGetFilingInfo}
+                                    onClick={() => void handleGetFilingInfo()}
                                     variant="outline"
                                     size="sm"
                                     disabled={isLoading}
-                                    className="text-[8px] lg:text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-accent rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                    className="text-[8px] lg:text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                                 >
                                     Filing
                                 </Button>
                             ) : null}
 
                             <Button 
-                                onClick={handleSubmitForReview}
+                                onClick={() => void handleSubmitForReview()}
                                 variant="primary"
                                 size="sm"
                                 disabled={isLoading || userDraft.length < 10 || stage === 'task_details_display'}
-                                className="flex-1 min-w-0 rounded-xl transition-all text-[9px] lg:text-xs uppercase tracking-wider h-8 lg:h-10 border border-brand-accent"
+                                className="flex-1 min-w-0 rounded-xl transition-all text-[9px] lg:text-xs uppercase tracking-wider h-8 lg:h-10"
                             >
                                 {isLoadingAiInteraction ? 'Reviewing...' : (aiFeedback ? 'Re-Submit' : 'Submit')}
                             </Button>

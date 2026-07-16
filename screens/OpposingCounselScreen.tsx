@@ -1,8 +1,11 @@
 import { Navigate } from 'react-router-dom';
-import { ROUTES } from '../constants';
+import { ROUTES } from '../routes';
 
-/** @deprecated Use BenchCounselScreen via ROUTES.BENCH?tab=counsel */
-const OpposingCounselScreen: React.FC = () => (
+/**
+ * Legacy route shell for `/opposing-counsel`.
+ * Canonical UI lives in BenchCounselScreen (`ROUTES.BENCH?tab=counsel`).
+ */
+const OpposingCounselScreen = () => (
   <Navigate to={{ pathname: ROUTES.BENCH, search: '?tab=counsel' }} replace />
 );
 

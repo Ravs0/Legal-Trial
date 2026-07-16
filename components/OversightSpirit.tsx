@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { TrialSimContext } from '../App';
+import { ROUTES, type RoutePath } from '../routes';
 import { KOKU_SYSTEM_PROMPT } from '../kokuConfig';
-import { useConversationBridge } from './ConversationBridge';
+import { useConversationBridge, BRIDGE_EMPTY_SUMMARY } from './ConversationBridge';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,67 +19,86 @@ interface ToastState {
   exiting: boolean;
 }
 
-// ─── Predefined witty route remarks (<25 words each) ──────────────────────────
+// ─── Predefined useful route remarks (<25 words each) ─────────────────────────
+// Keys use ROUTES so renames stay in sync. Legacy /judges + /opposing-counsel
+// keep remarks in case a deep link flashes before redirect → /bench.
+// Tone: concise practice tips, not roast spam.
 
-const ROUTE_REMARKS: Record<string, string[]> = {
-  '/landing': [
-    "Welcome. Pick a mode and let's see what you're made of.",
-    "The landing page. Where every lawyer's journey begins. Or ends.",
-    "First impressions matter. Choose wisely.",
+const ROUTE_REMARKS: Record<RoutePath, string[]> = {
+  [ROUTES.LANDING]: [
+    'Pick a mode, then run one short drill. Warm-up beats browsing.',
+    'Start with the 15-minute demo if you want a clean first loop.',
+    'Choose a jurisdiction only when you are ready to practice in it.',
   ],
-  '/dashboard': [
-    "Home sweet home. Don't just stare at the dashboard — go practice something.",
-    "Back to base. Your win rate isn't going to improve by itself, you know.",
-    "Dashboard again? Bold of you to look at your stats voluntarily.",
+  [ROUTES.HOME]: [
+    'One decision now: new trial, resume, or review last scores.',
+    'Check loop health, then open a single tool. Avoid tab-hopping.',
+    'If stats are flat, run setup and one full practice pass.',
   ],
-  '/setup': [
-    "Setting up a trial? Choose wisely. Or don't. I'll roast you either way.",
-    "Pick a tough judge. You need the pressure. Trust me on this one.",
-    "Oh, configuring a trial. Let's see if you pick something above beginner this time.",
+  [ROUTES.SETUP]: [
+    'Match judge pressure to your weak skill, not your comfort zone.',
+    'Lock case facts before you enter the arena. Ambiguity kills pace.',
+    'Harder bench profiles train objections and structure faster.',
   ],
-  '/practice': [
-    "Showtime. Don't embarrass us both in front of the judge.",
-    "You're in the arena now. Deep breaths. Make your arguments count.",
-    "Trial time. Remember: the judge is watching. And so am I.",
+  [ROUTES.PRACTICE]: [
+    'Lead with the legal test, then facts. Do not narrate first.',
+    'Object only when the record needs it. Precision over volume.',
+    'If you stall, restate the issue in one sentence and continue.',
   ],
-  '/library': [
-    "Browsing cases? Good. Reading is step one. Arguing well is step two.",
-    "The case library. Try picking something you haven't already failed at.",
-    "Research mode. Smart move. Actually read the facts this time.",
+  [ROUTES.LIBRARY]: [
+    'Pick one case and extract issues, elements, and weak facts.',
+    'Prefer primary holdings over summaries when you plan argument.',
+    'Save a case only if you will argue it in the next session.',
   ],
-  '/judges': [
-    "Studying the judges? Know thy enemy. Well, not enemy — authority figure.",
-    "Looking at judges. Each one will destroy you differently. Choose your poison.",
-    "Judge shopping? They all expect you to know your stuff. No shortcuts.",
+  [ROUTES.BENCH]: [
+    'Study temperament and pressure style, then set that profile in trial setup.',
+    'Note how each counsel attacks foundations. Mirror that in practice.',
+    'Fictional profiles only. Use them as pressure, not as real people.',
   ],
-  '/opposing-counsel': [
-    "Sizing up the opposition? Good instinct. Know how they argue.",
-    "Studying opposing counsel. They're studying you too. Metaphorically.",
-    "Looking at the people who'll tear your arguments apart. Prepare accordingly.",
+  [ROUTES.JUDGES]: [
+    'Legacy path: you are heading to Bench. Note temperament before setup.',
+    'Judge style drives pacing. Pick pressure you can still argue under.',
+    'Map each profile to a skill gap: structure, objections, or calm.',
   ],
-  '/drafting-studio': [
-    "Drafting studio. Every word matters. Don't write like you text your friends.",
-    "Time to draft. Precision over volume. Make every sentence earn its place.",
-    "Legal drafting? Remember: courts read documents, not your intentions.",
+  [ROUTES.OPPOSING_COUNSEL]: [
+    'Legacy path: counsel tab on Bench. Learn their attack patterns.',
+    'Anticipate foundation challenges and prepare short answers.',
+    'Use counsel profiles to stress-test your theory of the case.',
   ],
-  '/strategy-room': [
-    "The AI Council Chamber. Where brilliant minds argue. Try to keep up.",
-    "Council time. Multiple perspectives, one goal — finding the truth.",
-    "Entering the council. Listen first, then form your own opinion.",
+  [ROUTES.DRAFTING_STUDIO]: [
+    'Open with the standard of review, then the relief you want.',
+    'Cut filler. Every sentence should move a legal element.',
+    'Cite only what you would defend live. Soft sources stay out.',
   ],
-  '/deception-arena': [
-    "The Dreadler awaits. Can you spot the lies? Or will you believe them all?",
-    "Entering the deception arena. Trust no one. Especially not yourself.",
-    "Time to interrogate. Remember: the truth is in the details.",
+  [ROUTES.STRATEGY]: [
+    'Ask for rival theories, not agreement. Tension finds weak spots.',
+    'Capture one claim, one counter, and the best reply before you leave.',
+    'Use the room to stress-test assumptions, then update your outline.',
   ],
-  '/ai-personas': [
-    "Communing with the Subjects? They don't bite. Well, Kira might~",
-    "Going to chat with anime law personalities? Ren won't show it, but they care.",
-    "Careful with Sora. She'll deny caring about you. She definitely cares.",
+  [ROUTES.DREADLER]: [
+    'Pin contradictions to prior words. Vague pressure is not a win.',
+    'Track claims as a ledger. Force yes/no on each soft pivot.',
+    'When coherence drops, ask what fact changed and why.',
   ],
-  '/analysis': [
-    "Checking your performance? Brave. The numbers don't lie, even if you do.",
-    "Analysis time. Let's see what the scoreboard says about your lawyering.",
+  [ROUTES.PERSONAS]: [
+    'Use personas for style drills, then apply the same structure in court.',
+    'Ask for a counter-argument, not comfort. Keep turns short.',
+    'Leave with one tactic you will try in the next practice.',
+  ],
+  [ROUTES.ANALYSIS]: [
+    'Fix the lowest score first. One lever beats a full rewrite.',
+    'Compare structure notes to your last opening. Patch that only.',
+    'If review is empty, run a full trial before you optimize.',
+  ],
+  [ROUTES.RESEARCH_IDE]: [
+    'Verify the primary source before you cite it in drafting or oral.',
+    'Keep a short authority list: holding, court, year, why it matters.',
+    'Research closes when you can state the rule in one line.',
+  ],
+  [ROUTES.COURT_SOURCES]: [
+    'Prefer official dockets and primary text over secondary summaries.',
+    'Record citation metadata while you search so drafting stays honest.',
+    'Use real-world texture for practice, not as legal advice.',
   ],
 };
 
@@ -86,30 +106,50 @@ const ROUTE_REMARKS: Record<string, string[]> = {
 
 const pickRandom = <T,>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
+const QUIET_ROUTES = new Set<string>([
+  ROUTES.LANDING,
+  '/',
+]);
+
 const getRouteLabel = (pathname: string): string => {
   const map: Record<string, string> = {
-    '/landing': 'the Landing page',
-    '/dashboard': 'the Dashboard',
-    '/setup': 'Trial Setup',
-    '/practice': 'the Practice Arena',
-    '/analysis': 'Performance Analysis',
-    '/library': 'the Case Library',
-    '/judges': 'the Judges gallery',
-    '/opposing-counsel': 'Opposing Counsel profiles',
-    '/drafting-studio': 'the Drafting Studio',
-    '/ai-personas': 'the AI Personas commune',
-    '/strategy-room': 'the AI Strategy Room',
-    '/deception-arena': 'the Deception Arena',
-    '/': 'the Landing page',
+    [ROUTES.LANDING]: 'Landing',
+    [ROUTES.HOME]: 'Dashboard',
+    [ROUTES.SETUP]: 'Trial Setup',
+    [ROUTES.PRACTICE]: 'Practice Arena',
+    [ROUTES.ANALYSIS]: 'Performance Review',
+    [ROUTES.LIBRARY]: 'Case Library',
+    [ROUTES.BENCH]: 'Bench and Counsel',
+    [ROUTES.JUDGES]: 'Judges (legacy)',
+    [ROUTES.OPPOSING_COUNSEL]: 'Opposing Counsel (legacy)',
+    [ROUTES.DRAFTING_STUDIO]: 'Drafting Studio',
+    [ROUTES.PERSONAS]: 'AI Personas',
+    [ROUTES.STRATEGY]: 'Strategy Room',
+    [ROUTES.DREADLER]: 'Deception Arena',
+    [ROUTES.RESEARCH_IDE]: 'Research IDE',
+    [ROUTES.COURT_SOURCES]: 'Court Sources',
+    '/': 'Landing',
   };
-  return map[pathname] || 'an unknown area';
+  return map[pathname] || 'unknown area';
+};
+
+const resolveRemarks = (pathname: string): string[] | null => {
+  if (pathname in ROUTE_REMARKS) {
+    return ROUTE_REMARKS[pathname as RoutePath];
+  }
+  // Prefix fallback for nested paths under a known route (future-proof).
+  // RoutePath values are never '/' (LANDING is '/landing'); root is handled via QUIET_ROUTES.
+  const match = (Object.keys(ROUTE_REMARKS) as RoutePath[]).find((route) =>
+    pathname.startsWith(`${route}/`),
+  );
+  return match ? ROUTE_REMARKS[match] : null;
 };
 
 // ─── API call (matches project pattern) ───────────────────────────────────────
 
 async function callKokuApi(
   messages: { role: string; content: string }[],
-  system: string
+  system: string,
 ): Promise<string> {
   try {
     const res = await fetch('/api/chat', {
@@ -119,7 +159,7 @@ async function callKokuApi(
     });
     if (!res.ok) return '';
     const data = await res.json();
-    return data.text || '';
+    return typeof data.text === 'string' ? data.text : '';
   } catch {
     return '';
   }
@@ -127,15 +167,15 @@ async function callKokuApi(
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PROACTIVE_COOLDOWN_MS = 60_000;  // 60 seconds between popups
-const TOAST_AUTO_DISMISS_MS = 8_000;   // 8 seconds
-const ROUTE_CHANGE_DELAY_MS = 3_000;   // 3 seconds after route change
-const INITIAL_GREETING = "I’m here if you want a concise practice prompt or a second set of eyes.";
+const PROACTIVE_COOLDOWN_MS = 90_000; // 90s between proactive tips
+const TOAST_AUTO_DISMISS_MS = 6_500;
+const ROUTE_CHANGE_DELAY_MS = 2_500;
+const INITIAL_GREETING =
+  'Optional coach. Ask for a concise practice prompt, structure check, or second set of eyes.';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const OversightSpirit: React.FC = () => {
-  // ── State ─────────────────────────────────────────────────────────────────
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<KokuMessage[]>([
     { id: 'init', sender: 'koku', text: INITIAL_GREETING },
@@ -147,29 +187,33 @@ export const OversightSpirit: React.FC = () => {
   const [proactiveEnabled, setProactiveEnabled] = useState(false);
   const [shareCrossModuleContext, setShareCrossModuleContext] = useState(false);
 
-  // ── Refs ──────────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastProactiveRef = useRef<number>(0);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const routeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prevPathRef = useRef<string>('');
+  const prevPathRef = useRef<string | null>(null);
+  const remarkedRoutesRef = useRef<Set<string>>(new Set());
+  const isOpenRef = useRef(isOpen);
 
-  // ── Hooks ─────────────────────────────────────────────────────────────────
   const location = useLocation();
   const context = useContext(TrialSimContext);
-
-  // ConversationBridge is always available (provider wraps the app in App.tsx)
   const bridge = useConversationBridge();
 
-  // ── Auto-scroll messages ─────────────────────────────────────────────────
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // ── Build Koku's system prompt with bridge context ───────────────────────
   const buildSystemPrompt = useCallback((): string => {
-    const bridgeSummary = shareCrossModuleContext ? (bridge?.getConversationSummary() || '') : '';
-    const hasBridgeActivity = bridgeSummary && !bridgeSummary.includes('No recent conversations');
+    const bridgeSummary = shareCrossModuleContext ? bridge.getConversationSummary() : '';
+    const hasBridgeActivity =
+      shareCrossModuleContext &&
+      bridgeSummary &&
+      bridgeSummary !== BRIDGE_EMPTY_SUMMARY &&
+      !bridgeSummary.startsWith('Cross-module summary: none');
 
     return `${KOKU_SYSTEM_PROMPT}
 
@@ -177,126 +221,134 @@ export const OversightSpirit: React.FC = () => {
 - Route: ${location.pathname} (${getRouteLabel(location.pathname)})
 - Case: ${context?.currentSessionSettings?.caseDetail?.title || 'None selected'}
 - Practice Mode: ${context?.practiceMode || 'Not set'}
-${hasBridgeActivity ? `\n# Cross-Module Conversation Awareness\nYou can see what the user has been discussing with other modules. Use this to make insightful, connected observations. Reference their conversations naturally — e.g., "I saw you were talking to Danda about bail. Here's what I think..."\n\n${bridgeSummary}` : ''}
+${hasBridgeActivity ? `\n# Cross-Module Conversation Awareness\nYou can see what the user discussed with other modules. Reference it only when it helps the current task.\n\n${bridgeSummary}` : ''}
 
-Remember: you are Koku, the Oversight Spirit. Never break character. Keep responses punchy and under 100 words unless the user asks for detail.`;
+Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punchy and under 100 words unless the user asks for detail. Prefer practice advice over banter. Not legal advice.`;
   }, [location.pathname, context, bridge, shareCrossModuleContext]);
 
-  // ── Toast management ─────────────────────────────────────────────────────
   const dismissToast = useCallback(() => {
-    setToast(prev => ({ ...prev, exiting: true }));
-    setTimeout(() => setToast({ visible: false, text: '', exiting: false }), 300);
+    setToast((prev) => ({ ...prev, exiting: true }));
+    setTimeout(() => setToast({ visible: false, text: '', exiting: false }), 280);
     if (toastTimerRef.current) {
       clearTimeout(toastTimerRef.current);
       toastTimerRef.current = null;
     }
   }, []);
 
-  const showToast = useCallback((text: string) => {
-    // Clear any existing toast timer
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+  const showToast = useCallback(
+    (text: string) => {
+      const cleaned = text.replace(/\s+/g, ' ').trim().slice(0, 140);
+      if (!cleaned) return;
 
-    setToast({ visible: true, text, exiting: false });
-
-    // Auto-dismiss after 8 seconds
-    toastTimerRef.current = setTimeout(() => {
-      dismissToast();
-    }, TOAST_AUTO_DISMISS_MS);
-  }, [dismissToast]);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      setToast({ visible: true, text: cleaned, exiting: false });
+      toastTimerRef.current = setTimeout(() => {
+        dismissToast();
+      }, TOAST_AUTO_DISMISS_MS);
+    },
+    [dismissToast],
+  );
 
   const expandToastToChat = useCallback(() => {
     const toastText = toast.text;
     dismissToast();
-    // Add toast message to chat history if it's not already there
-    setMessages(prev => {
-      const alreadyHas = prev.some(m => m.text === toastText && m.sender === 'koku');
+    setMessages((prev) => {
+      const alreadyHas = prev.some((m) => m.text === toastText && m.sender === 'koku');
       if (alreadyHas) return prev;
       return [...prev, { id: `toast-${Date.now()}`, sender: 'koku', text: toastText }];
     });
     setIsOpen(true);
   }, [toast.text, dismissToast]);
 
-  // ── Proactive route-change remarks ───────────────────────────────────────
+  // Proactive route-change remarks (opt-in, rate-limited, once per route per session).
   useEffect(() => {
-    if (!proactiveEnabled) return;
     const currentPath = location.pathname;
 
-    // Skip if same route, or chat is already open, or on landing
-    if (currentPath === prevPathRef.current || currentPath === '/') {
+    // First paint: anchor path without toasting.
+    if (prevPathRef.current === null) {
+      prevPathRef.current = currentPath;
+      return;
+    }
+
+    if (!proactiveEnabled) {
+      prevPathRef.current = currentPath;
+      return;
+    }
+
+    if (currentPath === prevPathRef.current || QUIET_ROUTES.has(currentPath)) {
+      prevPathRef.current = currentPath;
+      return;
+    }
+
+    // One tip per route per session keeps noise low.
+    if (remarkedRoutesRef.current.has(currentPath)) {
       prevPathRef.current = currentPath;
       return;
     }
 
     prevPathRef.current = currentPath;
 
-    // Clear any pending route timer
     if (routeTimerRef.current) clearTimeout(routeTimerRef.current);
 
     routeTimerRef.current = setTimeout(() => {
       const now = Date.now();
-
-      // Rate limit: max 1 proactive popup per 60 seconds
       if (now - lastProactiveRef.current < PROACTIVE_COOLDOWN_MS) return;
+      if (isOpenRef.current) return;
 
-      // Don't show toast if chat is open
-      if (isOpen) return;
+      const finish = (remark: string) => {
+        showToast(remark);
+        lastProactiveRef.current = Date.now();
+        remarkedRoutesRef.current.add(currentPath);
+      };
 
-      // Check if bridge has recent activity for richer context
-      const hasRecentBridgeActivity = bridge?.lastActivity &&
-        (now - bridge.lastActivity.timestamp < 120_000); // Activity in last 2 min
-
-      if (hasRecentBridgeActivity && bridge?.lastActivity) {
-        // Use API for context-aware remark when bridge has recent activity
+      // Bridge-aware tip only when recent cross-module chat is real and useful.
+      if (bridge.hasRecentActivity(120_000) && bridge.lastActivity) {
         const bridgeSummary = bridge.getConversationSummary();
-        callKokuApi(
-          [{
-            role: 'user',
-            content: `The user just navigated to ${getRouteLabel(currentPath)}. They were recently talking to ${bridge.lastActivity.sourceName}. Generate a SHORT (under 25 words), witty, contextual remark as Koku. Reference their recent activity naturally. No quotes around the response.`,
-          }],
-          `${KOKU_SYSTEM_PROMPT}\n\nRecent activity:\n${bridgeSummary}\n\nGenerate ONLY a short witty remark. Under 25 words. No fluff.`
-        ).then(remark => {
-          if (remark && remark.length > 5) {
-            showToast(remark.slice(0, 150)); // Safety cap
-            lastProactiveRef.current = Date.now();
-          }
-        });
-      } else {
-        // Use predefined remarks for simple route changes
-        const remarks = ROUTE_REMARKS[currentPath];
-        if (remarks && remarks.length > 0) {
-          showToast(pickRandom(remarks));
-          lastProactiveRef.current = now;
+        if (bridgeSummary !== BRIDGE_EMPTY_SUMMARY) {
+          callKokuApi(
+            [
+              {
+                role: 'user',
+                content: `User navigated to ${getRouteLabel(currentPath)}. Recent module: ${bridge.lastActivity.sourceName}. Write ONE short practice tip (under 22 words). No roast. No quotes. Actionable only.`,
+              },
+            ],
+            `${KOKU_SYSTEM_PROMPT}\n\nRecent activity:\n${bridgeSummary}\n\nOutput only the tip.`,
+          ).then((remark) => {
+            if (remark && remark.length > 8) {
+              finish(remark);
+              return;
+            }
+            const remarks = resolveRemarks(currentPath);
+            if (remarks?.length) finish(pickRandom(remarks));
+          });
+          return;
         }
       }
+
+      const remarks = resolveRemarks(currentPath);
+      if (remarks?.length) finish(pickRandom(remarks));
     }, ROUTE_CHANGE_DELAY_MS);
 
     return () => {
       if (routeTimerRef.current) clearTimeout(routeTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, proactiveEnabled]);
+  }, [location.pathname, proactiveEnabled, bridge, showToast]);
 
-  // ── Send message handler ─────────────────────────────────────────────────
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
 
     const userMsg = input.trim();
     const msgId = Date.now().toString();
-    setMessages(prev => [...prev, { id: `user-${msgId}`, sender: 'user', text: userMsg }]);
+    setMessages((prev) => [...prev, { id: `user-${msgId}`, sender: 'user', text: userMsg }]);
     setInput('');
     setIsTyping(true);
 
     const responseId = `koku-${msgId}`;
-    setMessages(prev => [...prev, { id: responseId, sender: 'koku', text: '...' }]);
+    setMessages((prev) => [...prev, { id: responseId, sender: 'koku', text: '...' }]);
 
     try {
       const systemPrompt = buildSystemPrompt();
-
-      // Build conversation for API
-      const apiMessages = [
-        ...chatHistory,
-        { role: 'user', content: userMsg },
-      ];
+      const apiMessages = [...chatHistory, { role: 'user', content: userMsg }];
 
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -319,30 +371,31 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
         const chunk = decoder.decode(value, { stream: true });
         responseText += chunk;
         const current = responseText;
-        setMessages(prev =>
-          prev.map(m => m.id === responseId ? { ...m, text: current } : m)
+        setMessages((prev) =>
+          prev.map((m) => (m.id === responseId ? { ...m, text: current } : m)),
         );
       }
 
-      // Update chat history for continuity
-      setChatHistory(prev => [
-        ...prev,
-        { role: 'user', content: userMsg },
-        { role: 'assistant', content: responseText },
-      ].slice(-24));
+      setChatHistory((prev) =>
+        [
+          ...prev,
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: responseText },
+        ].slice(-24),
+      );
     } catch {
-      setMessages(prev =>
-        prev.map(m => m.id === responseId
-          ? { ...m, text: "Wait, WHAT? Something broke. Fix your internet, bestie." }
-          : m
-        )
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === responseId
+            ? { ...m, text: 'Something failed. Check the network and try again.' }
+            : m,
+        ),
       );
     } finally {
       setIsTyping(false);
     }
   };
 
-  // ── Cleanup ──────────────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -359,29 +412,39 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
     return () => window.removeEventListener('lexforge-open-coach', openCoach);
   }, [dismissToast]);
 
-  // ── Render ───────────────────────────────────────────────────────────────
-  return (
-    <div className={`fixed bottom-6 right-6 z-40 flex flex-col items-end ${isOpen ? 'flex' : 'hidden sm:flex'}`}>
+  const routeHint = useMemo(() => getRouteLabel(location.pathname), [location.pathname]);
 
-      {/* ─── Full Chat Window ──────────────────────────────────────────────── */}
+  // ── Render (flat monochrome; no gold/orange offset glow) ──────────────────
+  return (
+    <div
+      className={`fixed bottom-6 right-6 z-40 flex flex-col items-end ${
+        isOpen ? 'flex' : 'hidden sm:flex'
+      }`}
+    >
       {isOpen && (
-        <div className="bg-brand-bg-primary border border-brand-accent shadow-[6px_6px_0px_0px_#FF5A1F] rounded-xl w-80 sm:w-96 h-[28rem] flex flex-col mb-4 overflow-hidden animate-fadeInUp">
-          {/* Header */}
-          <div className="bg-brand-bg-secondary border-b border-brand-accent px-4 py-2.5 flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 bg-brand-accent/20 border border-brand-accent rounded-xl flex items-center justify-center">
-                <span className="text-sm font-bold text-brand-accent font-serif">K</span>
+        <div className="bg-brand-bg-primary border border-white/10 rounded-lg w-80 sm:w-96 h-[28rem] flex flex-col mb-3 overflow-hidden animate-fadeInUp">
+          <div className="bg-brand-bg-secondary border-b border-white/10 px-4 py-2.5 flex justify-between items-center">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 bg-white/[0.06] border border-white/15 rounded-md flex items-center justify-center shrink-0">
+                <span className="text-sm font-semibold text-brand-text-primary font-serif">K</span>
               </div>
-              <div>
-                <span className="text-brand-accent font-serif font-bold text-base">Koku</span>
-                <span className="ml-2 text-[9px] text-brand-text-secondary tracking-widest uppercase border border-brand-text-primary/20 px-1.5 py-0.5">
-                  Optional coach
-                </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-brand-text-primary font-serif font-semibold text-[15px]">
+                    Koku
+                  </span>
+                  <span className="text-[9px] text-brand-text-secondary tracking-widest uppercase border border-white/15 px-1.5 py-0.5 rounded-sm">
+                    Optional coach
+                  </span>
+                </div>
+                <p className="text-[10px] text-brand-text-secondary truncate mt-0.5">
+                  Context: {routeHint}
+                </p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-brand-text-secondary hover:text-brand-accent transition-colors p-1"
+              className="text-brand-text-secondary hover:text-brand-text-primary transition-colors p-1"
               aria-label="Close coach"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,25 +452,46 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
               </svg>
             </button>
           </div>
-          <div className="flex gap-2 border-b border-brand-text-primary/15 px-4 py-2 text-[10px] text-brand-text-secondary">
-            <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={proactiveEnabled} onChange={(event) => setProactiveEnabled(event.target.checked)} /> Proactive tips</label>
-            <label className="flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={shareCrossModuleContext} onChange={(event) => setShareCrossModuleContext(event.target.checked)} /> Share module context</label>
+
+          <div className="flex flex-wrap gap-3 border-b border-white/10 px-4 py-2 text-[10px] text-brand-text-secondary">
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={proactiveEnabled}
+                onChange={(event) => setProactiveEnabled(event.target.checked)}
+                className="accent-brand-text-primary"
+              />
+              Route tips
+            </label>
+            <label className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={shareCrossModuleContext}
+                onChange={(event) => setShareCrossModuleContext(event.target.checked)}
+                className="accent-brand-text-primary"
+              />
+              Share module context
+            </label>
           </div>
 
-          {/* Messages */}
           <div className="flex-grow p-3 overflow-y-auto custom-scrollbar space-y-3">
-            {messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
                 {msg.sender === 'koku' && (
-                  <div className="w-6 h-6 bg-brand-accent/15 border border-brand-accent/40 rounded-xl flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                    <span className="text-[10px] font-bold text-brand-accent font-serif">K</span>
+                  <div className="w-6 h-6 bg-white/[0.06] border border-white/15 rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                    <span className="text-[10px] font-semibold text-brand-text-primary font-serif">
+                      K
+                    </span>
                   </div>
                 )}
                 <div
-                  className={`max-w-[80%] px-3 py-2 text-sm leading-relaxed ${
+                  className={`max-w-[80%] px-3 py-2 text-sm leading-relaxed rounded-md ${
                     msg.sender === 'user'
-                      ? 'bg-brand-bg-secondary text-brand-text-primary border border-brand-text-primary/20'
-                      : 'bg-brand-accent/8 text-brand-text-primary border border-brand-accent/30'
+                      ? 'bg-white text-brand-bg-primary border border-white'
+                      : 'bg-white/[0.04] text-brand-text-primary border border-white/10'
                   }`}
                 >
                   {msg.text}
@@ -416,34 +500,44 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
             ))}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="w-6 h-6 bg-brand-accent/15 border border-brand-accent/40 rounded-xl flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                  <span className="text-[10px] font-bold text-brand-accent font-serif">K</span>
+                <div className="w-6 h-6 bg-white/[0.06] border border-white/15 rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                  <span className="text-[10px] font-semibold text-brand-text-primary font-serif">
+                    K
+                  </span>
                 </div>
-                <div className="max-w-[80%] px-3 py-2 text-sm bg-brand-accent/8 text-brand-text-primary border border-brand-accent/30 flex space-x-1 items-center">
-                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-xl animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-xl animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-brand-accent rounded-xl animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="max-w-[80%] px-3 py-2 text-sm bg-white/[0.04] text-brand-text-primary border border-white/10 rounded-md flex space-x-1 items-center">
+                  <span
+                    className="w-1.5 h-1.5 bg-brand-text-secondary rounded-full animate-bounce"
+                    style={{ animationDelay: '0ms' }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 bg-brand-text-secondary rounded-full animate-bounce"
+                    style={{ animationDelay: '150ms' }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 bg-brand-text-secondary rounded-full animate-bounce"
+                    style={{ animationDelay: '300ms' }}
+                  />
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="p-3 border-t border-brand-text-primary/20 bg-brand-bg-secondary flex items-center gap-2">
+          <div className="p-3 border-t border-white/10 bg-brand-bg-secondary flex items-center gap-2">
             <input
               type="text"
               value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Ask Koku..."
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Ask for a practice tip..."
               aria-label="Ask Koku"
-              className="flex-grow bg-transparent text-sm text-brand-text-primary focus:outline-none placeholder-brand-text-secondary/50 font-light"
+              className="flex-grow bg-transparent text-sm text-brand-text-primary focus:outline-none placeholder-brand-text-secondary/60 font-light"
             />
             <button
               onClick={handleSend}
               disabled={isTyping || !input.trim()}
-              className="text-brand-accent hover:text-brand-accent-hover disabled:opacity-40 transition-colors"
+              className="text-brand-text-secondary hover:text-brand-text-primary disabled:opacity-40 transition-colors"
               aria-label="Send coach message"
             >
               <svg className="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
@@ -454,32 +548,33 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
         </div>
       )}
 
-      {/* ─── Proactive Toast Notification ───────────────────────────────────── */}
       {toast.visible && !isOpen && (
         <div
           className={`mb-3 max-w-xs cursor-pointer transition-all duration-300 ${
-            toast.exiting
-              ? 'opacity-0 translate-y-2'
-              : 'opacity-100 translate-y-0 animate-slideUp'
+            toast.exiting ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0 animate-slideUp'
           }`}
           onClick={expandToastToChat}
+          role="status"
         >
-          <div className="bg-brand-bg-primary border border-brand-accent/60 shadow-[4px_4px_0px_0px_#FF5A1F] rounded-xl px-4 py-3 flex items-start gap-3 group hover:border-brand-accent transition-colors">
-            {/* Koku avatar */}
-            <div className="w-8 h-8 bg-brand-accent/20 border border-brand-accent rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="text-sm font-bold text-brand-accent font-serif">K</span>
+          <div className="bg-brand-bg-primary border border-white/15 rounded-lg px-4 py-3 flex items-start gap-3 group hover:border-white/30 transition-colors">
+            <div className="w-8 h-8 bg-white/[0.06] border border-white/15 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-sm font-semibold text-brand-text-primary font-serif">K</span>
             </div>
             <div className="flex-grow min-w-0">
-              <p className="text-xs text-brand-accent font-serif font-semibold mb-0.5">Koku</p>
+              <p className="text-xs text-brand-text-secondary font-medium tracking-wide uppercase mb-0.5">
+                Route tip
+              </p>
               <p className="text-sm text-brand-text-primary leading-snug">{toast.text}</p>
-              <p className="text-[10px] text-brand-text-secondary/50 mt-1 tracking-wide uppercase group-hover:text-brand-accent/50 transition-colors">
-                Click to chat · or wait to dismiss
+              <p className="text-[10px] text-brand-text-secondary/60 mt-1 tracking-wide uppercase group-hover:text-brand-text-secondary transition-colors">
+                Click to chat · auto-dismiss
               </p>
             </div>
-            {/* Dismiss X */}
             <button
-              onClick={e => { e.stopPropagation(); dismissToast(); }}
-              className="text-brand-text-secondary/40 hover:text-brand-accent transition-colors flex-shrink-0 mt-0.5"
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissToast();
+              }}
+              className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors flex-shrink-0 mt-0.5"
               aria-label="Dismiss coach tip"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -490,35 +585,36 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
         </div>
       )}
 
-      {/* ─── Floating K Button ─────────────────────────────────────────────── */}
       {!isOpen && (
         <button
-          onClick={() => { dismissToast(); setIsOpen(true); }}
-          className="hidden sm:flex w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-xl shadow-[4px_4px_0px_0px_#FF5A1F] hover:shadow-[2px_2px_0px_0px_#FF5A1F] hover:translate-x-0.5 hover:translate-y-0.5 transition-all items-center justify-center relative group"
+          onClick={() => {
+            dismissToast();
+            setIsOpen(true);
+          }}
+          className="hidden sm:flex w-12 h-12 bg-brand-bg-secondary border border-white/20 rounded-lg hover:bg-white/[0.06] hover:border-white/35 transition-colors items-center justify-center relative group"
           aria-label="Open optional coach"
         >
-          <span className="text-xl font-bold text-brand-accent font-serif">K</span>
-          <div className="absolute right-16 bg-brand-bg-secondary border border-brand-accent text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-xl">
-            Open optional coach
+          <span className="text-lg font-semibold text-brand-text-primary font-serif">K</span>
+          <div className="absolute right-14 bg-brand-bg-secondary border border-white/15 text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-md">
+            Optional coach
           </div>
         </button>
       )}
 
-      {/* ─── Inline Styles for Custom Animations ───────────────────────────── */}
       <style>{`
         @keyframes slideUp {
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         .animate-slideUp {
-          animation: slideUp 0.35s ease-out;
+          animation: slideUp 0.3s ease-out;
         }
         @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(16px); }
+          from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         .animate-fadeInUp {
-          animation: fadeInUp 0.3s ease-out;
+          animation: fadeInUp 0.25s ease-out;
         }
       `}</style>
     </div>

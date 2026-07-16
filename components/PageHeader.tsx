@@ -10,6 +10,10 @@ interface PageHeaderProps {
   icon?: React.ReactNode;
 }
 
+/**
+ * Interior page title block (design.md: tight hierarchy, no giant serif chrome).
+ * Prefer RoomBanner for photo rooms; use this for plain decision screens.
+ */
 export const PageHeader: React.FC<PageHeaderProps> = ({
   eyebrow,
   title,
@@ -24,23 +28,36 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <header className={`flex flex-col gap-2 ${alignClass} ${className}`}>
       {icon && (
-        <div className="w-10 h-10 border border-white/15 flex items-center justify-center text-white/60">
+        <div
+          className="w-9 h-9 border border-white/15 bg-white/[0.03] flex items-center justify-center text-brand-text-secondary [&>svg]:h-4 [&>svg]:w-4"
+          aria-hidden="true"
+        >
           {icon}
         </div>
       )}
       {eyebrow && (
-        <p className="text-[11px] uppercase tracking-[0.14em] text-white/40">{eyebrow}</p>
+        <p className="text-[10px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/70">
+          {eyebrow}
+        </p>
       )}
-      <h1 className="text-[1.5rem] sm:text-[1.75rem] font-semibold tracking-tight text-white leading-snug">
+      <h1 className="text-[1.375rem] sm:text-[1.625rem] font-semibold tracking-tight text-brand-text-primary leading-snug">
         {title}
       </h1>
       {subtitle && (
-        <div className={`text-[14px] text-white/50 leading-relaxed max-w-xl ${align === 'center' ? 'mx-auto' : ''}`}>
+        <div
+          className={`text-[13px] sm:text-[14px] text-brand-text-secondary leading-relaxed max-w-xl ${
+            align === 'center' ? 'mx-auto' : ''
+          }`}
+        >
           {subtitle}
         </div>
       )}
       {actions && (
-        <div className={`flex flex-wrap gap-2 mt-2 ${align === 'center' ? 'justify-center' : ''}`}>
+        <div
+          className={`flex flex-wrap items-center gap-2 mt-1.5 ${
+            align === 'center' ? 'justify-center' : ''
+          }`}
+        >
           {actions}
         </div>
       )}

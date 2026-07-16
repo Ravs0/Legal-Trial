@@ -17,10 +17,11 @@ import type { RgbSample } from './types';
  * and reused to avoid GC churn at 30fps.
  */
 export function extractRoiSample(
-  video: HTMLVideoElement,
-  scratch: HTMLCanvasElement,
+  video: HTMLVideoElement | null | undefined,
+  scratch: HTMLCanvasElement | null | undefined,
   now: number,
 ): RgbSample | null {
+  if (!video || !scratch || !Number.isFinite(now)) return null;
   const vw = video.videoWidth;
   const vh = video.videoHeight;
   if (!vw || !vh) return null;
@@ -75,9 +76,10 @@ export function extractRoiSample(
  * Returns an ImageData, or null if the video isn't ready.
  */
 export function captureFaceCrop(
-  video: HTMLVideoElement,
-  scratch: HTMLCanvasElement,
+  video: HTMLVideoElement | null | undefined,
+  scratch: HTMLCanvasElement | null | undefined,
 ): ImageData | null {
+  if (!video || !scratch) return null;
   const vw = video.videoWidth;
   const vh = video.videoHeight;
   if (!vw || !vh) return null;
