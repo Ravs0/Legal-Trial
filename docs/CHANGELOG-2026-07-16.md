@@ -236,3 +236,21 @@ Detailed agent findings (not all in git):
 - Protect `main` and prefer PRs over direct Deploy Bot commits  
 - Push transcription `fix/reliability-p0` when ready  
 - Manual smoke of Dreadler multi-scenario turns with live keys  
+
+---
+
+## Hotfix (2026-07-16, post-push)
+
+### Vercel production deploy failure
+
+**Symptom:** Production deployment failed after `17bcbc5` while GitHub Actions Check passed.
+
+**Cause:** `package.json` `test` used bash process substitution (`done < <(find ...)`), which fails on Vercel builders:
+
+```text
+bash: line 1: /dev/fd/63: No such file or directory
+Error: Command "npm run check" exited with 1
+```
+
+**Fix:** Portable `scripts/run-tests.sh` (temp file + `sort -u`, no process substitution). `npm test` now runs that script.
+
