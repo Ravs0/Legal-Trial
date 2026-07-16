@@ -350,9 +350,18 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
     };
   }, []);
 
+  useEffect(() => {
+    const openCoach = () => {
+      dismissToast();
+      setIsOpen(true);
+    };
+    window.addEventListener('lexforge-open-coach', openCoach);
+    return () => window.removeEventListener('lexforge-open-coach', openCoach);
+  }, [dismissToast]);
+
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+    <div className={`fixed bottom-6 right-6 z-40 flex flex-col items-end ${isOpen ? 'flex' : 'hidden sm:flex'}`}>
 
       {/* ─── Full Chat Window ──────────────────────────────────────────────── */}
       {isOpen && (
@@ -373,6 +382,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
             <button
               onClick={() => setIsOpen(false)}
               className="text-brand-text-secondary hover:text-brand-accent transition-colors p-1"
+              aria-label="Close coach"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -434,6 +444,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
               onClick={handleSend}
               disabled={isTyping || !input.trim()}
               className="text-brand-accent hover:text-brand-accent-hover disabled:opacity-40 transition-colors"
+              aria-label="Send coach message"
             >
               <svg className="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
@@ -469,6 +480,7 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
             <button
               onClick={e => { e.stopPropagation(); dismissToast(); }}
               className="text-brand-text-secondary/40 hover:text-brand-accent transition-colors flex-shrink-0 mt-0.5"
+              aria-label="Dismiss coach tip"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -482,7 +494,8 @@ Remember: you are Koku, the Oversight Spirit. Never break character. Keep respon
       {!isOpen && (
         <button
           onClick={() => { dismissToast(); setIsOpen(true); }}
-          className="w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-xl shadow-[4px_4px_0px_0px_#FF5A1F] hover:shadow-[2px_2px_0px_0px_#FF5A1F] hover:translate-x-0.5 hover:translate-y-0.5 transition-all flex items-center justify-center relative group"
+          className="hidden sm:flex w-14 h-14 bg-brand-bg-secondary border-2 border-brand-accent rounded-xl shadow-[4px_4px_0px_0px_#FF5A1F] hover:shadow-[2px_2px_0px_0px_#FF5A1F] hover:translate-x-0.5 hover:translate-y-0.5 transition-all items-center justify-center relative group"
+          aria-label="Open optional coach"
         >
           <span className="text-xl font-bold text-brand-accent font-serif">K</span>
           <div className="absolute right-16 bg-brand-bg-secondary border border-brand-accent text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-xl">

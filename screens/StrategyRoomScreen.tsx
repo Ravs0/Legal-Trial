@@ -43,6 +43,7 @@ interface SynthesisContext {
   stages: Record<string, string>;
   retrievedPrecedents: CaselawResult[];
   retrievalAvailable: boolean;
+  retrievalMode: 'provider_metadata' | 'public_web_discovery' | 'unavailable';
   verificationBlock: string;
 }
 
@@ -83,11 +84,8 @@ const SYNTHESIS_STAGES: SynthesisStage[] = [
     maxTokens: 2000,
     system: (juris) => `${juris.label} legal precedent researcher.`,
     buildPrompt: (ctx, juris) => {
-      // Stage 2 is the one that consumes real retrieval. The directive below
-      // is strict: cite ONLY from the retrieved block; if empty, fall back to
-      // widely-accepted black-letter principles and say so explicitly. This
-      // is what stops the model from hallucinating neutral citations.
-      const retrievedBlock = ctx.retrievedPrecedents.length > 0
+      const canUseProviderMetadata = ctx.retrievalMode === 'provider_metadata';
+      const retrievedBlock = canUseProviderMetadata && ctx.retrievedPrecedents.length > 0
         ? ctx.retrievedPrecedents.map((p, i) => (
             `  (${i + 1}) Title: ${p.title}\n` +
             `      Citation: ${p.citation || '(not recorded)'}\n` +
@@ -96,24 +94,26 @@ const SYNTHESIS_STAGES: SynthesisStage[] = [
             `      URL: ${p.url || '(none)'}\n` +
             `      Snippet: ${p.snippet || ''}`
           )).join('\n')
-        : '(no precedents were retrieved — see note below)';
+        : '(no provider metadata may be used as precedent — see note below)';
 
-      const retrievalNote = !ctx.retrievalAvailable
-        ? 'NOTE: Real-time case-law lookup is currently unavailable. Do not invent citations; identify only widely-accepted black-letter principles by name and explain each clearly.'
+      const retrievalNote = ctx.retrievalMode === 'public_web_discovery'
+        ? 'NOTE: Only public-web discovery leads were found. They are NOT verified legal authorities and MUST NOT be cited, summarised as ratio, or used to support a legal proposition. Identify only black-letter principles without case citations and tell the learner to open and verify a primary judgment.'
+        : !ctx.retrievalAvailable
+          ? 'NOTE: Real-time case-law lookup is currently unavailable. Do not invent citations; identify only widely-accepted black-letter principles by name and explain each clearly.'
         : ctx.retrievedPrecedents.length === 0
           ? 'NOTE: The case-law lookup returned zero hits for this dispute. Identify only widely-accepted black-letter principles by name and explain each clearly. Do NOT invent citations.'
-          : 'NOTE: You are GIVEN real retrieved precedents above. ONLY cite cases from this block. For each, give the official citation as retrieved, summarise the ratio from the snippet, and explain applicability to the dispute. Do NOT invent or interpolate citations.';
+          : 'NOTE: You are given provider metadata, not primary-source validation. ONLY cite cases from this block, preserve every retrieved field exactly, and mark each as "provider metadata — primary judgment to verify." Do not infer a ratio beyond the supplied snippet or invent citations.';
 
       return (
         `${juris.label} jurisdiction.\n\n` +
         `Dispute facts: ${ctx.dispute}\n\n` +
         `Systemic matrix:\n${ctx.stages['systemic-matrix']}\n\n` +
         `${juris.instruction}\n\n` +
-        `## RETRIEVED PRECEDENTS (verified source)\n${retrievedBlock}\n\n` +
+        `## RETRIEVED RESEARCH MATERIAL\n${retrievedBlock}\n\n` +
         `${retrievalNote}\n\n` +
         `Using the above precedents, summarise at most 12 of the most relevant entries. ` +
         `For each, give: Case Name | Citation | Court | Date | Ratio (inferred from snippet) | ` +
-        `Why it applies to this dispute. If the retrieval block is empty, list 3-6 widely-` +
+        `Why it may apply to this dispute. If the retrieval block is empty, list 3-6 widely-` +
         `accepted black-letter principles instead, clearly labelled as principles (not cases).`
       );
     },
@@ -171,8 +171,8 @@ const SYNTHESIS_STAGES: SynthesisStage[] = [
       // When retrieval was unavailable, every cited case is auto-marked
       // UNVERIFIED so the audit table never fabricates a "good law" verdict.
       const verification = ctx.verificationBlock
-        ? `## VERIFICATION BLOCK (real lookup results)\n${ctx.verificationBlock}\n\n`
-        : `## VERIFICATION BLOCK\nReal lookup was unavailable for this jurisdiction. ` +
+        ? `## VERIFICATION BLOCK (case-law lookup results)\n${ctx.verificationBlock}\n\n`
+        : `## VERIFICATION BLOCK\nCase-law lookup was unavailable for this jurisdiction. ` +
           `Mark EVERY cited case as "UNVERIFIED — manual check required" in the audit table.\n\n`;
 
       return (
@@ -191,7 +191,7 @@ const SYNTHESIS_STAGES: SynthesisStage[] = [
         `Any case NOT present in the VERIFICATION BLOCK must be marked UNVERIFIED.`
       );
     },
-    interimBubble: 'Validating cited judgments against real lookup results...',
+    interimBubble: 'Validating cited judgments against available lookup records...',
   },
   {
     key: 'risk-analysis',
@@ -229,16 +229,16 @@ const SYNTHESIS_STAGES: SynthesisStage[] = [
       `Citation audit: ${ctx.stages['citation-audit']}\n` +
       `Risk analysis: ${ctx.stages['risk-analysis']}\n\n` +
       `${juris.instruction}\n\n` +
-      `Produce the final, court-ready advisory memorandum and motion draft. Structure it as:\n` +
+      `Produce a training memorandum and draft outline, not legal advice or a filing-ready document. Structure it as:\n` +
       `1. Case Overview & Material Facts\n` +
       `2. Points of Determination / Issues\n` +
-      `3. Arguments (with ${juris.label} precedent citations from the scan — only those present in the citation audit's verified rows)\n` +
+      `3. Arguments (use only citations marked "provider metadata" in the citation audit, each flagged for primary-judgment verification)\n` +
       `4. Citation Appendix (with validation-status note per case from the audit; UNVERIFIED cases flagged)\n` +
       `5. Risk Register & Mitigations\n` +
       `6. Proposed Motion / Pleading Draft\n\n` +
       `Remove all meta-commentary, stage labels, and introductory summaries. ` +
       `Output only the polished legal deliverable.`,
-    interimBubble: 'Polishing final court-ready motion draft...',
+    interimBubble: 'Polishing the training strategy memo...',
   },
 ];
 
@@ -259,41 +259,41 @@ interface Persona {
 
 const PERSONAS: Persona[] = [
   {
-    id: 'leibowitz',
-    name: 'Samuel Leibowitz',
+    id: 'evidence-advocate',
+    name: 'Evidence Advocate',
     role: 'Evidentiary Trial Strategist',
-    systemPrompt: 'You are Samuel Leibowitz, the legendary American criminal defense attorney. Analyze the facts rigorously. Strip away inferences from direct evidence, detect logical loopholes in the opposition\'s case, and formulate a high-impact, courtroom-ready defense strategy. Your tone is sharp, evidentiary, and intensely strategic.',
-    avatar: 'SL',
+    systemPrompt: 'You are a fictional evidentiary trial strategist in a legal-skills simulation. Separate evidence from inference, detect logical gaps, and formulate a training-focused defense strategy. Do not impersonate a real lawyer, give legal advice, or invent authorities.',
+    avatar: 'EA',
   },
   {
-    id: 'richelieu',
-    name: 'Cardinal Richelieu',
+    id: 'leverage-architect',
+    name: 'Leverage Architect',
     role: 'Statecraft & Leverage Architect',
-    systemPrompt: 'You are Cardinal Richelieu. Analyze this case strictly through the lens of power, political alignment, leverage points, sequencing of actions, and structural self-interest of all actors. Map the chess board, identify where betrayal or compromise lies, and provide an actionable strategy based on raison d\'état.',
-    avatar: 'CR',
+    systemPrompt: 'You are a fictional strategic-planning advisor in a legal-skills simulation. Map leverage points, incentives, sequencing, and settlement options without assuming facts or recommending real-world legal action. Keep the analysis educational and candid about uncertainty.',
+    avatar: 'LA',
   },
   {
-    id: 'jethmalani',
-    name: 'Ram Jethmalani',
+    id: 'procedure-counsel',
+    name: 'Procedure Counsel',
     role: 'Criminal Loophole Tactical Counsel',
-    systemPrompt: 'You are Ram Jethmalani, the iconic Indian criminal senior advocate. You are aggressively brilliant, extremely bold, and fearless. Scan the matter for procedural lapses, police investigation errors, violations of constitutional rights under Article 21, and identify aggressive tactical paths to obtain bail or dismiss charges.',
-    avatar: 'RJ',
+    systemPrompt: 'You are a fictional criminal-procedure coach in a legal-skills simulation. Scan the stated record for procedural questions, investigation gaps, and due-process issues. Offer practice hypotheses only, identify what must be verified, and never promise bail, dismissal, or a real-world outcome.',
+    avatar: 'PC',
     color: 'text-brand-rust',
     tagline: 'Procedural lapses are the defense\'s best friend.',
   },
   {
-    id: 'nariman',
-    name: 'Fali Nariman',
+    id: 'constitutional-analyst',
+    name: 'Constitutional Analyst',
     role: 'Constitutional Jurist & Precedent Advisor',
-    systemPrompt: 'You are Fali Nariman, the highly distinguished Indian constitutional expert. Deconstruct this legal problem through constitutional principles, the rule of law, statutory canons of construction, and long-term jurisprudential impacts. Provide stable, deeply grounded, and highly ethical counsel suitable for supreme courts.',
-    avatar: 'FN',
+    systemPrompt: 'You are a fictional constitutional-law analyst in a legal-skills simulation. Deconstruct the problem through constitutional principles, statutory interpretation, and institutional consequences. Treat all authorities as material to verify and provide educational analysis, not legal advice.',
+    avatar: 'CA',
   },
   {
-    id: 'parfit',
-    name: 'Derek Parfit',
+    id: 'ethics-analyst',
+    name: 'Ethics Analyst',
     role: 'Philosophical & Identity Analyst',
-    systemPrompt: 'You are Derek Parfit, the renowned moral philosopher. Deconstruct the ethical foundations of this legal matter. Clarify ambiguous terms, separate prudential interests from moral duties, expose logical inconsistencies, and test claims using precise thought experiments and counterexamples.',
-    avatar: 'DP',
+    systemPrompt: 'You are a fictional ethics and reasoning analyst in a legal-skills simulation. Clarify ambiguous terms, separate legal questions from moral claims, expose logical inconsistencies, and use thought experiments carefully. Do not impersonate a real person.',
+    avatar: 'EA',
   },
 ];
 
@@ -316,7 +316,7 @@ interface ChatBubble {
 interface VerificationRow {
   caseName: string;
   citation: string;
-  status: string;       // e.g. "Verified — located via IndianKanoon"
+  status: string;       // e.g. "LOCATED — provider metadata; verify primary judgment"
   url?: string;
   dates?: string;
   court?: string;
@@ -747,15 +747,15 @@ export const StrategyRoomScreen: React.FC = () => {
             {(item.verification || []).map((v, i) => (
               <div key={i} className="text-[8px] flex items-center gap-1.5 py-1 border-b border-brand-border/20 last:border-b-0">
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  v.status.startsWith('Verified') ? 'bg-brand-success' : 'bg-amber-500'
+                  v.status.startsWith('LOCATED') ? 'bg-brand-success' : 'bg-amber-500'
                 }`} />
                 <span className="font-semibold text-brand-text-primary/90 truncate">{v.caseName}</span>
                 <span className="text-brand-text-secondary/50">·</span>
                 <span className="text-brand-text-secondary/70 truncate max-w-[120px]">{v.citation}</span>
                 <span className={`ml-auto flex-shrink-0 text-[7px] font-mono ${
-                  v.status.startsWith('Verified') ? 'text-brand-success' : 'text-amber-400'
+                  v.status.startsWith('LOCATED') ? 'text-brand-success' : 'text-amber-400'
                 }`}>
-                  {v.status.startsWith('Verified') ? '✓' : '⚠'} {v.status.slice(0, 15)}
+                  {v.status.startsWith('LOCATED') ? '✓' : '⚠'} {v.status.slice(0, 22)}
                 </span>
               </div>
             ))}
@@ -765,11 +765,11 @@ export const StrategyRoomScreen: React.FC = () => {
         {/* Retrieval health note */}
         {item.retrievalNote && (
           <div className={`text-[7px] font-mono px-2 py-1 rounded-lg flex items-center gap-1 ${
-            item.retrievalNote.includes('Verified') || item.retrievalNote.includes('retrieved')
+            item.retrievalNote.includes('Located') || item.retrievalNote.includes('Retrieved')
               ? 'bg-brand-success/10 text-brand-success border border-brand-success/30'
               : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
           }`}>
-            <span>{item.retrievalNote.includes('Verified') || item.retrievalNote.includes('retrieved') ? 'ℹ' : '⚠'}</span>
+            <span>{item.retrievalNote.includes('Located') || item.retrievalNote.includes('Retrieved') ? 'ℹ' : '⚠'}</span>
             <span>{item.retrievalNote}</span>
           </div>
         )}
@@ -1062,7 +1062,7 @@ export const StrategyRoomScreen: React.FC = () => {
         updateProvisionalBubble('Performing global jurisprudential reconciliation and risk audits...', [...trace]);
 
         setOracleStage('Phase 6: Final Editorial Polish...');
-        const polished = await callChatAPI(`Raw synthetic advice:\n${s5}\n\nProduce the final, client-ready advisory memo. Clean out all meta-commentary, introductory summaries, and stages. Respond only with the polished legal memo itself.`, 'Master copy-editor and senior jurist.', 'deepseek-chat', signal);
+        const polished = await callChatAPI(`Raw synthetic analysis:\n${s5}\n\nProduce a polished educational strategy memo. It is for training only, not legal advice or a filing-ready document. Keep material uncertainty, verification needs, and procedural assumptions explicit. Remove only redundant meta-commentary and stage labels.`, 'Master copy-editor and senior jurist.', 'deepseek-chat', signal);
         trace.push({ stage: 'Final Memo Polish', content: polished });
         setOracleTrace([...trace]);
         
@@ -1092,6 +1092,7 @@ export const StrategyRoomScreen: React.FC = () => {
 		          stages: {},
 		          retrievedPrecedents: [],
 		          retrievalAvailable: false,
+		          retrievalMode: 'unavailable',
 		          verificationBlock: '',
 		        };
 
@@ -1103,15 +1104,21 @@ export const StrategyRoomScreen: React.FC = () => {
 		          // Pre-stage hooks: do retrieval before Stage 2, and citation
 		          // verification before Stage 5.
 		          if (stg.key === 'precedent-scan') {
-		            setOracleStage('(retrieving real precedents via IndianKanoon…)');
+		            setOracleStage('(retrieving case-law research material…)');
 		            try {
 		              const caselawResp = await searchCaselaw(text, practiceMode ?? 'common', 8);
 		              ctx.retrievedPrecedents = caselawResp.results;
-		              ctx.retrievalAvailable = caselawResp.available;
+		              ctx.retrievalAvailable = caselawResp.available && caselawResp.provider === 'indiankanoon-api';
+		              ctx.retrievalMode = caselawResp.provider === 'indiankanoon-api'
+		                ? 'provider_metadata'
+		                : caselawResp.provider === 'public-web-discovery'
+		                  ? 'public_web_discovery'
+		                  : 'unavailable';
 		              ctx.stages['precedent-scan-retrieval-count'] = String(caselawResp.results.length);
 		            } catch {
 		              ctx.retrievedPrecedents = [];
 		              ctx.retrievalAvailable = false;
+		              ctx.retrievalMode = 'unavailable';
 		            }
 		          }
 
@@ -1142,12 +1149,15 @@ export const StrategyRoomScreen: React.FC = () => {
 		                  try {
 		                    const resp = await searchCaselaw(query, practiceMode ?? 'common', 1);
 		                    const hit = resp.results[0];
+		                    const providerMetadata = hit?.verification === 'provider_metadata';
 		                    verificationRows.push({
 		                      caseName: cand.caseName,
 		                      citation: hit?.citation || cand.citation,
-		                      status: hit
-		                        ? `Verified — located via ${resp.provider || 'IndianKanoon'}`
-		                        : 'UNVERIFIED — not found in real lookup',
+		                      status: providerMetadata
+		                        ? `LOCATED — provider metadata via ${resp.provider}; verify primary judgment`
+		                        : hit
+		                          ? 'UNVERIFIED — public-web lead only'
+		                          : 'UNVERIFIED — not found in lookup',
 		                      url: hit?.url,
 		                      dates: hit?.date,
 		                      court: hit?.court,
@@ -1161,7 +1171,7 @@ export const StrategyRoomScreen: React.FC = () => {
 		                  }
 		                }
 		                ctx.verificationBlock = [
-		                  'Verified citation status from real case-law lookup:',
+                  'Citation lookup status — independently verify primary judgments:',
 		                  ...verificationRows.map(v =>
 		                    `  - ${v.caseName} (${v.citation}): ${v.status}`
 		                  ),
@@ -1201,20 +1211,22 @@ export const StrategyRoomScreen: React.FC = () => {
 		          if (stg.key === 'precedent-scan') {
 		            bubbleCitations = ctx.retrievedPrecedents.length > 0
 		              ? ctx.retrievedPrecedents : undefined;
-		            bubbleNote = !ctx.retrievalAvailable
-		              ? 'Real case-law lookup unavailable — citations may be unverified. International lookup pending.'
+		            bubbleNote = ctx.retrievalMode === 'public_web_discovery'
+		              ? `Found ${ctx.retrievedPrecedents.length} public-web discovery lead${ctx.retrievedPrecedents.length !== 1 ? 's' : ''}. They were excluded from citation generation; open and verify primary judgments manually.`
+		              : !ctx.retrievalAvailable
+		                ? 'Structured case-law lookup unavailable — citations may be unverified. International lookup pending.'
 		              : ctx.retrievedPrecedents.length === 0
 		                ? 'Case-law lookup returned no hits — the model was asked to rely on black-letter principles only.'
-		                : `Retrieved ${ctx.retrievedPrecedents.length} real case${ctx.retrievedPrecedents.length !== 1 ? 's' : ''} from IndianKanoon.`;
+		                : `Retrieved ${ctx.retrievedPrecedents.length} provider-metadata record${ctx.retrievedPrecedents.length !== 1 ? 's' : ''}; primary judgments still require verification.`;
 		          }
 
 		          // After Stage 5, attach verification rows to the bubble.
 		          let bubbleVerification: VerificationRow[] | undefined;
 		          if (stg.key === 'citation-audit') {
 		            bubbleVerification = (ctx as any).__verificationRows;
-            bubbleNote = (ctx as any).__verificationRows?.some((v: VerificationRow) => v.status.startsWith('Verified'))
-              ? `Verified ${(ctx as any).__verificationRows.filter((v: VerificationRow) => v.status.startsWith('Verified')).length} of ${(ctx as any).__verificationRows.length} cited cases via IndianKanoon.`
-		              : 'None of the cited cases could be verified via real lookup — treat all citation-status claims with caution.';
+		            bubbleNote = (ctx as any).__verificationRows?.some((v: VerificationRow) => v.status.startsWith('LOCATED'))
+		              ? `Located ${(ctx as any).__verificationRows.filter((v: VerificationRow) => v.status.startsWith('LOCATED')).length} of ${(ctx as any).__verificationRows.length} citations in provider metadata; verify each primary judgment before relying on it.`
+		              : 'No cited case has provider-metadata support — treat all citation-status claims as unverified.';
 		          }
 
 		          updateProvisionalBubble(

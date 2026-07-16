@@ -58,7 +58,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
             aria-label="Research search"
             className="w-full bg-brand-bg-dark border border-brand-border rounded-xl py-3 pl-4 pr-12 text-xs focus:ring-1 focus:ring-brand-accent/50 text-brand-text-primary placeholder:text-brand-text-secondary/40 outline-none transition-all"
           />
-          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-brand-accent/10 hover:bg-brand-accent text-brand-text-secondary hover:text-brand-bg-dark rounded-lg transition-all">
+          <button type="submit" aria-label="Run research search" className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-brand-accent/10 hover:bg-brand-accent text-brand-text-secondary hover:text-brand-bg-dark rounded-lg transition-all">
             <ChevronRight size={14} />
           </button>
         </form>
@@ -154,7 +154,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                           <div className="min-w-0 flex-1 pr-3">
                             <h5 className="text-[10px] font-medium text-brand-text-secondary/60 group-hover:text-brand-text-primary/80 truncate transition-colors">{r.title}</h5>
                           </div>
-                          <button onClick={() => onCite(r)} className="p-1.5 bg-brand-text-primary/10 text-brand-text-secondary/60 hover:text-brand-accent hover:bg-brand-accent/10 rounded transition-all">
+                          <button onClick={() => onCite(r)} aria-label={`Cite ${r.title}`} className="p-1.5 bg-brand-text-primary/10 text-brand-text-secondary/60 hover:text-brand-accent hover:bg-brand-accent/10 rounded transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 10H3"/><path d="M21 6H3"/><path d="M21 14H3"/><path d="M17 18H3"/></svg>
                           </button>
                         </div>

@@ -234,6 +234,7 @@ const ResearchIDEScreen: React.FC = () => {
         </div>
         <button
           onClick={switchToHome}
+          aria-label="Open master manuscript"
           className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'home' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
           title="Master Manuscript"
         >
@@ -241,6 +242,7 @@ const ResearchIDEScreen: React.FC = () => {
         </button>
         <button
           onClick={switchToWorkspace}
+          aria-label="Open IDE workspace"
           className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'workspace' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
           title="IDE Workspace"
         >
@@ -249,6 +251,7 @@ const ResearchIDEScreen: React.FC = () => {
         {state.sandboxSectionId && (
           <button
             onClick={() => setState(prev => ({ ...prev, viewMode: 'ai-sandbox' }))}
+            aria-label="Open AI sandbox"
             className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'ai-sandbox' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
             title="Neural Sandbox"
           >
@@ -256,10 +259,10 @@ const ResearchIDEScreen: React.FC = () => {
           </button>
         )}
         <div className="mt-auto flex flex-col gap-4 pb-3">
-          <button onClick={() => navigate(ROUTES.HOME)} className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors" title="Back to LexForge">
+          <button onClick={() => navigate(ROUTES.HOME)} aria-label="Back to LexForge" className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors" title="Back to LexForge">
             <Home size={20} />
           </button>
-          <button onClick={clearSession} className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors" title="Clear Session">
+          <button onClick={clearSession} aria-label="Clear research session" className="text-brand-text-secondary/50 hover:text-brand-text-primary transition-colors" title="Clear Session">
             <RefreshCw size={20} />
           </button>
           <Settings size={20} className="text-brand-text-secondary/25 cursor-not-allowed" />
@@ -307,7 +310,7 @@ const ResearchIDEScreen: React.FC = () => {
               <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary flex items-center gap-2">
                 <LayoutIcon size={12}/> Explorer
               </span>
-              <button onClick={toggleExplorer} className="text-brand-text-secondary/40 hover:text-brand-text-primary transition-all">
+              <button onClick={toggleExplorer} aria-label="Hide explorer" className="text-brand-text-secondary/40 hover:text-brand-text-primary transition-all">
                 <ChevronLeft size={14}/>
               </button>
             </div>
@@ -351,7 +354,7 @@ const ResearchIDEScreen: React.FC = () => {
           </div>
 
           {!state.isExplorerVisible && (
-            <button onClick={toggleExplorer} className="absolute left-14 top-1/2 -translate-y-1/2 w-4 h-24 bg-brand-border/50 hover:bg-brand-border border border-brand-border rounded-r-xl flex items-center justify-center z-40 transition-all">
+            <button onClick={toggleExplorer} aria-label="Show explorer" className="absolute left-14 top-1/2 -translate-y-1/2 w-4 h-24 bg-brand-border/50 hover:bg-brand-border border border-brand-border rounded-r-xl flex items-center justify-center z-40 transition-all">
               <ChevronRight size={12} />
             </button>
           )}
@@ -359,7 +362,7 @@ const ResearchIDEScreen: React.FC = () => {
           <main className="flex-1 flex flex-col min-w-0 bg-brand-bg-primary relative">
             <header className="h-12 border-b border-brand-border bg-brand-bg-secondary flex items-center justify-between px-4 sm:px-5 z-30">
               <div className="flex items-center gap-3">
-                <button onClick={toggleExplorer} className={`text-brand-text-secondary/40 hover:text-brand-text-primary transition-all ${state.isExplorerVisible ? '' : 'opacity-40'}`}>
+                <button onClick={toggleExplorer} aria-label={state.isExplorerVisible ? 'Hide explorer' : 'Show explorer'} className={`text-brand-text-secondary/40 hover:text-brand-text-primary transition-all ${state.isExplorerVisible ? '' : 'opacity-40'}`}>
                   <AlignLeft size={16} />
                 </button>
                 <div className="h-4 w-px bg-brand-border" />
@@ -389,7 +392,7 @@ const ResearchIDEScreen: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={toggleResearch} className={`p-1.5 rounded-lg border transition-colors ${state.isResearchVisible ? 'text-black bg-white border-white' : 'text-brand-text-secondary/50 border-brand-border hover:border-white/20'}`}>
+                <button onClick={toggleResearch} aria-label={state.isResearchVisible ? 'Hide research panel' : 'Show research panel'} className={`p-1.5 rounded-lg border transition-colors ${state.isResearchVisible ? 'text-black bg-white border-white' : 'text-brand-text-secondary/50 border-brand-border hover:border-white/20'}`}>
                   <Search size={16} />
                 </button>
               </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, createContext, useEffect, useMemo, useContext } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import LandingScreen from './screens/LandingScreen';
 import { ROUTES } from './routes';
@@ -26,6 +26,30 @@ const CourtSourcesScreen = React.lazy(() => import('./screens/CourtSourcesScreen
 const OversightSpirit = React.lazy(() => import('./components/OversightSpirit').then(m => ({ default: m.OversightSpirit })));
 const CommandPalette = React.lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
 const ScreenLoader = () => <div className="flex justify-center items-center min-h-[60vh]"><LoadingSpinner text="Loading..." /></div>;
+
+const ROUTE_TITLES: Record<string, string> = {
+  [ROUTES.LANDING]: 'Legal skills training',
+  [ROUTES.HOME]: 'Dashboard',
+  [ROUTES.SETUP]: 'New trial',
+  [ROUTES.PRACTICE]: 'Practice hearing',
+  [ROUTES.ANALYSIS]: 'Performance review',
+  [ROUTES.LIBRARY]: 'Case library',
+  [ROUTES.BENCH]: 'Bench and counsel',
+  [ROUTES.DRAFTING_STUDIO]: 'Drafting studio',
+  [ROUTES.PERSONAS]: 'Personas',
+  [ROUTES.STRATEGY]: 'Strategy room',
+  [ROUTES.DREADLER]: 'Deception arena',
+  [ROUTES.RESEARCH_IDE]: 'Research IDE',
+  [ROUTES.COURT_SOURCES]: 'Court sources',
+};
+
+const RouteTitle: React.FC = () => {
+  const location = useLocation();
+  useEffect(() => {
+    document.title = `${ROUTE_TITLES[location.pathname] || 'Legal skills training'} · LexForge`;
+  }, [location.pathname]);
+  return null;
+};
 
 export const LexForgeContext = createContext<TrialSimContextType | null>(null);
 /** @deprecated Use LexForgeContext instead */
@@ -155,6 +179,7 @@ function App() {
     <LexForgeContext.Provider value={contextValue}>
       <ConversationBridgeProvider>
       <HashRouter>
+        <RouteTitle />
         {isLoading && <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]"><LoadingSpinner text="Loading..." spinnerColor="text-white" textColor="text-white/50" /></div>}
         {error && <GlobalErrorDisplay message={error} onDismiss={() => setError(null)} />}
         <React.Suspense fallback={null}><OversightSpirit /></React.Suspense>

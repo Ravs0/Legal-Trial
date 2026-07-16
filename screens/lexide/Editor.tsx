@@ -77,7 +77,7 @@ export const Editor: React.FC<EditorProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-accent"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8.5L2 8.5V20a2 2 0 0 0 2 2z"/></svg>
                 <h4 className="text-xs font-bold text-brand-text-primary uppercase tracking-[0.2em]">Footnote Inspector</h4>
               </div>
-              <button onClick={() => setShowFootnoteList(false)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-brand-text-primary/10 transition-all">
+              <button onClick={() => setShowFootnoteList(false)} aria-label="Close footnote inspector" className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-brand-text-primary/10 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
             </div>
@@ -96,7 +96,7 @@ export const Editor: React.FC<EditorProps> = ({
           <div className="absolute bottom-0 left-0 right-0 bg-brand-bg-dark border-t-2 border-brand-accent/30 p-8 z-40 shadow-2xl">
             <div className="flex items-center justify-between border-b border-brand-border pb-4 mb-4">
               <h4 className="text-xs font-bold text-brand-text-primary uppercase tracking-[0.2em]">Footnote Inspector</h4>
-              <button onClick={() => setShowFootnoteList(false)}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+              <button onClick={() => setShowFootnoteList(false)} aria-label="Close footnote inspector"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
             </div>
             <p className="text-center text-brand-text-secondary/40 text-[10px] uppercase font-bold py-8">No citations indexed for this section</p>
           </div>

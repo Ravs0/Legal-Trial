@@ -130,7 +130,7 @@ export const scoreSubmission = (
   return {
     score,
     scoreDelta: score.total - previous.total,
-    scoreReason: reasons.length ? reasons.join('; ') : 'submission recorded',
+    scoreReason: `${reasons.length ? reasons.join('; ') : 'submission recorded'}; structure signals only`,
     assessment,
   };
 };
@@ -161,7 +161,7 @@ export const scoreObjection = (
   return {
     score,
     scoreDelta: score.total - previous.total,
-    scoreReason,
+    scoreReason: `${scoreReason}; practice signal only`,
     assessment: {
       score: outcome === 'sustained' ? 8 : outcome === 'overruled' ? 3 : 5,
       issue: true,

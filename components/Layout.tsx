@@ -217,9 +217,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <span className="text-[12px] text-brand-text-secondary truncate">{formatModeLabel(practiceMode)}</span>
               )}
             </Link>
-            <button type="button" onClick={() => setIsMobileOpen(true)} className="p-2 -mr-2 text-brand-text-secondary" aria-label="Menu">
-              <Bars3Icon className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('lexforge-open-coach'))}
+                className="px-2 py-1 text-[11px] text-brand-text-secondary hover:text-brand-text-primary"
+              >
+                Coach
+              </button>
+              <button type="button" onClick={() => setIsMobileOpen(true)} className="p-2 -mr-2 text-brand-text-secondary" aria-label="Menu">
+                <Bars3Icon className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       )}

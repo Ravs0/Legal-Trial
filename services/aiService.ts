@@ -32,7 +32,10 @@ const apiErrorMessage = (status: number, error?: string) => {
   if (import.meta.env.DEV && status === 404) {
     return 'The AI endpoint is unavailable in Vite dev. Start the app with `vercel dev` so the local /api functions are available.';
   }
-  return error || `AI service error (${status})`;
+  if (status === 429) return 'The AI service is busy. Wait a moment, then retry your last submission.';
+  if (status === 401 || status === 403 || status === 503) return 'The AI service is currently unavailable. Your work is preserved; retry shortly.';
+  if (status >= 500) return 'The AI service could not respond. Your work is preserved; retry shortly.';
+  return error && import.meta.env.DEV ? error : `AI service error (${status}). Please retry.`;
 };
 
 export async function callApi(

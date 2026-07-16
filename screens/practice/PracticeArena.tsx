@@ -84,6 +84,7 @@ const PracticeArena: React.FC = () => {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [hearingNotice, setHearingNotice] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -347,18 +348,26 @@ const PracticeArena: React.FC = () => {
     setActiveChatOpposingCounsel(ocChat);
 
     if (canResume && savedSession) {
+      const restoredTranscript = savedSession.transcript.filter((message) => !(
+        (message.sender === 'system' || message.meta?.kind === 'system')
+        && /^(error|network error|not found|ai service error)\b/i.test(message.text.trim())
+      ));
       currentSessionRecordRef.current = {
         ...savedSession,
         settings: settingsWithMode,
+        transcript: restoredTranscript,
       };
-      setMessages(savedSession.transcript);
+      setMessages(restoredTranscript);
       setScoreBreakdown(savedSession.scoreBreakdown || DEFAULT_SCORE_BREAKDOWN);
-      setActivePhase(savedSession.activePhase || inferNextPhase(savedSession.transcript));
+      setActivePhase(savedSession.activePhase || inferNextPhase(restoredTranscript));
       setSessionStarted(true);
-      const lastUser = [...savedSession.transcript].reverse().find(m => m.sender === 'user');
-      const lastOc = [...savedSession.transcript].reverse().find(m => m.sender === 'opposingCounsel');
+      const lastUser = [...restoredTranscript].reverse().find(m => m.sender === 'user');
+      const lastOc = [...restoredTranscript].reverse().find(m => m.sender === 'opposingCounsel');
       lastUserMessageRef.current = lastUser?.text || '';
       lastOcMessageRef.current = lastOc?.text || '';
+      if (restoredTranscript.length !== savedSession.transcript.length) {
+        setHearingNotice('A prior connection error was removed from the transcript. Your hearing and draft were restored.');
+      }
       resetTimer();
       startTimer(savedSession.elapsedSeconds || 0);
       setGlobalLoading(false);
@@ -431,6 +440,7 @@ const PracticeArena: React.FC = () => {
       await streamAiResponse(activeChatJudge, contextForJudge, 'judge', { kind: 'question', phase: activePhase });
     } catch (e) {
       console.error('Error triggerAutoJudgeResponse:', e);
+      setHearingNotice('The Court could not respond. Your hearing is preserved; continue with your next submission or retry shortly.');
       setGlobalError(e instanceof Error ? e.message : 'The Court could not respond. Please try again.');
     } finally {
       setIsAiTyping(false);
@@ -645,6 +655,7 @@ const PracticeArena: React.FC = () => {
       console.error('Error during Judge Objection ruling:', error);
       syncSessionRecord(latestMessagesRef.current.filter(message => message.id !== objectionId), scoreBreakdown, activePhase);
       setObjectionExplanation(savedExplanation);
+      setHearingNotice('The objection was not submitted because the Court connection failed. Your draft basis was restored.');
       setGlobalError(error instanceof Error ? `The Court could not rule on this objection: ${error.message}` : 'The Court could not rule on this objection.');
     } finally {
       setIsAiTyping(false);
@@ -727,6 +738,7 @@ const PracticeArena: React.FC = () => {
       syncSessionRecord(latestMessagesRef.current.filter(message => message.id !== userMessage.id), scoreBreakdown, activePhase);
       lastUserMessageRef.current = [...latestMessagesRef.current].reverse().find(message => message.sender === 'user')?.text || '';
       setUserInput(userMessageText);
+      setHearingNotice('Opposing Counsel could not respond. Your submission was restored so you can retry it.');
       setGlobalError(error instanceof Error ? `Opposing Counsel could not respond: ${error.message}` : 'Opposing Counsel could not respond. Your draft has been restored.');
     } finally {
       setIsAiTyping(false);
@@ -750,7 +762,7 @@ const PracticeArena: React.FC = () => {
   const canObject = messages.length > 0 && lastMessage && lastMessage.sender === 'opposingCounsel' && !isAiTyping && !sessionEnded && isTimerRunning;
   const sessionMeta = useMemo(() => ([
     { label: 'Phase', value: phaseLabel(activePhase), tone: 'text-brand-text-primary' },
-    { label: 'Score', value: String(scoreBreakdown.total), tone: 'text-brand-text-primary' },
+    { label: 'Structure', value: String(scoreBreakdown.total), tone: 'text-brand-text-primary' },
     { label: 'Timer', value: formattedTime, tone: remainingSeconds < 60 ? 'text-brand-error' : 'text-brand-text-primary' },
     { label: 'Reflex', value: String(quickObjectionsCount), tone: 'text-brand-text-primary' },
   ]), [activePhase, formattedTime, quickObjectionsCount, remainingSeconds, scoreBreakdown.total]);
@@ -812,7 +824,7 @@ const PracticeArena: React.FC = () => {
           </h4>
           <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 grid grid-cols-2 gap-4 shadow-card">
             <div>
-              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Court Score</p>
+              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Structure score</p>
               <p className={`text-2xl font-mono ${catColors.text} font-bold mt-1`}>{scoreBreakdown.total}</p>
             </div>
             <div>
@@ -958,6 +970,14 @@ const PracticeArena: React.FC = () => {
               </div>
             </div>
 
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('lexforge-open-coach'))}
+              className="sm:hidden shrink-0 rounded-lg border border-brand-border px-2.5 py-1.5 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary hover:border-brand-accent/40 hover:text-brand-text-primary"
+            >
+              Coach
+            </button>
+
             <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
               {isTTSAvailable() && (
                 <button
@@ -1102,6 +1122,18 @@ const PracticeArena: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setAudioError(null)}
+                      className="flex-shrink-0 text-[10px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+                {hearingNotice && (
+                  <div role="status" className="p-2.5 mb-3 bg-brand-accent/10 border border-brand-accent/25 text-brand-text-primary text-[11px] rounded-xl text-left animate-fadeIn flex items-start justify-between gap-3">
+                    <span className="leading-relaxed">{hearingNotice}</span>
+                    <button
+                      type="button"
+                      onClick={() => setHearingNotice(null)}
                       className="flex-shrink-0 text-[10px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
                     >
                       Dismiss
@@ -1297,7 +1329,7 @@ const PracticeArena: React.FC = () => {
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-secondary/40 px-3 py-2.5">
-            <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Score</p>
+            <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Structure</p>
             <p className={`mt-1 text-base font-semibold ${catColors.text}`}>{scoreBreakdown.total}</p>
           </div>
           <div className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-secondary/40 px-3 py-2.5">

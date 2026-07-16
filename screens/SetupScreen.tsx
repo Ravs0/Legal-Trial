@@ -22,6 +22,22 @@ import libraryBooks from '../assets/library_books.jpg';
 import judgeGavel from '../assets/judge_gavel.jpg';
 import counselScales from '../assets/counsel_scales.jpg';
 
+const COUNSEL_MATCH_TERMS: Partial<Record<CaseCategoryId, string[]>> = {
+  [CaseCategoryId.CONSTITUTIONAL]: ['constitutional', 'human rights'],
+  [CaseCategoryId.CRIMINAL]: ['criminal'],
+  [CaseCategoryId.COMMERCIAL]: ['commercial', 'corporate', 'arbitration'],
+  [CaseCategoryId.LABOR]: ['labor', 'employment'],
+  [CaseCategoryId.FAMILY]: ['family', 'gender'],
+  [CaseCategoryId.PROPERTY]: ['property', 'civil'],
+  [CaseCategoryId.ENVIRONMENTAL_IN]: ['environmental', 'public interest'],
+  [CaseCategoryId.IPR_IN]: ['ip', 'intellectual property', 'technology'],
+};
+
+const recommendedCounsel = (categoryId: CaseCategoryId, counsel: OpposingCounselPersonality[]) => {
+  const terms = COUNSEL_MATCH_TERMS[categoryId] || [];
+  return counsel.find((candidate) => terms.some((term) => candidate.specialty.toLowerCase().includes(term))) || counsel[0];
+};
+
 const SetupScreen: React.FC = () => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
@@ -63,6 +79,8 @@ const SetupScreen: React.FC = () => {
       setAvailableCases(filteredCases);
       if (filteredCases.length > 0) {
         setSelectedCaseId(filteredCases[0].id);
+        const match = recommendedCounsel(filteredCases[0].categoryId, currentOCs);
+        setSelectedOpposingCounselId(match?.id || '');
       } else {
         setSelectedCaseId('');
       }

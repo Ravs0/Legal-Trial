@@ -19,6 +19,17 @@ import { PhotoHero } from '../components/PhotoHero';
 import { PatternPanel } from '../components/SurfacePattern';
 import libraryBooks from '../assets/library_books.jpg';
 
+const COUNSEL_MATCH_TERMS: Record<string, string[]> = {
+  constitutional: ['constitutional', 'human rights'], criminal: ['criminal'], commercial: ['commercial', 'corporate', 'arbitration'],
+  labor: ['labor', 'employment'], family: ['family', 'gender'], property: ['property', 'civil'],
+  environmental_in: ['environmental', 'public interest'], ipr_in: ['ip', 'intellectual property', 'technology'],
+};
+
+const recommendedCounsel = (categoryId: string, counsel: OpposingCounselPersonality[]) => {
+  const terms = COUNSEL_MATCH_TERMS[categoryId] || [];
+  return counsel.find((candidate) => terms.some((term) => candidate.specialty.toLowerCase().includes(term))) || counsel[0];
+};
+
 
 const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty; categoryId?: string }> = ({ difficulty, categoryId }) => {
   const colors = categoryId ? getCategoryColorClasses(categoryId) : null;
@@ -54,14 +65,14 @@ const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
     canvas.width = 300;
     canvas.height = 140;
 
-    // Create simple nodes and links
-    // Center node is the caseTitle itself.
+    // Training scaffold only: never imply that a generic case card carries
+    // real citation relationships before a source-backed search is run.
     const nodes = [
       { id: 'target', label: caseTitle.split(' v. ')[0] || 'Selected Case', x: 150, y: 70, size: 7, color: '#FF5A1F' },
-      { id: 'ref1', label: 'Rylands v. Fletcher', x: 60, y: 35, size: 4.5, color: '#3f51b5' },
-      { id: 'ref2', label: 'Donoghue v. Stevenson', x: 70, y: 105, size: 4.5, color: '#3f51b5' },
-      { id: 'ref3', label: 'Hadley v. Baxendale', x: 240, y: 40, size: 4.5, color: '#3f51b5' },
-      { id: 'ref4', label: 'Carlill v. Carbolic Smoke Ball', x: 230, y: 100, size: 4.5, color: '#3f51b5' },
+      { id: 'ref1', label: 'Material facts', x: 60, y: 35, size: 4.5, color: '#3f51b5' },
+      { id: 'ref2', label: 'Legal issues', x: 70, y: 105, size: 4.5, color: '#3f51b5' },
+      { id: 'ref3', label: 'Rule to verify', x: 240, y: 40, size: 4.5, color: '#3f51b5' },
+      { id: 'ref4', label: 'Relief sought', x: 230, y: 100, size: 4.5, color: '#3f51b5' },
     ];
 
     const links = [
@@ -73,6 +84,7 @@ const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
 
     let t = 0;
     let animId: number;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -142,7 +154,7 @@ const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
         ctx.fillText(node.label, node.x - 20, node.y + oy + node.size + 8);
       }
 
-      animId = requestAnimationFrame(draw);
+      if (!reduceMotion) animId = requestAnimationFrame(draw);
     };
 
     draw();
@@ -154,7 +166,7 @@ const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
 
   return (
     <div className="relative border border-brand-text-primary/20 bg-brand-bg-secondary p-3">
-      <div className="text-[7px] text-zinc-500 font-mono tracking-widest uppercase mb-1">Precedent Citation Graph</div>
+      <div className="text-[7px] text-zinc-500 font-mono tracking-widest uppercase mb-1">Training argument map · not case law</div>
       <canvas ref={canvasRef} className="w-full h-[140px]" />
     </div>
   );
@@ -177,6 +189,7 @@ const CaseLibraryScreen: React.FC = () => {
   const [customLegalIssues, setCustomLegalIssues] = useState('');
   const [customDifficulty, setCustomDifficulty] = useState<CaseDifficulty>(CaseDifficulty.INTERMEDIATE);
   const [customCategoryId, setCustomCategoryId] = useState<string>('');
+  const [customAiConsent, setCustomAiConsent] = useState(false);
   const [fileUploadError, setFileUploadError] = useState<string | null>(null);
   const [fileUploadSuccess, setFileUploadSuccess] = useState<string | null>(null);
 
@@ -200,6 +213,7 @@ const CaseLibraryScreen: React.FC = () => {
     }
     setFileUploadError(null);
     setFileUploadSuccess(null);
+    setCustomAiConsent(false);
   }, [practiceMode]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -257,8 +271,10 @@ const CaseLibraryScreen: React.FC = () => {
 
   const handleLaunchCustomCase = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customBriefFacts.trim()) {
-      alert("Please provide at least the Brief Facts for your custom case.");
+    if (!customBriefFacts.trim() || !customAiConsent) {
+      setFileUploadError(!customBriefFacts.trim()
+        ? 'Provide the brief facts before configuring a custom simulation.'
+        : 'Confirm that this material is appropriate to send to the configured AI service.');
       return;
     }
 
@@ -309,7 +325,7 @@ const CaseLibraryScreen: React.FC = () => {
     const currentJudgesList = practiceMode === 'international' ? INTERNATIONAL_JUDGE_PERSONALITIES : JUDGE_PERSONALITIES;
     const currentOCList = practiceMode === 'international' ? INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES : OPPOSING_COUNSEL_PERSONALITIES;
     setSelectedJudge(currentJudgesList[0] || null);
-    setSelectedOpposingCounsel(currentOCList[0] || null);
+    setSelectedOpposingCounsel(recommendedCounsel(caseDetail.categoryId, currentOCList) || null);
   };
 
   const confirmPractice = () => {
@@ -597,10 +613,20 @@ const CaseLibraryScreen: React.FC = () => {
                     />
                   </div>
 
+                  <label className="flex items-start gap-2.5 rounded-lg border border-amber-400/20 bg-amber-500/5 p-3 text-[11px] leading-5 text-amber-100/80">
+                    <input
+                      type="checkbox"
+                      checked={customAiConsent}
+                      onChange={(event) => setCustomAiConsent(event.target.checked)}
+                      className="mt-1 h-4 w-4 shrink-0 accent-brand-accent"
+                    />
+                    <span>I confirm these facts contain no privileged, confidential, or client-identifying material that I am not authorized to send to the configured AI service.</span>
+                  </label>
+
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={!customBriefFacts.trim()}
+                      disabled={!customBriefFacts.trim() || !customAiConsent}
                       className="w-full py-4 text-xs tracking-widest font-mono uppercase bg-brand-accent hover:bg-brand-accent-hover text-brand-navy font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Configure Custom Simulation
