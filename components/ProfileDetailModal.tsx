@@ -51,7 +51,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({ profile,
             </header>
 
             {isAdvocate && (
-              <p className="inline-flex items-center px-2.5 py-1 rounded-md border border-white/15 bg-white/[0.04] text-[11px] font-mono font-medium text-brand-text-primary uppercase tracking-wider">
+              <p className="inline-flex items-center px-2.5 py-1 rounded-md border border-white/15 bg-[#1c1914]/[0.05] text-[11px] font-mono font-medium text-brand-text-primary uppercase tracking-wider">
                 <span className="sr-only">Specialty: </span>
                 {profile.specialty}
               </p>

@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
+from .escalation import COLLAPSE_SKILL_BONUS, TIER_NOTICES, skill_delta_for_event, tier_for_score
+
 #: Score deltas for narrative events.
 #:
 #: Player success (caught a lie, exposed deception) → NEGATIVE delta → score goes DOWN.
@@ -108,12 +110,18 @@ class CoherenceState:
     pressure_level: str = field(default="calm")
     agent_variant: str = field(default="alpha")
     used_tactics: List[str] = field(default_factory=list)
+    agent_tactics: List[str] = field(default_factory=list)
     accepted_by_user: List[str] = field(default_factory=list)
     challenged_by_user: List[str] = field(default_factory=list)
     score_history: List[Dict[str, Any]] = field(default_factory=list)
+    # USER skill axis (Part 5 Tier Covenant). Independent of the agent's
+    # coherence score: skill drives which §2.x tactics the agent may deploy.
+    skill_score: float = 25.0
+    skill_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         self.score = max(0, min(100, self.score))
+        self.skill_score = max(0.0, min(100.0, float(self.skill_score)))
         self._update_pressure_and_variant()
 
     def _update_pressure_and_variant(self) -> None:
@@ -175,17 +183,83 @@ class CoherenceState:
             if len(self.used_tactics) > 20:
                 self.used_tactics = self.used_tactics[-20:]
 
+    def record_agent_tactic(self, tactic: str) -> None:
+        """Record a §2.x manoeuvre the agent used (training debrief ledger).
+
+        Kept as a multiset (repeats allowed) so the UI can tally how often
+        each tactic was faced.
+        """
+        self.agent_tactics.append(tactic)
+        if len(self.agent_tactics) > 40:
+            self.agent_tactics = self.agent_tactics[-40:]
+
     def record_user_acceptance(self, text: str) -> None:
+        # Cap the ledger: render_state_block shows only the last 3, and the
+        # full list rides inside the signed state token every turn.
         self.accepted_by_user.append(text)
+        if len(self.accepted_by_user) > 10:
+            self.accepted_by_user = self.accepted_by_user[-10:]
 
     def record_user_challenge(self, text: str) -> None:
         self.challenged_by_user.append(text)
+        if len(self.challenged_by_user) > 10:
+            self.challenged_by_user = self.challenged_by_user[-10:]
 
     def advance_turn(self) -> None:
         self.turn_count += 1
 
     def is_collapsed(self) -> bool:
         return self.pressure_level == "collapsed" or self.score <= 9
+
+    @property
+    def tier(self) -> int:
+        """Active difficulty tier (1..4) derived from the user's skill score."""
+        return tier_for_score(self.skill_score)
+
+    def apply_skill_delta(self, delta: float, reason: str = "") -> Dict[str, Any]:
+        """Apply a user-skill drift and record it on the skill ledger.
+
+        Returns a summary with tier_changed + the in-fiction notice so callers
+        (engine → UI) can surface the darkening without exposing numbers.
+        """
+        old_tier = self.tier
+        self.skill_score = max(0.0, min(100.0, self.skill_score + float(delta)))
+        new_tier = self.tier
+
+        self.skill_history.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "turn_count": self.turn_count,
+            "delta": round(float(delta), 2),
+            "reason": reason,
+            "score_after": round(self.skill_score, 2),
+            "tier_after": new_tier,
+        })
+        if len(self.skill_history) > 50:
+            self.skill_history = self.skill_history[-50:]
+
+        return {
+            "delta": round(float(delta), 2),
+            "reason": reason,
+            "new_score": round(self.skill_score, 2),
+            "tier_changed": new_tier != old_tier,
+            "old_tier": old_tier,
+            "new_tier": new_tier,
+            "notice": TIER_NOTICES[new_tier] if new_tier != old_tier else None,
+        }
+
+    def apply_skill_from_event(self, score_event: str) -> Dict[str, Any]:
+        """Drift skill from a critic score_event (per-turn signal)."""
+        return self.apply_skill_delta(
+            skill_delta_for_event(score_event),
+            f"critic:{score_event}",
+        )
+
+    def apply_collapse_bonus(self) -> Dict[str, Any]:
+        """Big skill jump when the player collapses the agent."""
+        return self.apply_skill_delta(
+            COLLAPSE_SKILL_BONUS,
+            "collapse: player dismantled the variant",
+        )
 
     def render_state_block(self) -> str:
         """Return the BLOCK 3 text to inject into the model prompt."""

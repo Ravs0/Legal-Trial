@@ -86,6 +86,16 @@ Route: `/deception-arena` → `screens/DreadlerArenaScreen.tsx` → `POST/GET /a
 | `dreadler_logic` | Dreadler's Logic Arena |
 | `missing_alibi` | The Missing Alibi |
 | `silent_vault` | The Silent Vault |
+| `flatterers_voice` | The Flatterer's Voice (validation trap — the agent agrees with you) |
+| `ghost_whisperers` | The Ghost Whisperers (consensus trap — the whole town endorses the lie) |
+
+**Adaptive difficulty (Tier Covenant):** the engine tracks the *player's* skill
+(0–100) alongside the agent's coherence. Skill maps to four tiers — Novice,
+Adept, Veteran, Devil — gating which of the ten §2.x deceptive tactics the
+agent may deploy, its layering limit, and whether it must concede under press.
+Player hits raise skill (the world darkens); falling for a trap lowers it;
+collapsing a variant jumps +15 so respawns come back harder. Tier crossings
+surface as in-fiction notices; the tier chip in the header is player-facing only.
 
 **Skins** (opponent persona):
 

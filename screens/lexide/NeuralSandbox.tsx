@@ -61,19 +61,19 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
           }}
         />
         <div className="relative z-10 flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-white/[0.06] flex items-center justify-center border border-white/20 shrink-0">
-            <Sparkles size={16} className="text-white/80" aria-hidden />
+          <div className="w-9 h-9 rounded-lg bg-[#1c1914]/[0.06] flex items-center justify-center border border-white/20 shrink-0">
+            <Sparkles size={16} className="text-brand-text-primary/80" aria-hidden />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-medium tracking-wide text-white truncate">Draft sandbox</h2>
-            <p className="text-[10px] text-white/50 uppercase tracking-wider">Cross-document consistency</p>
+            <h2 className="text-sm font-medium tracking-wide text-brand-text-primary truncate">Draft sandbox</h2>
+            <p className="text-[10px] text-brand-text-primary/50 uppercase tracking-wider">Cross-document consistency</p>
           </div>
         </div>
         <div className="relative z-10 flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={onDiscard}
-            className="px-3 py-2 text-[11px] uppercase tracking-wide text-white/60 hover:text-white border border-white/15 rounded-lg transition-colors"
+            className="px-3 py-2 text-[11px] uppercase tracking-wide text-brand-text-primary/60 hover:text-brand-text-primary border border-white/15 rounded-lg transition-colors"
           >
             Discard
           </button>
@@ -110,7 +110,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
                   Insights
                 </span>
               </div>
-              <div className="p-3.5 bg-white/[0.03] border border-brand-border rounded-lg">
+              <div className="p-3.5 bg-[#1c1914]/[0.04] border border-brand-border rounded-lg">
                 <p className="text-[12px] text-brand-text-primary/85 leading-relaxed">{sandboxAnalysis}</p>
               </div>
             </div>
@@ -141,7 +141,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
               <h4 className="text-[10px] font-medium text-brand-text-secondary/70 uppercase flex items-center gap-2 tracking-wider">
                 <AlignLeft size={12} aria-hidden /> Proposed draft
               </h4>
-              <span className="text-[9px] bg-white/[0.04] text-brand-text-secondary border border-brand-border px-2 py-0.5 rounded uppercase tracking-wider">
+              <span className="text-[9px] bg-[#1c1914]/[0.05] text-brand-text-secondary border border-brand-border px-2 py-0.5 rounded uppercase tracking-wider">
                 Editable
               </span>
             </div>
@@ -162,7 +162,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
                   <div
                     className={`max-w-[90%] sm:max-w-[85%] p-3.5 rounded-xl text-[13px] border ${
                       m.role === 'user'
-                        ? 'bg-white text-black border-white rounded-tr-sm'
+                        ? 'bg-brand-text-primary text-brand-bg-primary border-white rounded-tr-sm'
                         : 'bg-brand-bg-secondary text-brand-text-primary border-brand-border rounded-tl-sm'
                     }`}
                   >

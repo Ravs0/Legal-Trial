@@ -285,7 +285,7 @@ const PerformanceScreen: React.FC = () => {
             size="md"
             eyebrow="Post-session review"
             title="No completed hearing yet"
-            subtitle="Finish a mock hearing to see its scorecard, transcript, and coaching notes."
+            subtitle="Finish a hearing to see its scorecard."
             actions={
               <>
                 <Button variant="primary" onClick={() => navigate(ROUTES.SETUP)}>
@@ -293,7 +293,7 @@ const PerformanceScreen: React.FC = () => {
                 </Button>
                 <Button
                   variant="secondary"
-                  className="!border-white/25 !text-white hover:!bg-white/10"
+                  className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
                   onClick={() => navigate(ROUTES.HOME)}
                 >
                   Dashboard
@@ -344,7 +344,7 @@ const PerformanceScreen: React.FC = () => {
                 </Button>
                 <Button
                   variant="secondary"
-                  className="!border-white/25 !text-white hover:!bg-white/10"
+                  className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
                   onClick={() =>
                     downloadMarkdown(
                       transcriptFilename(sessionRecord),
@@ -357,7 +357,7 @@ const PerformanceScreen: React.FC = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  className="!text-white/80 hover:!text-white"
+                  className="!text-brand-text-primary/80 hover:!text-brand-text-primary"
                   onClick={() => navigate(ROUTES.SETUP)}
                 >
                   New trial
@@ -443,13 +443,13 @@ const PerformanceScreen: React.FC = () => {
           subtitle={
             <span>
               {safeTitle(sessionRecord)}
-              <span className="text-white/40"> · </span>
+              <span className="text-brand-text-primary/40"> · </span>
               {formatScore(overall)}/10
-              <span className="text-white/40"> · </span>
+              <span className="text-brand-text-primary/40"> · </span>
               {scoreLabelForOverall(overall)}
               {liveScore != null && (
                 <>
-                  <span className="text-white/40"> · </span>
+                  <span className="text-brand-text-primary/40"> · </span>
                   structure {clampScore(liveScore.total, LIVE_TOTAL_CAP)}/{LIVE_TOTAL_CAP}
                 </>
               )}
@@ -462,14 +462,14 @@ const PerformanceScreen: React.FC = () => {
               </Button>
               <Button
                 variant="secondary"
-                className="!border-white/25 !text-white hover:!bg-white/10"
+                className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
                 onClick={() => navigate(ROUTES.HOME)}
               >
                 Dashboard
               </Button>
               <Button
                 variant="ghost"
-                className="!text-white/80 hover:!text-white"
+                className="!text-brand-text-primary/80 hover:!text-brand-text-primary"
                 onClick={() => navigate(ROUTES.SETUP)}
               >
                 New trial
@@ -748,7 +748,7 @@ const SessionDetailsPanel: React.FC<{
           <img src={stripImage} alt="" className="absolute inset-0 w-full h-full object-cover grayscale" />
           <div className="absolute inset-0 bg-black/75" />
           <div className="relative z-10 h-full flex items-center px-4">
-            <h3 className="text-[15px] font-medium text-white">Session details</h3>
+            <h3 className="text-[15px] font-medium text-brand-text-primary">Session details</h3>
           </div>
         </div>
       ) : (

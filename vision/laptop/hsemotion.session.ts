@@ -11,7 +11,11 @@
 // available on the second output tensor if you want them later.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import * as ort from 'onnxruntime-web';
+// Type-only import: erased at build time, so onnxruntime-web is NOT bundled
+// into the initial graph. The runtime import happens dynamically — after the
+// model probe succeeds — so the ~27MB ort wasm artifact is only downloaded by
+// users who actually have the HSEmotion weights deployed.
+import type * as ort from 'onnxruntime-web';
 import {
   EMOTION_KEYS,
   AFFECTNET_CLASS_ORDER,
@@ -40,7 +44,9 @@ export function getHsemotionSession(): Promise<ort.InferenceSession | null> {
         return null;
       }
       const bytes = await probe.arrayBuffer();
-      return await ort.InferenceSession.create(bytes, {
+      // Runtime load happens ONLY when the model exists (see import note above).
+      const ortLive = await import('onnxruntime-web');
+      return await ortLive.InferenceSession.create(bytes, {
         executionProviders: ['webgl', 'wasm'],
       });
     } catch (err) {
@@ -62,9 +68,10 @@ export async function inferEmotions(
 ): Promise<EmotionSet> {
   const input = imageDataToNchw(crop, INPUT_SIZE);
 
+  const ortLive = await import('onnxruntime-web');
   const feeds: Record<string, ort.Tensor> = {};
   const inputName = session.inputNames[0];
-  feeds[inputName] = new ort.Tensor('float32', input, [1, 3, INPUT_SIZE, INPUT_SIZE]);
+  feeds[inputName] = new ortLive.Tensor('float32', input, [1, 3, INPUT_SIZE, INPUT_SIZE]);
 
   const results = await session.run(feeds);
   // Classification logits are the FIRST output in the published HSEmotion graph.

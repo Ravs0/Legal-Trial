@@ -29,7 +29,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     <header className={`flex flex-col gap-2 ${alignClass} ${className}`}>
       {icon && (
         <div
-          className="w-9 h-9 border border-white/15 bg-white/[0.03] flex items-center justify-center text-brand-text-secondary [&>svg]:h-4 [&>svg]:w-4"
+          className="w-9 h-9 border border-white/15 bg-[#1c1914]/[0.04] flex items-center justify-center text-brand-text-secondary [&>svg]:h-4 [&>svg]:w-4"
           aria-hidden="true"
         >
           {icon}

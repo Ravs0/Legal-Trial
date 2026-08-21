@@ -788,11 +788,11 @@ const DraftingStudioScreen: React.FC = () => {
                   <div>Modern Professional</div>
                 </div>
                 <div className="p-2.5 border-b border-brand-text-primary/30 grid grid-cols-2 gap-2 bg-brand-bg-primary/30">
-                  <div className="text-red-400/80">THIS AGREEMENT made and entered into this 24th day... by and between Alpha Fund LP...</div>
+                  <div className="text-brand-error/80">THIS AGREEMENT made and entered into this 24th day... by and between Alpha Fund LP...</div>
                   <div className="text-brand-text-primary/90 font-medium">This Stock Purchase Agreement is dated May 24, 2026, and is between Alpha Fund LP ("Investor") and Beta Tech Inc. ("Company").</div>
                 </div>
                 <div className="p-2.5 grid grid-cols-2 gap-2 bg-brand-bg-primary/15">
-                  <div className="text-red-400/80">WITNESSETH: WHEREAS, the Company desires to sell Preferred Stock...</div>
+                  <div className="text-brand-error/80">WITNESSETH: WHEREAS, the Company desires to sell Preferred Stock...</div>
                   <div className="text-brand-text-primary/90 font-medium">Recitals:<br/>1. The Company is conducting a Series A finance raise.<br/>2. The Company desires to sell Series A shares...</div>
                 </div>
               </div>
@@ -827,15 +827,15 @@ const DraftingStudioScreen: React.FC = () => {
                   <div>Correct Verb (Category)</div>
                 </div>
                 <div className="p-2.5 border-b border-brand-text-primary/30 grid grid-cols-2 gap-2 bg-brand-bg-primary/30">
-                  <div className="text-red-400/80">"Terms" shall have the meanings...</div>
+                  <div className="text-brand-error/80">"Terms" shall have the meanings...</div>
                   <div className="text-brand-text-primary/90 font-medium">"Terms" has the meaning... (Policy)</div>
                 </div>
                 <div className="p-2.5 border-b border-brand-text-primary/30 grid grid-cols-2 gap-2 bg-brand-bg-primary/15">
-                  <div className="text-red-400/80">Seller shall represent that...</div>
+                  <div className="text-brand-error/80">Seller shall represent that...</div>
                   <div className="text-brand-text-primary/90 font-medium">Seller represents that... (Assertion)</div>
                 </div>
                 <div className="p-2.5 grid grid-cols-2 gap-2 bg-brand-bg-primary/30">
-                  <div className="text-red-400/80">Agreement shall be governed...</div>
+                  <div className="text-brand-error/80">Agreement shall be governed...</div>
                   <div className="text-brand-text-primary/90 font-medium">Agreement is governed... (Policy)</div>
                 </div>
               </div>
@@ -850,7 +850,7 @@ const DraftingStudioScreen: React.FC = () => {
           <div className="space-y-4 text-xs font-light leading-relaxed">
             <p>Mechanical errors and sentence structures are heavily parsed. Modifier ambiguity occurs when relative clauses could apply to one or multiple elements in a list.</p>
             <div className="bg-brand-bg-secondary p-3 rounded-xl border border-brand-text-primary/30 space-y-2">
-              <p className="text-red-400/90 font-mono text-[10px] leading-normal">Ambiguous Clause:<br/>"The Company shall not hire employees or independent contractors who reside in California."</p>
+              <p className="text-brand-error/90 font-mono text-[10px] leading-normal">Ambiguous Clause:<br/>"The Company shall not hire employees or independent contractors who reside in California."</p>
               <p className="text-[10px] text-brand-text-secondary">Does "who reside in California" modify employees, or only independent contractors?</p>
               <p className="text-brand-text-primary/90 font-mono text-[10px] leading-normal">Option A (Both):<br/>"The Company shall not hire any individual residing in California, whether as an employee or as an independent contractor."</p>
             </div>
@@ -926,13 +926,13 @@ Section 8.2 Limitation of Liability.
             <div className="space-y-2.5">
               <p><strong>Ejusdem Generis ("Of the same kind"):</strong> General terms following a list are limited to similar items.</p>
               <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
-                <span className="text-red-400 font-mono">Trap:</span> "Tenant shall not keep dogs, cats, birds, or other animals." (Tiger might be excluded by a court as not a household pet).<br/>
+                <span className="text-brand-error font-mono">Trap:</span> "Tenant shall not keep dogs, cats, birds, or other animals." (Tiger might be excluded by a court as not a household pet).<br/>
                 <span className="text-brand-success font-mono">Fix:</span> "...or other animals, whether domestic or wild."
               </div>
               
               <p><strong>Expressio Unius ("Exclusion of others"):</strong> Mentioning one implies excluding the other.</p>
               <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
-                <span className="text-red-400 font-mono">Trap:</span> "Seller represents that IP does not infringe US patents." (Implies no representation for foreign patents or trademarks).<br/>
+                <span className="text-brand-error font-mono">Trap:</span> "Seller represents that IP does not infringe US patents." (Implies no representation for foreign patents or trademarks).<br/>
                 <span className="text-brand-success font-mono">Fix:</span> "...any intellectual property right globally."
               </div>
             </div>
@@ -1030,7 +1030,7 @@ Section 8.2 Limitation of Liability.
         dense
         eyebrow={`${modeDisplay} · write`}
         title="Drafting studio"
-        subtitle="Pick an instrument, get facts, draft, then score and file."
+        subtitle="Draft it. Score it. File it."
         trailing={<RoomStepper steps={steps} currentIndex={stepIndex} />}
         className="flex-shrink-0"
       />
@@ -1089,7 +1089,7 @@ Section 8.2 Limitation of Liability.
                           <div className="space-y-6">
                             <div className="text-center sm:text-left">
                               <div className="inline-flex items-center gap-2 mb-2">
-                                <ClipboardIcon className="w-5 h-5 text-white/70" />
+                                <ClipboardIcon className="w-5 h-5 text-brand-text-primary/70" />
                                 <h3 className="text-[1.05rem] sm:text-lg font-serif font-semibold text-brand-text-primary">
                                   Choose a practice instrument
                                 </h3>
@@ -1133,7 +1133,7 @@ Section 8.2 Limitation of Liability.
                             <LoadingSpinner
                               text="Generating facts for your instrument..."
                               size="lg"
-                              spinnerColor="text-white/70"
+                              spinnerColor="text-brand-text-primary/70"
                               textColor="text-brand-text-secondary"
                             />
                             <p className="text-[12px] text-brand-text-secondary mt-4 uppercase tracking-wide">
@@ -1192,7 +1192,7 @@ Section 8.2 Limitation of Liability.
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Score</span>
                                     {scoringResult && (
                                         <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
-                                            ${scoringResult.verdictTier === 'excellent' ? 'bg-white/15 text-white' :
+                                            ${scoringResult.verdictTier === 'excellent' ? 'bg-white/15 text-brand-text-primary' :
                                               scoringResult.verdictTier === 'good' ? 'bg-white/10 text-brand-text-primary' :
                                               scoringResult.verdictTier === 'fair' ? 'bg-white/5 text-brand-text-secondary' :
                                               'bg-brand-error/15 text-brand-error'}
@@ -1209,7 +1209,7 @@ Section 8.2 Limitation of Liability.
                                     <CheckCircleIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'compliance' ? 'text-brand-accent' : ''}`} />
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Rules</span>
                                     <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
-                                        ${complianceMetrics.score === 100 ? 'bg-white/15 text-white' :
+                                        ${complianceMetrics.score === 100 ? 'bg-white/15 text-brand-text-primary' :
                                           complianceMetrics.score >= 60 ? 'bg-white/10 text-brand-text-primary' :
                                           'bg-brand-error/15 text-brand-error'}
                                     `}>
@@ -1305,14 +1305,14 @@ Section 8.2 Limitation of Liability.
                                         <div className="border border-brand-text-primary/30 p-4 bg-brand-bg-secondary font-mono flex flex-col items-center justify-center text-center">
                                             <span className="text-[9px] text-brand-text-secondary uppercase tracking-widest mb-1">Pleadings Compliance</span>
                                             <span className={`text-4xl font-bold ${
-                                                complianceMetrics.score === 100 ? 'text-white' :
+                                                complianceMetrics.score === 100 ? 'text-brand-text-primary' :
                                                 complianceMetrics.score >= 60 ? 'text-brand-text-primary' :
                                                 'text-brand-error'
                                             }`}>
                                                 {complianceMetrics.score}%
                                             </span>
                                             <span className={`text-[10px] uppercase font-bold tracking-widest mt-2 px-2 py-0.5 border ${
-                                                complianceMetrics.score === 100 ? 'border-white/25 text-white bg-white/10' :
+                                                complianceMetrics.score === 100 ? 'border-white/25 text-brand-text-primary bg-white/10' :
                                                 complianceMetrics.score >= 60 ? 'border-white/15 text-brand-text-primary bg-white/5' :
                                                 'border-brand-error/30 text-brand-error bg-brand-error/10'
                                             }`}>
@@ -1327,7 +1327,7 @@ Section 8.2 Limitation of Liability.
                                                     key={check.id} 
                                                     className={`p-3 border text-left transition-all ${
                                                         check.satisfied 
-                                                            ? 'border-white/15 bg-white/[0.03] text-brand-text-primary' 
+                                                            ? 'border-white/15 bg-[#1c1914]/[0.04] text-brand-text-primary' 
                                                             : 'border-brand-text-primary/10 text-brand-text-secondary bg-black/10'
                                                     }`}
                                                 >
@@ -1362,7 +1362,7 @@ Section 8.2 Limitation of Liability.
                                         </div>
                                         {isLoadingAiInteraction && activeRefTab === 'feedback' ? (
                                             <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                                                <LoadingSpinner size="sm" spinnerColor="text-white/70" />
+                                                <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary/70" />
                                                 <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Analysing your draft...</span>
                                             </div>
                                         ) : studioError?.scope === 'review' && !aiFeedback ? (
@@ -1408,7 +1408,7 @@ Section 8.2 Limitation of Liability.
                                         </div>
                                         {isLoadingAiInteraction && activeRefTab === 'procedure' ? (
                                             <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                                                <LoadingSpinner size="sm" spinnerColor="text-white/70" />
+                                                <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary/70" />
                                                 <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Loading filing workflow...</span>
                                             </div>
                                         ) : studioError?.scope === 'filing' && !filingProcedure ? (
@@ -1497,7 +1497,7 @@ Section 8.2 Limitation of Liability.
                                                                     setSnapshots(updated);
                                                                     localStorage.setItem(key, JSON.stringify(updated));
                                                                 }}
-                                                                className="text-[9px] font-mono text-red-400 hover:text-red-300 transition-colors border border-red-500/20 px-2 py-1 uppercase ml-auto"
+                                                                className="text-[9px] font-mono text-brand-error hover:text-brand-error transition-colors border border-brand-error/25 px-2 py-1 uppercase ml-auto"
                                                             >
                                                                 Delete
                                                             </button>
@@ -1557,7 +1557,7 @@ Section 8.2 Limitation of Liability.
                                         <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-secondary via-brand-bg-secondary/40 to-transparent" />
                                     </div>
                                     <div className="w-10 h-10 lg:w-12 lg:h-12 bg-brand-bg-primary rounded-xl flex items-center justify-center mx-auto mb-3 lg:mb-4 border border-brand-text-primary/30">
-                                        <QuillIcon className="w-5 h-5 lg:w-6 lg:h-6 text-white/80" />
+                                        <QuillIcon className="w-5 h-5 lg:w-6 lg:h-6 text-brand-text-primary/80" />
                                     </div>
                                     <h4 className="text-base lg:text-lg font-serif font-bold text-brand-text-primary mb-1.5 lg:mb-2">Scenario ready</h4>
                                     <p className="text-xs lg:text-sm text-brand-text-secondary font-light mb-4 lg:mb-6 leading-relaxed">
@@ -1597,7 +1597,7 @@ Section 8.2 Limitation of Liability.
                                 <button
                                     onClick={() => { setActiveRefTab('score'); if(!isRefPanelOpen) setIsRefPanelOpen(true); }}
                                     className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-xl border transition-all cursor-pointer
-                                        ${scoringResult.verdictTier === 'excellent' ? 'border-white/25 bg-white/10 text-white' :
+                                        ${scoringResult.verdictTier === 'excellent' ? 'border-white/25 bg-white/10 text-brand-text-primary' :
                                           scoringResult.verdictTier === 'good' ? 'border-white/15 bg-white/5 text-brand-text-primary' :
                                           scoringResult.verdictTier === 'fair' ? 'border-white/10 bg-transparent text-brand-text-secondary' :
                                           'border-brand-error/30 bg-brand-error/10 text-brand-error'}

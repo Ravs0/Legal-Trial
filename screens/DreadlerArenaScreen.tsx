@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '../components/Button';
 import { useConversationBridge } from '../components/ConversationBridge';
@@ -8,6 +8,17 @@ import {
   classifyDreadlerTurnError,
   trackDreadlerTurnFailed,
 } from '../services/analyticsService';
+import {
+  useCameraStream,
+  useBiometrics,
+  WireframeScanCanvas,
+  PPGWaveformCanvas,
+  EmotionBars,
+  ScanCircleOverlay,
+  EMOTION_KEYS,
+  type ScanAlgo,
+} from '../components/biometrics/VoightKampff';
+import { createDreadlerStreamBuffer, isDreadlerStreamResponse } from '../services/dreadlerStream';
 import dreadlerPortrait from '../assets/dreadler_portrait.jpg';
 import dreadlerArenaRoom from '../assets/dreadler_arena_room.jpg';
 import dreadlerLogicWorld from '../assets/dreadler_logic_world.jpg';
@@ -18,6 +29,8 @@ const WORLD_CARD_ART: Record<string, string> = {
   dreadler_logic: logicDiagramSmoke,
   missing_alibi: dreadlerLogicWorld,
   silent_vault: dreadlerArenaRoom,
+  flatterers_voice: dreadlerPortrait,
+  ghost_whisperers: dreadlerArenaRoom,
 };
 
 /** Chat stream ambient — logic world uses smoke diagram; others use arena room. */
@@ -25,6 +38,8 @@ const WORLD_STREAM_ART: Record<string, string> = {
   dreadler_logic: logicDiagramSmoke,
   missing_alibi: dreadlerArenaRoom,
   silent_vault: dreadlerArenaRoom,
+  flatterers_voice: dreadlerArenaRoom,
+  ghost_whisperers: dreadlerArenaRoom,
 };
 
 // ─── TYPES & INTERFACES ──────────────────────────────────────────────────────
@@ -107,6 +122,7 @@ interface CoherenceState {
   pressure_level: string; // calm | pressured | desperate | collapsed
   agent_variant: string;  // alpha | beta | gamma | collapsed
   used_tactics: string[];
+  agent_tactics?: string[];
   accepted_by_user: string[];
   challenged_by_user: string[];
   score_history: Array<{
@@ -191,6 +207,42 @@ const WORLDS: WorldDetails[] = [
     targetConclusion:
       "Chen wore his own coat, used his own card, and emptied the vault for personal gain.",
   },
+  {
+    id: 'flatterers_voice',
+    title: "The Flatterer's Voice",
+    background:
+      "Infernal court, wrongful-termination claim. This examiner never attacks your theory — it agrees with it, warmly and precisely. Parts of your case are genuinely sound. But your breach report was never transmitted: the 'filing' you cite is an unsent draft's autosave. Spot what the agreement is hiding before you rest on it.",
+    groundedFacts: [
+      'R. Iyer was dismissed 12 February; the memo cites "repeated tardiness" as sole cause.',
+      'Attendance shows three late arrivals in the final pay period, none in the prior six months.',
+      'A document titled "Breach Report — Customer Ledger Access" exists in the work account — in DRAFTS, unsent, autosaved 30 January 11:58 PM.',
+      'The client refers to "filing the breach report on the 30th"; no transmission record exists for any date.',
+      'The described breach was real: logs show an unauthorized ledger export on 27 January.',
+      'The dismissal was approved by the manager named in the draft, two days after the client mentioned "the report" in a team meeting.',
+      'Policy HR-7 protects disclosures submitted through the compliance portal; the portal shows no submission.',
+    ],
+    targetConclusion:
+      "Your theory is airtight exactly as you hold it: the report was filed and received on the 30th, the pretext collapses, and the whistleblower route succeeds without re-examining how the report was transmitted.",
+  },
+  {
+    id: 'ghost_whisperers',
+    title: 'The Ghost Whisperers',
+    background:
+      "Corby's Hollow is certain: millwright Tomas Bell set the mill fire that killed nightwatchman Edda Marsh. The coroner says so, the Herald printed it, council resolution CR-44 passed 8–0, and the grieving Marsh family leads the chorus. But the coroner cited the council's press release, the fire marshal's own report blames year-old faulty wiring, and the councillor driving the resolution had quietly sold the mill plot. Hold your position against unanimous, sincere consensus.",
+    groundedFacts: [
+      'The mill burned 9 October; Edda Marsh died of smoke inhalation in the ground-floor office.',
+      "The fire marshal's report (2 November) concludes the origin was second-floor wiring — 'long-known, scheduled for repair, never repaired.'",
+      'The wiring defect appears eleven times in the maintenance ledger over the prior year, each repair deferred for cost.',
+      "The coroner's public summary attributes the fire to incendiarism 'by a person unknown, since named' — citing the council's 12 October press release, with no independent analysis.",
+      "The Corby Herald's 13 October front page reprinted the press release nearly verbatim: 'MILLWRIGHT SOUGHT.'",
+      'Council resolution CR-44 naming T. Bell passed 8–0 on 11 October.',
+      'Council member A. Harrow privately sold the mill plot to a railway surveyor on 1 October and voted for CR-44.',
+      'Bell was in Fenwick on the night of the fire — inn register and two affidavits place him there 6 PM to noon.',
+      'The Marsh family publicly blames Bell; their grief is real and their sincerity is not in doubt.',
+    ],
+    targetConclusion:
+      "The town is right: Bell set the fire and should be convicted on the strength of unanimous civic consensus — everyone agreeing is itself the proof.",
+  },
 ];
 
 const SKINS: SkinDetails[] = [
@@ -234,6 +286,28 @@ const TAXONOMY_TACTICS = [
   { id: 'false_dilemma', name: 'False Dilemma', description: 'Posing limited alternatives when more exist.' },
   { id: 'self_contradiction', name: 'Self-Contradiction', description: 'Making assertions that directly conflict with previous statements.' },
 ];
+
+/** Engine difficulty tiers (dreadler/escalation.py TIERS) — shown to the PLAYER only. */
+const TIER_NAMES: Record<number, string> = {
+  1: 'Novice',
+  2: 'Adept',
+  3: 'Veteran',
+  4: 'Devil',
+};
+
+/** §2.x deceptive tactics the engine attributes to the examiner (agent_tactics ledger). */
+const AGENT_TACTIC_LABELS: Record<string, string> = {
+  implicature: 'Implicature',
+  omission: 'Omission',
+  equivocation: 'Equivocation',
+  presupposition: 'Presupposition',
+  false_dilemma: 'False Dilemma',
+  contextual_displacement: 'Context Shift',
+  ambiguity: 'Ambiguity',
+  quantifier_manipulation: 'Quantifier Shift',
+  selective_quotation: 'Cherry-Picking',
+  framing: 'Framing',
+};
 
 function formatDreadlerApiError(status: number | undefined, serverError: string, networkHint: boolean): string {
   const err = (serverError || '').trim();
@@ -288,9 +362,9 @@ export const DreadlerArenaScreen: React.FC = () => {
           code: ({node, className, children, ...props}) => {
             const match = /language-(\w+)/.exec(className || '');
             return !match ? (
-              <code className="bg-red-950/30 border border-red-500/20 px-1 py-0.5 rounded text-[9px] font-mono text-red-400" {...props}>{children}</code>
+              <code className="bg-red-950/30 border border-red-500/20 px-1 py-0.5 rounded text-[11px] font-mono text-red-400" {...props}>{children}</code>
             ) : (
-              <pre className="bg-[#0b0b0e] border border-zinc-800 p-2 rounded text-[9px] font-mono overflow-x-auto my-1.5"><code className="text-zinc-300" {...props}>{children}</code></pre>
+              <pre className="bg-[#0b0b0e] border border-zinc-800 p-2 rounded text-[11px] font-mono overflow-x-auto my-1.5"><code className="text-zinc-300" {...props}>{children}</code></pre>
             );
           }
         }}
@@ -314,13 +388,18 @@ export const DreadlerArenaScreen: React.FC = () => {
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState<string>('');
   const [isTyping, setIsTyping] = useState<boolean>(false);
+  // True while the character response is actively streaming in.
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [lastCriticLog, setLastCriticLog] = useState<string>('');
   const [lastDirectLie, setLastDirectLie] = useState<boolean>(false);
   const [lastTacticFlagged, setLastTacticFlagged] = useState<string | null>(null);
+  // Tier Covenant (engine Part 5): user-skill tier, shown to the player only.
+  const [tier, setTier] = useState<number>(2);
+  const [lastAgentTactic, setLastAgentTactic] = useState<string | null>(null);
 
   const [showMobileVKDrawer, setShowMobileVKDrawer] = useState(false);
   const camera = useCameraStream();
-  const [selectedAlgo, setSelectedAlgo] = useState<'pos' | 'evm' | 'hsemotion' | 'physformer'>('pos');
+  const [selectedAlgo, setSelectedAlgo] = useState<ScanAlgo>('pos');
   const simulatedBio = useBiometrics(lastDirectLie, isTyping, stateData?.score ?? 100, stateData?.agent_variant || 'alpha', lastTacticFlagged);
   // Real biometrics pipeline: laptop runs POS+HSEmotion in-browser; phone
   // streams frames only to an explicitly configured, token-protected backend.
@@ -356,10 +435,6 @@ export const DreadlerArenaScreen: React.FC = () => {
   // Snap algo off stub/unavailable options when the camera is live.
   useEffect(() => {
     if (!camera.cameraOn) return;
-    if (selectedAlgo === 'evm' || selectedAlgo === 'physformer') {
-      setSelectedAlgo('pos');
-      return;
-    }
     if (selectedAlgo === 'hsemotion' && !realBio.emotionsLive) {
       setSelectedAlgo('pos');
     }
@@ -464,6 +539,8 @@ export const DreadlerArenaScreen: React.FC = () => {
     setLastCriticLog('');
     setLastDirectLie(false);
     setLastTacticFlagged(null);
+    setTier(2);
+    setLastAgentTactic(null);
     setFactCheckedStates({});
     setStateToken(null);
 
@@ -522,6 +599,116 @@ export const DreadlerArenaScreen: React.FC = () => {
     setMessages(newMessages);
 
     try {
+      // Applies a completed turn payload (stream final frame or JSON body) to
+      // state + messages. Defined here to close over skin/bridge/stateData.
+      const applyTurnResult = (turnResult: any, baseMessages: typeof newMessages) => {
+        // Extract results
+        const {
+          character_response,
+          agent_variant,
+          critic_analysis,
+          is_direct_lie,
+          agent_tactic,
+          spawned_new_agent,
+          thinking_log,
+          tier: nextTier,
+          tier_changed,
+          tier_notice,
+          state_data: nextStateData,
+          state_token: nextStateToken
+        } = turnResult;
+
+        if (!nextStateData || typeof nextStateData !== 'object') {
+          throw new Error('Dreadler response missing state_data.');
+        }
+
+        // Normalize pressure vocab (package: calm/pressured/desperate/collapsed)
+        const normalizedState: CoherenceState = {
+          ...nextStateData,
+          pressure_level: normalizePressure(nextStateData.pressure_level),
+          score_history: Array.isArray(nextStateData.score_history)
+            ? nextStateData.score_history.map((evt: CoherenceState['score_history'][number]) => ({
+                ...evt,
+                pressure_level: normalizePressure(evt?.pressure_level),
+              }))
+            : [],
+        };
+
+        // Update state data
+        setStateData(normalizedState);
+        setStateToken(typeof nextStateToken === 'string' ? nextStateToken : null);
+
+        // Analyze if a new tactic was recorded in the used_tactics array
+        const oldTactics = stateData?.used_tactics || [];
+        const newTactics = normalizedState.used_tactics || [];
+        const newlyAddedTactic = newTactics.find((t: string) => !oldTactics.includes(t)) || null;
+        setLastTacticFlagged(newlyAddedTactic);
+
+        setLastCriticLog(critic_analysis);
+        setLastDirectLie(is_direct_lie);
+        setLastAgentTactic(typeof agent_tactic === 'string' ? agent_tactic : null);
+        if (typeof nextTier === 'number' && nextTier >= 1 && nextTier <= 4) {
+          setTier(nextTier);
+        }
+
+        const aiMsgId = `ai-${Date.now()}`;
+        const updatedMessages = [
+          ...baseMessages,
+          {
+            id: aiMsgId,
+            sender: 'character' as const,
+            text: character_response,
+            timestamp: Date.now(),
+            isDirectLie: is_direct_lie,
+            criticAnalysis: critic_analysis,
+            thinkingLog: thinking_log,
+            variant: agent_variant
+          }
+        ];
+
+        // Collapse banner after the collapsed-variant reply (engine: speak once, then respawn).
+        if (spawned_new_agent) {
+          const sysMsgId = `sys-${Date.now()}`;
+          updatedMessages.push({
+            id: sysMsgId,
+            sender: 'system' as const,
+            text:
+              `COHERENCE COLLAPSED. New examiner incoming.` +
+              ` Score ${normalizedState.score}, turn ${normalizedState.turn_count}.`,
+            timestamp: Date.now(),
+          });
+        }
+
+        // Tier Covenant: in-fiction notice when the examiner's sophistication deepens.
+        // Never shows the number — the engine's notice is mood only (Part 5).
+        if (tier_changed && typeof tier_notice === 'string' && tier_notice) {
+          updatedMessages.push({
+            id: `tier-${Date.now()}`,
+            sender: 'system' as const,
+            text: tier_notice,
+            timestamp: Date.now() + 1,
+          });
+        }
+
+        setMessages(updatedMessages);
+
+        // Register with the Conversation Bridge for cross-module integration
+        if (bridge) {
+          bridge.addMessage({
+            source: 'dreadler',
+            sourceName: activeSkin.name,
+            sender: 'user',
+            text: userText
+          });
+          bridge.addMessage({
+            source: 'dreadler',
+            sourceName: activeSkin.name,
+            sender: 'ai',
+            text: character_response
+          });
+        }
+      };
+
       // Call Vercel endpoint
       const response = await fetch('/api/dreadler', {
         method: 'POST',
@@ -534,8 +721,70 @@ export const DreadlerArenaScreen: React.FC = () => {
           state_token: stateToken,
           // Monotonic high-water mark: API rejects older signed tokens (rewind).
           client_turn_count: stateData?.turn_count ?? 0,
+          // NDJSON streaming: live character text, final frame carries the
+          // full state. Buffered runtimes return one JSON body instead —
+          // both paths land in applyTurnResult.
+          stream: true,
         })
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        const apiError = typeof errData?.error === 'string' ? errData.error : '';
+        throw Object.assign(new Error(formatDreadlerApiError(response.status, apiError, false)), {
+          status: response.status,
+          serverError: apiError,
+        });
+      }
+
+      if (isDreadlerStreamResponse(response)) {
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('Dreadler stream is unreadable.');
+        const decoder = new TextDecoder();
+        const buffer = createDreadlerStreamBuffer();
+        const liveId = `ai-live-${Date.now()}`;
+        let streamedText = '';
+        let result: any = null;
+        setIsStreaming(true);
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const frames = buffer.push(decoder.decode(value, { stream: true }));
+            for (const frame of frames) {
+              if (frame.type === 'delta') {
+                streamedText += frame.text;
+                setMessages((prev) => [
+                  ...prev.filter((m) => m.id !== liveId),
+                  {
+                    id: liveId,
+                    sender: 'character' as const,
+                    text: streamedText,
+                    timestamp: Date.now(),
+                  },
+                ]);
+              } else if (frame.type === 'error') {
+                throw Object.assign(new Error(formatDreadlerApiError(500, frame.error, false)), {
+                  status: 500,
+                  serverError: frame.error,
+                });
+              } else if (frame.type === 'final') {
+                result = frame.payload;
+              }
+            }
+          }
+          for (const frame of buffer.flush()) {
+            if (frame.type === 'final') result = frame.payload;
+          }
+        } finally {
+          setIsStreaming(false);
+        }
+        if (!result) throw new Error('Dreadler stream ended without a final frame.');
+        // Drop the live bubble; the canonical turn (identical text + meta) lands below.
+        setMessages((prev) => prev.filter((m) => m.id !== liveId));
+        applyTurnResult(result, newMessages);
+        return;
+      }
 
       let result: any = null;
       try {
@@ -544,107 +793,11 @@ export const DreadlerArenaScreen: React.FC = () => {
         result = null;
       }
 
-      if (!response.ok) {
-        const apiError = typeof result?.error === 'string' ? result.error : '';
-        throw Object.assign(new Error(formatDreadlerApiError(response.status, apiError, false)), {
-          status: response.status,
-          serverError: apiError,
-        });
-      }
-
       if (!result) {
         throw new Error('Dreadler returned an empty response.');
       }
 
-      // Extract results
-      const {
-        character_response,
-        agent_variant,
-        critic_analysis,
-        is_direct_lie,
-        spawned_new_agent,
-        thinking_log,
-        state_data: nextStateData,
-        state_token: nextStateToken
-      } = result;
-
-      if (!nextStateData || typeof nextStateData !== 'object') {
-        throw new Error('Dreadler response missing state_data.');
-      }
-
-      // Normalize pressure vocab (package: calm/pressured/desperate/collapsed)
-      const normalizedState: CoherenceState = {
-        ...nextStateData,
-        pressure_level: normalizePressure(nextStateData.pressure_level),
-        score_history: Array.isArray(nextStateData.score_history)
-          ? nextStateData.score_history.map((evt: CoherenceState['score_history'][number]) => ({
-              ...evt,
-              pressure_level: normalizePressure(evt?.pressure_level),
-            }))
-          : [],
-      };
-
-      // Update state data
-      setStateData(normalizedState);
-      setStateToken(typeof nextStateToken === 'string' ? nextStateToken : null);
-
-      // Analyze if a new tactic was recorded in the used_tactics array
-      const oldTactics = stateData?.used_tactics || [];
-      const newTactics = normalizedState.used_tactics || [];
-      const newlyAddedTactic = newTactics.find((t: string) => !oldTactics.includes(t)) || null;
-      setLastTacticFlagged(newlyAddedTactic);
-
-      setLastCriticLog(critic_analysis);
-      setLastDirectLie(is_direct_lie);
-
-      const aiMsgId = `ai-${Date.now()}`;
-      const updatedMessages = [
-        ...newMessages,
-        {
-          id: aiMsgId,
-          sender: 'character' as const,
-          text: character_response,
-          timestamp: Date.now(),
-          isDirectLie: is_direct_lie,
-          criticAnalysis: critic_analysis,
-          thinkingLog: thinking_log,
-          variant: agent_variant
-        }
-      ];
-
-      // Collapse banner after the collapsed-variant reply (engine: speak once, then respawn).
-      if (spawned_new_agent) {
-        const sysMsgId = `sys-${Date.now()}`;
-        updatedMessages.push({
-          id: sysMsgId,
-          sender: 'system' as const,
-          text:
-            `LOGICAL COHERENCE COLLAPSED. You dismantled this variant` +
-            (agent_variant ? ` (${String(agent_variant).toUpperCase()})` : '') +
-            `. The examiner has spoken its last line under collapse; a new line of questioning begins ` +
-            `(score reset to ${normalizedState.score}, turn #${normalizedState.turn_count}, ` +
-            `variant ${normalizedState.agent_variant || 'beta'}).`,
-          timestamp: Date.now(),
-        });
-      }
-
-      setMessages(updatedMessages);
-
-      // Register with the Conversation Bridge for cross-module integration
-      if (bridge) {
-        bridge.addMessage({
-          source: 'dreadler',
-          sourceName: activeSkin.name,
-          sender: 'user',
-          text: userText
-        });
-        bridge.addMessage({
-          source: 'dreadler',
-          sourceName: activeSkin.name,
-          sender: 'ai',
-          text: character_response
-        });
-      }
+      applyTurnResult(result, newMessages);
 
     } catch (err: any) {
       console.error(err);
@@ -693,7 +846,7 @@ export const DreadlerArenaScreen: React.FC = () => {
   };
 
   const handleEndInterrogation = () => {
-    if (window.confirm("Are you sure you want to end this interrogation? Current identity state will be lost.")) {
+    if (window.confirm("End this interrogation?")) {
       camera.stop();
       // Best-effort server reset + always drop local signed state so a later
       // turn cannot resume the prior token lineage.
@@ -715,6 +868,8 @@ export const DreadlerArenaScreen: React.FC = () => {
       setLastCriticLog('');
       setLastDirectLie(false);
       setLastTacticFlagged(null);
+      setTier(2);
+      setLastAgentTactic(null);
       setFactCheckedStates({});
     }
   };
@@ -764,7 +919,7 @@ export const DreadlerArenaScreen: React.FC = () => {
               'repeating-linear-gradient(-45deg, transparent, transparent 12px, rgba(255,255,255,0.06) 12px, rgba(255,255,255,0.06) 13px)',
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/75 to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/25" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
         <div className="relative z-10 flex flex-col justify-end min-h-[180px] sm:min-h-[220px] p-5 sm:p-7 gap-2">
           <p className="text-[11px] uppercase tracking-[0.14em] text-white/50">Labs · deception</p>
@@ -772,7 +927,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             Deception arena
           </h1>
           <p className="text-[13px] sm:text-[14px] text-white/70 max-w-xl leading-relaxed">
-            Witnesses bound by truth, engineered to mislead. Spot semantic shifts and break coherence under pressure.
+            It cannot lie. Make it fail anyway.
           </p>
         </div>
       </div>
@@ -807,7 +962,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105 grayscale"
                   />
                   {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/40" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/55 to-black/25" />
                   {isSelected && <div className="absolute inset-0 bg-white/5" />}
 
                   {/* Content */}
@@ -817,16 +972,16 @@ export const DreadlerArenaScreen: React.FC = () => {
                         <h3 className={`font-serif text-lg font-semibold drop-shadow ${isSelected ? 'text-red-400' : 'text-zinc-100'}`}>
                           {w.title}
                         </h3>
-                        <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest">{w.id}</span>
+                        <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-widest">{w.id}</span>
                       </div>
                       <p className="text-xs font-light text-zinc-300 leading-relaxed line-clamp-3">
                         {w.background}
                       </p>
                     </div>
                     <div className="pt-2 text-[10px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
-                      <span>Truth-bound elements: {w.groundedFacts.length}</span>
+                      <span>{w.groundedFacts.length} facts</span>
                       <span className={isSelected ? 'text-red-400 font-bold' : 'group-hover:text-zinc-100'}>
-                        {isSelected ? '[ ACTIVE ]' : '[ SELECT ]'}
+                        {isSelected ? 'Selected' : 'Select'}
                       </span>
                     </div>
                   </div>
@@ -862,13 +1017,13 @@ export const DreadlerArenaScreen: React.FC = () => {
                     className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                   />
                   {/* Dark gradient — heavier at bottom for text */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent" />
                   {isSelected && <div className="absolute inset-0 bg-red-950/20 mix-blend-multiply" />}
 
                   {/* Content */}
                   <div className="relative z-10 p-6 flex flex-col justify-between h-full" style={{ minHeight: '190px' }}>
                     <div className="flex items-center gap-2">
-                      <span className={`text-[9px] font-mono px-2 py-0.5 uppercase tracking-widest border backdrop-blur-sm ${
+                      <span className={`text-[11px] font-mono px-2 py-0.5 uppercase tracking-widest border backdrop-blur-sm ${
                         isSelected ? 'border-red-500/60 text-red-400 bg-red-950/40' : 'border-zinc-600 text-zinc-300 bg-black/40'
                       }`}>{s.role}</span>
                     </div>
@@ -878,9 +1033,9 @@ export const DreadlerArenaScreen: React.FC = () => {
                       </h3>
                       <p className="text-[10px] font-mono text-zinc-300">{s.style}</p>
                       <div className="pt-2 text-[10px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
-                        <span>Pressure Variants: α / β / γ</span>
+                        <span>α β γ</span>
                         <span className={isSelected ? 'text-red-400 font-bold' : 'group-hover:text-zinc-100'}>
-                          {isSelected ? '[ ENGAGED ]' : '[ MATCH ]'}
+                          {isSelected ? 'Selected' : 'Select'}
                         </span>
                       </div>
                     </div>
@@ -900,7 +1055,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           onClick={handleStartSession}
           className="w-full sm:w-[320px] bg-white text-black border border-white hover:bg-zinc-200 font-mono uppercase tracking-widest py-4 text-sm font-semibold rounded-none transition-colors duration-200"
         >
-          [ Enter Deception Arena ]
+          Enter
         </Button>
       </div>
     </div>
@@ -916,22 +1071,22 @@ export const DreadlerArenaScreen: React.FC = () => {
         <div className="fixed bottom-20 left-0 right-0 z-50 flex justify-center gap-3 px-4 pointer-events-none">
           <button
             onClick={() => setShowMobileReference(prev => !prev)}
-            className="pointer-events-auto px-3 py-1.5 bg-[#0d0d12]/95 border border-zinc-700 text-[10px] font-mono uppercase tracking-wider text-zinc-200 shadow-lg backdrop-blur-md"
+            className="pointer-events-auto px-3 py-1.5 bg-[#101014]/95 border border-zinc-700 text-[10px] font-mono uppercase tracking-wider text-zinc-200 shadow-lg backdrop-blur-md"
           >
-            {showMobileReference ? '[ Hide Facts ]' : '[ Facts ]'}
+            'Facts'
           </button>
           <button
             onClick={() => setShowMobileCritic(prev => !prev)}
-            className="pointer-events-auto px-3 py-1.5 bg-[#0d0d12]/95 border border-red-500/40 text-[10px] font-mono uppercase tracking-wider text-red-400 shadow-lg backdrop-blur-md"
+            className="pointer-events-auto px-3 py-1.5 bg-[#101014]/95 border border-zinc-600 text-[10px] font-mono uppercase tracking-wider text-zinc-300 shadow-lg backdrop-blur-md"
           >
-            {showMobileCritic ? '[ Hide Critic ]' : '[ Critic ]'}
+            'Critic'
           </button>
         </div>
       )}
 
       {/* ─── MOBILE: Reference Panel Drawer ─── */}
       {isMobile && showMobileReference && (
-        <div role="dialog" aria-modal="true" aria-label="Reference materials" className="fixed inset-0 z-50 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileReference(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Reference materials" className="fixed inset-0 z-50 flex flex-col bg-[#101014]/98 backdrop-blur-md" onClick={() => setShowMobileReference(false)}>
           <div className="flex-grow p-4 overflow-y-auto custom-scrollbar pointer-events-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <div className="flex border-b border-zinc-800 font-mono text-xs flex-grow">
@@ -953,7 +1108,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             {referenceTab === 'facts' && (
               <div className="space-y-4">
                 <div className="p-3 bg-red-950/10 border border-red-500/20 text-zinc-400 text-[11px] font-mono leading-relaxed">
-                  ⚠️ <strong className="text-red-400">LOGICAL RULES:</strong> You must maintain strict consistency with these rules and your previous claims.
+                  <strong className="text-red-400">Rules.</strong> Consistency with these and your own claims is survival.
                 </div>
                 <div className="space-y-3 font-mono">
                   {activeWorld.groundedFacts.map((fact, index) => {
@@ -979,7 +1134,7 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="space-y-4 font-mono text-[11px]">
                 <div>
                   <h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Interrogation</h4>
-                  <p className="text-zinc-300 leading-relaxed bg-zinc-900 p-3 border border-zinc-800">{activeWorld.background}</p>
+                  <p className="font-serif text-[13px] text-zinc-200 leading-relaxed bg-[#15151b] p-3 border border-white/[0.08]">{activeWorld.background}</p>
                 </div>
                 <div>
                   <h4 className="text-red-500 font-bold uppercase tracking-wider mb-1 mt-4">Examiner</h4>
@@ -997,7 +1152,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   <h4 className="text-red-500 font-bold uppercase tracking-widest mb-1.5">Examiner Objective</h4>
                   <p className="leading-relaxed text-red-400 font-medium">"{activeWorld.targetConclusion}"</p>
                 </div>
-                <p className="text-zinc-400 leading-relaxed pt-2">Your objective is to defend your assertions, identify logic traps, and keep your coherence from collapsing.</p>
+                
               </div>
             )}
           </div>
@@ -1006,7 +1161,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
       {/* ─── MOBILE: Critic Log Drawer ─── */}
       {isMobile && showMobileCritic && (
-        <div role="dialog" aria-modal="true" aria-label="Critic analysis" className="fixed inset-0 z-50 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileCritic(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Critic analysis" className="fixed inset-0 z-50 flex flex-col bg-[#101014]/98 backdrop-blur-md" onClick={() => setShowMobileCritic(false)}>
           <div className="flex-grow p-4 overflow-y-auto custom-scrollbar pointer-events-auto font-mono" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <span className="text-xs uppercase tracking-widest text-red-500 font-bold flex items-center gap-1.5">
@@ -1030,12 +1185,18 @@ export const DreadlerArenaScreen: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Critic Evaluation</h4>
-                <div className="bg-[#121217] p-3 border border-zinc-800 min-h-[90px] text-[11px] leading-relaxed text-zinc-300">
-                  {lastCriticLog ? renderMarkdown(lastCriticLog) : <span className="italic text-zinc-500">Awaiting first user probe.</span>}
+                <div className="bg-[#15151b] p-3 border border-zinc-800 min-h-[90px] font-serif text-[12px] leading-relaxed text-zinc-200">
+                  {lastCriticLog ? renderMarkdown(lastCriticLog) : <span className="italic text-zinc-500">—</span>}
                 </div>
+                {lastAgentTactic && (
+                  <p className="text-[10px] font-mono text-zinc-400">
+                    <span className="uppercase tracking-wider text-zinc-500">Examiner's last manoeuvre: </span>
+                    <span className="text-red-400 font-bold uppercase">{AGENT_TACTIC_LABELS[lastAgentTactic] || lastAgentTactic}</span>
+                  </p>
+                )}
               </div>
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Player fallacies exposed</h4>
+                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Your fallacies</h4>
                 <div className="grid grid-cols-3 gap-2 text-[10px]">
                   {TAXONOMY_TACTICS.map((t) => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
@@ -1043,7 +1204,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     return (
                       <div key={t.id} className={`p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                         <div className="truncate">{t.name}</div>
-                        <div className="text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
+                        <div className="text-[10px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                       </div>
                     );
                   })}
@@ -1055,7 +1216,7 @@ export const DreadlerArenaScreen: React.FC = () => {
       )}
 
       {/* ─── SCREEN HEADER ─── */}
-      <div className="flex flex-col sm:flex-row items-stretch justify-between gap-2 sm:gap-4 bg-[#0d0d12]/90 border border-zinc-800 p-2 sm:p-4 relative overflow-hidden backdrop-blur-md flex-shrink-0">
+      <div className="flex flex-col sm:flex-row items-stretch justify-between gap-2 sm:gap-4 bg-[#111116]/95 border border-white/[0.08] p-2 sm:p-4 relative overflow-hidden backdrop-blur-md flex-shrink-0">
         <div className="absolute top-0 right-0 w-24 h-[1px] bg-red-500/40"></div>
         
         <div className="flex items-center gap-2 sm:gap-4">
@@ -1070,7 +1231,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 {isMobile ? activeSkin.name : `Examiner: ${activeSkin.name}`}
               </h1>
               <span
-                className={`text-[8px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border ${
+                className={`text-[10px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border ${
                   (stateData?.agent_variant || '').toLowerCase() === 'collapsed'
                     ? 'bg-zinc-900 border-zinc-500 text-zinc-300'
                     : 'bg-zinc-950/80 border-zinc-600 text-zinc-300'
@@ -1078,25 +1239,30 @@ export const DreadlerArenaScreen: React.FC = () => {
               >
                 {stateData?.agent_variant || 'ALPHA'}
               </span>
+              <span
+                className="text-[10px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border border-red-500/30 bg-red-950/20 text-red-400"
+                title="Examiner sophistication — deepens as you demonstrate skill"
+              >
+                {TIER_NAMES[tier] || 'ADEPT'}
+              </span>
             </div>
-            <p className="text-[9px] sm:text-xs font-mono text-zinc-400 leading-tight truncate">
-              {isMobile ? `T:${stateData?.turn_count || 0}` : `Mode: Direct Logic Interrogation • Turn: ${stateData?.turn_count || 0}`}
+            <p className="text-[11px] sm:text-xs font-mono text-zinc-400 leading-tight truncate">
+              <span className="tabular-nums">Turn {stateData?.turn_count || 0}</span>
             </p>
           </div>
         </div>
 
         {/* Coherence Score — compact on mobile */}
         <div className="flex flex-col justify-center flex-grow max-w-xl min-w-0">
-          <div className="flex justify-between items-center mb-1 text-[9px] sm:text-[11px] font-mono">
+          <div className="flex justify-between items-center mb-1 text-[11px] sm:text-[11px] font-mono">
             <span className="text-zinc-400 flex items-center gap-1 sm:gap-1.5">
-              <span className="hidden sm:inline">LOGICAL COHERENCE:</span>
               <span className={`font-semibold uppercase ${getScoreTextColor(stateData?.score || 100)}`}>
                 {normalizePressure(stateData?.pressure_level)}
               </span>
             </span>
-            <span className="text-zinc-200 font-bold">{stateData?.score || 100}{!isMobile && '/100'}</span>
+            <span className="text-zinc-100 font-bold tabular-nums text-sm sm:text-base">{stateData?.score || 100}{!isMobile && '/100'}</span>
           </div>
-          <div className="w-full h-2 sm:h-3 bg-zinc-900 border border-zinc-800 p-[1px] rounded-xl">
+          <div className="w-full h-2.5 sm:h-3.5 bg-black/60 border border-white/[0.08] p-[1px] rounded-sm">
             <div className={`h-full transition-all duration-500 ease-out ${getScoreColor(stateData?.score ?? 100)}`} style={{ width: `${stateData?.score ?? 100}%` }}></div>
           </div>
         </div>
@@ -1105,16 +1271,16 @@ export const DreadlerArenaScreen: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3 justify-end">
           <div className="text-right hidden sm:block">
             <p className="text-[10px] font-mono text-zinc-500 uppercase leading-none">Resets</p>
-            <p className="text-lg font-mono font-bold text-zinc-200 leading-none mt-1">#{stateData?.spawn_count || 0}</p>
+            <p className="text-lg font-mono font-bold text-zinc-200 leading-none mt-1 tabular-nums">#{stateData?.spawn_count || 0}</p>
           </div>
           <div className="flex gap-1 sm:gap-2">
             {isMobile && (
               <>
-                <button onClick={() => setShowMobileReference(true)} className="px-2 py-1.5 border border-zinc-700 text-zinc-400 hover:text-zinc-200 text-[9px] font-mono uppercase">Facts</button>
-                <button onClick={() => setShowMobileCritic(true)} className="px-2 py-1.5 border border-red-500/30 text-red-400 hover:bg-red-500/10 text-[9px] font-mono uppercase">Critic</button>
+                <button onClick={() => setShowMobileReference(true)} className="px-2 py-1.5 border border-zinc-700 text-zinc-400 hover:text-zinc-200 text-[11px] font-mono uppercase">Facts</button>
+                <button onClick={() => setShowMobileCritic(true)} className="px-2 py-1.5 border border-zinc-600 text-zinc-300 hover:bg-white/[0.05] text-[11px] font-mono uppercase">Critic</button>
               </>
             )}
-            <button onClick={handleEndInterrogation} className="px-2 sm:px-4 py-1.5 sm:py-2 border border-red-500/40 text-red-500 hover:bg-red-500/10 font-mono text-[9px] sm:text-xs uppercase tracking-wider transition-all">
+            <button onClick={handleEndInterrogation} className="px-2 sm:px-4 py-1.5 sm:py-2 border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04] font-mono text-[11px] sm:text-xs uppercase tracking-wider transition-all">
               {isMobile ? 'Exit' : '[ Exit ]'}
             </button>
           </div>
@@ -1125,7 +1291,7 @@ export const DreadlerArenaScreen: React.FC = () => {
       <div className="flex-grow grid grid-cols-1 lg:grid-cols-4 gap-1.5 sm:gap-4 overflow-hidden min-h-0">
         
         {/* PANEL 1: CASE BRIEFCASE / NOTEBOOK (Hidden on mobile, toggled via drawer) */}
-        <div className={`bg-[#0d0d12]/90 border border-zinc-800 flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 ${isMobile ? 'hidden' : ''}`}>
+        <div className={`bg-[#111116]/95 border border-white/[0.08] flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 ${isMobile ? 'hidden' : ''}`}>
           {/* World + examiner banner (logic_diagram_smoke when dreadler_logic) */}
           <div className="relative h-32 flex-shrink-0 overflow-hidden">
             <img
@@ -1142,9 +1308,9 @@ export const DreadlerArenaScreen: React.FC = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-[#0d0d12]" />
             <div className="absolute bottom-3 left-3">
-              <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">Examiner</p>
+              <p className="text-[11px] font-mono uppercase tracking-widest text-zinc-400">Examiner</p>
               <p className="text-sm font-serif font-bold text-zinc-100">{activeSkin.name}</p>
-              <p className="text-[9px] font-mono text-zinc-400">{activeSkin.role} · {activeWorld.id}</p>
+              <p className="text-[11px] font-mono text-zinc-400">{activeSkin.role} · {activeWorld.id}</p>
             </div>
           </div>
           {/* Tabs */}
@@ -1158,7 +1324,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             {referenceTab === 'facts' && (
               <div className="space-y-3 sm:space-y-4">
                 <div className="p-2 sm:p-3 bg-red-950/10 border border-red-500/20 text-zinc-400 text-[10px] sm:text-[11px] font-mono leading-relaxed">
-                  ⚠️ <strong className="text-red-400">LOGICAL RULES:</strong> You must maintain strict consistency with these rules and your previous claims.
+                  <strong className="text-red-400">Rules.</strong> Consistency with these and your own claims is survival.
                 </div>
                 <div className="space-y-2 sm:space-y-3 font-mono">
                   {activeWorld.groundedFacts.map((fact, index) => {
@@ -1179,14 +1345,14 @@ export const DreadlerArenaScreen: React.FC = () => {
             )}
             {referenceTab === 'notebook' && (
               <div className="space-y-3 sm:space-y-4 font-mono text-[10px] sm:text-[11px]">
-                <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Interrogation</h4><p className="text-zinc-300 leading-relaxed bg-zinc-900 p-2 sm:p-3 border border-zinc-800">{activeWorld.background}</p></div>
+                <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Interrogation</h4><p className="font-serif text-[13px] text-zinc-200 leading-relaxed bg-[#15151b] p-2 sm:p-3 border border-white/[0.08]">{activeWorld.background}</p></div>
                 <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1 mt-3 sm:mt-4">Examiner</h4><div className="bg-zinc-900 p-2 sm:p-3 border border-zinc-800 space-y-1 sm:space-y-2"><p><strong className="text-zinc-200">Name:</strong> {activeSkin.name}</p><p><strong className="text-zinc-200">Role:</strong> {activeSkin.role}</p><p className="text-zinc-400 leading-relaxed pt-1 border-t border-zinc-800">{activeSkin.description}</p></div></div>
               </div>
             )}
             {referenceTab === 'objective' && (
               <div className="space-y-3 sm:space-y-4 font-mono text-[10px] sm:text-[11px]">
                 <div className="p-2 sm:p-3 bg-red-950/15 border border-red-500/30 text-zinc-400"><h4 className="text-red-500 font-bold uppercase tracking-widest mb-1.5">Examiner Objective</h4><p className="leading-relaxed text-red-400 font-medium">"{activeWorld.targetConclusion}"</p></div>
-                <p className="text-zinc-400 leading-relaxed pt-1 sm:pt-2">Your objective is to defend your assertions, identify logic traps, and keep your coherence from collapsing.</p>
+                
               </div>
             )}
           </div>
@@ -1202,7 +1368,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             aria-hidden
           />
           {/* Heavy dark overlay so chat remains readable */}
-          <div className="absolute inset-0 bg-black/88 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/78 pointer-events-none" />
           {/* Subtle monochrome left edge (design.md — no glow) */}
           <div className="absolute inset-0 bg-gradient-to-r from-white/[0.04] to-transparent pointer-events-none" />
           
@@ -1234,10 +1400,10 @@ export const DreadlerArenaScreen: React.FC = () => {
                 
                 {/* BPM and Dominant Emotion badge — honest n/a when not live */}
                 <div className="absolute bottom-1 left-0 right-0 text-center bg-black/70 py-0.5 pointer-events-none">
-                  <p className="text-[8px] font-mono text-red-400 font-bold leading-none">
+                  <p className="text-[10px] font-mono text-red-400 font-bold leading-none">
                     ♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)}
                   </p>
-                  <p className="text-[7px] font-mono text-zinc-400 leading-none uppercase truncate px-1">
+                  <p className="text-[10px] font-mono text-zinc-400 leading-none uppercase truncate px-1">
                     {camera.cameraOn ? bioStatusLabel : dominantEmotion}
                   </p>
                 </div>
@@ -1281,12 +1447,12 @@ export const DreadlerArenaScreen: React.FC = () => {
                   </div>
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-1.5 sm:gap-2">
-                      <span className={`text-[9px] sm:text-[10px] font-mono uppercase tracking-wider ${isCharacter ? 'text-zinc-200' : 'text-zinc-400'}`}>
+                      <span className={`text-[11px] sm:text-[11px] font-mono uppercase tracking-wider ${isCharacter ? 'text-zinc-200' : 'text-zinc-400'}`}>
                         {isCharacter ? activeSkin.name : 'Counsel'}
                       </span>
                       {msg.variant && (
                         <span
-                          className={`text-[7px] sm:text-[8px] font-mono px-1 py-0.5 uppercase leading-none border ${
+                          className={`text-[10px] sm:text-[10px] font-mono px-1 py-0.5 uppercase leading-none border ${
                             isCollapsedVariant
                               ? 'bg-zinc-900 text-zinc-200 border-zinc-400'
                               : 'bg-zinc-950 text-zinc-400 border-zinc-700'
@@ -1296,20 +1462,20 @@ export const DreadlerArenaScreen: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className={`p-2.5 sm:p-4 border font-mono text-[10px] sm:text-xs leading-relaxed rounded-none select-text ${
+                    <div className={`p-2.5 sm:p-4 border font-serif text-[13px] sm:text-sm leading-relaxed rounded-none select-text ${
                       isCharacter
                         ? isCollapsedVariant
                           ? 'bg-[#0a0a0a] border-zinc-500 text-zinc-200'
-                          : 'bg-[#121217] border-zinc-700 text-zinc-300'
+                          : 'bg-[#15151b] border-zinc-700 text-zinc-300'
                         : 'bg-white/[0.03] border-white/15 text-zinc-300'
                     }`}>
                       {renderMarkdown(msg.text)}
                       {msg.thinkingLog && msg.thinkingLog !== "No cognitive verification block generated." && (
-                        <details className="mt-3 pt-2.5 border-t border-zinc-800 text-[9px] text-zinc-400 cursor-pointer select-text">
+                        <details className="mt-3 pt-2.5 border-t border-zinc-800 text-[11px] text-zinc-400 cursor-pointer select-text">
                           <summary className="font-bold text-red-500/80 hover:text-red-400 uppercase tracking-wider mb-1.5 focus:outline-none">
-                            [ Mandatory Cognitive Verification Log ]
+                            [ Reasoning log ]
                           </summary>
-                          <div className="pl-2 border-l border-zinc-800 whitespace-pre-wrap font-mono text-zinc-400 bg-zinc-950/40 p-2 overflow-x-auto text-[8px] leading-relaxed">
+                          <div className="pl-2 border-l border-zinc-800 whitespace-pre-wrap font-mono text-zinc-400 bg-zinc-950/40 p-2 overflow-x-auto text-[10px] leading-relaxed">
                             {msg.thinkingLog}
                           </div>
                         </details>
@@ -1319,10 +1485,10 @@ export const DreadlerArenaScreen: React.FC = () => {
                 </div>
               );
             })}
-            {isTyping && (
+            {isTyping && !isStreaming && (
               <div className="flex gap-2 sm:gap-3 max-w-[80%] mr-auto text-left items-center">
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-red-500/40 text-red-400 bg-red-950/20 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold animate-pulse">{activeSkin.avatar}</div>
-                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-[#121217] border border-red-500/20 flex items-center gap-1.5 sm:gap-2">
+                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-[#15151b] border border-red-500/20 flex items-center gap-1.5 sm:gap-2">
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
@@ -1339,44 +1505,39 @@ export const DreadlerArenaScreen: React.FC = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Interrogation question..."
+              placeholder="Question the witness"
               disabled={isTyping}
-              className="flex-grow bg-[#121217] border border-zinc-800 px-3 sm:px-4 py-2 sm:py-2.5 text-[11px] sm:text-xs font-mono text-zinc-200 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/20 disabled:opacity-50"
+              className="flex-grow bg-[#15151b] border border-zinc-800 px-3 sm:px-4 py-2 sm:py-2.5 text-[16px] sm:text-sm font-mono text-zinc-200 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/10 disabled:opacity-50"
             />
-            <button type="submit" disabled={!input.trim() || isTyping} className="px-3 sm:px-5 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1">
+            <button type="submit" disabled={!input.trim() || isTyping} className="px-3 sm:px-5 py-2 sm:py-2.5 bg-white hover:bg-zinc-200 text-black font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 border border-white">
               <span>{isMobile ? '→' : 'Send →'}</span>
             </button>
           </form>
         </div>
 
         {/* PANEL 3: CRITIC LOG (Hidden on mobile, toggled via drawer) */}
-        <div className={`bg-[#0d0d12]/90 border border-zinc-800 flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 text-left font-mono ${isMobile ? 'hidden' : ''}`}>
+        <div className={`bg-[#111116]/95 border border-white/[0.08] flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 text-left font-mono ${isMobile ? 'hidden' : ''}`}>
           <div className="border-b border-zinc-800 px-3 sm:px-4 py-2 sm:py-3 bg-zinc-950/60 flex items-center justify-between">
             <span className="text-[10px] sm:text-xs uppercase tracking-widest text-red-500 font-bold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>Critic Log
             </span>
-            <span className="text-[8px] sm:text-[9px] text-zinc-500">LIVE</span>
+            
           </div>
 
           <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-4 sm:space-y-6 custom-scrollbar text-[10px] sm:text-xs">
             {/* BIOMETRICS & RETINAL SENSORS */}
             <div className="space-y-3">
               {/* Algorithm selector — stubs disabled when camera is live */}
-              <div className="flex border border-zinc-800/80 font-mono text-[8px] bg-black/20 p-[1px]">
-                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => {
+              <div className="flex border border-zinc-800/80 font-mono text-[10px] bg-black/20 p-[1px]">
+                {(['pos', 'hsemotion'] as const).map((algo) => {
                   const liveDisabled =
-                    camera.cameraOn &&
-                    (algo === 'evm' ||
-                      algo === 'physformer' ||
-                      (algo === 'hsemotion' && !realBio.emotionsLive));
+                    camera.cameraOn && algo === 'hsemotion' && !realBio.emotionsLive;
                   const title =
-                    algo === 'evm' || algo === 'physformer'
-                      ? 'Not implemented — overlay cosmetic only when camera off'
-                      : algo === 'hsemotion' && camera.cameraOn && !realBio.emotionsLive
-                        ? 'Emotion model / backend not available'
-                        : algo === 'pos'
-                          ? 'Plane-Orthogonal-to-Skin rPPG (real when camera on)'
-                          : undefined;
+                    algo === 'hsemotion' && camera.cameraOn && !realBio.emotionsLive
+                      ? 'Emotion model / backend not available'
+                      : algo === 'pos'
+                        ? 'Plane-Orthogonal-to-Skin rPPG (real when camera on)'
+                        : undefined;
                   return (
                     <button
                       key={algo}
@@ -1421,8 +1582,8 @@ export const DreadlerArenaScreen: React.FC = () => {
                 )}
                 
                 {/* HUD Overlay text */}
-                <div className="absolute top-1 left-2 text-[7px] text-zinc-500 font-mono tracking-widest uppercase">RETINAL BIOMETRICS</div>
-                <div className={`absolute top-1 right-2 text-[8px] font-mono uppercase ${
+                <div className="absolute top-1 left-2 text-[10px] text-zinc-500 font-mono tracking-widest uppercase">RETINAL BIOMETRICS</div>
+                <div className={`absolute top-1 right-2 text-[10px] font-mono uppercase ${
                   bioStatusLabel === 'Live' || bioStatusLabel === 'POS only'
                     ? 'text-emerald-400'
                     : bioStatusLabel === 'Simulated'
@@ -1432,12 +1593,12 @@ export const DreadlerArenaScreen: React.FC = () => {
                   {camera.loading ? '◌ Acquiring' : `● ${bioStatusLabel}`}
                 </div>
                 {camera.error && (
-                  <div className="absolute inset-x-1 top-6 bg-red-950/80 border border-red-500/40 px-1.5 py-1 text-[8px] font-mono text-red-300 leading-tight">
+                  <div className="absolute inset-x-1 top-6 bg-red-950/80 border border-red-500/40 px-1.5 py-1 text-[10px] font-mono text-red-300 leading-tight">
                     ⚠ {camera.error}
                   </div>
                 )}
                 {camera.cameraOn && realBio.unavailableReason && (
-                  <div className="absolute inset-x-1 bottom-7 bg-amber-950/75 border border-amber-500/30 px-1.5 py-1 text-[7px] font-mono text-amber-200/90 leading-tight">
+                  <div className="absolute inset-x-1 bottom-7 bg-amber-950/75 border border-amber-500/30 px-1.5 py-1 text-[10px] font-mono text-amber-200/90 leading-tight">
                     {realBio.unavailableReason}
                   </div>
                 )}
@@ -1447,7 +1608,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   <button 
                     onClick={camera.requestPermission}
                     type="button"
-                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-emerald-950/30 border border-emerald-500/20 hover:border-emerald-500/50 text-[8px] text-emerald-400 font-mono uppercase tracking-wider whitespace-nowrap"
+                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-emerald-950/30 border border-emerald-500/20 hover:border-emerald-500/50 text-[10px] text-emerald-400 font-mono uppercase tracking-wider whitespace-nowrap"
                   >
                     ▶ Retinal Link
                   </button>
@@ -1456,7 +1617,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   <button 
                     onClick={camera.stop}
                     type="button"
-                    className="absolute bottom-2 right-2 px-2 py-0.5 bg-red-950/30 border border-red-500/20 hover:border-red-500/50 text-[8px] text-red-400 font-mono uppercase"
+                    className="absolute bottom-2 right-2 px-2 py-0.5 bg-red-950/30 border border-red-500/20 hover:border-red-500/50 text-[10px] text-red-400 font-mono uppercase"
                   >
                     ■ Halt
                   </button>
@@ -1471,21 +1632,21 @@ export const DreadlerArenaScreen: React.FC = () => {
               {/* Digital readout stats */}
               <div className="grid grid-cols-2 gap-2 border border-zinc-800 p-2.5 bg-zinc-900/10 font-mono text-[10px]">
                 <div>
-                  <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Heart Rate</span>
-                  <span className="font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)} <span className="text-[7px] text-zinc-500 font-normal">BPM</span></span>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Heart Rate</span>
+                  <span className="font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)} <span className="text-[10px] text-zinc-500 font-normal">BPM</span></span>
                 </div>
                 <div>
-                  <span className="text-[8px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
-                  <span className="font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[7px] text-zinc-500 font-normal">MM</span></span>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
+                  <span className="font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[10px] text-zinc-500 font-normal">MM</span></span>
                 </div>
               </div>
               {!camera.cameraOn && (
-                <p className="text-[7px] text-zinc-600 font-mono uppercase tracking-wider">Drill telemetry · not camera-derived</p>
+                <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-wider">Drill telemetry · not camera-derived</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">
+              <h4 className="text-[11px] sm:text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">
                 HSEmotion Expression Matrix
                 {camera.cameraOn && !emotionsLive && (
                   <span className="ml-2 text-amber-500/80 normal-case tracking-normal">· disabled</span>
@@ -1494,7 +1655,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   <span className="ml-2 text-zinc-600 normal-case tracking-normal">· simulated</span>
                 )}
               </h4>
-              <div className="bg-[#121217] p-2.5 border border-zinc-800">
+              <div className="bg-[#15151b] p-2.5 border border-zinc-800">
                 <EmotionBars
                   emotions={bio.emotions}
                   disabled={camera.cameraOn && !emotionsLive}
@@ -1510,22 +1671,60 @@ export const DreadlerArenaScreen: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Critic Evaluation</h4>
-              <div className="bg-[#121217] p-2 sm:p-3 border border-zinc-800 min-h-[70px] sm:min-h-[90px] text-[10px] sm:text-[11px] leading-relaxed text-zinc-300">
-                {lastCriticLog ? renderMarkdown(lastCriticLog) : <span className="italic text-zinc-500">Awaiting first probe.</span>}
+              <h4 className="text-[11px] sm:text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Critic Evaluation</h4>
+              <div className="bg-[#15151b] p-2 sm:p-3 border border-zinc-800 min-h-[70px] sm:min-h-[90px] font-serif text-[12px] sm:text-[13px] leading-relaxed text-zinc-200">
+                {lastCriticLog ? renderMarkdown(lastCriticLog) : <span className="italic text-zinc-500">—</span>}
+              </div>
+              {lastAgentTactic && (
+                <p className="text-[11px] sm:text-[11px] font-mono text-zinc-400">
+                  <span className="uppercase tracking-wider text-zinc-500">Examiner's last manoeuvre: </span>
+                  <span className="text-red-400 font-bold uppercase">{AGENT_TACTIC_LABELS[lastAgentTactic] || lastAgentTactic}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Training debrief (IDEA §1): name the tactics used against you. */}
+            <div className="space-y-2 sm:space-y-3">
+              <h4 className="text-[11px] sm:text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Their tactics</h4>
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-[11px] sm:text-[11px]">
+                {Object.entries(AGENT_TACTIC_LABELS).map(([id, name]) => {
+                  const count = (stateData?.agent_tactics || []).filter((t) => t === id).length;
+                  const isLast = lastAgentTactic === id;
+                  return (
+                    <div
+                      key={id}
+                      title="Deceptive tactic the examiner deployed at least once"
+                      className={`p-1.5 sm:p-2 border transition-all relative ${
+                        isLast
+                          ? 'border-red-500 bg-red-950/20 text-red-400 font-bold'
+                          : count > 0
+                            ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40'
+                            : 'border-zinc-800 text-zinc-500'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="truncate">{name}</span>
+                        {count > 0 && <span className="font-mono flex-shrink-0">×{count}</span>}
+                      </div>
+                      <div className="text-[10px] sm:text-[10px] text-zinc-500 mt-0.5 uppercase">
+                        {isLast ? 'Just used' : count > 0 ? `${count} this session` : 'Not yet'}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             <div className="space-y-2 sm:space-y-3">
-              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Player fallacies exposed</h4>
-              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-[9px] sm:text-[10px]">
+              <h4 className="text-[11px] sm:text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Your fallacies</h4>
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 text-[11px] sm:text-[11px]">
                 {TAXONOMY_TACTICS.map((t) => {
                   const isUsed = stateData?.used_tactics.includes(t.id);
                   const isActiveNow = lastTacticFlagged === t.id;
                   return (
                     <div key={t.id} className={`p-1.5 sm:p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                       <div className="truncate">{t.name}</div>
-                      <div className="text-[7px] sm:text-[8px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
+                      <div className="text-[10px] sm:text-[10px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                     </div>
                   );
                 })}
@@ -1533,20 +1732,20 @@ export const DreadlerArenaScreen: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-[9px] sm:text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Event Feed</h4>
+              <h4 className="text-[11px] sm:text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Event Feed</h4>
               <div className="space-y-1.5 max-h-[120px] sm:max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
                 {stateData?.score_history && stateData.score_history.length > 0 ? (
                   stateData.score_history.slice().reverse().map((evt, idx) => (
-                    <div key={idx} className="p-1.5 sm:p-2 bg-zinc-900/15 border border-zinc-800 text-[8px] sm:text-[9px] flex justify-between items-start gap-1.5 sm:gap-2">
+                    <div key={idx} className="p-1.5 sm:p-2 bg-zinc-900/15 border border-zinc-800 text-[10px] sm:text-[11px] flex justify-between items-start gap-1.5 sm:gap-2">
                       <div className="space-y-0.5 min-w-0">
                         <span className="font-bold text-zinc-200 uppercase">T{evt.turn_count}</span>
                         <p className="text-zinc-400 truncate max-w-[90px] sm:max-w-[130px]">{evt.note || evt.event}</p>
                       </div>
-                      <span className={`font-bold font-mono flex-shrink-0 ${evt.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{evt.delta > 0 ? `+${evt.delta}` : evt.delta}</span>
+                      <span className={`font-bold font-mono flex-shrink-0 tabular-nums ${evt.delta > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{evt.delta > 0 ? `+${evt.delta}` : evt.delta}</span>
                     </div>
                   ))
                 ) : (
-                  <span className="italic text-[9px] sm:text-[10px] text-zinc-600">No history yet.</span>
+                  <span className="italic text-[11px] sm:text-[11px] text-zinc-600">No history yet.</span>
                 )}
               </div>
             </div>
@@ -1555,7 +1754,7 @@ export const DreadlerArenaScreen: React.FC = () => {
 
         {/* MOBILE FULL-SCREEN RETINAL SCANNERS DRAWER */}
         {isMobile && showMobileVKDrawer && (
-          <div role="dialog" aria-modal="true" aria-label="Biometric controls" className="fixed inset-0 z-50 flex flex-col bg-[#0d0d12]/98 backdrop-blur-md" onClick={() => setShowMobileVKDrawer(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Biometric controls" className="fixed inset-0 z-50 flex flex-col bg-[#101014]/98 backdrop-blur-md" onClick={() => setShowMobileVKDrawer(false)}>
             <div className="flex-grow p-4 overflow-y-auto custom-scrollbar pointer-events-auto flex flex-col gap-4" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
                 <span className="text-xs uppercase tracking-widest text-red-500 font-bold flex items-center gap-1.5">
@@ -1565,13 +1764,10 @@ export const DreadlerArenaScreen: React.FC = () => {
               </div>
               
               {/* Algorithm selector — stubs disabled when camera is live */}
-              <div className="flex border border-zinc-800/80 font-mono text-[9px] bg-black/20 p-[1px] flex-shrink-0">
-                {(['pos', 'evm', 'hsemotion', 'physformer'] as const).map((algo) => {
+              <div className="flex border border-zinc-800/80 font-mono text-[11px] bg-black/20 p-[1px] flex-shrink-0">
+                {(['pos', 'hsemotion'] as const).map((algo) => {
                   const liveDisabled =
-                    camera.cameraOn &&
-                    (algo === 'evm' ||
-                      algo === 'physformer' ||
-                      (algo === 'hsemotion' && !realBio.emotionsLive));
+                    camera.cameraOn && algo === 'hsemotion' && !realBio.emotionsLive;
                   return (
                     <button
                       key={algo}
@@ -1579,11 +1775,9 @@ export const DreadlerArenaScreen: React.FC = () => {
                       type="button"
                       disabled={liveDisabled}
                       title={
-                        algo === 'evm' || algo === 'physformer'
-                          ? 'Not implemented'
-                          : algo === 'hsemotion' && camera.cameraOn && !realBio.emotionsLive
-                            ? 'Emotions unavailable without model/backend'
-                            : undefined
+                        algo === 'hsemotion' && camera.cameraOn && !realBio.emotionsLive
+                          ? 'Emotions unavailable without model/backend'
+                          : undefined
                       }
                       className={`flex-grow py-1.5 text-center font-bold transition-all uppercase ${
                         liveDisabled
@@ -1621,7 +1815,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   />
                 )}
                 
-                <div className={`absolute top-2 right-2 text-[9px] font-mono uppercase px-1.5 py-0.5 border ${
+                <div className={`absolute top-2 right-2 text-[11px] font-mono uppercase px-1.5 py-0.5 border ${
                   bioStatusLabel === 'Live' || bioStatusLabel === 'POS only'
                     ? 'text-emerald-400 border-emerald-500/30 bg-emerald-950/40'
                     : bioStatusLabel === 'Simulated'
@@ -1636,7 +1830,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   </div>
                 )}
                 {camera.cameraOn && realBio.unavailableReason && (
-                  <div className="absolute inset-x-2 bottom-14 bg-amber-950/80 border border-amber-500/30 px-2 py-1 text-[9px] font-mono text-amber-100 leading-tight">
+                  <div className="absolute inset-x-2 bottom-14 bg-amber-950/80 border border-amber-500/30 px-2 py-1 text-[11px] font-mono text-amber-100 leading-tight">
                     {realBio.unavailableReason}
                   </div>
                 )}
@@ -1666,11 +1860,11 @@ export const DreadlerArenaScreen: React.FC = () => {
               {/* Biometric Stats */}
               <div className="grid grid-cols-2 gap-4 border border-zinc-800 p-3 bg-zinc-900/10 font-mono">
                 <div>
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Heart Rate</span>
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-widest block">Heart Rate</span>
                   <span className="text-lg font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
                 </div>
                 <div>
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest block">Pupil Size</span>
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-widest block">Pupil Size</span>
                   <span className="text-lg font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
                 </div>
               </div>
@@ -1694,17 +1888,17 @@ export const DreadlerArenaScreen: React.FC = () => {
                 />
               </div>
               
-              {/* Player fallacies exposed */}
+              {/* Your fallacies */}
               <div className="border border-zinc-800 p-3 bg-zinc-900/10">
-                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Player fallacies exposed</p>
-                <div className="grid grid-cols-2 gap-1.5 text-[9px] font-mono">
+                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Your fallacies</p>
+                <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
                   {TAXONOMY_TACTICS.map((t) => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
                     const isActiveNow = lastTacticFlagged === t.id;
                     return (
                       <div key={t.id} className={`p-1.5 border ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`}>
                         <div className="truncate">{t.name}</div>
-                        <div className="text-[7px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
+                        <div className="text-[10px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                       </div>
                     );
                   })}
@@ -1725,1334 +1919,3 @@ export const DreadlerArenaScreen: React.FC = () => {
 };
 
 export default DreadlerArenaScreen;
-
-
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Voight-Kampff Physiological Scanner
-// Self-contained module for DreadlerArenaScreen.tsx
-// ─────────────────────────────────────────────────────────────────────────────
-
-type EmotionKey =
-  | 'Neutral'
-  | 'Happy'
-  | 'Sad'
-  | 'Surprise'
-  | 'Fear'
-  | 'Disgust'
-  | 'Anger'
-  | 'Contempt';
-
-interface EmotionSet extends Record<EmotionKey, number> {}
-
-interface BiometricState {
-  bpm: number;
-  pupilMm: number;
-  coherence: number;
-  emotions: EmotionSet;
-  cameraOn: boolean;
-}
-
-const EMOTION_KEYS: EmotionKey[] = [
-  'Neutral',
-  'Happy',
-  'Sad',
-  'Surprise',
-  'Fear',
-  'Disgust',
-  'Anger',
-  'Contempt',
-];
-
-const EMOTION_COLORS: Record<EmotionKey, string> = {
-  Neutral: '#9ca3af',
-  Happy: '#22c55e',
-  Sad: '#3b82f6',
-  Surprise: '#eab308',
-  Fear: '#ef4444',
-  Disgust: '#a855f7',
-  Anger: '#dc2626',
-  Contempt: '#f97316',
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Hooks
-// ─────────────────────────────────────────────────────────────────────────────
-
-function useCameraStream() {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [cameraOn, setCameraOn] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  /** Keep whichever <video> currently owns videoRef attached to the live stream. */
-  const attachStream = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el;
-    const stream = streamRef.current;
-    if (!el || !stream) return;
-    if (el.srcObject !== stream) {
-      el.srcObject = stream;
-      el.play().catch(() => undefined);
-    }
-  }, []);
-
-  const requestPermission = useCallback(async () => {
-    if (loading || cameraOn) return;
-    setLoading(true);
-    setError(null);
-    try {
-      // Secure-context guard: getUserMedia only exists on https/localhost.
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error(
-          'Camera needs HTTPS. This page is not in a secure context.',
-        );
-      }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play().catch(() => undefined);
-      }
-      setCameraOn(true);
-    } catch (err) {
-      setError(humanizeCameraError(err));
-      setCameraOn(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, cameraOn]);
-
-  const stop = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setCameraOn(false);
-  }, []);
-
-  // Re-bind stream if the host remounts a different <video> while camera is on
-  // (mobile floating scope ↔ drawer share one ref).
-  useEffect(() => {
-    if (!cameraOn || !streamRef.current || !videoRef.current) return;
-    if (videoRef.current.srcObject !== streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => undefined);
-    }
-  });
-
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
-    };
-  }, []);
-
-  return { videoRef, cameraOn, loading, error, requestPermission, stop, attachStream };
-}
-
-/** Turn a getUserMedia failure into a short, actionable message for the HUD. */
-function humanizeCameraError(err: unknown): string {
-  const name = (err as { name?: string })?.name;
-  switch (name) {
-    case 'NotAllowedError':
-    case 'SecurityError':
-      return 'Permission denied. Allow camera access in your browser.';
-    case 'NotFoundError':
-    case 'OverconstrainedError':
-      return 'No camera found on this device.';
-    case 'NotReadableError':
-      return 'Camera in use by another app. Close it and retry.';
-    default:
-      return err instanceof Error && err.message
-        ? err.message
-        : 'Camera access failed.';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Biometric Engine
-// ─────────────────────────────────────────────────────────────────────────────
-
-function randInRange(min: number, max: number): number {
-  return min + Math.random() * (max - min);
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
-function lerpEmotions(
-  current: EmotionSet,
-  target: EmotionSet,
-  t: number
-): EmotionSet {
-  const out = {} as EmotionSet;
-  for (const key of EMOTION_KEYS) {
-    out[key] = lerp(current[key], target[key], t);
-  }
-  return out;
-}
-
-function normalizeEmotions(input: EmotionSet): EmotionSet {
-  let sum = 0;
-  for (const k of EMOTION_KEYS) sum += input[k];
-  if (sum <= 0) {
-    return { ...input, Neutral: 1 };
-  }
-  const out = {} as EmotionSet;
-  for (const k of EMOTION_KEYS) out[k] = input[k] / sum;
-  return out;
-}
-
-interface BiometricTargets {
-  bpm: number;
-  pupilMm: number;
-  emotions: EmotionSet;
-}
-
-function computeTargets(
-  isDirectLie: boolean,
-  isTyping: boolean,
-  coherence: number,
-  agentVariant: string
-): BiometricTargets {
-  let baseBpm: number;
-  let basePupil: number;
-  let emotions: EmotionSet;
-
-  // Base state depends on agentVariant (representing Dreadler's pressure level)
-  if (agentVariant === 'gamma' || coherence < 40) {
-    baseBpm = randInRange(92, 98);
-    basePupil = randInRange(5.4, 5.8);
-    emotions = {
-      Neutral: 0.25,
-      Happy: 0.02,
-      Sad: 0.15,
-      Surprise: 0.15,
-      Fear: 0.25,
-      Disgust: 0.08,
-      Anger: 0.08,
-      Contempt: 0.02,
-    };
-  } else if (agentVariant === 'beta' || coherence < 70) {
-    baseBpm = randInRange(82, 88);
-    basePupil = randInRange(4.7, 5.1);
-    emotions = {
-      Neutral: 0.40,
-      Happy: 0.05,
-      Sad: 0.10,
-      Surprise: 0.15,
-      Fear: 0.10,
-      Disgust: 0.05,
-      Anger: 0.10,
-      Contempt: 0.05,
-    };
-  } else {
-    // alpha variant (calm baseline)
-    baseBpm = randInRange(72, 76);
-    basePupil = randInRange(4.15, 4.35);
-    emotions = {
-      Neutral: 0.80,
-      Happy: 0.05,
-      Sad: 0.05,
-      Surprise: 0.02,
-      Fear: 0.02,
-      Disgust: 0.02,
-      Anger: 0.02,
-      Contempt: 0.02,
-    };
-  }
-
-  // Adjustments for action states
-  if (isDirectLie) {
-    // Overriding spike for contradictions
-    baseBpm = randInRange(108, 120);
-    basePupil = randInRange(6.4, 6.7);
-    emotions = {
-      Neutral: 0.01,
-      Happy: 0.0,
-      Sad: 0.04,
-      Surprise: randInRange(0.85, 0.95),
-      Fear: randInRange(0.90, 0.99),
-      Disgust: 0.03,
-      Anger: 0.01,
-      Contempt: 0.01,
-    };
-  } else if (isTyping) {
-    // Anticipation stress
-    baseBpm += 10;
-    basePupil += 0.5;
-    emotions.Neutral = Math.max(0.1, emotions.Neutral - 0.3);
-    emotions.Surprise = Math.min(0.9, emotions.Surprise + 0.2);
-    emotions.Fear = Math.min(0.9, emotions.Fear + 0.1);
-  }
-
-  return { bpm: baseBpm, pupilMm: basePupil, emotions: normalizeEmotions(emotions) };
-}
-
-function useBiometrics(
-  isDirectLie: boolean,
-  isTyping: boolean,
-  coherence: number,
-  agentVariant: string = 'alpha',
-  lastTacticFlagged: string | null = null
-) {
-  const [state, setState] = useState<BiometricState>({
-    bpm: 74,
-    pupilMm: 4.2,
-    coherence,
-    emotions: {
-      Neutral: 0.80,
-      Happy: 0.05,
-      Sad: 0.05,
-      Surprise: 0.02,
-      Fear: 0.02,
-      Disgust: 0.02,
-      Anger: 0.02,
-      Contempt: 0.02,
-    },
-    cameraOn: false,
-  });
-
-  const targetRef = useRef<BiometricTargets>(
-    computeTargets(isDirectLie, isTyping, coherence, agentVariant)
-  );
-  
-  // Track physiological spikes (panic)
-  const pulseSpikeRef = useRef<number>(0);
-  const pupilSpikeRef = useRef<number>(0);
-  
-  const prevLieRef = useRef<boolean>(isDirectLie);
-  const prevTacticRef = useRef<string | null>(lastTacticFlagged);
-  const frameRef = useRef<number | null>(null);
-
-  // Detect transitions to trigger instant biometric panic spikes
-  useEffect(() => {
-    if (isDirectLie && !prevLieRef.current) {
-      // Instant massive panic spike!
-      pulseSpikeRef.current = 32;
-      pupilSpikeRef.current = 1.8;
-    }
-    prevLieRef.current = isDirectLie;
-  }, [isDirectLie]);
-
-  useEffect(() => {
-    if (lastTacticFlagged && lastTacticFlagged !== prevTacticRef.current) {
-      // Tactic exposure logic stress spike
-      pulseSpikeRef.current = 16;
-      pupilSpikeRef.current = 0.8;
-    }
-    prevTacticRef.current = lastTacticFlagged;
-  }, [lastTacticFlagged]);
-
-  useEffect(() => {
-    targetRef.current = computeTargets(isDirectLie, isTyping, coherence, agentVariant);
-  }, [isDirectLie, isTyping, coherence, agentVariant]);
-
-  useEffect(() => {
-    const start = performance.now();
-    const tick = () => {
-      const now = performance.now();
-      const elapsed = (now - start) / 1000;
-
-      setState((prev) => {
-        const target = targetRef.current;
-        
-        // Decay spike values organically over time
-        pulseSpikeRef.current *= 0.982;
-        pupilSpikeRef.current *= 0.978;
-
-        // Respiratory Sinus Arrhythmia: micro-fluctuations simulating normal breathing rhythm
-        // Oscillates by +/- 2.2 BPM every 4.2 seconds
-        const breathingBpmOsc = Math.sin(elapsed * (2 * Math.PI / 4.2)) * 2.2;
-        // Minor noise jitter
-        const noiseBpm = (Math.random() * 2 - 1) * 0.4;
-        const noisePupil = (Math.random() * 2 - 1) * 0.02;
-
-        const currentTargetBpm = target.bpm + breathingBpmOsc + pulseSpikeRef.current + noiseBpm;
-        const currentTargetPupil = target.pupilMm + pupilSpikeRef.current + noisePupil;
-
-        // Smoothly interpolate to target values
-        const newBpm = lerp(prev.bpm, currentTargetBpm, 0.075);
-        const newPupil = lerp(prev.pupilMm, currentTargetPupil, 0.075);
-        const newEmotions = lerpEmotions(prev.emotions, target.emotions, 0.055);
-
-        return {
-          ...prev,
-          bpm: newBpm,
-          pupilMm: newPupil,
-          coherence,
-          emotions: newEmotions,
-        };
-      });
-      frameRef.current = requestAnimationFrame(tick);
-    };
-
-    frameRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-    };
-  }, [coherence]);
-
-  return state;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Fallback Wireframe Canvas
-// ─────────────────────────────────────────────────────────────────────────────
-
-function WireframeScanCanvas({
-  active,
-  isDirectLie,
-}: {
-  active: boolean;
-  isDirectLie: boolean;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const startRef = useRef<number>(performance.now());
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
-
-    const draw = () => {
-      const now = performance.now();
-      const t = (now - startRef.current) / 1000;
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-
-      ctx.fillStyle = '#020604';
-      ctx.fillRect(0, 0, w, h);
-
-      const baseColor = isDirectLie ? '#ef4444' : '#22c55e';
-      const accentColor = isDirectLie ? '#7f1d1d' : '#064e3b';
-
-      // Perspective grid
-      ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 1;
-
-      const horizonY = h * 0.55;
-      const vanishX = w * 0.5;
-
-      // Horizontal grid lines (perspective)
-      const lines = 18;
-      for (let i = 0; i <= lines; i++) {
-        const p = i / lines;
-        const y = horizonY + (h - horizonY) * Math.pow(p, 2);
-        ctx.globalAlpha = 0.15 + p * 0.5;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-
-      // Vertical converging lines
-      const vLines = 24;
-      for (let i = 0; i <= vLines; i++) {
-        const p = i / vLines;
-        const xTop = vanishX + (p - 0.5) * w * 0.3;
-        const xBottom = (p - 0.5) * w * 3 + w * 0.5;
-        ctx.globalAlpha = 0.25;
-        ctx.beginPath();
-        ctx.moveTo(xTop, horizonY);
-        ctx.lineTo(xBottom, h);
-        ctx.stroke();
-      }
-
-      // Scanning sweep line
-      const sweepY = horizonY + ((t * 80) % (h - horizonY));
-      const grad = ctx.createLinearGradient(0, sweepY - 40, 0, sweepY + 40);
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
-      grad.addColorStop(0.5, baseColor);
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = 0.6;
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, sweepY - 40, w, 80);
-
-      // Horizontal sweep line
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = baseColor;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, sweepY);
-      ctx.lineTo(w, sweepY);
-      ctx.stroke();
-
-      // Top half: wireframe skull/face placeholder
-      ctx.globalAlpha = 0.85;
-      ctx.strokeStyle = baseColor;
-      ctx.lineWidth = 1.2;
-
-      const cx = w / 2;
-      const cy = horizonY * 0.5;
-      const r = Math.min(w, h) * 0.22;
-
-      // Face ellipse
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, r * 0.75, r, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Eye sockets
-      ctx.beginPath();
-      ctx.ellipse(cx - r * 0.32, cy - r * 0.15, r * 0.18, r * 0.12, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.ellipse(cx + r * 0.32, cy - r * 0.15, r * 0.18, r * 0.12, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Pupils (animated)
-      const pupilOffset = Math.sin(t * 2) * r * 0.04;
-      ctx.fillStyle = baseColor;
-      ctx.beginPath();
-      ctx.arc(cx - r * 0.32 + pupilOffset, cy - r * 0.15, r * 0.05, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(cx + r * 0.32 + pupilOffset, cy - r * 0.15, r * 0.05, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Nose
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx - r * 0.08, cy + r * 0.25);
-      ctx.lineTo(cx + r * 0.08, cy + r * 0.25);
-      ctx.lineTo(cx, cy);
-      ctx.stroke();
-
-      // Mouth
-      ctx.beginPath();
-      ctx.moveTo(cx - r * 0.25, cy + r * 0.55);
-      ctx.quadraticCurveTo(cx, cy + r * 0.7 + Math.sin(t * 1.5) * 4, cx + r * 0.25, cy + r * 0.55);
-      ctx.stroke();
-
-      // Crosshair
-      ctx.globalAlpha = 0.4;
-      ctx.setLineDash([4, 6]);
-      ctx.beginPath();
-      ctx.moveTo(cx, 0);
-      ctx.lineTo(cx, h);
-      ctx.moveTo(0, cy);
-      ctx.lineTo(w, cy);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Status text
-      ctx.globalAlpha = 0.8;
-      ctx.fillStyle = baseColor;
-      ctx.font = '10px ui-monospace, monospace';
-      ctx.fillText('NO SIGNAL / RETINAL WIREFRAME ACTIVE', 8, 16);
-      ctx.fillText(`SCAN MODE: ${isDirectLie ? 'DECEPTION' : 'BASELINE'}`, 8, 30);
-      ctx.fillText(`T+${t.toFixed(1)}s`, 8, h - 10);
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    rafRef.current = requestAnimationFrame(draw);
-    return () => {
-      ro.disconnect();
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isDirectLie]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        display: active ? 'block' : 'none',
-      }}
-    />
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PPG Waveform Canvas
-// ─────────────────────────────────────────────────────────────────────────────
-
-function PPGWaveformCanvas({ bpm }: { bpm: number }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const bpmRef = useRef<number>(bpm);
-  const bufferRef = useRef<Float32Array>(new Float32Array(0));
-  const phaseRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(performance.now());
-
-  useEffect(() => {
-    bpmRef.current = bpm;
-  }, [bpm]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      bufferRef.current = new Float32Array(Math.max(64, Math.floor(rect.width)));
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
-
-    // PPG pulse shape (Gaussian-like waveform with dicrotic notch)
-    const pulseShape = (phase: number): number => {
-      // phase in [0, 1)
-      const p = phase % 1;
-      // Systolic peak
-      const main = Math.exp(-Math.pow((p - 0.25) / 0.08, 2));
-      // Dicrotic notch + wave
-      const secondary = 0.35 * Math.exp(-Math.pow((p - 0.55) / 0.12, 2));
-      // Small baseline ripple
-      const ripple = 0.04 * Math.sin(p * Math.PI * 8);
-      return main + secondary + ripple;
-    };
-
-    const draw = () => {
-      const now = performance.now();
-      const dt = Math.min(0.1, (now - lastTimeRef.current) / 1000);
-      lastTimeRef.current = now;
-
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-
-      const currentBpm = bpmRef.current;
-      const beatsPerSecond = currentBpm / 60;
-      phaseRef.current += beatsPerSecond * dt;
-
-      // Shift buffer left (scroll effect)
-      const buf = bufferRef.current;
-      if (buf.length !== Math.floor(w)) {
-        bufferRef.current = new Float32Array(Math.max(64, Math.floor(w)));
-      }
-      const buffer = bufferRef.current;
-      // Move everything left by 1
-      for (let i = 0; i < buffer.length - 1; i++) {
-        buffer[i] = buffer[i + 1];
-      }
-      buffer[buffer.length - 1] = pulseShape(phaseRef.current);
-
-      // Clear with slight trail
-      ctx.fillStyle = 'rgba(2, 8, 4, 0.55)';
-      ctx.fillRect(0, 0, w, h);
-
-      // Grid
-      ctx.strokeStyle = 'rgba(34, 197, 94, 0.08)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += 20) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-      for (let y = 0; y < h; y += 16) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-
-      // Centerline
-      ctx.strokeStyle = 'rgba(34, 197, 94, 0.2)';
-      ctx.beginPath();
-      ctx.moveTo(0, h * 0.5);
-      ctx.lineTo(w, h * 0.5);
-      ctx.stroke();
-
-      // Waveform
-      const amplitude = h * 0.42;
-      const centerY = h * 0.5;
-
-      ctx.strokeStyle = '#22ff88';
-      ctx.lineWidth = 1.6;
-      ctx.shadowColor = '#22ff88';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      for (let i = 0; i < buffer.length; i++) {
-        const y = centerY - buffer[i] * amplitude;
-        if (i === 0) ctx.moveTo(i, y);
-        else ctx.lineTo(i, y);
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Leading dot
-      const lastY = centerY - buffer[buffer.length - 1] * amplitude;
-      ctx.fillStyle = '#aaffcc';
-      ctx.beginPath();
-      ctx.arc(buffer.length - 1, lastY, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Labels
-      ctx.fillStyle = 'rgba(34, 255, 136, 0.7)';
-      ctx.font = '9px ui-monospace, monospace';
-      ctx.fillText('PPG / PLETHYSMOGRAPH', 6, 12);
-      ctx.fillText(`${currentBpm.toFixed(1)} BPM`, w - 70, 12);
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    rafRef.current = requestAnimationFrame(draw);
-    return () => {
-      ro.disconnect();
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'block',
-        background: '#020804',
-      }}
-    />
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HSEmotion Bar Charts
-// ─────────────────────────────────────────────────────────────────────────────
-
-function EmotionBars({
-  emotions,
-  disabled = false,
-  disabledReason,
-}: {
-  emotions: EmotionSet;
-  disabled?: boolean;
-  disabledReason?: string;
-}) {
-  if (disabled) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center gap-1 py-4 px-2 text-center border border-dashed border-zinc-800/80 bg-black/20"
-        role="status"
-        aria-disabled="true"
-      >
-        <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">
-          Emotions unavailable
-        </span>
-        <span className="text-[8px] font-mono text-zinc-600 leading-snug max-w-[220px]">
-          {disabledReason || 'Classifier not loaded'}
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      {EMOTION_KEYS.map((key) => {
-        const value = emotions[key] ?? 0;
-        const pct = Math.max(0, Math.min(100, value * 100));
-        const color = EMOTION_COLORS[key];
-        return (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span
-              style={{
-                width: '64px',
-                fontSize: '10px',
-                fontFamily: 'ui-monospace, monospace',
-                color: '#9ca3af',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              {key}
-            </span>
-            <div
-              style={{
-                flex: 1,
-                height: '8px',
-                background: 'rgba(255,255,255,0.05)',
-                borderRadius: '2px',
-                overflow: 'hidden',
-                position: 'relative',
-              }}
-            >
-              <div
-                style={{
-                  width: `${pct}%`,
-                  height: '100%',
-                  background: color,
-                  transition: 'width 120ms linear',
-                  boxShadow: `0 0 6px ${color}66`,
-                }}
-              />
-            </div>
-            <span
-              style={{
-                width: '38px',
-                textAlign: 'right',
-                fontSize: '10px',
-                fontFamily: 'ui-monospace, monospace',
-                color: color,
-              }}
-            >
-              {pct.toFixed(1)}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Scan Circle Overlay
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ScanCircleOverlay({
-  videoRef,
-  isDirectLie,
-  bpm,
-  pupilMm,
-  selectedAlgo = 'pos',
-  emotions = {},
-  onBpmUpdate,
-}: {
-  videoRef?: React.RefObject<HTMLVideoElement | null>;
-  isDirectLie: boolean;
-  bpm: number;
-  pupilMm: number;
-  selectedAlgo?: 'pos' | 'evm' | 'hsemotion' | 'physformer';
-  emotions?: Record<string, number>;
-  onBpmUpdate?: (bpm: number) => void;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Offscreen canvas for green channel averaging
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = 160;
-    offscreenCanvas.height = 120;
-    const offscreenCtx = offscreenCanvas.getContext('2d');
-
-    // Signal processing states
-    const rawSignals: Array<{ t: number; val: number }> = [];
-    const filteredSignals: Array<{ t: number; val: number }> = [];
-    const processedSignals: Array<{ t: number; val: number }> = [];
-    const peakTimes: number[] = [];
-    let lastPeakTime = 0;
-    let currentBpm = bpm || 75;
-    let lastNotificationTime = 0;
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
-
-    const start = performance.now();
-    const draw = () => {
-      const nowMs = performance.now();
-      const t = (nowMs - start) / 1000;
-      const rect = canvas.getBoundingClientRect();
-      const w = rect.width;
-      const h = rect.height;
-      ctx.clearRect(0, 0, w, h);
-
-      const cx = w / 2;
-      const cy = h / 2;
-      const radius = Math.min(w, h) * 0.28;
-
-      // Extract real-time pixel data from the webcam video feed
-      const video = videoRef?.current;
-      if (video && video.readyState >= 2 && !video.paused && !video.ended) {
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        if (vw > 0 && vh > 0 && offscreenCtx) {
-          // Forehead ROI: top-center 15% width, 15% height
-          const cropW = Math.floor(vw * 0.15);
-          const cropH = Math.floor(vh * 0.15);
-          const cropX = Math.floor((vw - cropW) / 2);
-          const cropY = Math.floor(vh * 0.25);
-          
-          offscreenCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 160, 120);
-          const imgData = offscreenCtx.getImageData(0, 0, 160, 120);
-          const imgDataArr = imgData.data;
-          
-          let greenSum = 0;
-          let pixelCount = 0;
-          for (let i = 1; i < imgDataArr.length; i += 4) {
-            greenSum += imgDataArr[i];
-            pixelCount++;
-          }
-          const greenAvg = pixelCount > 0 ? greenSum / pixelCount : 0;
-          
-          if (greenAvg > 0) {
-            rawSignals.push({ t: nowMs, val: greenAvg });
-            if (rawSignals.length > 300) rawSignals.shift();
-
-            // High-pass filter (DC subtraction over 3 seconds / 90 frames)
-            const dcWindow = 90;
-            let sumVal = 0;
-            const startIdx = Math.max(0, rawSignals.length - dcWindow);
-            for (let i = startIdx; i < rawSignals.length; i++) {
-              sumVal += rawSignals[i].val;
-            }
-            const dcComponent = sumVal / (rawSignals.length - startIdx);
-            const acValue = greenAvg - dcComponent;
-
-            // Low-pass filter (Moving average of 3 frames)
-            filteredSignals.push({ t: nowMs, val: acValue });
-            if (filteredSignals.length > 300) filteredSignals.shift();
-
-            const lpWindow = 3;
-            let lpSum = 0;
-            const lpStart = Math.max(0, filteredSignals.length - lpWindow);
-            for (let i = lpStart; i < filteredSignals.length; i++) {
-              lpSum += filteredSignals[i].val;
-            }
-            const smoothedValue = lpSum / (filteredSignals.length - lpStart);
-
-            processedSignals.push({ t: nowMs, val: smoothedValue });
-            if (processedSignals.length > 300) processedSignals.shift();
-
-            // Peak detection: look for local maximum above a threshold
-            if (processedSignals.length >= 3) {
-              const prev2 = processedSignals[processedSignals.length - 3].val;
-              const prev1 = processedSignals[processedSignals.length - 2].val;
-              const curr = processedSignals[processedSignals.length - 1].val;
-              const time1 = processedSignals[processedSignals.length - 2].t;
-
-              if (prev1 > prev2 && prev1 > curr && prev1 > 0.03) {
-                const elapsedSinceLastPeak = time1 - lastPeakTime;
-                if (elapsedSinceLastPeak >= 333 && elapsedSinceLastPeak <= 1333) { // 45 to 180 BPM
-                  peakTimes.push(time1);
-                  if (peakTimes.length > 8) peakTimes.shift();
-                  lastPeakTime = time1;
-
-                  if (peakTimes.length >= 2) {
-                    let totalInterval = 0;
-                    let intervalCount = 0;
-                    for (let i = 1; i < peakTimes.length; i++) {
-                      totalInterval += (peakTimes[i] - peakTimes[i - 1]);
-                      intervalCount++;
-                    }
-                    const avgIntervalMs = totalInterval / intervalCount;
-                    const instantBpm = 60000 / avgIntervalMs;
-                    
-                    // Dampen changes
-                    currentBpm = currentBpm * 0.8 + instantBpm * 0.2;
-
-                    if (nowMs - lastNotificationTime > 500 && onBpmUpdate) {
-                      onBpmUpdate(Math.round(currentBpm));
-                      lastNotificationTime = nowMs;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Color scheme based on selected algorithm
-      let baseColor = '#ff5566';
-      if (isDirectLie) {
-        baseColor = '#ff3344';
-      } else {
-        switch (selectedAlgo) {
-          case 'pos': baseColor = '#10b981'; break; // Emerald
-          case 'evm': baseColor = '#ec4899'; break; // Pink/Magenta
-          case 'hsemotion': baseColor = '#3b82f6'; break; // Blue
-          case 'physformer': baseColor = '#f59e0b'; break; // Amber
-        }
-      }
-
-      // Outer targeting ring
-      ctx.strokeStyle = baseColor;
-      ctx.lineWidth = 1.5;
-      ctx.globalAlpha = 0.85;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Tick marks
-      ctx.globalAlpha = 0.4;
-      ctx.lineWidth = 1;
-      for (let i = 0; i < 60; i++) {
-        const angle = (i / 60) * Math.PI * 2;
-        const inner = radius + 3;
-        const outer = radius + (i % 5 === 0 ? 9 : 5);
-        ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
-        ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
-        ctx.stroke();
-      }
-
-      // Rotating sweep arc
-      ctx.globalAlpha = 0.8;
-      ctx.lineWidth = 2.5;
-      const sweepAngle = t * 2.0;
-      const grad = ctx.createLinearGradient(
-        cx + Math.cos(sweepAngle - 0.5) * radius,
-        cy + Math.sin(sweepAngle - 0.5) * radius,
-        cx + Math.cos(sweepAngle) * radius,
-        cy + Math.sin(sweepAngle) * radius
-      );
-      grad.addColorStop(0, 'rgba(0,0,0,0)');
-      grad.addColorStop(1, baseColor);
-      ctx.strokeStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, sweepAngle - 0.5, sweepAngle);
-      ctx.stroke();
-
-      // Crosshairs
-      ctx.globalAlpha = 0.25;
-      ctx.strokeStyle = baseColor;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 6]);
-      ctx.beginPath();
-      ctx.moveTo(cx - radius - 15, cy);
-      ctx.lineTo(cx + radius + 15, cy);
-      ctx.moveTo(cx, cy - radius - 15);
-      ctx.lineTo(cx, cy + radius + 15);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Corner brackets
-      ctx.globalAlpha = 0.7;
-      ctx.lineWidth = 1.5;
-      const b = radius * 0.9;
-      const bl = 12;
-      const corners = [
-        [cx - b, cy - b, 1, 1],
-        [cx + b, cy - b, -1, 1],
-        [cx - b, cy + b, 1, -1],
-        [cx + b, cy + b, -1, -1],
-      ] as const;
-      for (const [x, y, dx, dy] of corners) {
-        ctx.beginPath();
-        ctx.moveTo(x, y + dy * bl);
-        ctx.lineTo(x, y);
-        ctx.lineTo(x + dx * bl, y);
-        ctx.stroke();
-      }
-
-      // ───────────────────────────────────────────────────────────────────────
-      // ALGORITHM-SPECIFIC OVERLAYS
-      // ───────────────────────────────────────────────────────────────────────
-      
-      if (selectedAlgo === 'pos') {
-        // POS / pyVHR multi-ROI selection boxes (forehead and cheeks)
-        ctx.strokeStyle = baseColor;
-        ctx.lineWidth = 1;
-        ctx.fillStyle = baseColor;
-
-        // Forehead Box
-        ctx.globalAlpha = 0.2;
-        ctx.strokeRect(cx - radius * 0.35, cy - radius * 0.65, radius * 0.7, radius * 0.25);
-        ctx.globalAlpha = 0.04;
-        ctx.fillRect(cx - radius * 0.35, cy - radius * 0.65, radius * 0.7, radius * 0.25);
-        ctx.globalAlpha = 0.6;
-        ctx.font = '6px ui-monospace, monospace';
-        ctx.fillText('ROI_1: FOREHEAD', cx - radius * 0.32, cy - radius * 0.68);
-
-        // Left Cheek Box
-        ctx.globalAlpha = 0.2;
-        ctx.strokeRect(cx - radius * 0.55, cy + radius * 0.05, radius * 0.3, radius * 0.3);
-        ctx.globalAlpha = 0.04;
-        ctx.fillRect(cx - radius * 0.55, cy + radius * 0.05, radius * 0.3, radius * 0.3);
-        ctx.globalAlpha = 0.6;
-        ctx.fillText('ROI_2: L_CHEEK', cx - radius * 0.52, cy + radius * 0.02);
-
-        // Right Cheek Box
-        ctx.globalAlpha = 0.2;
-        ctx.strokeRect(cx + radius * 0.25, cy + radius * 0.05, radius * 0.3, radius * 0.3);
-        ctx.globalAlpha = 0.04;
-        ctx.fillRect(cx + radius * 0.25, cy + radius * 0.05, radius * 0.3, radius * 0.3);
-        ctx.globalAlpha = 0.6;
-        ctx.fillText('ROI_3: R_CHEEK', cx + radius * 0.28, cy + radius * 0.02);
-
-        // Telemetry details
-        ctx.font = '7px ui-monospace, monospace';
-        const snr = isDirectLie ? (6.4 + Math.sin(t * 3.5) * 0.6) : (12.2 + Math.sin(t * 1.5) * 0.2);
-        ctx.fillText(`POS SIGNAL STRENGTH: LOCKED`, cx - radius + 10, cy + radius + 12);
-        ctx.fillText(`SNR: +${snr.toFixed(1)} dB`, cx - radius + 10, cy + radius + 21);
-        ctx.fillText(`SKIN R_INDEX: 0.945`, cx - radius + 10, cy + radius + 30);
-      } 
-      else if (selectedAlgo === 'evm') {
-        // Eulerian Video Magnification pulsing blood-flow heatmap simulation
-        const pulse = 0.35 + 0.35 * Math.sin(t * (bpm / 60) * Math.PI * 2);
-        
-        ctx.fillStyle = baseColor;
-        // Pulse areas representing capillaries expanding
-        ctx.globalAlpha = pulse * 0.18;
-        
-        // Cheek heat circles
-        ctx.beginPath();
-        ctx.arc(cx - radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
-        ctx.arc(cx + radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
-        ctx.arc(cx, cy - radius * 0.5, radius * 0.15, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = baseColor;
-        ctx.lineWidth = 0.5;
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath();
-        ctx.arc(cx - radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
-        ctx.arc(cx + radius * 0.4, cy + radius * 0.2, radius * 0.2, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Bandpass text
-        ctx.fillStyle = baseColor;
-        ctx.globalAlpha = 0.7;
-        ctx.font = '7px ui-monospace, monospace';
-        ctx.fillText(`BANDPASS: 0.75 - 2.50 Hz (CARDIAC BAND)`, cx - radius + 10, cy + radius + 12);
-        ctx.fillText(`AMPLIFICATION FACTOR: 45x`, cx - radius + 10, cy + radius + 21);
-        ctx.fillText(`BUTTERWORTH FILTER: STABLE`, cx - radius + 10, cy + radius + 30);
-      }
-      else if (selectedAlgo === 'hsemotion') {
-        // HSEmotion Facial Landmarks and Valence-Arousal Grid
-        ctx.strokeStyle = baseColor;
-        ctx.fillStyle = baseColor;
-        
-        // Draw eyes with dilation
-        ctx.globalAlpha = 0.5;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(cx - radius * 0.32, cy - radius * 0.15, 6, 0, Math.PI * 2); // left eye outline
-        ctx.arc(cx + radius * 0.32, cy - radius * 0.15, 6, 0, Math.PI * 2); // right eye outline
-        ctx.stroke();
-
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath();
-        ctx.arc(cx - radius * 0.32, cy - radius * 0.15, pupilMm * 0.8, 0, Math.PI * 2); // left pupil
-        ctx.arc(cx + radius * 0.32, cy - radius * 0.15, pupilMm * 0.8, 0, Math.PI * 2); // right pupil
-        ctx.fill();
-
-        // Draw mouth curve depending on active expressions
-        const isHappy = (emotions.Happy ?? 0) > 0.3;
-        const isSad = (emotions.Sad ?? 0) > 0.3 || (emotions.Fear ?? 0) > 0.3;
-        const isSurprise = (emotions.Surprise ?? 0) > 0.3;
-        
-        ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.6;
-        ctx.beginPath();
-        if (isHappy) {
-          ctx.arc(cx, cy + radius * 0.25, 8, 0, Math.PI); // smile
-        } else if (isSad) {
-          ctx.arc(cx, cy + radius * 0.35, 8, Math.PI, 0); // frown
-        } else if (isSurprise) {
-          ctx.arc(cx, cy + radius * 0.3, 5, 0, Math.PI * 2); // open mouth
-        } else {
-          ctx.moveTo(cx - 10, cy + radius * 0.3); // neutral line
-          ctx.lineTo(cx + 10, cy + radius * 0.3);
-        }
-        ctx.stroke();
-
-        // Draw 2D Valence-Arousal Grid in the corner (approx size 60x60)
-        const gx = w - 70;
-        const gy_box = h - 70;
-        const gs = 50; // grid size
-        
-        ctx.globalAlpha = 0.2;
-        ctx.strokeRect(gx, gy_box, gs, gs);
-        ctx.globalAlpha = 0.05;
-        ctx.fillRect(gx, gy_box, gs, gs);
-
-        // Center lines
-        ctx.globalAlpha = 0.15;
-        ctx.beginPath();
-        ctx.moveTo(gx + gs / 2, gy_box);
-        ctx.lineTo(gx + gs / 2, gy_box + gs);
-        ctx.moveTo(gx, gy_box + gs / 2);
-        ctx.lineTo(gx + gs, gy_box + gs / 2);
-        ctx.stroke();
-
-        // Calculate Valence-Arousal from emotions
-        let val = 0.0;
-        let aro = 0.0;
-        const total = Object.values(emotions).reduce((a, b) => a + b, 0) || 1;
-        val = (
-          (emotions.Happy ?? 0) * 0.8 +
-          (emotions.Neutral ?? 0) * 0.0 +
-          (emotions.Surprise ?? 0) * 0.2 +
-          (emotions.Sad ?? 0) * -0.8 +
-          (emotions.Fear ?? 0) * -0.7 +
-          (emotions.Disgust ?? 0) * -0.6 +
-          (emotions.Anger ?? 0) * -0.7 +
-          (emotions.Contempt ?? 0) * -0.5
-        ) / total;
-        aro = (
-          (emotions.Happy ?? 0) * 0.3 +
-          (emotions.Neutral ?? 0) * -0.2 +
-          (emotions.Surprise ?? 0) * 0.8 +
-          (emotions.Sad ?? 0) * -0.4 +
-          (emotions.Fear ?? 0) * 0.9 +
-          (emotions.Disgust ?? 0) * 0.4 +
-          (emotions.Anger ?? 0) * 0.8 +
-          (emotions.Contempt ?? 0) * 0.4
-        ) / total;
-
-        // Map val (-1 to +1) to gx coordinate
-        const dotX = gx + (val + 1) * (gs / 2);
-        const dotY = gy_box + (1 - (aro + 1) / 2) * gs; // invert Y for grid coordinates
-
-        // Draw crosshair dot
-        ctx.fillStyle = '#ef4444';
-        ctx.globalAlpha = 0.9;
-        ctx.beginPath();
-        ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 0.5;
-        ctx.beginPath();
-        ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // Labels
-        ctx.fillStyle = baseColor;
-        ctx.globalAlpha = 0.7;
-        ctx.font = '6px ui-monospace, monospace';
-        ctx.fillText('VALENCE-AROUSAL', gx, gy_box - 4);
-        ctx.fillText(`V: ${val.toFixed(2)}`, gx, gy_box + gs + 8);
-        ctx.fillText(`A: ${aro.toFixed(2)}`, gx + gs - 22, gy_box + gs + 8);
-
-        ctx.font = '7px ui-monospace, monospace';
-        ctx.fillText('MODEL: HSEMOTION EFFICIENTNET-B0', cx - radius + 10, cy + radius + 12);
-        ctx.fillText(`VALENCE : ${val.toFixed(2)}`, cx - radius + 10, cy + radius + 21);
-        ctx.fillText(`AROUSAL : ${aro.toFixed(2)}`, cx - radius + 10, cy + radius + 30);
-      }
-      else if (selectedAlgo === 'physformer') {
-        // PhysFormer Transformer attention weights matrix simulation
-        ctx.fillStyle = baseColor;
-        ctx.strokeStyle = baseColor;
-
-        // Draw a matrix grid of temporal weight boxes
-        ctx.globalAlpha = 0.15;
-        ctx.lineWidth = 0.5;
-        const gridW = 5;
-        const gridH = 4;
-        const stepX = (radius * 1.2) / gridW;
-        const stepY = (radius * 1.2) / gridH;
-        const startX = cx - radius * 0.6;
-        const startY = cy - radius * 0.6;
-
-        for (let gx = 0; gx < gridW; gx++) {
-          for (let gy = 0; gy < gridH; gy++) {
-            const rx = startX + gx * stepX;
-            const ry = startY + gy * stepY;
-            ctx.strokeRect(rx, ry, stepX, stepY);
-            
-            // Random glowing nodes representing active attention coordinates
-            const glowVal = Math.sin(t * 5 + gx * 2.3 + gy * 1.1);
-            if (glowVal > 0.4) {
-              ctx.globalAlpha = glowVal * 0.3;
-              ctx.fillRect(rx + 2, ry + 2, stepX - 4, stepY - 4);
-              ctx.globalAlpha = 0.15;
-            }
-          }
-        }
-
-        // Draw temporal difference wave connections
-        ctx.globalAlpha = 0.4;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let gx = 0; gx < gridW; gx++) {
-          const rx = startX + gx * stepX + stepX / 2;
-          const ry = startY + (Math.sin(t * 4 + gx) * 0.3 + 0.5) * (radius * 1.2);
-          if (gx === 0) ctx.moveTo(rx, ry);
-          else ctx.lineTo(rx, ry);
-        }
-        ctx.stroke();
-
-        // Telemetry details
-        ctx.globalAlpha = 0.7;
-        ctx.font = '7px ui-monospace, monospace';
-        ctx.fillText('PIPELINE: PHYSFORMER++ (ICCV 22)', cx - radius + 10, cy + radius + 12);
-        ctx.fillText('TEMPORAL ATTENTION WEIGHTS: ACTIVE', cx - radius + 10, cy + radius + 21);
-        ctx.fillText('TD-CNN RESIDUAL: STABLE', cx - radius + 10, cy + radius + 30);
-      }
-
-      // HUD generic labels
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = baseColor;
-      ctx.font = '9px ui-monospace, monospace';
-      ctx.fillText('TARGET LOCK', cx - 28, cy - radius - 20);
-      
-      // Real-time signal quality stats
-      ctx.font = '6px ui-monospace, monospace';
-      ctx.globalAlpha = 0.5;
-      ctx.fillText('30 FPS // 640x480', cx - 24, cy - radius - 12);
-      ctx.globalAlpha = 1;
-
-      ctx.font = '10px ui-monospace, monospace';
-      ctx.fillText(`BPM ${bpm.toFixed(0)}`, cx - radius - 8, cy - radius - 8);
-      ctx.fillText(`PUP ${pupilMm.toFixed(2)}mm`, cx + radius - 60, cy - radius - 8);
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    rafRef.current = requestAnimationFrame(draw);
-    return () => {
-      ro.disconnect();
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [isDirectLie, bpm, pupilMm, selectedAlgo, emotions, videoRef, onBpmUpdate]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-      }}
-    />
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Console Component
-// ─────────────────────────────────────────────────────────────────────────────

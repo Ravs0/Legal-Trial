@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-/* design.md monochrome: #0a0a0a / #111 / #1a1a1a · text #e8e6e3 / #9a9690 · accent #c4bfb6 · border #2a2a2a · no gold/green glow */
+/* design.md Paper Dossier: paper #f7f4ee / #fdfcf9 / #efeae1 · ink #1c1914 / #5f594e · rule #ddd6c8 · clerk-red #8a2b23.
+   Dark surfaces exist ONLY inside the Deception Arena (hardcoded there, not via these tokens). */
 module.exports = {
   content: ['./index.html', './{components,hooks,screens,services,vision}/**/*.{ts,tsx}', './App.tsx', './index.tsx'],
   safelist: [
@@ -10,55 +11,54 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Surfaces (design.md bg ladder)
-        'brand-bg-primary': '#0a0a0a',
-        'brand-bg-secondary': '#111111',
-        'brand-bg-tertiary': '#1a1a1a',
-        'brand-bg-dark': '#0a0a0a',
-        'brand-bg-dark-secondary': '#111111',
+        // Surfaces (design.md paper ladder)
+        'brand-bg-primary': '#f7f4ee',
+        'brand-bg-secondary': '#fdfcf9',
+        'brand-bg-tertiary': '#efeae1',
+        // Kept for legacy references; the arena hardcodes its own blacks.
+        'brand-bg-dark': '#12100c',
+        'brand-bg-dark-secondary': '#1a1712',
         // Type
-        'brand-text-primary': '#e8e6e3',
-        'brand-text-secondary': '#9a9690',
-        // Accent = warm gray only (rare highlight; primary CTA is white/black)
-        'brand-accent': '#c4bfb6',
-        'brand-accent-hover': '#d4cfc6',
-        'brand-accent-text': '#0a0a0a',
-        'brand-accent-muted': 'rgba(196, 191, 182, 0.08)',
-        // Gradients stay monochrome (no cream/brass)
-        'brand-gradient-from': '#c4bfb6',
-        'brand-gradient-mid': '#9a9690',
-        'brand-gradient-to': '#6e6a64',
+        'brand-text-primary': '#1c1914',
+        'brand-text-secondary': '#5f594e',
+        // Accent = the clerk's red pen (rare, meaningful)
+        'brand-accent': '#8a2b23',
+        'brand-accent-hover': '#6f211b',
+        'brand-accent-text': '#f7f4ee',
+        'brand-accent-muted': 'rgba(138, 43, 35, 0.08)',
+        // Gradient family = ink
+        'brand-gradient-from': '#1c1914',
+        'brand-gradient-mid': '#5f594e',
+        'brand-gradient-to': '#8f887a',
         // Structure
-        'brand-border': '#2a2a2a',
-        'brand-border-light': '#3a3a3a',
-        // Status: success = neutral gray (not traffic-light green)
-        'brand-error': '#b8a4a6',
-        'brand-success': '#9a9690',
-        // Aliases + category tokens (all monochrome; no emerald/sage forest map)
-        'brand-navy': '#0a0a0a',
-        'brand-navy-light': '#111111',
-        'brand-amber': '#c4bfb6',
-        'brand-rust': '#b0aaa2',
-        'brand-emerald': '#9a9690',
-        'brand-terracotta': '#a8a29a',
-        'brand-cobalt': '#a6a6a6',
-        'brand-sage': '#9a9690',
-        'brand-concrete': '#7a7670',
+        'brand-border': '#ddd6c8',
+        'brand-border-light': '#cbc3b2',
+        // Status: success neutral; error is the clerk-red family
+        'brand-error': '#8a2b23',
+        'brand-success': '#5f594e',
+        // Aliases + category tokens (muted warm inks; no forest map)
+        'brand-navy': '#1c1914',
+        'brand-navy-light': '#3a352c',
+        'brand-amber': '#7a5c12',
+        'brand-rust': '#8a4a2b',
+        'brand-emerald': '#5f594e',
+        'brand-terracotta': '#96502e',
+        'brand-cobalt': '#3d4a63',
+        'brand-sage': '#5d614a',
+        'brand-concrete': '#8f887a',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        serif: ['"Source Serif 4"', '"Iowan Old Style"', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
-      // design.md: prefer square / minimal radius
-      borderRadius: { sm: '2px', DEFAULT: '4px', md: '6px', lg: '8px', xl: '10px' },
-      // Borders over lift; no gold/brass (139,115,85) or green glow on CTAs
+      borderRadius: { sm: '2px', DEFAULT: '3px', md: '4px', lg: '6px', xl: '8px' },
       boxShadow: {
-        'glow-accent': '0 0 0 1px rgba(255, 255, 255, 0.12)',
-        'glow-accent-sm': '0 0 0 1px rgba(255, 255, 255, 0.08)',
+        'glow-accent': '0 0 0 1px rgba(28, 25, 20, 0.12)',
+        'glow-accent-sm': '0 0 0 1px rgba(28, 25, 20, 0.08)',
         card: 'none',
-        'card-hover': '0 0 0 1px rgba(255, 255, 255, 0.10)',
-        'inner-subtle': 'inset 0 0 0 1px rgba(255, 255, 255, 0.04)',
+        'card-hover': '0 0 0 1px rgba(28, 25, 20, 0.18)',
+        'inner-subtle': 'inset 0 0 0 1px rgba(28, 25, 20, 0.05)',
       },
       keyframes: {
         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },

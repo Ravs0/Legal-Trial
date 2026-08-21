@@ -66,9 +66,9 @@ const BenchCounselScreen: React.FC = () => {
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-5 pb-12">
         <RoomBanner
           image={screenMedia.bench.hero}
-          eyebrow="Reference"
+          eyebrow="Bench"
           title="Bench & counsel"
-          subtitle={`Fictional training profiles for ${jurisdictionLabel} practice. Not real judges, biographies, legal advice, or legal authority.`}
+          subtitle={`Fictional ${jurisdictionLabel} training profiles.`}
           trailing={
             <RoomTabs
               tabs={BENCH_TABS}
@@ -132,7 +132,7 @@ const BenchCounselScreen: React.FC = () => {
                         }}
                       />
                       <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
-                        <p className="text-[15px] font-medium text-white leading-snug">{judge.name}</p>
+                        <p className="text-[15px] font-medium text-brand-text-primary leading-snug">{judge.name}</p>
                       </div>
                     </div>
                     <div className="p-4">
@@ -142,7 +142,7 @@ const BenchCounselScreen: React.FC = () => {
                       <span
                         className={`inline-flex text-[12px] rounded-md px-2.5 py-1 border transition-colors ${
                           isSelected
-                            ? 'bg-white text-black border-white'
+                            ? 'bg-brand-text-primary text-brand-bg-primary border-white'
                             : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-white/20'
                         }`}
                       >
@@ -206,8 +206,8 @@ const BenchCounselScreen: React.FC = () => {
                         }}
                       />
                       <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
-                        <p className="text-[11px] uppercase tracking-wide text-white/55 mb-0.5">{oc.specialty}</p>
-                        <p className="text-[15px] font-medium text-white leading-snug">{oc.name}</p>
+                        <p className="text-[11px] uppercase tracking-wide text-brand-text-primary/55 mb-0.5">{oc.specialty}</p>
+                        <p className="text-[15px] font-medium text-brand-text-primary leading-snug">{oc.name}</p>
                       </div>
                     </div>
                     <div className="p-4">
@@ -217,7 +217,7 @@ const BenchCounselScreen: React.FC = () => {
                       <span
                         className={`inline-flex text-[12px] rounded-md px-2.5 py-1 border transition-colors ${
                           isSelected
-                            ? 'bg-white text-black border-white'
+                            ? 'bg-brand-text-primary text-brand-bg-primary border-white'
                             : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-white/20'
                         }`}
                       >

@@ -295,7 +295,7 @@ const ResearchIDEScreen: React.FC = () => {
         <button
           onClick={switchToHome}
           aria-label="Open master manuscript"
-          className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'home' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
+          className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'home' ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05]'}`}
           title="Master Manuscript"
         >
           <FileText size={20} />
@@ -303,7 +303,7 @@ const ResearchIDEScreen: React.FC = () => {
         <button
           onClick={switchToWorkspace}
           aria-label="Open IDE workspace"
-          className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'workspace' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
+          className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'workspace' ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05]'}`}
           title="IDE Workspace"
         >
           <LayoutIcon size={20} />
@@ -312,7 +312,7 @@ const ResearchIDEScreen: React.FC = () => {
           <button
             onClick={() => setState(prev => ({ ...prev, viewMode: 'ai-sandbox' }))}
             aria-label="Open draft sandbox"
-            className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'ai-sandbox' ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'}`}
+            className={`p-2.5 rounded-lg transition-colors ${state.viewMode === 'ai-sandbox' ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05]'}`}
             title="Draft sandbox"
           >
             <Sparkles size={20} />
@@ -383,10 +383,10 @@ const ResearchIDEScreen: React.FC = () => {
                 }}
               />
               <div className="relative z-10 h-full px-4 flex items-center justify-between">
-                <span className="text-[11px] uppercase tracking-wide text-white/80 flex items-center gap-2">
+                <span className="text-[11px] uppercase tracking-wide text-brand-text-primary/80 flex items-center gap-2">
                   <LayoutIcon size={12} aria-hidden /> Explorer
                 </span>
-                <button onClick={toggleExplorer} aria-label="Hide explorer" className="text-white/50 hover:text-white transition-colors">
+                <button onClick={toggleExplorer} aria-label="Hide explorer" className="text-brand-text-primary/50 hover:text-brand-text-primary transition-colors">
                   <ChevronLeft size={14}/>
                 </button>
               </div>
@@ -396,9 +396,9 @@ const ResearchIDEScreen: React.FC = () => {
                 <button
                   key={s.id}
                   onClick={() => setState(prev => ({ ...prev, activeLeftSectionId: s.id }))}
-                  className={`w-full text-left px-4 py-2.5 text-[12px] flex items-center gap-3 transition-colors ${state.activeLeftSectionId === s.id ? 'bg-white/[0.06] text-brand-text-primary border-r-2 border-white' : 'hover:bg-white/[0.03] text-brand-text-secondary'}`}
+                  className={`w-full text-left px-4 py-2.5 text-[12px] flex items-center gap-3 transition-colors ${state.activeLeftSectionId === s.id ? 'bg-[#1c1914]/[0.06] text-brand-text-primary border-r-2 border-white' : 'hover:bg-[#1c1914]/[0.04] text-brand-text-secondary'}`}
                 >
-                  <FileText size={14} className={state.activeLeftSectionId === s.id ? 'text-white/80' : 'text-brand-text-secondary/40'} />
+                  <FileText size={14} className={state.activeLeftSectionId === s.id ? 'text-brand-text-primary/80' : 'text-brand-text-secondary/40'} />
                   <span className="truncate">{s.title}</span>
                 </button>
               ))}
@@ -422,7 +422,7 @@ const ResearchIDEScreen: React.FC = () => {
                   setCopyStatus(true);
                   setTimeout(() => setCopyStatus(false), 2000);
                 }}
-                className="w-full py-2.5 bg-white text-black rounded-lg text-[12px] font-medium hover:bg-white/90 flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-2.5 bg-brand-text-primary text-brand-bg-primary rounded-lg text-[12px] font-medium hover:bg-white/90 flex items-center justify-center gap-2 transition-colors"
               >
                 {copyStatus ? <CheckCircle2 size={14} /> : <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-4H7v4"/><path d="M7 13h10"/><path d="M7 9h4"/></svg>}
                 {copyStatus ? 'Compiled' : 'Compile paper'}
@@ -446,13 +446,13 @@ const ResearchIDEScreen: React.FC = () => {
                 <div className="flex items-center bg-brand-bg-primary border border-brand-border p-0.5 rounded-lg">
                   <button
                     onClick={() => setState(prev => ({ ...prev, isSplitView: false }))}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded transition-colors ${!state.isSplitView ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded transition-colors ${!state.isSplitView ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
                   >
                     <Maximize2 size={10} /> Single
                   </button>
                   <button
                     onClick={() => setState(prev => ({ ...prev, isSplitView: true }))}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded transition-colors ${state.isSplitView ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded transition-colors ${state.isSplitView ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
                   >
                     <Split size={10} /> Split
                   </button>
@@ -460,7 +460,7 @@ const ResearchIDEScreen: React.FC = () => {
                 <div className="h-4 w-px bg-brand-border" />
                 <button
                   onClick={() => leftSection && enterSandbox(leftSection.id)}
-                  className="px-2.5 py-1 bg-white/[0.04] hover:bg-white/[0.08] text-[11px] text-brand-text-primary rounded-md border border-brand-border flex items-center gap-1.5 transition-colors"
+                  className="px-2.5 py-1 bg-[#1c1914]/[0.05] hover:bg-[#1c1914]/[0.08] text-[11px] text-brand-text-primary rounded-md border border-brand-border flex items-center gap-1.5 transition-colors"
                 >
                   <Sparkles size={12} aria-hidden /> Sandbox
                 </button>
@@ -476,10 +476,10 @@ const ResearchIDEScreen: React.FC = () => {
                     size={10}
                     className={
                       saveState === 'saving'
-                        ? 'text-white/50 animate-pulse'
+                        ? 'text-brand-text-primary/50 animate-pulse'
                         : saveState === 'dirty'
-                          ? 'text-white/80'
-                          : 'text-white/30'
+                          ? 'text-brand-text-primary/80'
+                          : 'text-brand-text-primary/30'
                     }
                   />
                   {saveState === 'saving'
@@ -578,7 +578,7 @@ const ResearchIDEScreen: React.FC = () => {
 
       {/* Toast */}
       {validationError && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 bg-brand-error text-white text-xs font-bold rounded-xl shadow-2xl">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 bg-brand-error text-brand-text-primary text-xs font-bold rounded-xl shadow-2xl">
           {validationError}
         </div>
       )}

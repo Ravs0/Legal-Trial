@@ -25,7 +25,7 @@ const FOCUSABLE_SELECTOR =
 
 /** Monochrome keyboard focus ring (design system: white outline, no color accent). */
 const focusRing =
-  'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/35';
+  'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1c1914]/45';
 
 const SectionLabel: React.FC<{ label: string; isOpen: boolean }> = ({ label, isOpen }) => {
   if (!isOpen) return <div className="h-px bg-brand-border my-2 mx-2" aria-hidden="true" />;
@@ -52,11 +52,11 @@ const NavItem: React.FC<{
     || (!end && location.pathname.startsWith(to) && to !== ROUTES.HOME)
     || (end && location.pathname === to && to === ROUTES.HOME);
 
-  const activeCls = 'bg-white text-brand-bg-primary';
+  const activeCls = 'bg-brand-text-primary text-brand-bg-primary';
   const idleCls =
     tone === 'exit'
-      ? 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] border border-brand-border'
-      : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.03]';
+      ? 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] border border-brand-border'
+      : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.04]';
 
   const className = `flex items-center min-h-11 px-2.5 py-2.5 rounded-md text-[13px] transition-colors relative group
     ${isActive && tone !== 'exit' ? activeCls : idleCls} ${focusRing}`;
@@ -347,7 +347,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new CustomEvent('lexforge-open-coach'))}
-                className={`min-h-11 min-w-11 px-2.5 text-[12px] text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] rounded-md ${focusRing}`}
+                className={`min-h-11 min-w-11 px-2.5 text-[12px] text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] rounded-md ${focusRing}`}
                 aria-label="Open optional coach"
               >
                 Coach
@@ -356,7 +356,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 ref={mobileMenuButtonRef}
                 type="button"
                 onClick={() => setIsMobileOpen(true)}
-                className={`min-h-11 min-w-11 inline-flex items-center justify-center text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] rounded-md ${focusRing}`}
+                className={`min-h-11 min-w-11 inline-flex items-center justify-center text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] rounded-md ${focusRing}`}
                 aria-label="Open navigation menu"
                 aria-expanded={isMobileOpen}
                 aria-controls={sidebarId}
@@ -410,7 +410,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <button
               type="button"
               onClick={() => (isMobileOpen ? setIsMobileOpen(false) : setIsSidebarOpen(!isSidebarOpen))}
-              className={`min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] ${!isExpanded ? 'mx-auto' : ''} ${focusRing}`}
+              className={`min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] ${!isExpanded ? 'mx-auto' : ''} ${focusRing}`}
               aria-label={isMobileOpen ? 'Close menu' : isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               aria-expanded={isMobileOpen ? true : isSidebarOpen}
               aria-controls={sidebarId}
@@ -440,7 +440,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       ? 'border-brand-border text-brand-text-secondary/40'
                       : a.primary
                         ? 'border-transparent bg-white text-brand-bg-primary hover:bg-white/95 font-medium'
-                        : 'border-brand-border text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.03]'
+                        : 'border-brand-border text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.04]'
                     } ${focusRing}`}
                 >
                   <span aria-hidden="true">{a.icon}</span>
@@ -470,7 +470,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       ? 'text-brand-text-secondary/35'
                       : a.primary
                         ? 'bg-white text-brand-bg-primary'
-                        : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'
+                        : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05]'
                     } ${focusRing}`}
                 >
                   <span aria-hidden="true">{a.icon}</span>
@@ -501,7 +501,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 onClick={() => setLabsExpanded((open) => !open)}
                 aria-expanded={labsExpanded}
                 aria-controls={labsPanelId}
-                className={`w-full min-h-11 flex items-center rounded-md px-2.5 py-2.5 text-[13px] text-brand-text-secondary hover:bg-white/[0.03] hover:text-brand-text-primary ${isExpanded ? 'justify-between' : 'justify-center'} ${focusRing}`}
+                className={`w-full min-h-11 flex items-center rounded-md px-2.5 py-2.5 text-[13px] text-brand-text-secondary hover:bg-[#1c1914]/[0.04] hover:text-brand-text-primary ${isExpanded ? 'justify-between' : 'justify-center'} ${focusRing}`}
                 aria-label={labsExpanded ? 'Collapse optional labs' : 'Expand optional labs'}
               >
                 <span className={`flex items-center min-w-0 ${isExpanded ? 'gap-2.5' : ''}`}>

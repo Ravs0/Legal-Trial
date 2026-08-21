@@ -167,7 +167,7 @@ const HomeScreen: React.FC = () => {
           subtitle={
             activeSession
               ? `${activeSession.settings.caseDetail.title} · ${formatElapsed(activeSession)}`
-              : 'Start a demo or configure a full trial. Everything else is optional.'
+              : 'Start a demo, or configure a trial.'
           }
           actions={
             <>
@@ -179,7 +179,7 @@ const HomeScreen: React.FC = () => {
               </Button>
               <Button
                 variant="secondary"
-                className="!border-white/25 !text-white hover:!bg-white/10"
+                className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
                 onClick={() => navigate(ROUTES.SETUP)}
               >
                 New trial
@@ -187,7 +187,7 @@ const HomeScreen: React.FC = () => {
               {progress.done > 0 && (
                 <Button
                   variant="ghost"
-                  className="!text-white/80 hover:!text-white"
+                  className="!text-brand-text-primary/80 hover:!text-brand-text-primary"
                   onClick={() => navigate(ROUTES.ANALYSIS)}
                 >
                   Review
@@ -307,7 +307,7 @@ const HomeScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.ANALYSIS)}
-                className="shrink-0 text-[11px] uppercase tracking-[0.1em] text-brand-text-secondary hover:text-brand-text-primary border border-brand-border px-2.5 py-1.5 rounded-md hover:bg-white/[0.03] transition-colors"
+                className="shrink-0 text-[11px] uppercase tracking-[0.1em] text-brand-text-secondary hover:text-brand-text-primary border border-brand-border px-2.5 py-1.5 rounded-md hover:bg-[#1c1914]/[0.04] transition-colors"
               >
                 Review
               </button>
@@ -337,7 +337,7 @@ const HomeScreen: React.FC = () => {
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-              <span className="absolute bottom-1 left-1.5 text-[9px] uppercase tracking-[0.1em] text-white/55">
+              <span className="absolute bottom-1 left-1.5 text-[9px] uppercase tracking-[0.1em] text-brand-text-primary/55">
                 {cell.label}
               </span>
             </div>
@@ -442,7 +442,7 @@ const StatCell: React.FC<{
       <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">{label}</p>
       <p
         className={`mt-1 text-xl sm:text-2xl tabular-nums tracking-tight ${
-          emphasize ? 'text-white' : 'text-brand-text-primary'
+          emphasize ? 'text-brand-text-primary' : 'text-brand-text-primary'
         }`}
       >
         {value}

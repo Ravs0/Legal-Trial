@@ -320,7 +320,10 @@ export default async function handler(req, res) {
     // 2. Try Serper if Tavily yielded nothing (evaluates empty array correctly)
     if ((!results || results.length === 0) && env.SERPER_API_KEY && Date.now() < deadline) {
       anyProviderAttempted = true;
-      results = await searchSerper(query, env.SERPER_API_KEY, remainingTimeout(deadline));
+      const serper = await searchSerper(query, env.SERPER_API_KEY, remainingTimeout(deadline));
+      // A failed Serper must not clobber a successful Tavily empty result —
+      // success-empty is still a valid "no hits" response, not a failure.
+      if (serper !== null) results = serper;
     }
 
     // 3. Fallback to DuckDuckGo scrape

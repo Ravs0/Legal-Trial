@@ -482,7 +482,7 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {activeSessionLabel && (
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-2">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#1c1914]/[0.04] px-4 py-2">
             <div className="min-w-0">
               <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary">
                 Active Session
@@ -536,7 +536,7 @@ export const CommandPalette: React.FC = () => {
                       ? 'cursor-not-allowed border-transparent text-brand-text-secondary/40 opacity-50'
                       : isSelected
                         ? 'border-white/25 bg-white text-brand-bg-primary'
-                        : 'border-transparent bg-transparent text-brand-text-secondary hover:bg-white/[0.04] hover:text-brand-text-primary'
+                        : 'border-transparent bg-transparent text-brand-text-secondary hover:bg-[#1c1914]/[0.05] hover:text-brand-text-primary'
                   }`}
                 >
                   <div className="min-w-0 flex-grow pr-3">

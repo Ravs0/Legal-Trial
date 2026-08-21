@@ -12,7 +12,12 @@ import {
 } from './security.js';
 
 const MAX_MESSAGES = 30;
-const MAX_MESSAGE_CHARS = 12_000;
+// Single-message cap. Must stay ≤ MAX_TOTAL_CHARS (which binds multi-message
+// chats) and comfortably under the 256 KiB body budget and the upstream
+// context window (60K chars ≈ 15–20K tokens). Raised from 12K because legal
+// document parsing / research summarization legitimately ship larger turns;
+// below 12K those features 400'd and silently fell back to local heuristics.
+const MAX_MESSAGE_CHARS = 48_000;
 const MAX_TOTAL_CHARS = 60_000;
 /** Request body budget (~256 KiB) — defense in depth beyond per-field caps. */
 const MAX_CHAT_BODY_BYTES = 256 * 1024;

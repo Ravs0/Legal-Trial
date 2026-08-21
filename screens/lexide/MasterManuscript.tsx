@@ -107,13 +107,13 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
                 role="status"
                 className={`text-[11px] tabular-nums border rounded-md px-2 py-1 ${
                   saveState === 'dirty'
-                    ? 'border-white/25 text-white bg-white/[0.08]'
-                    : 'border-white/15 text-white/55'
+                    ? 'border-white/25 text-brand-text-primary bg-[#1c1914]/[0.08]'
+                    : 'border-white/15 text-brand-text-primary/55'
                 }`}
               >
                 {saveLabel}
               </span>
-              <span className="text-[11px] text-white/55 tabular-nums border border-white/15 rounded-md px-2 py-1">
+              <span className="text-[11px] text-brand-text-primary/55 tabular-nums border border-white/15 rounded-md px-2 py-1">
                 {sections.length} sections
               </span>
             </div>
@@ -143,7 +143,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
                     'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
                 }}
               />
-              <span className="relative z-10 flex h-full items-center justify-center text-[11px] uppercase tracking-wide text-white/80">
+              <span className="relative z-10 flex h-full items-center justify-center text-[11px] uppercase tracking-wide text-brand-text-primary/80">
                 {t.label}
               </span>
             </div>
@@ -179,7 +179,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={!hasAiConsent}
-            className="min-h-10 px-3 py-2 bg-brand-bg-secondary hover:bg-white/[0.04] text-brand-text-primary text-[12px] rounded-lg border border-brand-border transition-colors disabled:cursor-not-allowed disabled:opacity-40 flex items-center gap-2"
+            className="min-h-10 px-3 py-2 bg-brand-bg-secondary hover:bg-[#1c1914]/[0.05] text-brand-text-primary text-[12px] rounded-lg border border-brand-border transition-colors disabled:cursor-not-allowed disabled:opacity-40 flex items-center gap-2"
           >
             <Upload size={14} aria-hidden /> Upload
           </button>
@@ -187,7 +187,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
             type="button"
             onClick={onSmartSplit}
             disabled={isProcessing || !fullContent.trim() || !hasAiConsent}
-            className="min-h-10 px-3 py-2 bg-white text-black text-[12px] font-medium rounded-lg disabled:opacity-40 flex items-center gap-2"
+            className="min-h-10 px-3 py-2 bg-brand-text-primary text-brand-bg-primary text-[12px] font-medium rounded-lg disabled:opacity-40 flex items-center gap-2"
           >
             {isProcessing ? <Loader2 size={14} className="animate-spin" aria-hidden /> : <FileText size={14} aria-hidden />}
             Smart split
@@ -196,7 +196,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
             <button
               type="button"
               onClick={onCreateSection}
-              className="min-h-10 px-3 py-2 border border-brand-border text-[12px] text-brand-text-primary rounded-lg hover:bg-white/[0.04] flex items-center gap-2"
+              className="min-h-10 px-3 py-2 border border-brand-border text-[12px] text-brand-text-primary rounded-lg hover:bg-[#1c1914]/[0.05] flex items-center gap-2"
             >
               Create section
               <span className="text-[10px] text-brand-text-secondary tabular-nums">

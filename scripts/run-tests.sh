@@ -33,5 +33,18 @@ while IFS= read -r f; do
   count=$((count + 1))
 done <"$SORTED"
 
-echo "Ran $count test file(s)"
+echo "Ran $count TS test file(s)"
+
+# Python engine contract tests (Dreadler). Skipped when python3 is absent
+# (minimal CI images) — a python failure still fails the gate via exit code.
+if command -v python3 >/dev/null 2>&1; then
+  for pytest_file in dreadler/test_*.py; do
+    [[ -e "$pytest_file" ]] || continue
+    echo "==> $pytest_file"
+    python3 "$pytest_file"
+  done
+else
+  echo "python3 not found; skipping dreadler contract tests"
+fi
+
 test "$count" -gt 0

@@ -2,41 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-/* design.md monochrome shell: solid #0a0a0a, text #e8e6e3 / #9a9690, accent #c4bfb6, border white/10 — no gold/green glow */
+/* design.md Paper Dossier shell: paper #f7f4ee, ink #1c1914 / #5f594e, rule #ddd6c8.
+   Serif leads. Dark surfaces exist only inside the Deception Arena. */
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { overflow-x: hidden; margin: 0; padding: 0; }
 body {
-  background-color: #0a0a0a;
-  color: #e8e6e3;
-  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #f7f4ee;
+  color: #1c1914;
+  font-family: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
+::selection { background: rgba(138, 43, 35, 0.16); }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .12); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .22); }
+::-webkit-scrollbar-thumb { background: rgba(28, 25, 20, .18); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(28, 25, 20, .32); }
 
 .custom-scrollbar { -webkit-overflow-scrolling: touch; }
 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .10); border-radius: 2px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .18); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(28, 25, 20, .14); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(28, 25, 20, .26); }
 
-/* Flat surface, not brass glass — white/10 border only */
+/* Paper panel — flat, ruled, no glass */
 .glass-card {
-  background: rgba(10, 10, 10, .88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, .10);
+  background: rgba(253, 252, 249, .92);
+  border: 1px solid #ddd6c8;
 }
 
-/* Warm-gray shimmer only (design.md accent family; no gold) */
 .text-shimmer {
-  background: linear-gradient(90deg, #9a9690, #e8e6e3, #9a9690, #c4bfb6, #9a9690);
+  background: linear-gradient(90deg, #5f594e, #1c1914, #5f594e);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -44,7 +44,6 @@ body {
   animation: shimmer 3s linear infinite;
 }
 
-/* Geometry wallpaper killed for shell (design.md rule 9) */
 .mesh-bg { display: none; }
 
 .animation-delay-100 { animation-delay: .1s; }
@@ -58,34 +57,33 @@ body {
 
 select option[value^="__optgroup__"] {
   font-weight: bold;
-  color: #c4bfb6;
-  background-color: #111111;
+  color: #8a2b23;
+  background-color: #fdfcf9;
   padding-top: .5rem;
   padding-bottom: .25rem;
   font-style: italic;
 }
 select option:not([value^="__optgroup__"]) {
   padding-left: 1rem;
-  background-color: #111111;
-  color: #e8e6e3;
+  background-color: #fdfcf9;
+  color: #1c1914;
 }
 
-/* No soft lift on chrome; flat only */
-.shadow-top { box-shadow: none; border-top: 1px solid rgba(255, 255, 255, .10); }
+.shadow-top { box-shadow: none; border-top: 1px solid #ddd6c8; }
 
 .noise-overlay::before {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: .015;
+  opacity: .02;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 1;
 }
 
-/* Monochrome focus system: white outline only (no colored / gold rings) */
+/* Ink focus system */
 .focus-ring:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, .35);
+  outline: 2px solid rgba(28, 25, 20, .45);
   outline-offset: 2px;
 }
 a:focus-visible,
@@ -100,7 +98,7 @@ summary:focus-visible,
 [role="tab"]:focus-visible,
 [role="dialog"]:focus-visible,
 [tabindex]:not([tabindex="-1"]):focus-visible {
-  outline: 2px solid rgba(255, 255, 255, .35);
+  outline: 2px solid rgba(28, 25, 20, .45);
   outline-offset: 2px;
 }
 a:focus:not(:focus-visible),
@@ -111,7 +109,6 @@ textarea:focus:not(:focus-visible) {
   outline: none;
 }
 
-/* Skip-link / a11y helpers (complement Tailwind sr-only) */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -135,7 +132,6 @@ textarea:focus:not(:focus-visible) {
   white-space: normal;
 }
 
-/* White-only edge, not cream/gold gradient */
 .gradient-border { position: relative; }
 .gradient-border::before {
   content: '';
@@ -143,7 +139,7 @@ textarea:focus:not(:focus-visible) {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .14), transparent 50%, rgba(255, 255, 255, .06));
+  background: linear-gradient(135deg, rgba(28, 25, 20, .22), transparent 50%, rgba(28, 25, 20, .10));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;

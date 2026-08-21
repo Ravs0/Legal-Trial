@@ -395,7 +395,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
                       setQuery(s);
                       void runSearch(s);
                     }}
-                    className="border border-white/10 bg-white/[0.04] px-2.5 py-1 text-left text-xs text-brand-text-secondary transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-brand-text-primary"
+                    className="border border-white/10 bg-[#1c1914]/[0.05] px-2.5 py-1 text-left text-xs text-brand-text-secondary transition-all hover:border-white/20 hover:bg-[#1c1914]/[0.08] hover:text-brand-text-primary"
                   >
                     {s}
                   </button>
@@ -482,7 +482,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
                       type="button"
                       onClick={() => void handleSummarize()}
                       disabled={isSearching}
-                      className="flex items-center gap-1.5 border border-white/20 bg-white/[0.06] px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-wide text-brand-text-primary transition-all hover:bg-white/10 disabled:opacity-50"
+                      className="flex items-center gap-1.5 border border-white/20 bg-[#1c1914]/[0.06] px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-wide text-brand-text-primary transition-all hover:bg-white/10 disabled:opacity-50"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 21l-.813-5.096L3 15l5.096-.813L9 9l.813 5.187L15 15l-5.187.813z" />
@@ -531,7 +531,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
               )}
 
               {summary && (
-                <div className="animate-fadeIn space-y-3 border border-white/15 bg-white/[0.03] p-4">
+                <div className="animate-fadeIn space-y-3 border border-white/15 bg-[#1c1914]/[0.04] p-4">
                   <div className="flex items-center justify-between border-b border-white/10 pb-2">
                     <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-brand-text-secondary">
                       AI Case Synthesis
@@ -556,7 +556,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
                   return (
                     <div
                       key={r.url || i}
-                      className="group relative flex flex-col gap-2 border border-white/10 bg-brand-bg-primary p-4 transition-colors hover:border-white/20 hover:bg-white/[0.03]"
+                      className="group relative flex flex-col gap-2 border border-white/10 bg-brand-bg-primary p-4 transition-colors hover:border-white/20 hover:bg-[#1c1914]/[0.04]"
                     >
                       <div className="flex items-start justify-between gap-4">
                         {safe ? (
@@ -600,7 +600,7 @@ export const WebSearchDrawer: React.FC<WebSearchDrawerProps> = ({ isOpen, onClos
 
           {results.length === 0 && !isSearching && !searchError && !emptyMessage && (
             <div className="flex flex-col items-center justify-center py-24 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mb-4 h-12 w-12 text-white/15" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="mb-4 h-12 w-12 text-brand-text-primary/15" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
               </svg>
               <h3 className="text-sm font-medium text-brand-text-primary/80">No queries run yet</h3>

@@ -31,21 +31,21 @@ export const Button: React.FC<ButtonProps> = ({
   void _categoryId;
   const base =
     'inline-flex items-center justify-center font-medium rounded-md transition-colors duration-150 ' +
-    'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 focus-visible:ring-offset-0 ' +
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-text-primary/30 focus-visible:ring-offset-0 ' +
     'disabled:opacity-45 disabled:cursor-not-allowed min-h-11 sm:min-h-0 select-none';
 
   // Primary hierarchy: white on black. Secondary/outline share a border stroke. No shadows.
   const variants = {
     primary:
-      'bg-white text-black border border-white hover:bg-white/90 active:bg-white/80',
+      'bg-brand-text-primary text-brand-bg-primary border border-brand-text-primary hover:bg-[#3a352c] active:bg-[#3a352c]',
     secondary:
-      'bg-transparent text-brand-text-primary border border-brand-border hover:bg-white/[0.04] hover:border-white/20 active:bg-white/[0.06]',
+      'bg-transparent text-brand-text-primary border border-brand-border hover:bg-brand-text-primary/[0.05] hover:border-brand-border-light active:bg-brand-text-primary/[0.08]',
     danger:
       'bg-transparent text-brand-error border border-brand-error/40 hover:bg-brand-error/10 active:bg-brand-error/15',
     outline:
-      'bg-transparent text-brand-text-primary border border-brand-border hover:bg-white/[0.04] hover:border-white/20 active:bg-white/[0.06]',
+      'bg-transparent text-brand-text-primary border border-brand-border hover:bg-brand-text-primary/[0.05] hover:border-brand-border-light active:bg-brand-text-primary/[0.08]',
     ghost:
-      'bg-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] border border-transparent active:bg-white/[0.06]',
+      'bg-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-text-primary/[0.05] border border-transparent active:bg-brand-text-primary/[0.08]',
   };
 
   const sizes = {

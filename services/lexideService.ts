@@ -7,7 +7,13 @@ const MIN_RESEARCH_QUERY = 2;
 const MAX_SECTION_TITLE = 200;
 const MAX_SUMMARY_SNIPPET = 2000;
 const MAX_REFINE_TEXT = 20000;
-const MAX_PAPER_CHARS = 120000;
+// Smart Split ships the whole document as ONE /api/chat message (48K char
+// server cap). Docs above this fail at the API with a generic 400, so reject
+// up front with the honest limit instead.
+const MAX_PAPER_CHARS = 45_000;
+// Consistency analysis ships fullContext + target in ONE message too; the
+// 60K server TOTAL cap binds, so 38K context + 20K target + scaffolding fits.
+const MAX_ANALYSIS_CONTEXT = 38_000;
 
 export class LexServiceError extends Error {
   constructor(message: string) {
@@ -216,7 +222,7 @@ export const analyzeLegalConsistency = async (
       .filter((s) => s && typeof s.title === 'string' && typeof s.content === 'string')
       .map((s) => `[Section: ${s.title}]\n${s.content}`)
       .join('\n\n')
-      .slice(0, MAX_PAPER_CHARS);
+      .slice(0, MAX_ANALYSIS_CONTEXT);
 
     const result = await callApi(
       [{

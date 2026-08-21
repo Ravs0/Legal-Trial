@@ -23,7 +23,10 @@ from dreadler.skins import SKIN_IDS
 MAX_BODY_BYTES = 128 * 1024
 MAX_INPUT_CHARS = 6_000
 MAX_HISTORY_ENTRIES = 20
-MAX_HISTORY_CHARS = 5_000
+# 20 entries × 2000 chars ≈ 40KB JSON → ~55KB base64, safely under
+# MAX_BODY_BYTES. At 5000 chars the worst-case signed token exceeded the body
+# limit and every subsequent turn 413'd (client could never continue).
+MAX_HISTORY_CHARS = 2_000
 # Derived from package registries (not hand-duplicated allow-lists).
 ALLOWED_WORLDS = set(WORLD_IDS)
 ALLOWED_SKINS = set(SKIN_IDS)
@@ -92,6 +95,13 @@ def _bounded_int(value: object, default: int, minimum: int, maximum: int) -> int
         return default
 
 
+def _bounded_float(value: object, default: float, minimum: float, maximum: float) -> float:
+    try:
+        return max(minimum, min(maximum, float(value)))
+    except (TypeError, ValueError):
+        return default
+
+
 def _bounded_strings(value: object, maximum_items: int = 20) -> list[str]:
     if not isinstance(value, list):
         return []
@@ -117,12 +127,31 @@ def _hydrate(agent: DreadlerAgent, state: dict) -> None:
     agent.state.pressure_level = state.get("pressure_level") if state.get("pressure_level") in ALLOWED_PRESSURE else "calm"
     agent.state.agent_variant = state.get("agent_variant") if state.get("agent_variant") in ALLOWED_VARIANTS else "alpha"
     agent.state.used_tactics = _bounded_strings(state.get("used_tactics"))
+    agent.state.agent_tactics = _bounded_strings(state.get("agent_tactics"), maximum_items=40)
     agent.state.accepted_by_user = _bounded_strings(state.get("accepted_by_user"))
     agent.state.challenged_by_user = _bounded_strings(state.get("challenged_by_user"))
-    agent.state.score_history = [_bounded_int(item, 100, 0, 100) for item in state.get("score_history", [])[:MAX_HISTORY_ENTRIES]] if isinstance(state.get("score_history"), list) else []
+    # score_history entries are dicts (see CoherenceState.apply_delta); the UI
+    # Event Feed reads turn_count/event/delta off them. Keep dicts only —
+    # coercing through _bounded_int turned every entry into a useless 100.
+    raw_history = state.get("score_history")
+    agent.state.score_history = [
+        item for item in raw_history if isinstance(item, dict)
+    ][:MAX_HISTORY_ENTRIES] if isinstance(raw_history, list) else []
+    # USER skill axis (Part 5 Tier Covenant) rides the signed token.
+    agent.state.skill_score = _bounded_float(state.get("skill_score"), 25.0, 0.0, 100.0)
+    raw_skill_history = state.get("skill_history")
+    agent.state.skill_history = [
+        item for item in raw_skill_history if isinstance(item, dict)
+    ][:MAX_HISTORY_ENTRIES] if isinstance(raw_skill_history, list) else []
     agent.spawner.spawn_count = _bounded_int(state.get("spawn_count"), 0, 0, 50)
     agent.spawner.current_variant = state.get("current_variant") if state.get("current_variant") in ALLOWED_VARIANTS else "alpha"
     agent.dialogue_history = _bounded_history(state.get("dialogue_history"))
+    # Re-derive pressure/variant from the hydrated score: an older or partially
+    # written token could carry score=5 with pressure_level="calm", which
+    # suppresses is_collapsed() and prevents respawn. Then mirror the resolved
+    # variant onto the spawner so BLOCK 2 matches the live band.
+    agent.state._update_pressure_and_variant()
+    agent.spawner.sync_variant_from_state(agent.state)
 
 class handler(BaseHTTPRequestHandler):
     def _origin_allowed(self) -> bool:
@@ -245,8 +274,33 @@ class handler(BaseHTTPRequestHandler):
                         return
                 _hydrate(agent, state_data)
 
-            # Run turn
-            result = agent.turn(user_input)
+            # NDJSON streaming: {"t":"start"} → {"t":"d","v":chunk}* →
+            # {"t":"f",...full payload}. Progressive enhancement — runtimes
+            # that buffer (e.g. some serverless Python hosts) deliver all
+            # frames at once and the client parses them identically.
+            streaming = req_body.get("stream") is True
+            frame = None
+
+            if streaming:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/x-ndjson")
+                self.send_header("Cache-Control", "no-cache")
+                self.send_cors_headers(allow_origin=True)
+                self.end_headers()
+
+                def frame(obj: dict) -> None:
+                    self.wfile.write(
+                        (json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8")
+                    )
+                    self.wfile.flush()
+
+                frame({"t": "start"})
+                result = agent.turn(
+                    user_input,
+                    on_delta=lambda chunk: frame({"t": "d", "v": chunk}),
+                )
+            else:
+                result = agent.turn(user_input)
 
             # Compile updated state
             next_state_data = {
@@ -255,9 +309,12 @@ class handler(BaseHTTPRequestHandler):
                 "pressure_level": agent.state.pressure_level,
                 "agent_variant": agent.state.agent_variant,
                 "used_tactics": agent.state.used_tactics,
+                "agent_tactics": agent.state.agent_tactics,
                 "accepted_by_user": agent.state.accepted_by_user,
                 "challenged_by_user": agent.state.challenged_by_user,
                 "score_history": agent.state.score_history,
+                "skill_score": agent.state.skill_score,
+                "skill_history": agent.state.skill_history,
                 "spawn_count": agent.spawner.spawn_count,
                 "current_variant": agent.spawner.current_variant,
                 "dialogue_history": agent.dialogue_history,
@@ -271,19 +328,39 @@ class handler(BaseHTTPRequestHandler):
                 "agent_variant": result["agent_variant"],
                 "critic_analysis": result["critic_analysis"],
                 "is_direct_lie": result["is_direct_lie"],
+                "agent_tactic": result["agent_tactic"],
                 "spawned_new_agent": result["spawned_new_agent"],
+                "skill_score": result["skill_score"],
+                "tier": result["tier"],
+                "tier_changed": result["tier_changed"],
+                "tier_notice": result["tier_notice"],
                 "thinking_log": result["thinking_log"],
                 "state_data": next_state_data,
                 "state_token": _encode_state(next_state_data),
             }
 
-            self.send_json(200, payload)
+            if streaming:
+                frame({"t": "f", **payload})
+            else:
+                self.send_json(200, payload)
 
         except Exception as e:
             message = str(e)
             # Log internal detail server-side only — never include stack/message in JSON.
             print(f"[dreadler] turn failure: {type(e).__name__}: {message[:300]}", flush=True)
-            if "DEEPSEEK_API_KEY_MISSING" in message or "No DeepSeek API key" in message:
+            key_missing = "DEEPSEEK_API_KEY_MISSING" in message or "No DeepSeek API key" in message
+            if frame is not None:
+                # Headers are already sent — surface the failure as a frame.
+                error_text = (
+                    "DEEPSEEK_API_KEY is not configured on the server. "
+                    "Add it in Vercel environment variables to run Dreadler."
+                ) if key_missing else "The training engine could not complete that turn."
+                try:
+                    frame({"t": "e", "error": error_text})
+                except Exception:
+                    pass
+                return
+            if key_missing:
                 self.send_json(503, {
                     "error": "DEEPSEEK_API_KEY is not configured on the server. "
                              "Add it in Vercel environment variables to run Dreadler."

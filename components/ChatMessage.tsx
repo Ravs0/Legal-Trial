@@ -275,7 +275,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             >
               {isSpeaking ? 'Stop' : 'Listen'}
             </button>
-            <span className="text-white/20" aria-hidden="true">
+            <span className="text-brand-text-primary/20" aria-hidden="true">
               |
             </span>
             <button
@@ -321,7 +321,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
           <div className={`w-full ${isUser ? 'flex justify-end' : ''}`}>
             {isUser ? (
-              <div className="max-w-[85%] rounded-md border border-white/20 bg-white/[0.08] px-4 py-3 text-left text-brand-text-primary shadow-sm sm:px-5 sm:py-3.5">
+              <div className="max-w-[85%] rounded-md border border-white/20 bg-[#1c1914]/[0.08] px-4 py-3 text-left text-brand-text-primary shadow-sm sm:px-5 sm:py-3.5">
                 <p className="whitespace-pre-wrap text-xs font-light leading-relaxed selection:bg-white/20 sm:text-sm">
                   {formatText(message.text)}
                 </p>

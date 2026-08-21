@@ -578,7 +578,7 @@ const AIPersonasScreen: React.FC = () => {
           dense
           eyebrow="Labs · personas"
           title="Advisor suite"
-          subtitle="Historical strategists and sentient counsel. Pick a mind, then consult."
+          subtitle="Pick a mind. Consult."
           trailing={
             <RoomTabs
               tabs={[
@@ -607,7 +607,7 @@ const AIPersonasScreen: React.FC = () => {
                   type="button"
                   onClick={() => { setSelectedHistorical(p); setViewTab('info'); }}
                   className={`flex items-center gap-1.5 px-2.5 py-1.5 border text-[10px] font-mono whitespace-nowrap flex-shrink-0 transition-all
-                    ${isSelected ? 'bg-white text-black border-white' : 'border-brand-text-primary/20 text-brand-text-secondary hover:border-brand-text-primary/40'}`}
+                    ${isSelected ? 'bg-brand-text-primary text-brand-bg-primary border-white' : 'border-brand-text-primary/20 text-brand-text-secondary hover:border-brand-text-primary/40'}`}
                 >
                   <span className={`h-5 w-5 border flex items-center justify-center text-[9px] font-bold ${isSelected ? 'border-black/20 bg-black/5 text-black' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
                     {p.avatar}
@@ -626,7 +626,7 @@ const AIPersonasScreen: React.FC = () => {
                   type="button"
                   onClick={() => { setSelectedSentient(s); setViewTab('info'); }}
                   className={`flex flex-col items-center gap-1 px-2 py-1.5 border text-center min-w-[56px] flex-shrink-0 transition-all
-                    ${isSelected ? 'bg-white text-black border-white' : 'border-brand-text-primary/20 hover:border-brand-text-primary/40'}`}
+                    ${isSelected ? 'bg-brand-text-primary text-brand-bg-primary border-white' : 'border-brand-text-primary/20 hover:border-brand-text-primary/40'}`}
                 >
                   <span className={`h-6 w-6 border flex items-center justify-center text-[10px] font-bold ${isSelected ? 'border-black/20 bg-black/5 text-black' : 'border-brand-text-primary/30 bg-brand-bg-dark'}`}>
                     {s.avatar}
@@ -661,13 +661,13 @@ const AIPersonasScreen: React.FC = () => {
                     key={p.id}
                     type="button"
                     onClick={() => { setSelectedHistorical(p); setViewTab('info'); }}
-                    className={`w-full text-left p-3.5 transition-colors hover:bg-white/[0.03] flex flex-col space-y-1 ${isSelected ? 'bg-white/[0.06] border-l-2 border-white' : 'border-l-2 border-transparent'}`}
+                    className={`w-full text-left p-3.5 transition-colors hover:bg-[#1c1914]/[0.04] flex flex-col space-y-1 ${isSelected ? 'bg-[#1c1914]/[0.06] border-l-2 border-white' : 'border-l-2 border-transparent'}`}
                   >
                     <div className="flex items-center space-x-2">
                       <div className={`h-6 w-6 border border-brand-text-primary/30 flex items-center justify-center font-mono text-xs ${p.color} bg-brand-bg-primary`}>
                         {p.avatar}
                       </div>
-                      <span className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-brand-text-primary'}`}>{p.name}</span>
+                      <span className={`text-xs font-semibold ${isSelected ? 'text-brand-text-primary' : 'text-brand-text-primary'}`}>{p.name}</span>
                     </div>
                     <span className="text-[10px] text-brand-text-secondary line-clamp-1">{p.role}</span>
                   </button>
@@ -683,14 +683,14 @@ const AIPersonasScreen: React.FC = () => {
                     key={s.id}
                     type="button"
                     onClick={() => { setSelectedSentient(s); setViewTab('info'); }}
-                    className={`w-full text-left p-4 transition-colors hover:bg-white/[0.03] flex flex-col space-y-1.5 ${isSelected ? 'bg-white/[0.06] border-l-2 border-white' : 'border-l-2 border-transparent'}`}
+                    className={`w-full text-left p-4 transition-colors hover:bg-[#1c1914]/[0.04] flex flex-col space-y-1.5 ${isSelected ? 'bg-[#1c1914]/[0.06] border-l-2 border-white' : 'border-l-2 border-transparent'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <div className={`h-6 w-6 border border-brand-text-primary/30 flex items-center justify-center font-mono text-xs ${s.color} bg-brand-bg-primary`}>
                           {s.avatar}
                         </div>
-                        <span className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-brand-text-primary'}`}>{s.name}</span>
+                        <span className={`text-xs font-semibold ${isSelected ? 'text-brand-text-primary' : 'text-brand-text-primary'}`}>{s.name}</span>
                       </div>
                       <span className="text-[9px] font-mono text-brand-text-secondary">({s.archetype})</span>
                     </div>
@@ -720,7 +720,7 @@ const AIPersonasScreen: React.FC = () => {
                 <span className={activePersonaColor}>●</span>
                 <span>{activePersonaName}</span>
                 {activeTab === 'sentient' && (
-                  <span className="text-[9px] sm:text-[10px] font-mono bg-white/10 border border-white/20 px-1.5 py-0.5 text-white/80">
+                  <span className="text-[9px] sm:text-[10px] font-mono bg-white/10 border border-white/20 px-1.5 py-0.5 text-brand-text-primary/80">
                     {selectedSentient.archetype}
                   </span>
                 )}
@@ -735,14 +735,14 @@ const AIPersonasScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewTab('info')}
-                className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'info' ? 'bg-white text-black font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'info' ? 'bg-brand-text-primary text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
               >
                 Profile
               </button>
               <button
                 type="button"
                 onClick={() => setViewTab('chat')}
-                className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'chat' ? 'bg-white text-black font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'chat' ? 'bg-brand-text-primary text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
               >
                 Chat
               </button>
@@ -750,7 +750,7 @@ const AIPersonasScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setViewTab('codex')}
-                  className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'codex' ? 'bg-white text-black font-bold' : 'text-brand-text-secondary hover:text-white'}`}
+                  className={`px-2 sm:px-3 py-1 font-mono uppercase rounded-sm ${viewTab === 'codex' ? 'bg-brand-text-primary text-brand-bg-primary font-bold' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}
                 >
                   Codex
                 </button>
@@ -800,7 +800,7 @@ const AIPersonasScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setViewTab('chat')}
-                      className="px-4 sm:px-6 py-2.5 bg-white text-black hover:bg-white/90 font-mono text-[10px] sm:text-xs uppercase tracking-wide font-semibold border border-white transition-colors"
+                      className="px-4 sm:px-6 py-2.5 bg-brand-text-primary text-brand-bg-primary hover:bg-white/90 font-mono text-[10px] sm:text-xs uppercase tracking-wide font-semibold border border-white transition-colors"
                     >
                       Open chat
                     </button>
@@ -834,8 +834,8 @@ const AIPersonasScreen: React.FC = () => {
                               disabled={isStudied}
                               className={`px-2.5 sm:px-3 py-1.5 border text-[9px] sm:text-[10px] font-mono uppercase tracking-wider flex-shrink-0 transition-colors ${
                                 isStudied
-                                  ? 'border-brand-border text-brand-text-secondary bg-white/[0.04] cursor-default'
-                                  : 'bg-white text-black border-white hover:bg-white/90 font-semibold'
+                                  ? 'border-brand-border text-brand-text-secondary bg-[#1c1914]/[0.05] cursor-default'
+                                  : 'bg-brand-text-primary text-brand-bg-primary border-white hover:bg-white/90 font-semibold'
                               }`}
                             >
                               {isStudied ? 'Studied' : 'Study'}
@@ -871,7 +871,7 @@ const AIPersonasScreen: React.FC = () => {
                               <span className={`h-5 w-5 border border-brand-text-primary/30 flex items-center justify-center font-mono text-[10px] bg-brand-bg-primary ${m.interjectorColor}`}>
                                 {m.interjectorAvatar}
                               </span>
-                              <span className="font-mono font-bold text-white/80 uppercase text-[9px] sm:text-[10px]">{m.interjectorName} interjected</span>
+                              <span className="font-mono font-bold text-brand-text-primary/80 uppercase text-[9px] sm:text-[10px]">{m.interjectorName} interjected</span>
                             </div>
                             <p className="font-light italic text-brand-text-primary/95">"{m.text}"</p>
                           </div>
@@ -888,14 +888,14 @@ const AIPersonasScreen: React.FC = () => {
                             </div>
                           )}
                           
-                          <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-white/25 bg-white/[0.06] text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
+                          <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-white/25 bg-[#1c1914]/[0.06] text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
                             <div className="max-w-none">
                               {renderLegalMarkdown(m.text)}
                             </div>
                           </div>
 
                           {isUser && (
-                            <div className="h-7 w-7 sm:h-8 sm:w-8 border border-white/30 flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark text-white/80 flex-shrink-0">
+                            <div className="h-7 w-7 sm:h-8 sm:w-8 border border-white/30 flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark text-brand-text-primary/80 flex-shrink-0">
                               U
                             </div>
                           )}
@@ -928,7 +928,7 @@ const AIPersonasScreen: React.FC = () => {
                     placeholder={`Query ${activePersonaName}...`}
                     disabled={isTyping}
                     aria-label={`Message ${activePersonaName}`}
-                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-white/40 font-light"
+                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-brand-text-primary placeholder-zinc-500 focus:outline-none focus:border-white/40 font-light"
                   />
                   <button
                     type="button"
@@ -937,7 +937,7 @@ const AIPersonasScreen: React.FC = () => {
                     className={`px-3 sm:px-5 py-2 sm:py-2.5 font-mono text-[10px] sm:text-xs uppercase tracking-wide transition-colors flex items-center space-x-1.5 ${
                       isTyping || !input.trim()
                         ? 'border border-brand-text-primary/20 text-brand-text-secondary cursor-not-allowed'
-                        : 'bg-white text-black border border-white hover:bg-white/90 font-semibold'
+                        : 'bg-brand-text-primary text-brand-bg-primary border border-white hover:bg-white/90 font-semibold'
                     }`}
                   >
                     <span>Send</span>
@@ -956,7 +956,7 @@ const AIPersonasScreen: React.FC = () => {
       {breakthrough && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
           <div className="max-w-md w-full border border-white/25 bg-brand-bg-primary p-4 sm:p-6 space-y-3 sm:space-y-4 relative">
-            <div className="flex items-center space-x-3 text-white border-b border-white/15 pb-3">
+            <div className="flex items-center space-x-3 text-brand-text-primary border-b border-white/15 pb-3">
               <span className="text-xl" aria-hidden>⚔</span>
               <h4 className="font-mono font-bold uppercase tracking-wider text-[10px] sm:text-xs">Mastery breakthrough</h4>
             </div>
@@ -976,7 +976,7 @@ const AIPersonasScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setBreakthrough(null)}
-                className="px-4 py-2 bg-white text-black hover:bg-white/90 text-[12px] font-semibold border border-white"
+                className="px-4 py-2 bg-brand-text-primary text-brand-bg-primary hover:bg-white/90 text-[12px] font-semibold border border-white"
               >
                 Continue
               </button>

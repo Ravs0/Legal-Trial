@@ -134,7 +134,7 @@ const LandingScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => openModes('header')}
-          className="text-[13px] text-white/70 hover:text-white transition-colors py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-sm"
+          className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary transition-colors py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-sm"
         >
           Open workspace
         </button>
@@ -146,8 +146,8 @@ const LandingScreen: React.FC = () => {
           {activeSession && (
             <div className="mb-6 max-w-xl rounded-md border border-white/15 bg-black/40 px-3.5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-white/50">Hearing in progress</p>
-                <p className="mt-1 text-[13px] text-white/90 truncate">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-primary/50">Hearing in progress</p>
+                <p className="mt-1 text-[13px] text-brand-text-primary/90 truncate">
                   {activeCaseTitle || 'Unsaved local session'}
                 </p>
               </div>
@@ -157,7 +157,7 @@ const LandingScreen: React.FC = () => {
                   trackEvent('landing_resume_clicked');
                   navigate(ROUTES.PRACTICE);
                 }}
-                className="shrink-0 h-10 px-4 rounded-md border border-white/25 bg-white/10 text-[13px] font-medium text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                className="shrink-0 h-10 px-4 rounded-md border border-white/25 bg-white/10 text-[13px] font-medium text-brand-text-primary hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
               >
                 Resume hearing
               </button>
@@ -166,17 +166,17 @@ const LandingScreen: React.FC = () => {
 
           {/* Core conversion: one primary decision */}
           <div className="max-w-xl">
-            <p className="text-[12px] uppercase tracking-[0.16em] text-white/60 mb-4">
+            <p className="text-[12px] uppercase tracking-[0.16em] text-brand-text-primary/60 mb-4">
               Courtroom practice
             </p>
-            <h1 className="text-[2.35rem] sm:text-[3rem] lg:text-[3.35rem] font-serif font-semibold leading-[1.08] tracking-tight text-white">
+            <h1 className="text-[2.35rem] sm:text-[3rem] lg:text-[3.35rem] font-serif font-semibold leading-[1.08] tracking-tight text-brand-text-primary">
               Argue the case.
               <br />
               Get scored.
               <br />
               Come back sharper.
             </h1>
-            <p className="mt-5 text-[15px] sm:text-base leading-relaxed text-white/75 max-w-md">
+            <p className="mt-5 text-[15px] sm:text-base leading-relaxed text-brand-text-primary/75 max-w-md">
               Mock hearings against an AI judge and opposing counsel.
               Score, transcript, export. Tools when you need them.
             </p>
@@ -188,9 +188,9 @@ const LandingScreen: React.FC = () => {
                   key={step.label}
                   className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/30 px-2.5 py-1.5"
                 >
-                  <span className="text-[10px] tabular-nums text-white/40 w-3">{index + 1}</span>
-                  <span className="text-[12px] font-medium text-white/90">{step.label}</span>
-                  <span className="hidden sm:inline text-[11px] text-white/45">{step.hint}</span>
+                  <span className="text-[10px] tabular-nums text-brand-text-primary/40 w-3">{index + 1}</span>
+                  <span className="text-[12px] font-medium text-brand-text-primary/90">{step.label}</span>
+                  <span className="hidden sm:inline text-[11px] text-brand-text-primary/45">{step.hint}</span>
                 </li>
               ))}
             </ol>
@@ -203,7 +203,7 @@ const LandingScreen: React.FC = () => {
               >
                 Start 15-minute demo
               </button>
-              <p className="text-[12px] text-white/55 sm:pl-1">
+              <p className="text-[12px] text-brand-text-primary/55 sm:pl-1">
                 No setup. Beginner Indian case.
               </p>
             </div>
@@ -213,7 +213,7 @@ const LandingScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openModes('inline')}
-                className="text-[13px] text-white/70 hover:text-white underline underline-offset-4 decoration-white/25 hover:decoration-white/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-sm"
+                className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary underline underline-offset-4 decoration-white/25 hover:decoration-white/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-sm"
                 aria-expanded={showModes}
               >
                 {showModes ? 'Hide jurisdiction options' : 'Or choose a jurisdiction'}
@@ -223,7 +223,7 @@ const LandingScreen: React.FC = () => {
 
           {showModes && (
             <div className="mt-8 sm:mt-10 max-w-2xl" id="landing-modes">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-white/50 mb-3">
+              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-primary/50 mb-3">
                 Choose workspace mode
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/10 rounded-md overflow-hidden border border-white/15">
@@ -244,8 +244,8 @@ const LandingScreen: React.FC = () => {
                   className="min-h-[144px] sm:min-h-[160px] !rounded-none !border-0"
                 />
               </div>
-              <p className="mt-3 text-[12px] text-white/45 max-w-lg">
-                Mode unlocks the matching case catalog, bench, and research tools. You can leave mode from the workspace footer anytime.
+              <p className="mt-3 text-[12px] text-brand-text-primary/45 max-w-lg">
+                Mode picks the catalog, bench, and tools.
               </p>
             </div>
           )}
@@ -261,7 +261,7 @@ const LandingScreen: React.FC = () => {
                   return next;
                 });
               }}
-              className="text-[12px] text-white/50 hover:text-white/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-sm"
+              className="text-[12px] text-brand-text-primary/50 hover:text-brand-text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-sm"
               aria-expanded={showTrust}
             >
               {showTrust ? 'Hide training notice' : 'Training only. Not legal advice.'}
@@ -269,7 +269,7 @@ const LandingScreen: React.FC = () => {
             {showTrust && (
               <div className="mt-3 rounded-md border border-white/12 bg-black/30 px-3.5 py-3 text-[11px] leading-relaxed text-white/65">
                 <p>
-                  <span className="font-medium text-white/85">Training only. Not legal advice.</span>{' '}
+                  <span className="font-medium text-brand-text-primary/85">Training only. Not legal advice.</span>{' '}
                   Do not enter confidential or client-identifying information. Trial transcripts and
                   workspace data stay in this browser; AI requests are sent to the configured service
                   for a response.
@@ -277,7 +277,7 @@ const LandingScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleClearLocal}
-                  className="mt-2 text-white/80 underline underline-offset-2 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-sm"
+                  className="mt-2 text-brand-text-primary/80 underline underline-offset-2 hover:text-brand-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-sm"
                 >
                   {dataCleared ? 'Local LexForge data cleared' : 'Clear saved local data'}
                 </button>
@@ -287,7 +287,7 @@ const LandingScreen: React.FC = () => {
         </div>
       </main>
 
-      <footer className="relative z-20 px-5 sm:px-8 lg:px-12 h-11 flex items-center justify-between border-t border-white/10 text-[12px] text-white/45">
+      <footer className="relative z-20 px-5 sm:px-8 lg:px-12 h-11 flex items-center justify-between border-t border-white/10 text-[12px] text-brand-text-primary/45">
         <span>{APP_NAME}</span>
         <span className="hidden sm:inline">Argue · Score · Review</span>
       </footer>

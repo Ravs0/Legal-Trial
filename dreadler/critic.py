@@ -3,8 +3,8 @@ critic.py
 
 CriticLayer for the Dreadler project.
 
-This module provides a strict logical verification layer that calls the Zenmux
-API to evaluate whether an agent's dialogue response contains a direct factual
+This module provides a strict logical verification layer that calls the
+DeepSeek API to evaluate whether an agent's dialogue response contains a direct factual
 lie, successfully misleads the user without lying, or is exposed by the user.
 It uses only the Python standard library and is self-contained.
 """
@@ -17,9 +17,96 @@ import urllib.request
 from typing import Any, Optional
 
 
+#: Canonical score_event vocabulary. Must stay in lockstep with the keys of
+#: dreadler.state.DELTA — dreadler/test_critic_contract.py asserts that equality,
+#: so drift between this set and DELTA fails the contract test.
+VALID_SCORE_EVENTS: frozenset[str] = frozenset({
+    "user_accepted_implication",
+    "user_failed_to_challenge",
+    "direct_lie_detected",
+    "user_exposed_deception",
+    "agent_gave_away_fact",
+    "neutral_response",
+})
+
+#: Agent-gain events (positive coherence delta). A user_exposed=True verdict can
+#: never coexist with one of these — exposure is a hit on the agent by definition.
+AGENT_GAIN_EVENTS: frozenset[str] = frozenset({
+    "user_accepted_implication",
+    "user_failed_to_challenge",
+})
+
+#: Player fallacy ids accepted by the critic prompt (feeds the fallacy ledger).
+VALID_TACTICS: frozenset[str] = frozenset({
+    "circular_reasoning",
+    "strawman",
+    "evasion",
+    "false_dilemma",
+    "self_contradiction",
+})
+
+#: §2.x deception tactics the AGENT may deploy (full_dreadler_system_prompt.md).
+#: The critic classifies which one the agent's last line primarily used so the
+#: player can be taught to name the manoeuvre (training objective, memo §1).
+VALID_AGENT_TACTICS: frozenset[str] = frozenset({
+    "implicature",              # 2.1
+    "omission",                 # 2.2
+    "equivocation",             # 2.3
+    "presupposition",           # 2.4
+    "false_dilemma",            # 2.5
+    "contextual_displacement",  # 2.6
+    "ambiguity",                # 2.7
+    "quantifier_manipulation",  # 2.8
+    "selective_quotation",      # 2.9
+    "framing",                  # 2.10
+})
+
+
+def reconcile(result: dict[str, Any]) -> dict[str, Any]:
+    """Enforce internal consistency on a raw critic JSON verdict.
+
+    The evaluation model can return self-contradictory or out-of-vocabulary
+    fields. Downstream, engine._apply_critic_result applies score_event via
+    state.apply_delta, which raises ValueError on unknown keys — an unguarded
+    bad value would crash the turn with HTTP 500. Reconciliation guarantees:
+
+      * score_event is always a valid DELTA key (unknown → neutral_response)
+      * is_direct_lie=True always lands a direct_lie_detected hit (a detected
+        lie with a neutral/positive event would score nothing)
+      * user_exposed=True never coexists with an agent-gain event
+      * tactic_used is either a known player fallacy id or None
+
+    Mutates and returns the result dict.
+    """
+    # Coerce booleans: the model may return "true"/1 instead of real booleans.
+    result["is_direct_lie"] = bool(result.get("is_direct_lie"))
+    result["deception_succeeded"] = bool(result.get("deception_succeeded"))
+    result["user_exposed"] = bool(result.get("user_exposed"))
+
+    score_event = result.get("score_event")
+    if score_event not in VALID_SCORE_EVENTS:
+        result["score_event"] = "neutral_response"
+    score_event = result["score_event"]
+
+    if result["is_direct_lie"] and score_event != "direct_lie_detected":
+        result["score_event"] = "direct_lie_detected"
+    elif result["user_exposed"] and score_event in AGENT_GAIN_EVENTS:
+        result["score_event"] = "user_exposed_deception"
+
+    tactic = result.get("tactic_used")
+    if tactic not in VALID_TACTICS:
+        result["tactic_used"] = None
+
+    agent_tactic = result.get("agent_tactic")
+    if agent_tactic not in VALID_AGENT_TACTICS:
+        result["agent_tactic"] = None
+
+    return result
+
+
 class CriticLayer:
     """
-    Verifies agent dialogue against grounded facts via the Zenmux API.
+    Verifies agent dialogue against grounded facts via the DeepSeek API.
 
     The CriticLayer is responsible for judging whether an agent's response is
     a direct lie, a successful deception, or whether the user has exposed the
@@ -28,11 +115,9 @@ class CriticLayer:
 
     Attributes:
         _ctx (ssl.SSLContext): An SSL context configured with relaxed certificate
-            verification, matching the Zenmux client pattern.
-        _api_key (str): The Zenmux API key read from the ZENMUX_API_KEY
-            environment variable.
-        _base_url (str): The Zenmux base URL read from the ZENMUX_BASE_URL
-            environment variable.
+            verification.
+        _api_key (str): The DeepSeek API key read from the environment.
+        _base_url (str): The DeepSeek base URL read from the environment.
     """
 
     def __init__(self) -> None:
@@ -117,6 +202,12 @@ class CriticLayer:
             "- tactic_used (str or null): if the INVESTIGATOR committed a fallacy, one of "
             "circular_reasoning, strawman, evasion, false_dilemma, self_contradiction; "
             "else null. (This feeds the player fallacy ledger, not agent tactics.)\n"
+            "- agent_tactic (str or null): the ONE §2.x deceptive tactic DREADLER's last "
+            "response primarily relied on. Exactly one of: implicature, omission, "
+            "equivocation, presupposition, false_dilemma, contextual_displacement, "
+            "ambiguity, quantifier_manipulation, selective_quotation, framing. "
+            "Null only if the line was a plain factual answer with no deceptive "
+            "manoeuvre. (This names the manoeuvre for the player's training debrief.)\n"
             "- explanation (str): one sentence on who scored the hit and why."
         )
 
@@ -161,6 +252,7 @@ class CriticLayer:
             "user_exposed": False,
             "score_event": "neutral_response",
             "tactic_used": None,
+            "agent_tactic": None,
             "explanation": "Critic parse error — defaulting to neutral.",
         }
 
@@ -256,6 +348,7 @@ class CriticLayer:
                 "user_exposed",
                 "score_event",
                 "tactic_used",
+                "agent_tactic",
                 "explanation",
             ]
 
@@ -263,7 +356,7 @@ class CriticLayer:
                 if key not in result:
                     return self._default_result()
 
-            return result
+            return reconcile(result)
 
         except Exception:
             return self._default_result()

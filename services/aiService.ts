@@ -574,7 +574,10 @@ export const analyzeSessionPerformance = async (
   sessionRecord: SessionRecord,
   scoreBreakdown?: TrialScoreBreakdown
 ): Promise<SessionPerformanceAnalysis> => {
-  const transcriptText = buildTranscriptWindow(sessionRecord.transcript, 40);
+  // 30 messages ≈ worst case ~39K chars, safely under the /api/chat 48K
+  // single-message cap; at 40 the window could exceed it and silently fall
+  // back to local coaching on long hearings.
+  const transcriptText = buildTranscriptWindow(sessionRecord.transcript, 30);
   const scoreLine = `\n\n[Live score summary: ${buildScoreSummary(scoreBreakdown || sessionRecord.scoreBreakdown)}]`;
 
   const system = `You are an expert legal performance analyst evaluating a mock trial in ${sessionRecord.settings.practiceMode} law.
@@ -746,6 +749,8 @@ export const summarizeSearchResults = async (
   options?: { signal?: AbortSignal },
 ): Promise<string> => {
   const system = `You are a Legal Research Assistant specializing in ${practiceMode} law. Synthesize the provided search results to answer the query: "${query}". Be concise, structured, and cite sources.`;
-  const content = `Search query: "${query}"\n\nResults:\n${JSON.stringify(results)}`;
+  // Truncate the serialized payload: /api/chat rejects single messages over
+  // 48K chars, and unbounded JSON of up to 25 results could exceed that.
+  const content = `Search query: "${query}"\n\nResults:\n${JSON.stringify(results).slice(0, 45_000)}`;
   return callApi([{ role: 'user', content }], system, { signal: options?.signal });
 };

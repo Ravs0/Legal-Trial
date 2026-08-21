@@ -61,7 +61,7 @@ export const Editor: React.FC<EditorProps> = ({
     <div className="flex flex-col h-full bg-brand-bg-primary relative group">
       <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-brand-bg-secondary border-b border-brand-border sticky top-0 z-20">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-md bg-white/[0.04] flex items-center justify-center border border-brand-border shrink-0">
+          <div className="w-8 h-8 rounded-md bg-[#1c1914]/[0.05] flex items-center justify-center border border-brand-border shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary" aria-hidden>
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
               <path d="M14 2v6h6" />
@@ -82,7 +82,7 @@ export const Editor: React.FC<EditorProps> = ({
             role="status"
             className={`hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider tabular-nums px-2 py-1 rounded-md border ${
               saveState === 'dirty'
-                ? 'border-white/25 text-brand-text-primary bg-white/[0.04]'
+                ? 'border-white/25 text-brand-text-primary bg-[#1c1914]/[0.05]'
                 : saveState === 'saving'
                   ? 'border-brand-border text-brand-text-secondary bg-brand-bg-primary'
                   : 'border-brand-border text-brand-text-secondary/80 bg-brand-bg-primary'
@@ -105,7 +105,7 @@ export const Editor: React.FC<EditorProps> = ({
             <button
               type="button"
               onClick={handleSelection}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] rounded transition-colors uppercase tracking-wide"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] rounded transition-colors uppercase tracking-wide"
               title="Send selected text to research"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -120,8 +120,8 @@ export const Editor: React.FC<EditorProps> = ({
               onClick={() => setShowFootnoteList(!showFootnoteList)}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] rounded transition-colors uppercase tracking-wide ${
                 showFootnoteList
-                  ? 'bg-white text-black'
-                  : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04]'
+                  ? 'bg-brand-text-primary text-brand-bg-primary'
+                  : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05]'
               }`}
               aria-expanded={showFootnoteList}
             >
@@ -135,7 +135,7 @@ export const Editor: React.FC<EditorProps> = ({
             <button
               type="button"
               onClick={() => onAddFootnote(textareaRef.current?.selectionStart || 0)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-brand-text-primary hover:bg-white/[0.06] rounded transition-colors font-medium uppercase tracking-wide"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-brand-text-primary hover:bg-[#1c1914]/[0.06] rounded transition-colors font-medium uppercase tracking-wide"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                 <path d="M12 5v14" />
@@ -150,7 +150,7 @@ export const Editor: React.FC<EditorProps> = ({
       {selectionHint && (
         <div
           role="status"
-          className="px-4 sm:px-5 py-1.5 border-b border-brand-border bg-white/[0.03] text-[10px] text-brand-text-secondary tracking-wide"
+          className="px-4 sm:px-5 py-1.5 border-b border-brand-border bg-[#1c1914]/[0.04] text-[10px] text-brand-text-secondary tracking-wide"
         >
           {selectionHint}
         </div>
@@ -192,7 +192,7 @@ export const Editor: React.FC<EditorProps> = ({
                 type="button"
                 onClick={() => setShowFootnoteList(false)}
                 aria-label="Close footnote inspector"
-                className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white/[0.06] transition-colors"
+                className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-[#1c1914]/[0.06] transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary" aria-hidden>
                   <path d="M18 6 6 18M6 6l12 12" />

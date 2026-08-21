@@ -184,19 +184,23 @@ const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
 
   return (
     <div className="relative border border-brand-text-primary/20 bg-brand-bg-secondary p-3">
-      <div className="text-[7px] text-zinc-500 font-mono tracking-widest uppercase mb-1">Training argument map · not case law</div>
+      <div className="text-[7px] text-brand-text-secondary font-mono tracking-widest uppercase mb-1">Training argument map · not case law</div>
       <canvas ref={canvasRef} className="w-full h-[140px]" />
     </div>
   );
 };
 
-const CaseLibraryScreen: React.FC = () => {
+// Court Sources lives here as a tab (IA consolidation): one research surface.
+const CourtSourcesPanel = React.lazy(() => import('./CourtSourcesScreen'));
+
+const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ initialTab = 'cases' }) => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error("TrialSimContext not found");
   const { setCurrentSessionSettings, setIsLoading: setGlobalLoading, practiceMode } = context;
 
+  const [activeTab, setActiveTab] = useState<'cases' | 'sources'>(initialTab);
   const [selectedCaseForPractice, setSelectedCaseForPractice] = useState<CaseDetail | null>(null);
   const [isCustomSimExpanded, setIsCustomSimExpanded] = useState(false);
 
@@ -382,8 +386,36 @@ const CaseLibraryScreen: React.FC = () => {
         size="md"
         eyebrow={`${modeDisplay} · practice`}
         title="Case library"
-        subtitle="Browse scenarios, tune search, or launch a custom trial from your own facts."
+        subtitle="Pick a case. Or bring your own facts."
       />
+
+      {/* Research surfaces consolidated: case files + official court sources. */}
+      <div className="flex border-b border-brand-border font-mono text-xs">
+        {([
+          ['cases', 'Case files'],
+          ['sources', 'Court sources'],
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            className={`flex-1 py-2.5 text-center uppercase tracking-widest transition-colors ${
+              activeTab === id
+                ? 'bg-brand-bg-secondary text-brand-accent border-b-2 border-b-brand-accent'
+                : 'text-brand-text-secondary hover:text-brand-text-primary'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'sources' ? (
+        <React.Suspense fallback={<div className="py-16 text-center font-mono text-xs text-brand-text-secondary">Loading court sources…</div>}>
+          <CourtSourcesPanel />
+        </React.Suspense>
+      ) : (
+      <>
 
       {/* Photo strip: docket / binders / theory */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -405,7 +437,7 @@ const CaseLibraryScreen: React.FC = () => {
                   'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
               }}
             />
-            <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-white/80">
+            <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-brand-text-primary/80">
               {t.label}
             </span>
           </div>
@@ -452,7 +484,7 @@ const CaseLibraryScreen: React.FC = () => {
                     type="button"
                     onClick={() => setSearchPipeline(pipe)}
                     className={`flex-1 py-1.5 text-center text-[11px] transition-colors ${
-                      searchPipeline === pipe ? 'bg-white text-black' : 'text-brand-text-secondary hover:text-brand-text-primary'
+                      searchPipeline === pipe ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary'
                     }`}
                   >
                     {pipe === 'bm25' ? 'BM25' : pipe === 'legal-bert' ? 'Legal-BERT' : 'Hybrid'}
@@ -463,11 +495,11 @@ const CaseLibraryScreen: React.FC = () => {
 
             {searchPipeline === 'haystack-hybrid' && (
               <div className="space-y-3 pt-2 border-t border-brand-text-primary/20">
-                <span className="block text-[10px] uppercase text-zinc-400 tracking-wider font-bold">Ranking Relevance Weights</span>
+                <span className="block text-[10px] uppercase text-brand-text-secondary tracking-wider font-bold">Ranking Relevance Weights</span>
                 
                 {/* Semantic weight */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] text-zinc-400">
+                  <div className="flex justify-between text-[9px] text-brand-text-secondary">
                     <span>Semantic Similarity (BERT)</span>
                     <span className="text-brand-accent">{(weightSemantic * 100).toFixed(0)}%</span>
                   </div>
@@ -478,13 +510,13 @@ const CaseLibraryScreen: React.FC = () => {
                     step="0.1"
                     value={weightSemantic}
                     onChange={(e) => setWeightSemantic(parseFloat(e.target.value))}
-                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                    className="w-full h-1 bg-brand-bg-tertiary rounded-lg appearance-none cursor-pointer accent-brand-accent"
                   />
                 </div>
 
                 {/* Authority weight */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] text-zinc-400">
+                  <div className="flex justify-between text-[9px] text-brand-text-secondary">
                     <span>Precedent Authority / Court Tier</span>
                     <span className="text-brand-accent">{(weightAuthority * 100).toFixed(0)}%</span>
                   </div>
@@ -495,13 +527,13 @@ const CaseLibraryScreen: React.FC = () => {
                     step="0.1"
                     value={weightAuthority}
                     onChange={(e) => setWeightAuthority(parseFloat(e.target.value))}
-                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                    className="w-full h-1 bg-brand-bg-tertiary rounded-lg appearance-none cursor-pointer accent-brand-accent"
                   />
                 </div>
 
                 {/* Recency weight */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] text-zinc-400">
+                  <div className="flex justify-between text-[9px] text-brand-text-secondary">
                     <span>Decision Recency (Temporal)</span>
                     <span className="text-brand-accent">{(weightRecency * 100).toFixed(0)}%</span>
                   </div>
@@ -512,7 +544,7 @@ const CaseLibraryScreen: React.FC = () => {
                     step="0.1"
                     value={weightRecency}
                     onChange={(e) => setWeightRecency(parseFloat(e.target.value))}
-                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-brand-accent"
+                    className="w-full h-1 bg-brand-bg-tertiary rounded-lg appearance-none cursor-pointer accent-brand-accent"
                   />
                 </div>
               </div>
@@ -579,7 +611,7 @@ const CaseLibraryScreen: React.FC = () => {
               )}
 
               {fileUploadSuccess && (
-                <div className="p-3 mb-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs text-left animate-fadeIn">
+                <div className="p-3 mb-5 bg-brand-success/10 border border-brand-success/40 text-brand-success rounded-xl text-xs text-left animate-fadeIn">
                   [ Success ] {fileUploadSuccess}
                 </div>
               )}
@@ -660,7 +692,7 @@ const CaseLibraryScreen: React.FC = () => {
                     />
                   </div>
 
-                  <label className="flex items-start gap-2.5 rounded-lg border border-amber-400/20 bg-amber-500/5 p-3 text-[11px] leading-5 text-amber-100/80">
+                  <label className="flex items-start gap-2.5 rounded-lg border border-amber-400/20 bg-amber-500/5 p-3 text-[11px] leading-5 text-[#7a5c12]/80">
                     <input
                       type="checkbox"
                       checked={customAiConsent}
@@ -723,7 +755,7 @@ const CaseLibraryScreen: React.FC = () => {
                           </div>
                         </div>
 
-                        <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-white transition-colors duration-300" title={caseItem.title}>{caseItem.title}</h4>
+                        <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-brand-text-primary transition-colors duration-300" title={caseItem.title}>{caseItem.title}</h4>
 
                         <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseItem.briefFacts}</p>
 
@@ -806,7 +838,7 @@ const CaseLibraryScreen: React.FC = () => {
                             </div>
                           </div>
 
-                          <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-white transition-colors duration-300" title={caseDetail.title}>{caseDetail.title}</h4>
+                          <h4 className="text-xl font-serif font-semibold text-brand-text-primary mb-3 line-clamp-2 leading-tight group-hover:text-brand-text-primary transition-colors duration-300" title={caseDetail.title}>{caseDetail.title}</h4>
 
                           <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseDetail.briefFacts}</p>
 
@@ -919,6 +951,8 @@ const CaseLibraryScreen: React.FC = () => {
             </div>
           </div>
         </Modal>
+      )}
+      </>
       )}
     </div>
     </div>

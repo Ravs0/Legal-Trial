@@ -350,9 +350,9 @@ const SetupScreen: React.FC = () => {
         <PhotoHero
           image={screenMedia.setup.hero}
           size="md"
-          eyebrow={`${modeDisplay} mode · configuration`}
+          eyebrow={`${modeDisplay} · new trial`}
           title="New trial setup"
-          subtitle="Pick case, bench, and session length. One path into the arena. Drafts save if you leave this screen."
+          subtitle="Case, bench, length."
         />
 
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -371,7 +371,7 @@ const SetupScreen: React.FC = () => {
                     'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
                 }}
               />
-              <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-white/80">
+              <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-brand-text-primary/80">
                 {t.label}
               </span>
             </div>
@@ -458,11 +458,11 @@ const SetupScreen: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/40" />
                   <div className="relative z-10 h-full flex items-center gap-3 px-4">
                     <div className="w-9 h-9 rounded-lg bg-black/40 border border-white/15 flex items-center justify-center">
-                      <DocumentTextIcon className="h-4 w-4 text-white/80" />
+                      <DocumentTextIcon className="h-4 w-4 text-brand-text-primary/80" />
                     </div>
                     <div>
-                      <p className="text-[11px] uppercase tracking-wide text-white/50">Selected case</p>
-                      <p className="text-[14px] font-medium text-white line-clamp-1">{selectedCaseDetails.title}</p>
+                      <p className="text-[11px] uppercase tracking-wide text-brand-text-primary/50">Selected case</p>
+                      <p className="text-[14px] font-medium text-brand-text-primary line-clamp-1">{selectedCaseDetails.title}</p>
                     </div>
                   </div>
                 </div>
@@ -477,7 +477,7 @@ const SetupScreen: React.FC = () => {
                   <ul className="space-y-1.5 mb-4 text-brand-text-secondary text-[13px]">
                     {selectedCaseDetails.legalIssues.map((issue, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="text-white/40 mt-0.5">·</span>
+                        <span className="text-brand-text-primary/40 mt-0.5">·</span>
                         <span>{issue}</span>
                       </li>
                     ))}
@@ -499,8 +499,8 @@ const SetupScreen: React.FC = () => {
                     <img src={screenMedia.setup.bench} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/70" />
                     <div className="relative z-10 h-full flex items-center gap-2.5 px-4">
-                      <GavelIcon className="h-4 w-4 text-white/75" />
-                      <span className="text-[13px] font-medium text-white">The bench</span>
+                      <GavelIcon className="h-4 w-4 text-brand-text-primary/75" />
+                      <span className="text-[13px] font-medium text-brand-text-primary">The bench</span>
                     </div>
                   </div>
                   <div className="p-4 flex flex-col flex-grow">
@@ -517,8 +517,8 @@ const SetupScreen: React.FC = () => {
                     <img src={screenMedia.setup.counsel} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/70" />
                     <div className="relative z-10 h-full flex items-center gap-2.5 px-4">
-                      <BriefcaseIcon className="h-4 w-4 text-white/75" />
-                      <span className="text-[13px] font-medium text-white">Opposing counsel</span>
+                      <BriefcaseIcon className="h-4 w-4 text-brand-text-primary/75" />
+                      <span className="text-[13px] font-medium text-brand-text-primary">Opposing counsel</span>
                     </div>
                   </div>
                   <div className="p-4 flex flex-col flex-grow">

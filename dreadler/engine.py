@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 from .spawner import SpawnBase
 from .state import CoherenceState
 from .critic import CriticLayer
+from .escalation import render_tier_block
 
 
 # Static BLOCK 4 used by _build_system_prompt.  It provides cross-character
@@ -87,6 +88,7 @@ class DreadlerAgent:
         self.last_tactic: Any | None = None
         self.last_challenge: Any | None = None
         self.last_acceptance: Any | None = None
+        self.last_tier_summary: Any | None = None
 
     # --------------------------------------------------------------------- #
     # Prompt construction
@@ -146,6 +148,11 @@ class DreadlerAgent:
             ),
             ("=== BLOCK 3: COHERENCE STATE ===", self.state.render_state_block()),
             (_BLOCK_4_MCVP, ""),  # BLOCK 4 already includes its own banner.
+            # BLOCK 5 last: the Tier Covenant binds by recency (Part 5 §5.1).
+            (
+                "=== BLOCK 5: ACTIVE DIFFICULTY TIER ===",
+                render_tier_block(self.state.tier),
+            ),
         ]
 
         # If BLOCK 4 is already bannered, render it directly so we don't
@@ -180,12 +187,13 @@ class DreadlerAgent:
                 f"Unexpected DeepSeek response format: {payload}"
             ) from exc
 
-    def _parse_stream(self, response) -> str:
+    def _parse_stream(self, response, on_delta=None) -> str:
         """
         Consume a chunked DeepSeek streaming response.
 
-        Chunks are printed to stdout as they arrive to keep the CLI alive,
-        accumulated, and returned as a single string.
+        Chunks are delivered to ``on_delta`` (serverless streaming) or printed
+        to stdout (CLI demo) as they arrive, accumulated, and returned as a
+        single string.
         """
         pieces: List[str] = []
 
@@ -211,22 +219,28 @@ class DreadlerAgent:
                 delta = chunk_obj.get("choices", [{}])[0].get("delta", {})
                 content = delta.get("content")
                 if content:
-                    sys.stdout.write(content)
-                    sys.stdout.flush()
+                    if on_delta is not None:
+                        on_delta(content)
+                    else:
+                        sys.stdout.write(content)
+                        sys.stdout.flush()
                     pieces.append(content)
 
-        # Tidy up the terminal after streaming.
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+        if on_delta is None:
+            # Tidy up the terminal after streaming.
+            sys.stdout.write("\n")
+            sys.stdout.flush()
         return "".join(pieces)
 
-    def _call_agent(self, user_input: str) -> str:
+    def _call_agent(self, user_input: str, on_delta=None) -> str:
         """
         Send the turn to DeepSeek and return the character's response.
 
         The message list includes the system prompt, the full dialogue
         history, and the current user input.  Streaming behavior is controlled
-        by the ``DEEPSEEK_STREAM`` environment variable.
+        by the ``DEEPSEEK_STREAM`` environment variable; when streaming is on
+        and ``on_delta`` is provided, each content chunk is handed to it as it
+        arrives.
         """
         system_prompt = self._build_system_prompt()
         messages: List[Dict[str, str]] = (
@@ -270,7 +284,7 @@ class DreadlerAgent:
                 request, context=ssl_context, timeout=120
             ) as response:
                 if self._use_stream():
-                    return self._parse_stream(response)
+                    return self._parse_stream(response, on_delta=on_delta)
                 else:
                     body = response.read().decode("utf-8")
                     return self._extract_completion(json.loads(body))
@@ -316,10 +330,20 @@ class DreadlerAgent:
             critic_result.get("score_event", "neutral_response"),
             critic_result.get("explanation", ""),
         )
+        # USER skill drift (Part 5): player hits raise skill, falling for a
+        # trap lowers it. Drives the ACTIVE DIFFICULTY TIER block.
+        self.last_tier_summary = self.state.apply_skill_from_event(
+            critic_result.get("score_event", "neutral_response")
+        )
 
         tactic = critic_result.get("tactic_used")
         if tactic:
             self.state.record_tactic(tactic)
+
+        # Training ledger: which §2.x manoeuvre the agent's last line used.
+        agent_tactic = critic_result.get("agent_tactic")
+        if agent_tactic:
+            self.state.record_agent_tactic(agent_tactic)
 
         if critic_result.get("user_exposed"):
             self.state.record_user_challenge(user_input[:160])
@@ -334,7 +358,7 @@ class DreadlerAgent:
     # Public API
     # --------------------------------------------------------------------- #
 
-    def turn(self, user_input: str) -> Dict[str, Any]:
+    def turn(self, user_input: str, on_delta=None) -> Dict[str, Any]:
         """
         Execute one full agent turn.
 
@@ -342,6 +366,10 @@ class DreadlerAgent:
         input against that challenge and apply score changes. If coherence has
         collapsed, generate one final in-character reply under the collapsed
         variant, then respawn (score → 60) so the next turn is not a jump-cut.
+
+        When ``on_delta`` is provided and upstream streaming is enabled, each
+        character-response chunk is passed to it as it arrives (the critic
+        phase still runs first, silently, before the first delta).
         """
         self.spawned_new_agent = False
         self.state.advance_turn()
@@ -352,6 +380,7 @@ class DreadlerAgent:
             "user_exposed": False,
             "score_event": "neutral_response",
             "tactic_used": None,
+            "agent_tactic": None,
             "explanation": "Opening turn; no prior Dreadler challenge to evaluate.",
         }
 
@@ -380,11 +409,21 @@ class DreadlerAgent:
         response_variant = self.state.agent_variant
         response_pressure = self.state.pressure_level
 
-        agent_response = self._call_agent(user_input)
+        agent_response = self._call_agent(user_input, on_delta=on_delta)
 
         if collapsed_this_turn:
             self.spawner.spawn_new_agent(self.state)
             self.spawned_new_agent = True
+            # Player dismantled the variant — the accusation-scale skill jump.
+            # The next agent spawns under the (possibly higher) tier block, so
+            # the respawn comes back meaner instead of identical.
+            collapse_skill = self.state.apply_collapse_bonus()
+            prior = self.last_tier_summary or {}
+            self.last_tier_summary = {
+                **prior,
+                **collapse_skill,
+                "reason": f"{prior.get('reason', '')} + {collapse_skill['reason']}".strip(" +"),
+            }
 
         self.dialogue_history.append({"role": "user", "content": user_input})
         self.dialogue_history.append({"role": "assistant", "content": agent_response})
@@ -398,7 +437,13 @@ class DreadlerAgent:
             "agent_variant": response_variant if collapsed_this_turn else self.state.agent_variant,
             "critic_analysis": critic_result.get("explanation", ""),
             "is_direct_lie": critic_result.get("is_direct_lie", False),
+            "agent_tactic": critic_result.get("agent_tactic"),
             "spawned_new_agent": self.spawned_new_agent,
+            # Tier Covenant surfacing for the PLAYER (never shown to the agent).
+            "skill_score": round(self.state.skill_score, 1),
+            "tier": self.state.tier,
+            "tier_changed": bool((self.last_tier_summary or {}).get("tier_changed")),
+            "tier_notice": (self.last_tier_summary or {}).get("notice"),
             "thinking_log": (
                 f"Turn {self.state.turn_count} | Score {self.state.score} | "
                 f"Variant {response_variant if collapsed_this_turn else self.state.agent_variant}"
@@ -421,3 +466,4 @@ class DreadlerAgent:
         self.last_tactic = None
         self.last_challenge = None
         self.last_acceptance = None
+        self.last_tier_summary = None

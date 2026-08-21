@@ -26,7 +26,7 @@ _ROOT = os.path.dirname(_HERE)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-from dreadler.critic import CriticLayer  # noqa: E402
+from dreadler.critic import CriticLayer, reconcile  # noqa: E402
 from dreadler.state import DELTA, CoherenceState  # noqa: E402
 
 
@@ -62,6 +62,7 @@ REQUIRED_CRITIC_KEYS: frozenset[str] = frozenset({
     "user_exposed",
     "score_event",
     "tactic_used",
+    "agent_tactic",
     "explanation",
 })
 
@@ -171,6 +172,122 @@ def test_clamp_extremes_for_player_and_agent_hits():
         next(k for k, v in DELTA.items() if v == hard_gain)
     )
     assert 0 <= after_gain <= 100
+
+
+def test_reconcile_unknown_score_event_becomes_neutral():
+    """Production crash guard: LLM-invented score_event must not reach apply_delta."""
+    result = reconcile({
+        "is_direct_lie": False,
+        "deception_succeeded": True,
+        "user_exposed": False,
+        "score_event": "player_totally_destroyed",
+        "tactic_used": None,
+        "agent_tactic": None,
+        "explanation": "x",
+    })
+    assert result["score_event"] == "neutral_response"
+    # And it must be apply_delta-safe.
+    CoherenceState(score=50).apply_delta(result["score_event"])
+
+
+def test_reconcile_direct_lie_forces_hit():
+    """A detected lie with a neutral event would score nothing — force the hit."""
+    result = reconcile({
+        "is_direct_lie": True,
+        "deception_succeeded": False,
+        "user_exposed": False,
+        "score_event": "neutral_response",
+        "tactic_used": None,
+        "agent_tactic": None,
+        "explanation": "x",
+    })
+    assert result["score_event"] == "direct_lie_detected"
+    assert DELTA[result["score_event"]] < 0
+
+
+def test_reconcile_exposed_never_agent_gain():
+    """user_exposed=True cannot coexist with an agent-gain (positive) event."""
+    result = reconcile({
+        "is_direct_lie": False,
+        "deception_succeeded": False,
+        "user_exposed": True,
+        "score_event": "user_accepted_implication",
+        "tactic_used": None,
+        "agent_tactic": None,
+        "explanation": "x",
+    })
+    assert result["score_event"] == "user_exposed_deception"
+    assert DELTA[result["score_event"]] < 0
+
+
+def test_reconcile_valid_verdict_unchanged():
+    """A coherent verdict passes through without distortion."""
+    verdict = {
+        "is_direct_lie": False,
+        "deception_succeeded": True,
+        "user_exposed": False,
+        "score_event": "user_failed_to_challenge",
+        "tactic_used": "strawman",
+        "agent_tactic": "omission",
+        "explanation": "x",
+    }
+    assert reconcile(dict(verdict)) == verdict
+
+
+def test_reconcile_rejects_unknown_tactic():
+    """Fallacy ledger only accepts the documented taxonomy ids."""
+    result = reconcile({
+        "is_direct_lie": False,
+        "deception_succeeded": False,
+        "user_exposed": False,
+        "score_event": "neutral_response",
+        "tactic_used": "ad_hominem",
+        "agent_tactic": None,
+        "explanation": "x",
+    })
+    assert result["tactic_used"] is None
+
+
+def test_reconcile_validates_agent_tactic_vocabulary():
+    """agent_tactic must be a §2.x id or None — never free text."""
+    bad = reconcile({
+        "is_direct_lie": False,
+        "deception_succeeded": True,
+        "user_exposed": False,
+        "score_event": "user_failed_to_challenge",
+        "tactic_used": None,
+        "agent_tactic": "gaslighting",
+        "explanation": "x",
+    })
+    assert bad["agent_tactic"] is None
+
+    good = reconcile({
+        "is_direct_lie": False,
+        "deception_succeeded": True,
+        "user_exposed": False,
+        "score_event": "user_failed_to_challenge",
+        "tactic_used": None,
+        "agent_tactic": "selective_quotation",
+        "explanation": "x",
+    })
+    assert good["agent_tactic"] == "selective_quotation"
+
+
+def test_reconcile_coerces_non_boolean_fields():
+    """Model may return \"true\"/1; downstream truthiness and UI rely on bools."""
+    result = reconcile({
+        "is_direct_lie": "true",
+        "deception_succeeded": 1,
+        "user_exposed": False,
+        "score_event": "neutral_response",
+        "tactic_used": None,
+        "agent_tactic": None,
+        "explanation": "x",
+    })
+    assert result["is_direct_lie"] is True
+    assert result["deception_succeeded"] is True
+    # Coerced lie still forces the scoring hit.
+    assert result["score_event"] == "direct_lie_detected"
 
 
 def main() -> int:

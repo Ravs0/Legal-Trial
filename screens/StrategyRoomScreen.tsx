@@ -774,7 +774,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 <span className="text-brand-text-secondary/50">·</span>
                 <span className="text-brand-text-secondary/70 truncate max-w-[120px]">{v.citation}</span>
                 <span className={`ml-auto flex-shrink-0 text-[7px] font-mono ${
-                  v.status.startsWith('LOCATED') ? 'text-brand-success' : 'text-amber-400'
+                  v.status.startsWith('LOCATED') ? 'text-brand-success' : 'text-[#7a5c12]'
                 }`}>
                   {v.status.startsWith('LOCATED') ? '✓' : '⚠'} {v.status.slice(0, 22)}
                 </span>
@@ -788,7 +788,7 @@ export const StrategyRoomScreen: React.FC = () => {
           <div className={`text-[7px] font-mono px-2 py-1 rounded-lg flex items-center gap-1 ${
             item.retrievalNote.includes('Located') || item.retrievalNote.includes('Retrieved')
               ? 'bg-brand-success/10 text-brand-success border border-brand-success/30'
-              : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+              : 'bg-[#7a5c12]/10 text-[#7a5c12] border border-[#7a5c12]/40'
           }`}>
             <span>{item.retrievalNote.includes('Located') || item.retrievalNote.includes('Retrieved') ? 'ℹ' : '⚠'}</span>
             <span>{item.retrievalNote}</span>
@@ -1525,7 +1525,7 @@ export const StrategyRoomScreen: React.FC = () => {
         dense
         eyebrow="Labs · strategy"
         title="Strategy room"
-        subtitle={isMobile ? undefined : 'Oracle, Council, or Synthesis. Pressure-test theory before trial.'}
+        subtitle={isMobile ? undefined : 'Pressure-test the theory before trial.'}
         trailing={
           <RoomTabs
             tabs={[
@@ -1581,7 +1581,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   >
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold border relative
                       ${isSelected 
-                        ? 'bg-white text-black border-white' 
+                        ? 'bg-brand-text-primary text-brand-bg-primary border-white' 
                         : 'bg-brand-bg-primary border-white/20 text-brand-text-primary/80'
                       }`}
                     >
@@ -1591,7 +1591,7 @@ export const StrategyRoomScreen: React.FC = () => {
                       )}
                     </div>
                     <span className={`text-[8px] tracking-wide font-mono transition-colors text-center truncate w-full
-                      ${isSelected ? 'text-white font-semibold' : 'text-brand-text-secondary/60'}`}
+                      ${isSelected ? 'text-brand-text-primary font-semibold' : 'text-brand-text-secondary/60'}`}
                     >
                       {p.name.split(' ')[0]}
                     </span>
@@ -1627,7 +1627,7 @@ export const StrategyRoomScreen: React.FC = () => {
               <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
                 <div className="flex items-center space-x-1.5 mb-0.5 text-[9px] font-mono">
                   {item.meta && (
-                    <span className="text-brand-text-primary font-semibold bg-white/[0.04] px-1.5 py-0.5 border border-white/15 rounded">
+                    <span className="text-brand-text-primary font-semibold bg-[#1c1914]/[0.05] px-1.5 py-0.5 border border-white/15 rounded">
                       {item.meta}
                     </span>
                   )}
@@ -1639,7 +1639,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 <div
                   className={`max-w-[92%] p-2.5 rounded-lg text-[13px] leading-relaxed border  
                     ${item.sender === 'user'
-                      ? 'bg-white/[0.06] border-white/20 text-brand-text-primary rounded-tr-none'
+                      ? 'bg-[#1c1914]/[0.06] border-white/20 text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
                         ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[12px]'
                         : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
@@ -1735,9 +1735,9 @@ export const StrategyRoomScreen: React.FC = () => {
                           <div className="flex items-center space-x-1.5 min-w-0">
                             <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[7px] font-bold flex-shrink-0
                               ${isCompleted
-                                ? 'bg-white/15 border-white/40 text-white'
+                                ? 'bg-white/15 border-white/40 text-brand-text-primary'
                                 : isActive
-                                  ? 'bg-white text-black border-white'
+                                  ? 'bg-brand-text-primary text-brand-bg-primary border-white'
                                   : 'bg-transparent border-white/15 text-brand-text-secondary/30'}`}
                             >
                               {isCompleted ? '§' : idx + 1}
@@ -1856,7 +1856,7 @@ export const StrategyRoomScreen: React.FC = () => {
                     type="submit"
                     disabled={!inputVal.trim()}
                     aria-label="Send consult"
-                    className="absolute right-1 bottom-1.5 w-9 h-9 rounded-md bg-white text-black disabled:bg-brand-bg-secondary disabled:text-brand-text-secondary/30 flex items-center justify-center"
+                    className="absolute right-1 bottom-1.5 w-9 h-9 rounded-md bg-brand-text-primary text-brand-bg-primary disabled:bg-brand-bg-secondary disabled:text-brand-text-secondary/30 flex items-center justify-center"
                     title="Consult"
                   >
                     <svg className="w-3.5 h-3.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -1882,10 +1882,10 @@ export const StrategyRoomScreen: React.FC = () => {
             <img src={screenMedia.strategy.banner} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-black/90" />
             <div className="relative z-10 space-y-0.5">
-              <h3 className="text-[14px] font-serif font-semibold text-white flex items-center gap-1.5">
-                <CourtIcon className="h-4 w-4 text-white/80" /> Protocols
+              <h3 className="text-[14px] font-serif font-semibold text-brand-text-primary flex items-center gap-1.5">
+                <CourtIcon className="h-4 w-4 text-brand-text-primary/80" /> Protocols
               </h3>
-              <p className="text-[11px] text-white/55">Select deliberation mode</p>
+              <p className="text-[11px] text-brand-text-primary/55">Select deliberation mode</p>
             </div>
 
             <div className="relative z-10 flex flex-col gap-2">
@@ -1905,7 +1905,7 @@ export const StrategyRoomScreen: React.FC = () => {
                     }}
                     className={`w-full p-3 rounded-lg border text-left flex items-center gap-3 relative overflow-hidden transition-colors
                       ${isActive 
-                        ? 'bg-white text-black border-white font-medium' 
+                        ? 'bg-brand-text-primary text-brand-bg-primary border-white font-medium' 
                         : isProcessing
                           ? 'bg-black/40 border-white/10 text-white/35 cursor-not-allowed'
                           : 'bg-black/40 border-white/15 text-white/75 hover:border-white/30 hover:text-white'
@@ -1914,7 +1914,7 @@ export const StrategyRoomScreen: React.FC = () => {
                     <span className={`w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0 border ${isActive ? 'border-black/15 bg-black/5' : 'border-white/20'}`}>{m.icon}</span>
                     <div className="flex-grow flex items-center justify-between min-w-0 gap-2">
                       <span className="text-[13px] font-medium truncate whitespace-nowrap">{m.title}</span>
-                      <span className={`text-[10px] uppercase tracking-wide flex-shrink-0 ${isActive ? 'text-black/50' : 'text-white/40'}`}>
+                      <span className={`text-[10px] uppercase tracking-wide flex-shrink-0 ${isActive ? 'text-black/50' : 'text-brand-text-primary/40'}`}>
                         {m.badge}
                       </span>
                     </div>
@@ -2226,7 +2226,7 @@ export const StrategyRoomScreen: React.FC = () => {
                                 ${isCompleted 
                                   ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' 
                                   : isActive 
-                                    ? 'bg-amber-500/10 border-amber-500 text-amber-400 ' 
+                                    ? 'bg-[#7a5c12]/10 border-amber-500 text-[#7a5c12] ' 
                                     : 'bg-brand-navy border-brand-text-primary/30 text-brand-text-secondary/20'
                                 }`}
                               >

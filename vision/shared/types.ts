@@ -8,8 +8,8 @@
 
 import { EmotionSet } from './emotion-keys';
 
-/** Algorithm selector — already exists in the screen UI. */
-export type BioAlgo = 'pos' | 'evm' | 'hsemotion' | 'physformer';
+/** Algorithm selector — only algorithms with a real implementation. */
+export type BioAlgo = 'pos' | 'hsemotion';
 
 /** Axis-aligned face box in source-pixel coordinates. */
 export interface FaceBox {

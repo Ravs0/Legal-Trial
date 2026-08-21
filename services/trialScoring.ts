@@ -444,7 +444,9 @@ export const scoreObjection = (
       profDelta = 0;
     } else if (basis.length >= 24 && !basisOk) {
       objectionDelta = 6;
-      engDelta = wasQuick ? 1 : 1;
+      // Long-enough but legally ungrounded basis: same quickness gate as the
+      // thin branch — only a fast objection shows real courtroom instinct.
+      engDelta = wasQuick ? 1 : 0;
     }
   }
   if (outcome === 'reserved' && basisThin) {

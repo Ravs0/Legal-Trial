@@ -73,7 +73,7 @@ function isIsoDate(value: string): boolean {
 /** Monochrome access badges (design.md: no traffic-light green / sky / amber cast). */
 function accessModeMeta(mode: string) {
   if (mode === 'official_api') {
-    return { color: 'text-white', bg: 'bg-white/10', border: 'border-white/25', label: 'API' };
+    return { color: 'text-brand-text-primary', bg: 'bg-white/10', border: 'border-white/25', label: 'API' };
   }
   if (mode === 'aggregate_stats') {
     return {
@@ -155,7 +155,7 @@ const SourcePill: React.FC<{ selected: boolean; label: string; short: string; on
     title={label}
     className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors ${
       selected
-        ? 'border-white bg-white text-black'
+        ? 'border-white bg-brand-text-primary text-brand-bg-primary'
         : 'border-brand-border bg-brand-bg-secondary text-brand-text-secondary hover:border-white/20 hover:text-brand-text-primary'
     }`}
   >
@@ -194,7 +194,7 @@ const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
             </span>
           </div>
 
-          <h2 className="font-serif text-lg sm:text-xl font-semibold text-brand-text-primary leading-snug group-hover:text-white transition-colors">
+          <h2 className="font-serif text-lg sm:text-xl font-semibold text-brand-text-primary leading-snug group-hover:text-brand-text-primary transition-colors">
             {record.title}
           </h2>
           <p className="mt-2.5 text-sm leading-6 text-brand-text-secondary/80">{record.summary}</p>
@@ -253,7 +253,7 @@ const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="shrink-0 text-brand-text-secondary/40 group-hover/link:text-white"
+                className="shrink-0 text-brand-text-secondary/40 group-hover/link:text-brand-text-primary"
               >
                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
               </svg>
@@ -493,9 +493,9 @@ const CourtSourcesScreen: React.FC = () => {
         <PhotoHero
           image={courtroomLuxury}
           size="md"
-          eyebrow="Research · Indian courts"
+          eyebrow="Research · courts"
           title="Court sources"
-          subtitle="Official entry points: SCI, eCourts, judgments, NJDG, API Setu. Provenance-first references, not scraped dockets."
+          subtitle="Official sources only. Verify before you cite."
           actions={
             <div className="flex gap-2">
               <span className="px-2.5 py-1 rounded-md border border-white/20 bg-black/40 text-[12px] text-white/80 tabular-nums">

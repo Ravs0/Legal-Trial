@@ -124,6 +124,14 @@ const base = { ...DEFAULT_SCORE_BREAKDOWN };
   assert(overruled.score.objections < base.objections || overruled.scoreDelta < 0, 'overruled should not reward');
   assert(sustained.scoreReason.includes('sustained'), sustained.scoreReason);
   assert(thin.score.objections < sustained.score.objections, 'thin basis should earn less than a grounded sustained objection');
+
+  // Mid-length basis with no legal keyword: engagement only for quick timing.
+  const midBasis = 'This question seems unfair and confusing to the witness here.';
+  assert(midBasis.length >= 24, 'mid basis fixture must clear the thin-basis floor');
+  const midSlow = scoreObjection(base, 'sustained', false, midBasis);
+  const midQuick = scoreObjection(base, 'sustained', true, midBasis);
+  assert(midSlow.score.engagement === base.engagement, 'slow sustained objection without legal basis earns no engagement');
+  assert(midQuick.score.engagement === base.engagement + 1, 'quick sustained objection without legal basis earns partial engagement');
 }
 
 // Phase progression

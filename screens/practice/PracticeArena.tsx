@@ -1096,7 +1096,7 @@ const PracticeArena: React.FC = () => {
       },
       disabled: !canObject,
       tone: canObject
-        ? 'border-brand-text-primary/30 text-brand-text-primary hover:bg-white/[0.06]'
+        ? 'border-brand-text-primary/30 text-brand-text-primary hover:bg-[#1c1914]/[0.06]'
         : 'border-brand-text-primary/10 text-brand-text-secondary/40',
     },
     {
@@ -1783,7 +1783,7 @@ const PracticeArena: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsMobileDrawerOpen(false)}
-            className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-brand-text-secondary hover:text-brand-text-primary hover:bg-white/[0.04] text-sm font-mono"
+            className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] text-sm font-mono"
             aria-label="Close bench companion"
           >
             Close

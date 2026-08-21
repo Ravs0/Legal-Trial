@@ -16,14 +16,20 @@ Available worlds (distinct scenarios — not aliases):
     dreadler_logic  - Tribunal of Coherence (pure logic duel / Record laws).
     missing_alibi   - Vexham canal murder; Arthur Malone library alibi (innocent).
     silent_vault    - Meridian Holdings vault heist; Miller frames GM Chen.
+    flatterers_voice - IDEA §2 validation trap: the agent agrees your theory is airtight.
+    ghost_whisperers - IDEA §5 consensus trap: the whole town endorses the false conclusion.
 """
 
 from .dreadler_logic import WORLD as DREADLER_LOGIC
+from .flatterers_voice import WORLD as FLATTERERS_VOICE
+from .ghost_whisperers import WORLD as GHOST_WHISPERERS
 from .missing_alibi import WORLD as MISSING_ALIBI
 from .silent_vault import WORLD as SILENT_VAULT
 
 __all__ = [
     "DREADLER_LOGIC",
+    "FLATTERERS_VOICE",
+    "GHOST_WHISPERERS",
     "MISSING_ALIBI",
     "SILENT_VAULT",
     "WORLDS",
@@ -38,6 +44,8 @@ WORLDS: dict[str, dict] = {
     "dreadler_logic": DREADLER_LOGIC,
     "missing_alibi": MISSING_ALIBI,
     "silent_vault": SILENT_VAULT,
+    "flatterers_voice": FLATTERERS_VOICE,
+    "ghost_whisperers": GHOST_WHISPERERS,
 }
 
 WORLD_IDS: frozenset[str] = frozenset(WORLDS.keys())

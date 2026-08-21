@@ -143,7 +143,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
             type="submit"
             aria-label="Run research search"
             disabled={loading}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white text-black hover:bg-white/90 rounded-md transition-colors disabled:opacity-50"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-brand-text-primary text-brand-bg-primary hover:bg-white/90 rounded-md transition-colors disabled:opacity-50"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : <ChevronRight size={14} />}
           </button>
@@ -157,7 +157,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
         <button
           type="button"
           onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-          className="flex items-center justify-between px-4 py-2.5 bg-brand-bg-primary/40 hover:bg-white/[0.03] border-b border-brand-border transition-colors"
+          className="flex items-center justify-between px-4 py-2.5 bg-brand-bg-primary/40 hover:bg-[#1c1914]/[0.04] border-b border-brand-border transition-colors"
         >
           <span className="text-[10px] font-medium uppercase tracking-wider text-brand-text-secondary">
             Search results{hasSearched && !loading ? ` · ${results.length}` : ''}
@@ -196,7 +196,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                     </p>
 
                     {res.summary && (
-                      <div className="mb-3 p-3 bg-white/[0.03] border border-brand-border rounded-md text-[11px] text-brand-text-secondary/90">
+                      <div className="mb-3 p-3 bg-[#1c1914]/[0.04] border border-brand-border rounded-md text-[11px] text-brand-text-secondary/90">
                         <div className="flex items-center gap-1.5 mb-1.5 font-medium text-brand-text-secondary uppercase text-[9px] tracking-wider">
                           <Sparkles size={10} aria-hidden /> Snippet summary
                         </div>
@@ -212,7 +212,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                         type="button"
                         onClick={() => void handleSummarize(res.id)}
                         disabled={res.isSummarizing}
-                        className="flex-1 py-2 text-[10px] bg-white/[0.04] hover:bg-white/[0.07] text-brand-text-secondary rounded-md transition-colors font-medium uppercase tracking-wide border border-brand-border disabled:opacity-50"
+                        className="flex-1 py-2 text-[10px] bg-[#1c1914]/[0.05] hover:bg-white/[0.07] text-brand-text-secondary rounded-md transition-colors font-medium uppercase tracking-wide border border-brand-border disabled:opacity-50"
                       >
                         {res.isSummarizing ? 'Summarizing…' : 'Summarize'}
                       </button>
@@ -270,7 +270,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
         <button
           type="button"
           onClick={() => setIsSavedExpanded(!isSavedExpanded)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.03] transition-colors border-b border-brand-border"
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1c1914]/[0.04] transition-colors border-b border-brand-border"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             <Archive
@@ -307,7 +307,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                         key={sid}
                         className={`p-2.5 rounded-lg border ${
                           sid === activeSectionId
-                            ? 'border-white/25 bg-white/[0.04]'
+                            ? 'border-white/25 bg-[#1c1914]/[0.05]'
                             : 'border-brand-border bg-brand-bg-primary/50'
                         }`}
                       >
@@ -319,7 +319,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                           {refs.map((r, i) => (
                             <div
                               key={`${sid}-${i}-${r.id || r.title}`}
-                              className="group flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-white/[0.04] transition-colors"
+                              className="group flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-[#1c1914]/[0.05] transition-colors"
                             >
                               <div className="min-w-0 flex-1">
                                 <h5 className="text-[11px] text-brand-text-secondary group-hover:text-brand-text-primary truncate transition-colors">
@@ -330,7 +330,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                                 type="button"
                                 onClick={() => handleCite(r)}
                                 aria-label={`Cite ${r.title}`}
-                                className="p-1.5 bg-white/[0.06] text-brand-text-secondary hover:text-black hover:bg-white rounded transition-colors"
+                                className="p-1.5 bg-[#1c1914]/[0.06] text-brand-text-secondary hover:text-black hover:bg-white rounded transition-colors"
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
