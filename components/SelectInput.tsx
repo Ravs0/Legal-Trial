@@ -26,8 +26,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   const baseInputStyle =
     'block w-full bg-brand-bg-primary rounded-md py-2.5 px-3 ' +
     'border border-brand-border text-brand-text-primary text-sm ' +
-    'hover:border-white/20 focus:outline-none focus:border-white/35 ' +
-    'focus-visible:ring-2 focus-visible:ring-white/25 ' +
+    'hover:border-brand-border focus:outline-none focus:border-white/35 ' +
+    'focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 ' +
     'transition-colors duration-150 disabled:opacity-45 disabled:cursor-not-allowed';
 
   const labelColor =

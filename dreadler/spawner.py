@@ -367,7 +367,7 @@ class SpawnBase:
 
     def get_world_block(self) -> str:
         """
-        Return BLOCK 1 (WORLD) for injection into the Zenmux prompt.
+        Return BLOCK 1 (WORLD) for injection into the system prompt.
 
         Returns:
             The immutable world prompt block.

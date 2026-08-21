@@ -7,6 +7,7 @@ export interface SearchResult {
   matchedTerms: string[];
 }
 
+/** Honest labels: all pipelines are local weighted heuristics — no external models. */
 export type SearchPipeline = 'bm25' | 'legal-bert' | 'haystack-hybrid';
 
 export interface SearchWeights {

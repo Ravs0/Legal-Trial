@@ -61,7 +61,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
           }}
         />
         <div className="relative z-10 flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-[#1c1914]/[0.06] flex items-center justify-center border border-white/20 shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-[#1c1914]/[0.06] flex items-center justify-center border border-brand-border shrink-0">
             <Sparkles size={16} className="text-brand-text-primary/80" aria-hidden />
           </div>
           <div className="min-w-0">
@@ -73,14 +73,14 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
           <button
             type="button"
             onClick={onDiscard}
-            className="px-3 py-2 text-[11px] uppercase tracking-wide text-brand-text-primary/60 hover:text-brand-text-primary border border-white/15 rounded-lg transition-colors"
+            className="px-3 py-2 text-[11px] uppercase tracking-wide text-brand-text-primary/60 hover:text-brand-text-primary border border-brand-border rounded-lg transition-colors"
           >
             Discard
           </button>
           <button
             type="button"
             onClick={() => onCommit(sandboxSectionId, sandboxProposed)}
-            className="px-4 py-2 bg-white hover:bg-white/90 text-black rounded-lg text-[11px] font-medium flex items-center gap-2 transition-colors uppercase tracking-wide"
+            className="px-4 py-2 bg-brand-text-primary hover:bg-[#3a352c] text-brand-bg-primary rounded-lg text-[11px] font-medium flex items-center gap-2 transition-colors uppercase tracking-wide"
           >
             <CheckCircle2 size={14} aria-hidden /> Commit
           </button>
@@ -105,7 +105,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/50" aria-hidden />
+                <div className="w-1.5 h-1.5 rounded-full bg-[#1c1914]/[0.04]0" aria-hidden />
                 <span className="text-[10px] font-medium text-brand-text-secondary/70 uppercase tracking-wider">
                   Insights
                 </span>
@@ -212,14 +212,14 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
                   }}
                   placeholder="Command refine (e.g. align tone, cut repetition)…"
                   aria-label="Sandbox refine command"
-                  className="w-full bg-brand-bg-primary border border-brand-border rounded-xl py-3.5 pl-4 pr-14 text-[13px] text-brand-text-primary focus:ring-1 focus:ring-white/20 outline-none transition-colors placeholder:text-brand-text-secondary/30"
+                  className="w-full bg-brand-bg-primary border border-brand-border rounded-xl py-3.5 pl-4 pr-14 text-[13px] text-brand-text-primary focus:ring-1 focus:ring-[#1c1914]/20 outline-none transition-colors placeholder:text-brand-text-secondary/30"
                 />
                 <button
                   type="button"
                   onClick={onRefine}
                   disabled={isSandboxProcessing}
                   aria-label="Run refine"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white hover:bg-white/90 text-black rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-brand-text-primary hover:bg-[#3a352c] text-brand-bg-primary rounded-lg transition-colors flex items-center justify-center disabled:opacity-50"
                 >
                   {isSandboxProcessing ? (
                     <Loader2 size={18} className="animate-spin" />

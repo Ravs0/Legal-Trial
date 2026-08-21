@@ -320,7 +320,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen flex bg-brand-bg-primary text-brand-text-primary overflow-hidden" style={shellStyle}>
       <a
         href={`#${mainId}`}
-        className={`sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:rounded-md focus:border focus:border-white/25 focus:bg-brand-bg-secondary focus:px-3 focus:py-2 focus:text-sm focus:text-brand-text-primary ${focusRing}`}
+        className={`sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:rounded-md focus:border focus:border-brand-border-light focus:bg-brand-bg-secondary focus:px-3 focus:py-2 focus:text-sm focus:text-brand-text-primary ${focusRing}`}
       >
         Skip to main content
       </a>

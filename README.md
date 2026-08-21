@@ -109,7 +109,11 @@ surface as in-fiction notices; the tier chip in the header is player-facing only
   levels, variants). The UI only offers unlocked ids; offline default is
   `dreadler_logic` + `dreadler`.
 - `POST` with `action: "turn"` runs one engine turn; `action: "reset"` ends the
-  signed session lineage on the client path.
+  signed session lineage on the client path. Send `"stream": true` to get NDJSON
+  frames (`start` → `d` deltas → `f` final payload); buffered runtimes fall back
+  to one JSON body.
+- Local CLI demo (no browser): `python3 -m dreadler.demo` with `DEEPSEEK_API_KEY`
+  set.
 - Needs both `DEEPSEEK_API_KEY` and `DREADLER_STATE_SECRET`. Generate the secret
   with `openssl rand -hex 32`. Package lives under `dreadler/`; handler is
   `api/dreadler.py`.

@@ -137,7 +137,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search statutes, case law…"
             aria-label="Research search"
-            className="w-full bg-brand-bg-primary border border-brand-border rounded-lg py-2.5 pl-3 pr-11 text-[12px] focus:ring-1 focus:ring-white/20 text-brand-text-primary placeholder:text-brand-text-secondary/40 outline-none transition-colors"
+            className="w-full bg-brand-bg-primary border border-brand-border rounded-lg py-2.5 pl-3 pr-11 text-[12px] focus:ring-1 focus:ring-[#1c1914]/20 text-brand-text-primary placeholder:text-brand-text-secondary/40 outline-none transition-colors"
           />
           <button
             type="submit"
@@ -188,7 +188,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                 {results.map((res) => (
                   <article
                     key={res.id}
-                    className="bg-brand-bg-primary border border-brand-border rounded-lg p-3.5 hover:border-white/20 transition-colors"
+                    className="bg-brand-bg-primary border border-brand-border rounded-lg p-3.5 hover:border-brand-border transition-colors"
                   >
                     <h4 className="text-[12px] font-medium text-brand-text-primary leading-snug mb-2">{res.title}</h4>
                     <p className="text-[11px] text-brand-text-secondary/75 line-clamp-3 mb-3 leading-relaxed">
@@ -219,7 +219,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCite(res)}
-                        className="flex-1 py-2 text-[10px] bg-white hover:bg-white/90 text-black rounded-md transition-colors font-medium uppercase tracking-wide"
+                        className="flex-1 py-2 text-[10px] bg-brand-text-primary hover:bg-[#3a352c] text-brand-bg-primary rounded-md transition-colors font-medium uppercase tracking-wide"
                       >
                         {lastCitedId === res.id ? 'Cited' : 'Cite'}
                       </button>
@@ -307,7 +307,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                         key={sid}
                         className={`p-2.5 rounded-lg border ${
                           sid === activeSectionId
-                            ? 'border-white/25 bg-[#1c1914]/[0.05]'
+                            ? 'border-brand-border-light bg-[#1c1914]/[0.05]'
                             : 'border-brand-border bg-brand-bg-primary/50'
                         }`}
                       >
@@ -330,7 +330,7 @@ export const ResearchSidebar: React.FC<ResearchSidebarProps> = ({
                                 type="button"
                                 onClick={() => handleCite(r)}
                                 aria-label={`Cite ${r.title}`}
-                                className="p-1.5 bg-[#1c1914]/[0.06] text-brand-text-secondary hover:text-black hover:bg-white rounded transition-colors"
+                                className="p-1.5 bg-[#1c1914]/[0.06] text-brand-text-secondary hover:text-brand-bg-primary hover:bg-[#3a352c] rounded transition-colors"
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"

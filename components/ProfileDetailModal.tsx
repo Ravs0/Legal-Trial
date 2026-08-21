@@ -34,7 +34,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({ profile,
       >
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
           <div
-            className="flex-shrink-0 w-28 h-28 sm:w-36 sm:h-36 rounded-lg bg-brand-bg-secondary border border-white/10 flex items-center justify-center"
+            className="flex-shrink-0 w-28 h-28 sm:w-36 sm:h-36 rounded-lg bg-brand-bg-secondary border border-brand-border flex items-center justify-center"
             aria-hidden="true"
           >
             <ProfileIcon className="w-14 h-14 sm:w-16 sm:h-16 text-brand-text-secondary" />
@@ -51,18 +51,18 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({ profile,
             </header>
 
             {isAdvocate && (
-              <p className="inline-flex items-center px-2.5 py-1 rounded-md border border-white/15 bg-[#1c1914]/[0.05] text-[11px] font-mono font-medium text-brand-text-primary uppercase tracking-wider">
+              <p className="inline-flex items-center px-2.5 py-1 rounded-md border border-brand-border bg-[#1c1914]/[0.05] text-[11px] font-mono font-medium text-brand-text-primary uppercase tracking-wider">
                 <span className="sr-only">Specialty: </span>
                 {profile.specialty}
               </p>
             )}
 
-            <div className="w-full h-px bg-white/10" role="separator" aria-hidden="true" />
+            <div className="w-full h-px bg-[#1c1914]/[0.06]" role="separator" aria-hidden="true" />
 
             <section
               id={descriptionId}
               aria-label="Profile description"
-              className="bg-brand-bg-secondary/60 p-4 rounded-md border border-white/10 text-left"
+              className="bg-brand-bg-secondary/60 p-4 rounded-md border border-brand-border text-left"
             >
               <p className="text-sm text-brand-text-secondary leading-relaxed whitespace-pre-line">
                 {profile.description}
@@ -79,7 +79,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({ profile,
           </div>
         </div>
 
-        <div className="pt-5 border-t border-white/10 flex justify-end">
+        <div className="pt-5 border-t border-brand-border flex justify-end">
           <Button
             type="button"
             onClick={onClose}

@@ -137,7 +137,7 @@ const ScoreBar: React.FC<{
           <span className="opacity-40 font-normal"> / {outOf}</span>
         </span>
       </div>
-      <div className="w-full bg-white/5 h-1.5 overflow-hidden border border-white/10">
+      <div className="w-full bg-[#1c1914]/[0.04] h-1.5 overflow-hidden border border-brand-border">
         <div
           className="bg-brand-text-primary/55 h-full transition-all duration-700 ease-out"
           style={{ width: `${pct}%` }}
@@ -293,7 +293,7 @@ const PerformanceScreen: React.FC = () => {
                 </Button>
                 <Button
                   variant="secondary"
-                  className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
+                  className="!border-brand-border-light !text-brand-text-primary hover:!bg-[#1c1914]/[0.06]"
                   onClick={() => navigate(ROUTES.HOME)}
                 >
                   Dashboard
@@ -344,7 +344,7 @@ const PerformanceScreen: React.FC = () => {
                 </Button>
                 <Button
                   variant="secondary"
-                  className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
+                  className="!border-brand-border-light !text-brand-text-primary hover:!bg-[#1c1914]/[0.06]"
                   onClick={() =>
                     downloadMarkdown(
                       transcriptFilename(sessionRecord),
@@ -395,7 +395,7 @@ const PerformanceScreen: React.FC = () => {
                     <span className="w-[7.5rem] text-[10px] font-mono text-brand-text-secondary/80 truncate">
                       {SCORE_DIMENSION_LABELS[key]}
                     </span>
-                    <div className="flex-1 h-1 bg-white/5 overflow-hidden border border-white/10">
+                    <div className="flex-1 h-1 bg-[#1c1914]/[0.04] overflow-hidden border border-brand-border">
                       <div
                         className="h-full bg-brand-text-primary/50"
                         style={{
@@ -422,7 +422,7 @@ const PerformanceScreen: React.FC = () => {
             <Button onClick={() => navigate(ROUTES.SETUP)} variant="outline" className="w-full sm:w-auto">
               New trial
             </Button>
-            <Button onClick={() => navigate(ROUTES.HOME)} variant="ghost" className="w-full sm:w-auto border border-white/10">
+            <Button onClick={() => navigate(ROUTES.HOME)} variant="ghost" className="w-full sm:w-auto border border-brand-border">
               Dashboard
             </Button>
           </div>
@@ -462,7 +462,7 @@ const PerformanceScreen: React.FC = () => {
               </Button>
               <Button
                 variant="secondary"
-                className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
+                className="!border-brand-border-light !text-brand-text-primary hover:!bg-[#1c1914]/[0.06]"
                 onClick={() => navigate(ROUTES.HOME)}
               >
                 Dashboard
@@ -514,7 +514,7 @@ const PerformanceScreen: React.FC = () => {
                     <span className="text-sm opacity-40 font-normal"> / 10</span>
                   </span>
                 </div>
-                <div className="w-full bg-white/5 h-2 overflow-hidden border border-white/10">
+                <div className="w-full bg-[#1c1914]/[0.04] h-2 overflow-hidden border border-brand-border">
                   <div
                     className="bg-brand-text-primary/60 h-full transition-all duration-1000 ease-out"
                     style={{ width: `${(overall / 10) * 100}%` }}
@@ -573,7 +573,7 @@ const PerformanceScreen: React.FC = () => {
                       <span className="w-[7.5rem] text-[10px] font-mono text-brand-text-secondary/80 truncate">
                         {SCORE_DIMENSION_LABELS[key]}
                       </span>
-                      <div className="flex-1 h-1 bg-white/5 overflow-hidden border border-white/10">
+                      <div className="flex-1 h-1 bg-[#1c1914]/[0.04] overflow-hidden border border-brand-border">
                         <div
                           className="h-full bg-brand-text-primary/50"
                           style={{
@@ -615,7 +615,7 @@ const PerformanceScreen: React.FC = () => {
                         key={`${index}-${area.slice(0, 24)}`}
                         className="flex items-start gap-3 p-3 border border-brand-border bg-brand-bg-primary"
                       >
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-white/15 text-[10px] font-mono text-brand-text-secondary">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-brand-border text-[10px] font-mono text-brand-text-secondary">
                           {index + 1}
                         </span>
                         <span className="text-brand-text-primary/90 text-[13px] leading-relaxed">
@@ -660,19 +660,19 @@ const PerformanceScreen: React.FC = () => {
           <Button onClick={() => navigate(ROUTES.SETUP)} variant="outline" className="relative z-10 w-full sm:w-auto">
             New trial
           </Button>
-          <Button onClick={() => navigate(ROUTES.HOME)} variant="ghost" className="relative z-10 w-full sm:w-auto border border-white/10">
+          <Button onClick={() => navigate(ROUTES.HOME)} variant="ghost" className="relative z-10 w-full sm:w-auto border border-brand-border">
             Dashboard
           </Button>
           <Button
             variant="ghost"
-            className="relative z-10 w-full sm:w-auto border border-white/10"
+            className="relative z-10 w-full sm:w-auto border border-brand-border"
             onClick={handleCopyScorecard}
           >
             {copyStatus === 'ok' ? 'Copied' : copyStatus === 'fail' ? 'Copy failed' : 'Copy scorecard'}
           </Button>
           <Button
             variant="ghost"
-            className="relative z-10 w-full sm:w-auto border border-white/10"
+            className="relative z-10 w-full sm:w-auto border border-brand-border"
             onClick={() => {
               downloadMarkdown(scorecardFilename(sessionRecord), buildScorecardMarkdown(sessionRecord));
               trackEvent('scorecard_downloaded', {
@@ -686,7 +686,7 @@ const PerformanceScreen: React.FC = () => {
           {transcript.length > 0 && (
             <Button
               variant="ghost"
-              className="relative z-10 w-full sm:w-auto border border-white/10"
+              className="relative z-10 w-full sm:w-auto border border-brand-border"
               onClick={() => {
                 downloadMarkdown(transcriptFilename(sessionRecord), buildTranscriptMarkdown(sessionRecord));
                 trackEvent('transcript_downloaded', {
@@ -821,7 +821,7 @@ const TranscriptPanel: React.FC<{
               <div
                 className={`p-3.5 max-w-[85%] sm:max-w-[75%] leading-relaxed text-[13px] sm:text-[14px] border ${
                   isUser
-                    ? 'bg-brand-bg-primary border-white/20 text-brand-text-primary'
+                    ? 'bg-brand-bg-primary border-brand-border text-brand-text-primary'
                     : 'bg-brand-bg-primary border-brand-border text-brand-text-primary'
                 }`}
               >

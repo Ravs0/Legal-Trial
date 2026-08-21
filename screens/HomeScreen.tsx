@@ -179,7 +179,7 @@ const HomeScreen: React.FC = () => {
               </Button>
               <Button
                 variant="secondary"
-                className="!border-white/25 !text-brand-text-primary hover:!bg-white/10"
+                className="!border-brand-border-light !text-brand-text-primary hover:!bg-[#1c1914]/[0.06]"
                 onClick={() => navigate(ROUTES.SETUP)}
               >
                 New trial
@@ -269,7 +269,7 @@ const HomeScreen: React.FC = () => {
                         key={`${score}-${i}`}
                         title={`${formatScore(score)} / 10`}
                         className={`w-2 sm:w-2.5 rounded-[1px] ${
-                          isNewest ? 'bg-white/70' : 'bg-white/25'
+                          isNewest ? 'bg-white/70' : 'bg-[#1c1914]/[0.10]'
                         }`}
                         style={{ height: h }}
                       />
@@ -451,7 +451,7 @@ const StatCell: React.FC<{
         )}
       </p>
       {bar != null && (
-        <div className="mt-2 h-1 w-full bg-white/5 border border-white/10 overflow-hidden">
+        <div className="mt-2 h-1 w-full bg-[#1c1914]/[0.04] border border-brand-border overflow-hidden">
           <div
             className={`h-full ${emphasize ? 'bg-white/65' : 'bg-white/35'}`}
             style={{ width: `${Math.max(0, Math.min(100, (bar / 10) * 100))}%` }}

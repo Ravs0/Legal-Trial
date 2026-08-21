@@ -107,14 +107,14 @@ const BenchCounselScreen: React.FC = () => {
                     setSelectedJudge(judge);
                   }}
                   aria-pressed={isSelected}
-                  className={`text-left group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                  className={`text-left group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 ${
                     isSelected ? 'ring-1 ring-white' : ''
                   }`}
                 >
                   <PatternPanel
                     pattern={cardPattern}
                     className={`h-full p-0 overflow-hidden transition-colors ${
-                      isSelected ? '!border-white' : 'group-hover:border-white/20'
+                      isSelected ? '!border-white' : 'group-hover:border-brand-border'
                     }`}
                   >
                     <div className="relative h-24 overflow-hidden border-b border-brand-border">
@@ -143,7 +143,7 @@ const BenchCounselScreen: React.FC = () => {
                         className={`inline-flex text-[12px] rounded-md px-2.5 py-1 border transition-colors ${
                           isSelected
                             ? 'bg-brand-text-primary text-brand-bg-primary border-white'
-                            : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-white/20'
+                            : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-brand-border'
                         }`}
                       >
                         {isSelected ? 'Open dossier' : 'Simulation profile'}
@@ -181,14 +181,14 @@ const BenchCounselScreen: React.FC = () => {
                     setSelectedCounsel(oc);
                   }}
                   aria-pressed={isSelected}
-                  className={`text-left group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                  className={`text-left group rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 ${
                     isSelected ? 'ring-1 ring-white' : ''
                   }`}
                 >
                   <PatternPanel
                     pattern={cardPattern}
                     className={`h-full p-0 overflow-hidden transition-colors ${
-                      isSelected ? '!border-white' : 'group-hover:border-white/20'
+                      isSelected ? '!border-white' : 'group-hover:border-brand-border'
                     }`}
                   >
                     <div className="relative h-24 overflow-hidden border-b border-brand-border">
@@ -218,7 +218,7 @@ const BenchCounselScreen: React.FC = () => {
                         className={`inline-flex text-[12px] rounded-md px-2.5 py-1 border transition-colors ${
                           isSelected
                             ? 'bg-brand-text-primary text-brand-bg-primary border-white'
-                            : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-white/20'
+                            : 'text-brand-text-secondary border-brand-border group-hover:text-brand-text-primary group-hover:border-brand-border'
                         }`}
                       >
                         {isSelected ? 'Open dossier' : 'Simulation profile'}

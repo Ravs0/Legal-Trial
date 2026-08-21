@@ -131,7 +131,7 @@ export const RoomStepper: React.FC<{
         {idx < steps.length - 1 && (
           <div
             className={`h-px w-3 sm:w-6 mb-0 sm:mb-4 ${
-              idx < currentIndex ? 'bg-white/60' : 'bg-white/15'
+              idx < currentIndex ? 'bg-white/60' : 'bg-[#1c1914]/[0.08]'
             }`}
           />
         )}

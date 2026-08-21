@@ -55,6 +55,8 @@ interface SynthesisContext {
   retrievalAvailable: boolean;
   retrievalMode: 'provider_metadata' | 'public_web_discovery' | 'unavailable';
   verificationBlock: string;
+  /** Treatment rows assembled by the Stage-5 pre-hook; surfaced on the bubble. */
+  verificationRows: VerificationRow[];
 }
 
 interface SynthesisStage {
@@ -346,8 +348,6 @@ const DeliberationBlueprint: React.FC<{
   selectedPersona,
   setSelectedPersona,
 }) => {
-  const [, setHoveredNode] = useState<string | null>(null);
-
   const styleBlock = (
     <style>{`
       @keyframes dashoffset-flow {
@@ -380,7 +380,7 @@ const DeliberationBlueprint: React.FC<{
         }
       }
       .dash-flow-vermilion {
-        stroke: #D6BA91;
+        stroke: #8a2b23;
         stroke-dasharray: 6, 6;
         animation: dashoffset-flow 1.2s linear infinite;
       }
@@ -401,9 +401,6 @@ const DeliberationBlueprint: React.FC<{
       .spin-hub {
         transform-origin: center;
       }
-      .float-1 { }
-      .float-2 { }
-      .float-3 { }
     `}</style>
   );
 
@@ -423,7 +420,7 @@ const DeliberationBlueprint: React.FC<{
         <svg viewBox="0 0 400 200" className="w-full h-auto max-h-[170px]">
           {styleBlock}
           
-          <circle cx="200" cy="100" r="50" fill="none" stroke="#D6BA91" strokeOpacity="0.03" strokeWidth="1" strokeDasharray="8,8" className="spin-hub" />
+          <circle cx="200" cy="100" r="50" fill="none" stroke="#8a2b23" strokeOpacity="0.03" strokeWidth="1" strokeDasharray="8,8" className="spin-hub" />
 
           {nodes.map((n, i) => {
             const nextNode = nodes[(i + 1) % nodes.length];
@@ -437,7 +434,7 @@ const DeliberationBlueprint: React.FC<{
                   y1={n.cy}
                   x2={nextNode.cx}
                   y2={nextNode.cy}
-                  stroke={isCompleted ? "#D6BA91" : "#2F3C38"}
+                  stroke={isCompleted ? "#8a2b23" : "#ddd6c8"}
                   strokeWidth="2"
                   strokeOpacity={isCompleted ? "0.8" : "0.25"}
                 />
@@ -464,31 +461,29 @@ const DeliberationBlueprint: React.FC<{
               <g
                 key={`node-${n.id}`}
                 className="cursor-pointer"
-                onMouseEnter={() => setHoveredNode(`stage-${n.id}`)}
-                onMouseLeave={() => setHoveredNode(null)}
               >
                 <circle
                   cx={n.cx}
                   cy={n.cy}
                   r="18"
-                  fill={isCompleted ? "#D6BA91" : "#0E1513"}
+                  fill={isCompleted ? "#8a2b23" : "#efeae1"}
                   fillOpacity={isCompleted ? "0.15" : "0.9"}
-                  stroke={isActive ? "#E5D4BC" : isCompleted ? "#D6BA91" : "#2F3C38"}
+                  stroke={isActive ? "#b04a40" : isCompleted ? "#8a2b23" : "#ddd6c8"}
                   strokeWidth={isActive ? "2.5" : "1.5"}
                   className={isActive ? "pulse-vermilion" : ""}
                 />
                 
                 {isCompleted ? (
-                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#D6BA91" fontSize="9" fontFamily="monospace" fontWeight="bold">§</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill="#8a2b23" fontSize="9" fontFamily="monospace" fontWeight="bold">§</text>
                 ) : (
-                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill={isPending ? "#455651" : "#EAE6DF"} fontSize="9" fontFamily="serif" fontWeight="bold">{n.icon}</text>
+                  <text x={n.cx} y={n.cy + 3.5} textAnchor="middle" fill={isPending ? "#8f887a" : "#1c1914"} fontSize="9" fontFamily="serif" fontWeight="bold">{n.icon}</text>
                 )}
 
                 <text
                   x={n.cx}
                   y={n.cy + 28}
                   textAnchor="middle"
-                  fill={isActive ? "#D6BA91" : isCompleted ? "#EAE6DF" : "#8EA38C"}
+                  fill={isActive ? "#8a2b23" : isCompleted ? "#1c1914" : "#8f887a"}
                   fontSize="7"
                   fontWeight={isActive ? "bold" : "normal"}
                   fontFamily="monospace"
@@ -500,8 +495,8 @@ const DeliberationBlueprint: React.FC<{
           })}
 
           <g transform="translate(200, 100)" className={isProcessing ? "spin-hub" : ""}>
-            <circle cx="0" cy="0" r="12" fill="#0E1513" stroke="#D6BA91" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
-            <text x="0" y="3.5" textAnchor="middle" fill="#D6BA91" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="9" fontFamily="mono" fontWeight="bold">Ω</text>
+            <circle cx="0" cy="0" r="12" fill="#efeae1" stroke="#8a2b23" strokeWidth="1.5" strokeOpacity={isProcessing ? "0.8" : "0.2"} />
+            <text x="0" y="3.5" textAnchor="middle" fill="#8a2b23" fillOpacity={isProcessing ? "1" : "0.3"} fontSize="9" fontFamily="mono" fontWeight="bold">Ω</text>
           </g>
         </svg>
       </div>
@@ -541,7 +536,7 @@ const DeliberationBlueprint: React.FC<{
                   y1={center.y}
                   x2={j.cx}
                   y2={j.cy}
-                  stroke={isSelected ? "#D6BA91" : "#2F3C38"}
+                  stroke={isSelected ? "#8a2b23" : "#ddd6c8"}
                   strokeWidth={isSelected ? "3" : "1.5"}
                   strokeOpacity={isSelected ? "0.9" : "0.2"}
                 />
@@ -556,7 +551,7 @@ const DeliberationBlueprint: React.FC<{
                       className="dash-flow-vermilion"
                       strokeWidth="2"
                     />
-                    <circle r="4" fill="#D6BA91">
+                    <circle r="4" fill="#8a2b23">
                       <animateMotion 
                          dur="1.5s" 
                         repeatCount="indefinite" 
@@ -570,9 +565,9 @@ const DeliberationBlueprint: React.FC<{
           })}
 
           <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
-            <circle cx="0" cy="0" r="20" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
-            <circle cx="0" cy="0" r="15" fill="#2F3C38" stroke="#EAE6DF" strokeOpacity="0.05" />
-            <text x="0" y="3.5" textAnchor="middle" fill="#D6BA91" fontSize="10" fontFamily="mono" fontWeight="bold">§</text>
+            <circle cx="0" cy="0" r="20" fill="#efeae1" stroke="#8a2b23" strokeWidth="2" className="pulse-vermilion" />
+            <circle cx="0" cy="0" r="15" fill="#ddd6c8" stroke="#1c1914" strokeOpacity="0.05" />
+            <text x="0" y="3.5" textAnchor="middle" fill="#8a2b23" fontSize="10" fontFamily="mono" fontWeight="bold">§</text>
           </g>
 
           {jurists.map((j) => {
@@ -584,27 +579,25 @@ const DeliberationBlueprint: React.FC<{
                 key={`jurist-${j.id}`}
                 className="cursor-pointer float-2"
                 onClick={() => setSelectedPersona(personaRef)}
-                onMouseEnter={() => setHoveredNode(j.id)}
-                onMouseLeave={() => setHoveredNode(null)}
               >
                 <circle
                   cx={j.cx}
                   cy={j.cy}
                   r="18"
-                  fill={isSelected ? "#D6BA91" : "#0E1513"}
+                  fill={isSelected ? "#8a2b23" : "#efeae1"}
                   fillOpacity={isSelected ? "0.15" : "0.9"}
-                  stroke={isSelected ? "#D6BA91" : "#2F3C38"}
+                  stroke={isSelected ? "#8a2b23" : "#ddd6c8"}
                   strokeWidth={isSelected ? "2.5" : "1.5"}
                   className={isSelected ? "pulse-vermilion" : ""}
                 />
                 
-                <text x={j.cx} y={j.cy + 3.5} textAnchor="middle" fill={isSelected ? "#D6BA91" : "#EAE6DF"} fontSize="9" fontFamily="mono" fontWeight="bold">{j.avatar}</text>
+                <text x={j.cx} y={j.cy + 3.5} textAnchor="middle" fill={isSelected ? "#8a2b23" : "#1c1914"} fontSize="9" fontFamily="mono" fontWeight="bold">{j.avatar}</text>
                 
                 <text
                   x={j.cx}
                   y={j.cy + 27}
                   textAnchor="middle"
-                  fill={isSelected ? "#D6BA91" : "#8EA38C"}
+                  fill={isSelected ? "#8a2b23" : "#8f887a"}
                   fontSize="7"
                   fontWeight={isSelected ? "bold" : "normal"}
                   fontFamily="monospace"
@@ -641,7 +634,7 @@ const DeliberationBlueprint: React.FC<{
 		          {styleBlock}
 
 		          {/* Ring */}
-		          <circle cx={center.x} cy={center.y} r="50" fill="none" stroke="#8EA38C" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,6" className="spin-hub" />
+		          <circle cx={center.x} cy={center.y} r="50" fill="none" stroke="#8f887a" strokeOpacity="0.08" strokeWidth="1" strokeDasharray="4,6" className="spin-hub" />
 
 		          {/* Connection edges — ring + chord to center */}
 		          {SYNTHESIS_STAGES.map((stg, i) => {
@@ -652,7 +645,7 @@ const DeliberationBlueprint: React.FC<{
 		            return (
 		              <g key={`ring-${stg.key}`}>
 		                <line x1={n.cx} y1={n.cy} x2={nextPos.cx} y2={nextPos.cy}
-		                  stroke={segDone ? "#D6BA91" : "#2F3C38"}
+		                  stroke={segDone ? "#8a2b23" : "#ddd6c8"}
 		                  strokeWidth="1.5" strokeOpacity={segDone ? "0.7" : "0.2"} />
 		                {isProcessing && i <= activeStageIndex && (
 		                  <line x1={n.cx} y1={n.cy} x2={nextPos.cx} y2={nextPos.cy}
@@ -664,11 +657,11 @@ const DeliberationBlueprint: React.FC<{
 
 		          {/* Center hub */}
 		          <g transform={`translate(${center.x}, ${center.y})`} className="float-1">
-		            <circle cx="0" cy="0" r="18" fill="#0E1513" stroke="#D6BA91" strokeWidth="2" className="pulse-vermilion" />
-		            <circle cx="0" cy="0" r="12" fill="#2F3C38" stroke="#EAE6DF" strokeOpacity="0.05" />
-		            <text x="0" y="4" textAnchor="middle" fill="#D6BA91" fontSize="9" fontFamily="mono" fontWeight="bold">7Φ</text>
+		            <circle cx="0" cy="0" r="18" fill="#efeae1" stroke="#8a2b23" strokeWidth="2" className="pulse-vermilion" />
+		            <circle cx="0" cy="0" r="12" fill="#ddd6c8" stroke="#1c1914" strokeOpacity="0.05" />
+		            <text x="0" y="4" textAnchor="middle" fill="#8a2b23" fontSize="9" fontFamily="mono" fontWeight="bold">7Φ</text>
 		            {isProcessing && (
-		              <circle cx="0" cy="0" r="23" fill="none" stroke="#D6BA91" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" />
+		              <circle cx="0" cy="0" r="23" fill="none" stroke="#8a2b23" strokeOpacity="0.3" strokeWidth="0.8" strokeDasharray="3,3" />
 		            )}
 		          </g>
 
@@ -681,16 +674,16 @@ const DeliberationBlueprint: React.FC<{
 		              <g key={`node-${stg.key}`}
 		                className={i <= 4 ? "float-1" : "float-2"}>
 		                <circle cx={n.cx} cy={n.cy} r="14"
-		                  fill={completed ? "#D6BA91" : "#0E1513"}
+		                  fill={completed ? "#8a2b23" : "#efeae1"}
 		                  fillOpacity={completed ? "0.15" : "0.9"}
-		                  stroke={active ? "#E5D4BC" : completed ? "#D6BA91" : "#2F3C38"}
+		                  stroke={active ? "#b04a40" : completed ? "#8a2b23" : "#ddd6c8"}
 		                  strokeWidth={active ? "2.5" : "1.2"}
 		                  className={active ? "pulse-vermilion" : ""} />
 		                <text x={n.cx} y={n.cy + 3} textAnchor="middle"
-		                  fill={completed || active ? "#D6BA91" : "#455651"}
+		                  fill={completed || active ? "#8a2b23" : "#8f887a"}
 		                  fontSize="8" fontFamily="monospace" fontWeight="bold">{completed ? '§' : stg.icon}</text>
 		                <text x={n.cx} y={n.cy - 17} textAnchor="middle"
-		                  fill={active ? "#D6BA91" : completed ? "#EAE6DF" : "#8EA38C"}
+		                  fill={active ? "#8a2b23" : completed ? "#1c1914" : "#8f887a"}
 		                  fontSize="6" fontWeight={active ? "bold" : "normal"} fontFamily="monospace">
 		                  {stg.svgLabel}
 		                </text>
@@ -726,7 +719,7 @@ export const StrategyRoomScreen: React.FC = () => {
     if (!hasCitations && !hasVerification && !item.retrievalNote) return null;
 
     return (
-      <div className="mt-2 pt-2 border-t border-white/10 space-y-2">
+      <div className="mt-2 pt-2 border-t border-brand-border space-y-2">
         {/* Retrieved precedents (Stage 2) */}
         {hasCitations && (
           <div className="p-2 bg-brand-bg-primary/50 border border-brand-border rounded-xl space-y-1.5">
@@ -1148,12 +1141,12 @@ export const StrategyRoomScreen: React.FC = () => {
       id: bubbleId,
       sender: 'assistant',
       text: activeTab === ChamberMode.COUNCIL 
-          ? `Consulting ${selectedPersona.name}...` 
-          : 'Deliberation initiated. Mobilizing the Oracle reasoning engines...',
+          ? `Consulting ${selectedPersona.name}…` 
+          : 'Deliberation started.',
       meta: activeTab === ChamberMode.COUNCIL
           ? selectedPersona.name
           : activeTab === ChamberMode.ORACLE
-            ? 'Oracle deliberated consensus'
+            ? 'Oracle memo'
             : 'Synthesized Adversarial Memo',
       trace: []
     };
@@ -1294,10 +1287,10 @@ export const StrategyRoomScreen: React.FC = () => {
         trace.push({ stage: 'Final Memo Polish', content: polished || finalMemo });
         setOracleTrace([...trace]);
         
-        updateProvisionalBubble(finalMemo, [...trace], 'Oracle deliberated consensus');
+        updateProvisionalBubble(finalMemo, [...trace], 'Oracle memo');
 
       } else if (activeTab === ChamberMode.COUNCIL) {
-        setOracleStage(`Consulting ${selectedPersona.name}...`);
+        setOracleStage(`Consulting ${selectedPersona.name}…`);
         const historyContext = activeHistory
           .filter((msg) => msg.sender !== 'system')
           .slice(-8)
@@ -1332,6 +1325,7 @@ export const StrategyRoomScreen: React.FC = () => {
 		          retrievalAvailable: false,
 		          retrievalMode: 'unavailable',
 		          verificationBlock: '',
+	          verificationRows: [],
 		        };
 
 		        // ── Stage 1: Systemic Matrix (no retrieval) ──────────────
@@ -1375,54 +1369,83 @@ export const StrategyRoomScreen: React.FC = () => {
 		                const cleaned = extractorResp.trim()
 		                  .replace(/^```(json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 		                const parsed = JSON.parse(cleaned);
-		                if (Array.isArray(parsed)) candidates = parsed.slice(0, 12);
+		                if (Array.isArray(parsed)) candidates = parsed.slice(0, 6);
 		              } catch { /* non-JSON response — skip verification */ }
 
-		              // Batch-verify each candidate via /api/caselaw.
-		              if (candidates.length > 0) {
-		                const verificationRows: VerificationRow[] = [];
-		                for (const cand of candidates) {
-		                  const query = `${cand.caseName} ${cand.citation}`.trim();
-		                  if (!query) continue;
-		                  try {
-		                    const resp = await searchCaselaw(query, practiceMode ?? 'common', 1);
-		                    const hit = resp.results[0];
-		                    const providerMetadata = hit?.verification === 'provider_metadata';
-		                    verificationRows.push({
-		                      caseName: cand.caseName,
-		                      citation: hit?.citation || cand.citation,
-		                      status: providerMetadata
-		                        ? `LOCATED — provider metadata via ${resp.provider}; verify primary judgment`
-		                        : hit
-		                          ? 'UNVERIFIED — public-web lead only'
-		                          : 'UNVERIFIED — not found in lookup',
-		                      url: hit?.url,
-		                      dates: hit?.date,
-		                      court: hit?.court,
-		                    });
-		                  } catch {
-		                    verificationRows.push({
-		                      caseName: cand.caseName,
-		                      citation: cand.citation,
-		                      status: 'UNVERIFIED — lookup failed',
-		                    });
-		                  }
-		                }
-		                ctx.verificationBlock = [
+// Verify candidates against /api/caselaw. Reuses Stage-2 hits first (no
+              // extra network), caps candidates at 6, and runs lookups with
+              // concurrency 3 so one Synthesis run cannot exhaust the caselaw
+              // route's 15/min per-IP budget.
+              if (candidates.length > 0) {
+                const verificationRows: VerificationRow[] = [];
+                const stage2 = ctx.retrievedPrecedents;
+                const matchStage2 = (name: string): CaselawResult | undefined => {
+                  const n = name.toLowerCase().trim();
+                  if (!n) return undefined;
+                  return stage2.find((h) => {
+                    const t = (h.title || '').toLowerCase();
+                    return t.includes(n) || n.includes(t.split(' v. ')[0]);
+                  });
+                };
+                const verifyOne = async (cand: { caseName: string; citation: string }): Promise<VerificationRow> => {
+                  const reused = matchStage2(cand.caseName);
+                  if (reused) {
+                    return {
+                      caseName: cand.caseName,
+                      citation: reused.citation || cand.citation,
+                      status: 'LOCATED — matched in Stage-2 retrieval; verify primary judgment',
+                      url: reused.url,
+                      dates: reused.date,
+                      court: reused.court,
+                    };
+                  }
+                  const query = `${cand.caseName} ${cand.citation}`.trim();
+                  if (!query) {
+                    return { caseName: cand.caseName, citation: cand.citation, status: 'UNVERIFIED — empty query' };
+                  }
+                  try {
+                    const resp = await searchCaselaw(query, practiceMode ?? 'common', 1);
+                    const hit = resp.results[0];
+                    const providerMetadata = hit?.verification === 'provider_metadata';
+                    return {
+                      caseName: cand.caseName,
+                      citation: hit?.citation || cand.citation,
+                      status: providerMetadata
+                        ? `LOCATED — provider metadata via ${resp.provider}; verify primary judgment`
+                        : hit
+                          ? 'UNVERIFIED — public-web lead only'
+                          : 'UNVERIFIED — not found in lookup',
+                      url: hit?.url,
+                      dates: hit?.date,
+                      court: hit?.court,
+                    };
+                  } catch {
+                    return { caseName: cand.caseName, citation: cand.citation, status: 'UNVERIFIED — lookup failed' };
+                  }
+                };
+                const queue = [...candidates];
+                await Promise.all(Array.from({ length: 3 }, async () => {
+                  for (;;) {
+                    const cand = queue.shift();
+                    if (!cand) break;
+                    verificationRows.push(await verifyOne(cand));
+                  }
+                }));
+ctx.verificationBlock = [
                   'Citation lookup status — independently verify primary judgments:',
 		                  ...verificationRows.map(v =>
 		                    `  - ${v.caseName} (${v.citation}): ${v.status}`
 		                  ),
 		                ].join('\n');
 		                // Store on the final bubble so the user can inspect.
-		                (ctx as any).__verificationRows = verificationRows;
+		                ctx.verificationRows = verificationRows;
 		              } else {
 		                ctx.verificationBlock = `No candidates were extractable from the strategy text. Mark every cited case as UNVERIFIED.`;
-		                (ctx as any).__verificationRows = [];
+		                ctx.verificationRows = [];
 		              }
 		            } catch {
 		              ctx.verificationBlock = 'Real-case verification encountered an error. Mark every cited case as UNVERIFIED.';
-		              (ctx as any).__verificationRows = [];
+		              ctx.verificationRows = [];
 		            }
 		          }
 
@@ -1462,9 +1485,9 @@ export const StrategyRoomScreen: React.FC = () => {
 		          // After Stage 5, attach verification rows to the bubble.
 		          let bubbleVerification: VerificationRow[] | undefined;
 		          if (stg.key === 'citation-audit') {
-		            bubbleVerification = (ctx as any).__verificationRows;
-		            bubbleNote = (ctx as any).__verificationRows?.some((v: VerificationRow) => v.status.startsWith('LOCATED'))
-		              ? `Located ${(ctx as any).__verificationRows.filter((v: VerificationRow) => v.status.startsWith('LOCATED')).length} of ${(ctx as any).__verificationRows.length} citations in provider metadata; verify each primary judgment before relying on it.`
+		            bubbleVerification = ctx.verificationRows;
+		            bubbleNote = ctx.verificationRows.some((v) => v.status.startsWith('LOCATED'))
+		              ? `Located ${ctx.verificationRows.filter((v) => v.status.startsWith('LOCATED')).length} of ${ctx.verificationRows.length} citations in provider metadata; verify each primary judgment before relying on it.`
 		              : 'No cited case has provider-metadata support - treat all citation-status claims as unverified.';
 		          }
 
@@ -1577,12 +1600,12 @@ export const StrategyRoomScreen: React.FC = () => {
                     onClick={() => setSelectedPersona(p)}
                     aria-pressed={isSelected}
                     aria-label={p.name}
-                    className="flex flex-col items-center gap-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-md min-w-0 min-h-11"
+                    className="flex flex-col items-center gap-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1c1914]/40 rounded-md min-w-0 min-h-11"
                   >
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold border relative
                       ${isSelected 
                         ? 'bg-brand-text-primary text-brand-bg-primary border-white' 
-                        : 'bg-brand-bg-primary border-white/20 text-brand-text-primary/80'
+                        : 'bg-brand-bg-primary border-brand-border text-brand-text-primary/80'
                       }`}
                     >
                       {p.avatar}
@@ -1607,7 +1630,7 @@ export const StrategyRoomScreen: React.FC = () => {
           {/* Chat Feed (Mobile) */}
           <div className="flex-1 min-h-0 p-3 overflow-y-auto space-y-3 custom-scrollbar text-left relative z-10">
             {activeHistory.length <= 1 && (
-              <div className="p-2.5 border border-white/15 bg-brand-bg-secondary/40 rounded-lg space-y-1 text-left mb-2">
+              <div className="p-2.5 border border-brand-border bg-brand-bg-secondary/40 rounded-lg space-y-1 text-left mb-2">
                 <h4 className="text-[11px] font-serif font-semibold text-brand-text-primary flex items-center gap-1.5">
                   <span>
                     {activeTab === ChamberMode.ORACLE ? 'Oracle deliberation' : activeTab === ChamberMode.COUNCIL ? 'Council' : 'Adversarial synthesis'}
@@ -1627,7 +1650,7 @@ export const StrategyRoomScreen: React.FC = () => {
               <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
                 <div className="flex items-center space-x-1.5 mb-0.5 text-[9px] font-mono">
                   {item.meta && (
-                    <span className="text-brand-text-primary font-semibold bg-[#1c1914]/[0.05] px-1.5 py-0.5 border border-white/15 rounded">
+                    <span className="text-brand-text-primary font-semibold bg-[#1c1914]/[0.05] px-1.5 py-0.5 border border-brand-border rounded">
                       {item.meta}
                     </span>
                   )}
@@ -1639,7 +1662,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 <div
                   className={`max-w-[92%] p-2.5 rounded-lg text-[13px] leading-relaxed border  
                     ${item.sender === 'user'
-                      ? 'bg-[#1c1914]/[0.06] border-white/20 text-brand-text-primary rounded-tr-none'
+                      ? 'bg-[#1c1914]/[0.06] border-brand-border text-brand-text-primary rounded-tr-none'
                       : item.sender === 'system'
                         ? 'bg-brand-error/10 border-brand-error/30 text-brand-error rounded-tl-none font-mono text-[12px]'
                         : 'bg-brand-bg-secondary/70 border-brand-border text-brand-text-primary rounded-tl-none'
@@ -1650,14 +1673,14 @@ export const StrategyRoomScreen: React.FC = () => {
                   {renderCitationPanel(item)}
 
                   {item.trace && item.trace.length > 0 && (
-                    <details className="mt-2 pt-2 border-t border-white/10 text-[11px] font-light text-brand-text-secondary/80">
-                      <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded min-h-9 flex items-center">
+                    <details className="mt-2 pt-2 border-t border-brand-border text-[11px] font-light text-brand-text-secondary/80">
+                      <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1c1914]/40 rounded min-h-9 flex items-center">
                         View trace logs ({item.trace.length})
                       </summary>
                       <div className="mt-2 space-y-2 font-sans text-[11px]">
                         {item.trace.map((tr, index) => (
-                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-lg text-left">
-                            <h6 className="font-mono text-[9px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-white/15 pb-0.5">
+                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-brand-border rounded-lg text-left">
+                            <h6 className="font-mono text-[9px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-brand-border pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
                             <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap max-h-[120px] overflow-y-auto custom-scrollbar">{tr.content}</p>
@@ -1674,7 +1697,7 @@ export const StrategyRoomScreen: React.FC = () => {
                       type="button"
                       onClick={() => handleSpeak(item.text)}
                       aria-label="Speak message"
-                      className="min-h-9 px-2.5 py-1.5 border border-white/20 rounded-md bg-brand-bg-primary hover:bg-white hover:text-black text-[10px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
+                      className="min-h-9 px-2.5 py-1.5 border border-brand-border rounded-md bg-brand-bg-primary hover:bg-[#3a352c] hover:text-brand-bg-primary text-[10px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
                     >
                       Speak
                     </button>
@@ -1686,7 +1709,7 @@ export const StrategyRoomScreen: React.FC = () => {
                         });
                       }}
                       aria-label="Copy message"
-                      className="min-h-9 px-2.5 py-1.5 border border-white/10 rounded-md bg-brand-bg-primary hover:bg-white/5 text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary cursor-pointer"
+                      className="min-h-9 px-2.5 py-1.5 border border-brand-border rounded-md bg-brand-bg-primary hover:bg-[#1c1914]/[0.04] text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary cursor-pointer"
                     >
                       Copy
                     </button>
@@ -1702,8 +1725,8 @@ export const StrategyRoomScreen: React.FC = () => {
                 aria-live="polite"
                 aria-busy="true"
               >
-                <div className="w-full p-3 rounded-lg bg-brand-bg-secondary border border-white/15 space-y-2 text-left">
-                  <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1.5">
+                <div className="w-full p-3 rounded-lg bg-brand-bg-secondary border border-brand-border space-y-2 text-left">
+                  <div className="flex items-center justify-between gap-2 border-b border-brand-border pb-1.5">
                     <div className="flex items-center space-x-2 min-w-0">
                       <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold" />
                       <span className="text-[10px] font-mono tracking-wide text-brand-text-primary font-semibold uppercase truncate">{oracleStage}</span>
@@ -1735,10 +1758,10 @@ export const StrategyRoomScreen: React.FC = () => {
                           <div className="flex items-center space-x-1.5 min-w-0">
                             <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[7px] font-bold flex-shrink-0
                               ${isCompleted
-                                ? 'bg-white/15 border-white/40 text-brand-text-primary'
+                                ? 'bg-[#1c1914]/[0.08] border-brand-border-light text-brand-text-primary'
                                 : isActive
                                   ? 'bg-brand-text-primary text-brand-bg-primary border-white'
-                                  : 'bg-transparent border-white/15 text-brand-text-secondary/30'}`}
+                                  : 'bg-transparent border-brand-border text-brand-text-secondary/30'}`}
                             >
                               {isCompleted ? '§' : idx + 1}
                             </span>
@@ -1763,7 +1786,7 @@ export const StrategyRoomScreen: React.FC = () => {
           </div>
 
           {/* Bottom Input Composer (Mobile) */}
-          <div className="p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-white/10 bg-brand-bg-secondary/95 relative z-20 flex-shrink-0">
+          <div className="p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t border-brand-border bg-brand-bg-secondary/95 relative z-20 flex-shrink-0">
             {audioError && (
               <div className="p-2 mb-1.5 bg-brand-error/10 border border-brand-error/30 text-brand-error text-[12px] rounded-lg text-left" role="alert">
                 {audioError}
@@ -1788,12 +1811,12 @@ export const StrategyRoomScreen: React.FC = () => {
                       ? 'Voice transcription unavailable'
                       : 'Record voice'
                 }
-                className={`w-11 h-11 flex-shrink-0 rounded-lg border flex items-center justify-center focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
+                className={`w-11 h-11 flex-shrink-0 rounded-lg border flex items-center justify-center focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1c1914]/40
                   ${isRecording
                     ? 'bg-brand-error/20 border-brand-error text-brand-error'
                     : sttAvailable === false
-                      ? 'bg-brand-bg-primary border-white/10 text-brand-text-secondary/50'
-                      : 'bg-brand-bg-primary border-white/20 text-brand-text-primary hover:bg-white hover:text-black'
+                      ? 'bg-brand-bg-primary border-brand-border text-brand-text-secondary/50'
+                      : 'bg-brand-bg-primary border-brand-border text-brand-text-primary hover:bg-[#3a352c] hover:text-brand-bg-primary'
                   }`}
                 title={
                   isRecording
@@ -1810,7 +1833,7 @@ export const StrategyRoomScreen: React.FC = () => {
                 )}
               </button>
 
-              <div className="relative flex-grow flex items-end bg-brand-bg-primary rounded-lg border border-white/20 focus-within:ring-1 focus-within:ring-white/30 min-w-0">
+              <div className="relative flex-grow flex items-end bg-brand-bg-primary rounded-lg border border-brand-border focus-within:ring-1 focus-within:ring-[#1c1914]/30 min-w-0">
                 <textarea
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
@@ -2025,13 +2048,13 @@ export const StrategyRoomScreen: React.FC = () => {
                   <div className="font-light text-brand-text-primary">{renderLegalMarkdown(item.text)}</div>
                   {renderCitationPanel(item)}
                   {item.trace && item.trace.length > 0 && (
-                    <details className="mt-2 pt-2 border-t border-white/10 text-[10px] font-light text-brand-text-secondary/80">
+                    <details className="mt-2 pt-2 border-t border-brand-border text-[10px] font-light text-brand-text-secondary/80">
                       <summary className="cursor-pointer text-[8px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
                         View Trace Logs ({item.trace.length})
                       </summary>
                       <div className="mt-2 space-y-2 font-sans text-[10px]">
                         {item.trace.map((tr, index) => (
-                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-white/5 rounded-xl text-left">
+                          <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-brand-border rounded-xl text-left">
                             <h6 className="font-mono text-[8px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
@@ -2155,20 +2178,20 @@ export const StrategyRoomScreen: React.FC = () => {
 
         {/* Columns 9-12: Real-time Deliberation Blueprint & Trace Console (Right Panel) */}
         <div className="col-span-3 flex flex-col gap-4 min-h-0 overflow-hidden">
-          <Card className="p-4.5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col h-full overflow-hidden ">
+          <Card className="p-4 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col h-full overflow-hidden ">
             <div className="space-y-1 border-b border-brand-border pb-3">
               <h3 className="text-sm font-serif font-bold text-shimmer flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <svg className="w-4 h-4  text-brand-text-primary font-semibold" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="9" strokeDasharray="3 3" />
                   </svg>
-                  Holographic Deliberation Blueprint
+                  Deliberation map
                 </span>
                 <span className="text-[8px] font-mono border border-brand-border text-brand-text-primary font-semibold px-1.5 py-0.5 rounded bg-brand-bg-primary uppercase">
                   {isProcessing ? 'Active' : 'Standby'}
                 </span>
               </h3>
-              <p className="text-[9px] text-brand-text-secondary font-light">Interactive process map. Hover and click nodes to interact.</p>
+              <p className="text-[9px] text-brand-text-secondary font-light">Nodes track each stage.</p>
             </div>
 
             {/* Render the interactive SVG Blueprint Map */}
@@ -2264,11 +2287,11 @@ export const StrategyRoomScreen: React.FC = () => {
                     </div>
                   )
                 ) : !isProcessing ? (
-                  <div className="p-4 border border-white/5 bg-brand-bg-primary rounded-xl space-y-2 text-center text-brand-text-secondary font-light">
+                  <div className="p-4 border border-brand-border bg-brand-bg-primary rounded-xl space-y-2 text-center text-brand-text-secondary font-light">
                     <span className="text-2xl "></span>
-                    <h5 className="text-xs font-serif font-bold text-brand-text-primary">Cognitive Engines Standby</h5>
+                    <h5 className="text-xs font-serif font-bold text-brand-text-primary">Standing by</h5>
                     <p className="text-[9px] leading-relaxed max-w-[200px] mx-auto text-brand-text-secondary/70">
-                      Submit a litigation premise or legal query in the consult workbench to activate the animated reasoning pipeline.
+                      Send a query to start the pipeline.
                     </p>
                   </div>
                 ) : null}

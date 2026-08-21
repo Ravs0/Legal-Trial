@@ -720,7 +720,7 @@ const AIPersonasScreen: React.FC = () => {
                 <span className={activePersonaColor}>●</span>
                 <span>{activePersonaName}</span>
                 {activeTab === 'sentient' && (
-                  <span className="text-[9px] sm:text-[10px] font-mono bg-white/10 border border-white/20 px-1.5 py-0.5 text-brand-text-primary/80">
+                  <span className="text-[9px] sm:text-[10px] font-mono bg-[#1c1914]/[0.06] border border-brand-border px-1.5 py-0.5 text-brand-text-primary/80">
                     {selectedSentient.archetype}
                   </span>
                 )}
@@ -822,7 +822,7 @@ const AIPersonasScreen: React.FC = () => {
                     {selectedSentient.codex.maxims.map(m => {
                       const isStudied = (studiedMaxims[selectedSentient.id] || []).includes(m.id);
                       return (
-                        <div key={m.id} className="border border-brand-text-primary/20 bg-brand-bg-dark/20 p-3 sm:p-5 space-y-2 sm:space-y-3 transition-colors hover:border-white/25">
+                        <div key={m.id} className="border border-brand-text-primary/20 bg-brand-bg-dark/20 p-3 sm:p-5 space-y-2 sm:space-y-3 transition-colors hover:border-brand-border-light">
                           <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                             <div>
                               <span className="text-[9px] sm:text-[10px] font-mono text-brand-text-secondary uppercase tracking-wider">{m.concept}</span>
@@ -841,7 +841,7 @@ const AIPersonasScreen: React.FC = () => {
                               {isStudied ? 'Studied' : 'Study'}
                             </button>
                           </div>
-                          <div className="p-2 sm:p-3 bg-brand-bg-dark/40 border-l-2 border-white/40 font-serif italic text-[10px] sm:text-xs text-brand-text-primary/95 leading-relaxed">
+                          <div className="p-2 sm:p-3 bg-brand-bg-dark/40 border-l-2 border-brand-border-light font-serif italic text-[10px] sm:text-xs text-brand-text-primary/95 leading-relaxed">
                             "{m.maxim}"
                           </div>
                           <p className="text-[10px] sm:text-xs text-brand-text-secondary leading-relaxed font-light">{m.explanation}</p>
@@ -866,7 +866,7 @@ const AIPersonasScreen: React.FC = () => {
                     if (isInterjection) {
                       return (
                         <div key={m.id} className="flex justify-center my-2 sm:my-3 animate-fadeIn">
-                          <div className="border border-white/20 bg-brand-bg-secondary/80 p-3 sm:p-4 max-w-lg text-[10px] sm:text-xs leading-relaxed space-y-2 border-l-4 border-l-white/50">
+                          <div className="border border-brand-border bg-brand-bg-secondary/80 p-3 sm:p-4 max-w-lg text-[10px] sm:text-xs leading-relaxed space-y-2 border-l-4 border-l-white/50">
                             <div className="flex items-center space-x-2 border-b border-brand-text-primary/10 pb-1.5">
                               <span className={`h-5 w-5 border border-brand-text-primary/30 flex items-center justify-center font-mono text-[10px] bg-brand-bg-primary ${m.interjectorColor}`}>
                                 {m.interjectorAvatar}
@@ -888,14 +888,14 @@ const AIPersonasScreen: React.FC = () => {
                             </div>
                           )}
                           
-                          <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-white/25 bg-[#1c1914]/[0.06] text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
+                          <div className={`p-2.5 sm:p-3 border leading-relaxed text-[11px] sm:text-xs ${isUser ? 'border-brand-border-light bg-[#1c1914]/[0.06] text-brand-text-primary' : 'border-brand-text-primary/20 bg-brand-bg-dark/20 text-brand-text-primary'}`}>
                             <div className="max-w-none">
                               {renderLegalMarkdown(m.text)}
                             </div>
                           </div>
 
                           {isUser && (
-                            <div className="h-7 w-7 sm:h-8 sm:w-8 border border-white/30 flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark text-brand-text-primary/80 flex-shrink-0">
+                            <div className="h-7 w-7 sm:h-8 sm:w-8 border border-brand-border-light flex items-center justify-center font-mono text-xs sm:text-sm bg-brand-bg-dark text-brand-text-primary/80 flex-shrink-0">
                               U
                             </div>
                           )}
@@ -928,7 +928,7 @@ const AIPersonasScreen: React.FC = () => {
                     placeholder={`Query ${activePersonaName}...`}
                     disabled={isTyping}
                     aria-label={`Message ${activePersonaName}`}
-                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-brand-text-primary placeholder-zinc-500 focus:outline-none focus:border-white/40 font-light"
+                    className="flex-1 bg-brand-bg-dark border border-brand-text-primary/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-brand-text-primary placeholder-zinc-500 focus:outline-none focus:border-brand-border-light font-light"
                   />
                   <button
                     type="button"
@@ -955,8 +955,8 @@ const AIPersonasScreen: React.FC = () => {
       {/* Breakthrough Modal */}
       {breakthrough && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="max-w-md w-full border border-white/25 bg-brand-bg-primary p-4 sm:p-6 space-y-3 sm:space-y-4 relative">
-            <div className="flex items-center space-x-3 text-brand-text-primary border-b border-white/15 pb-3">
+          <div className="max-w-md w-full border border-brand-border-light bg-brand-bg-primary p-4 sm:p-6 space-y-3 sm:space-y-4 relative">
+            <div className="flex items-center space-x-3 text-brand-text-primary border-b border-brand-border pb-3">
               <span className="text-xl" aria-hidden>⚔</span>
               <h4 className="font-mono font-bold uppercase tracking-wider text-[10px] sm:text-xs">Mastery breakthrough</h4>
             </div>
@@ -968,7 +968,7 @@ const AIPersonasScreen: React.FC = () => {
               <h3 className={`text-base sm:text-lg font-serif font-bold ${breakthrough.color}`}>{breakthrough.realmName}</h3>
             </div>
 
-            <div className="p-3 sm:p-4 bg-brand-bg-dark/60 border-l-2 border-white/40 font-serif italic text-[10px] sm:text-xs leading-relaxed text-brand-text-primary/90">
+            <div className="p-3 sm:p-4 bg-brand-bg-dark/60 border-l-2 border-brand-border-light font-serif italic text-[10px] sm:text-xs leading-relaxed text-brand-text-primary/90">
               "{breakthrough.quote}"
             </div>
 

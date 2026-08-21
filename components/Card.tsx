@@ -37,7 +37,7 @@ export const Card: React.FC<CardProps> = ({
     <div
       className={`rounded-md bg-brand-bg-secondary border border-brand-border overflow-hidden
         ${onClick ? 'cursor-pointer' : ''}
-        ${hoverEffect && onClick ? 'hover:bg-brand-bg-tertiary hover:border-white/15 transition-colors duration-150' : ''}
+        ${hoverEffect && onClick ? 'hover:bg-brand-bg-tertiary hover:border-brand-border transition-colors duration-150' : ''}
         ${className}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}

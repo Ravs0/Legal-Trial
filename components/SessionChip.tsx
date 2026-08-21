@@ -17,7 +17,7 @@ export const SessionChip: React.FC<SessionChipProps> = ({
   className = '',
 }) => (
   <div
-    className={`min-w-0 rounded-sm border border-white/10 bg-brand-bg-secondary px-2.5 py-2 ${className}`}
+    className={`min-w-0 rounded-sm border border-brand-border bg-brand-bg-secondary px-2.5 py-2 ${className}`}
   >
     <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/80 truncate">
       {label}
@@ -38,7 +38,7 @@ interface SessionChipRowProps {
 
 export const SessionChipRow: React.FC<SessionChipRowProps> = ({ items, className = '' }) => (
   <div
-    className={`grid grid-cols-2 sm:grid-cols-4 gap-px border border-white/10 bg-white/10 rounded-sm overflow-hidden ${className}`}
+    className={`grid grid-cols-2 sm:grid-cols-4 gap-px border border-brand-border bg-[#1c1914]/[0.06] rounded-sm overflow-hidden ${className}`}
     role="list"
     aria-label="Session metrics"
   >

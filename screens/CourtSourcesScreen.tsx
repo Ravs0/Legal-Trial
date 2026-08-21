@@ -73,13 +73,13 @@ function isIsoDate(value: string): boolean {
 /** Monochrome access badges (design.md: no traffic-light green / sky / amber cast). */
 function accessModeMeta(mode: string) {
   if (mode === 'official_api') {
-    return { color: 'text-brand-text-primary', bg: 'bg-white/10', border: 'border-white/25', label: 'API' };
+    return { color: 'text-brand-text-primary', bg: 'bg-[#1c1914]/[0.06]', border: 'border-brand-border-light', label: 'API' };
   }
   if (mode === 'aggregate_stats') {
     return {
       color: 'text-brand-text-secondary',
-      bg: 'bg-white/5',
-      border: 'border-white/15',
+      bg: 'bg-[#1c1914]/[0.04]',
+      border: 'border-brand-border',
       label: 'Dashboard',
     };
   }
@@ -131,7 +131,7 @@ const SelectField: React.FC<{
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full rounded-lg border border-brand-border bg-brand-bg-dark px-3 text-xs font-medium text-brand-text-primary outline-none transition-all focus:border-white/25 focus:ring-1 focus:ring-white/10"
+        className="h-10 w-full rounded-lg border border-brand-border bg-brand-bg-dark px-3 text-xs font-medium text-brand-text-primary outline-none transition-all focus:border-brand-border-light focus:ring-1 focus:ring-white/10"
       >
         {options.map((opt) => (
           <option key={opt.value || 'all'} value={opt.value}>
@@ -156,7 +156,7 @@ const SourcePill: React.FC<{ selected: boolean; label: string; short: string; on
     className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors ${
       selected
         ? 'border-white bg-brand-text-primary text-brand-bg-primary'
-        : 'border-brand-border bg-brand-bg-secondary text-brand-text-secondary hover:border-white/20 hover:text-brand-text-primary'
+        : 'border-brand-border bg-brand-bg-secondary text-brand-text-secondary hover:border-brand-border hover:text-brand-text-primary'
     }`}
   >
     <span className="hidden lg:inline">{label}</span>
@@ -179,7 +179,7 @@ const AccessBadge: React.FC<{ mode: string }> = ({ mode }) => {
 const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
   const isPortal = record.provenance.retrieval_mode === 'portal_reference';
   return (
-    <article className="group relative rounded-xl border border-brand-border bg-brand-bg-secondary p-5 sm:p-6 transition-all duration-300 hover:border-white/20">
+    <article className="group relative rounded-xl border border-brand-border bg-brand-bg-secondary p-5 sm:p-6 transition-all duration-300 hover:border-brand-border">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -204,7 +204,7 @@ const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
           href={record.provenance.official_source_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-white px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-black transition-colors hover:bg-white/90 sm:self-start"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-text-primary px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-brand-bg-primary transition-colors hover:bg-[#3a352c] sm:self-start"
         >
           Open Official Source
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -242,7 +242,7 @@ const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
               href={doc.official_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group/link flex min-h-10 items-center justify-between gap-2.5 rounded-lg border border-white/5 bg-brand-bg-dark px-3 py-2.5 text-[11px] font-medium text-brand-text-secondary/70 transition-all hover:border-white/20 hover:bg-white/5 hover:text-brand-text-primary"
+              className="group/link flex min-h-10 items-center justify-between gap-2.5 rounded-lg border border-brand-border bg-brand-bg-dark px-3 py-2.5 text-[11px] font-medium text-brand-text-secondary/70 transition-all hover:border-brand-border hover:bg-[#1c1914]/[0.04] hover:text-brand-text-primary"
             >
               <span className="truncate">{doc.title}</span>
               <svg
@@ -266,7 +266,7 @@ const SourceCard: React.FC<{ record: CourtDataRecord }> = ({ record }) => {
 };
 
 const CaselawCard: React.FC<{ result: CaselawResult }> = ({ result }) => (
-  <article className="rounded-lg border border-brand-border bg-brand-bg-primary/60 p-4 transition-colors hover:border-white/20">
+  <article className="rounded-lg border border-brand-border bg-brand-bg-primary/60 p-4 transition-colors hover:border-brand-border">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
         <h3 className="font-serif text-[15px] font-semibold leading-snug text-brand-text-primary">{result.title}</h3>
@@ -281,7 +281,7 @@ const CaselawCard: React.FC<{ result: CaselawResult }> = ({ result }) => (
         href={result.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-brand-border px-3 text-[11px] font-semibold text-brand-text-primary hover:border-white/25 hover:bg-white/5"
+        className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-md border border-brand-border px-3 text-[11px] font-semibold text-brand-text-primary hover:border-brand-border-light hover:bg-[#1c1914]/[0.04]"
       >
         Open judgment
       </a>
@@ -548,7 +548,7 @@ const CourtSourcesScreen: React.FC = () => {
                     value={caselawQuery}
                     onChange={(event) => setCaselawQuery(event.target.value)}
                     placeholder="e.g. bail cancellation, arbitral award public policy"
-                    className="h-10 rounded-lg border border-brand-border bg-brand-bg-primary px-3 text-sm text-brand-text-primary outline-none placeholder:text-brand-text-secondary/40 focus:border-white/25"
+                    className="h-10 rounded-lg border border-brand-border bg-brand-bg-primary px-3 text-sm text-brand-text-primary outline-none placeholder:text-brand-text-secondary/40 focus:border-brand-border-light"
                   />
                 </div>
                 <SelectField
@@ -590,7 +590,7 @@ const CourtSourcesScreen: React.FC = () => {
                 <button
                   type="submit"
                   disabled={caselawLoading || !caselawQuery.trim()}
-                  className="min-h-10 rounded-lg bg-white px-4 text-[12px] font-semibold text-black hover:bg-white/90 disabled:opacity-50"
+                  className="min-h-10 rounded-lg bg-brand-text-primary px-4 text-[12px] font-semibold text-brand-bg-primary hover:bg-[#3a352c] disabled:opacity-50"
                 >
                   {caselawLoading ? 'Searching…' : 'Find cases'}
                 </button>
@@ -643,7 +643,7 @@ const CourtSourcesScreen: React.FC = () => {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="CNR, party name, case type, court service..."
-                    className="h-11 w-full rounded-lg border border-brand-border bg-brand-bg-primary pl-10 pr-4 text-sm text-brand-text-primary outline-none transition-all placeholder:text-brand-text-secondary/40 focus:border-white/25 focus:ring-1 focus:ring-white/10"
+                    className="h-11 w-full rounded-lg border border-brand-border bg-brand-bg-primary pl-10 pr-4 text-sm text-brand-text-primary outline-none transition-all placeholder:text-brand-text-secondary/40 focus:border-brand-border-light focus:ring-1 focus:ring-white/10"
                   />
                 </div>
               </div>
@@ -667,7 +667,7 @@ const CourtSourcesScreen: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex h-10 min-w-[100px] items-center justify-center gap-2 rounded-lg bg-white px-5 text-[12px] font-medium text-black transition-colors hover:bg-white/90 disabled:opacity-50"
+                  className="inline-flex h-10 min-w-[100px] items-center justify-center gap-2 rounded-lg bg-brand-text-primary px-5 text-[12px] font-medium text-brand-bg-primary transition-colors hover:bg-[#3a352c] disabled:opacity-50"
                 >
                   {loading ? (
                     <svg
@@ -701,7 +701,7 @@ const CourtSourcesScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="h-10 rounded-lg border border-brand-border px-3.5 text-[12px] text-brand-text-secondary transition-colors hover:border-white/20 hover:text-brand-text-primary"
+                  className="h-10 rounded-lg border border-brand-border px-3.5 text-[12px] text-brand-text-secondary transition-colors hover:border-brand-border hover:text-brand-text-primary"
                 >
                   Reset
                 </button>
@@ -774,14 +774,14 @@ const CourtSourcesScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => runSearch(params)}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-white/20 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.12em] text-black transition-colors hover:bg-white/90"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-border bg-brand-text-primary px-4 text-[11px] font-bold uppercase tracking-[0.12em] text-brand-bg-primary transition-colors hover:bg-[#3a352c]"
               >
                 Retry
               </button>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-border px-4 text-[11px] font-semibold text-brand-text-secondary transition-colors hover:border-white/20 hover:text-brand-text-primary"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-border px-4 text-[11px] font-semibold text-brand-text-secondary transition-colors hover:border-brand-border hover:text-brand-text-primary"
               >
                 Clear Filters
               </button>
@@ -818,7 +818,7 @@ const CourtSourcesScreen: React.FC = () => {
             <button
               type="button"
               onClick={resetFilters}
-              className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-border px-4 text-[11px] font-semibold text-brand-text-secondary/70 transition-all hover:border-white/25 hover:text-brand-text-primary"
+              className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-brand-border px-4 text-[11px] font-semibold text-brand-text-secondary/70 transition-all hover:border-brand-border-light hover:text-brand-text-primary"
             >
               Clear Filters
             </button>

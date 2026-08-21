@@ -126,7 +126,7 @@ const LandingScreen: React.FC = () => {
 
       <header className="relative z-20 flex items-center justify-between px-5 sm:px-8 lg:px-12 h-14 sm:h-16">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md overflow-hidden border border-white/20">
+          <div className="w-7 h-7 rounded-md overflow-hidden border border-brand-border">
             <img src={screenMedia.landing.logo} alt="" className="w-full h-full object-cover" />
           </div>
           <span className="text-[15px] font-medium tracking-tight">{APP_NAME}</span>
@@ -134,7 +134,7 @@ const LandingScreen: React.FC = () => {
         <button
           type="button"
           onClick={() => openModes('header')}
-          className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary transition-colors py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-sm"
+          className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary transition-colors py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 rounded-sm"
         >
           Open workspace
         </button>
@@ -157,7 +157,7 @@ const LandingScreen: React.FC = () => {
                   trackEvent('landing_resume_clicked');
                   navigate(ROUTES.PRACTICE);
                 }}
-                className="shrink-0 h-10 px-4 rounded-md border border-white/25 bg-white/10 text-[13px] font-medium text-brand-text-primary hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                className="shrink-0 h-10 px-4 rounded-md border border-brand-border-light bg-[#1c1914]/[0.06] text-[13px] font-medium text-brand-text-primary hover:bg-[#1c1914]/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30"
               >
                 Resume hearing
               </button>
@@ -199,7 +199,7 @@ const LandingScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDemoStart}
-                className="h-12 px-7 rounded-md bg-white text-brand-bg-primary text-[14px] font-semibold hover:bg-white/95 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg-primary"
+                className="h-12 px-7 rounded-md bg-white text-brand-bg-primary text-[14px] font-semibold hover:bg-white/95 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg-primary"
               >
                 Start 15-minute demo
               </button>
@@ -213,7 +213,7 @@ const LandingScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openModes('inline')}
-                className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary underline underline-offset-4 decoration-white/25 hover:decoration-white/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 rounded-sm"
+                className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary underline underline-offset-4 decoration-white/25 hover:decoration-white/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 rounded-sm"
                 aria-expanded={showModes}
               >
                 {showModes ? 'Hide jurisdiction options' : 'Or choose a jurisdiction'}
@@ -226,7 +226,7 @@ const LandingScreen: React.FC = () => {
               <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-primary/50 mb-3">
                 Choose workspace mode
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-white/10 rounded-md overflow-hidden border border-white/15">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[#1c1914]/[0.06] rounded-md overflow-hidden border border-brand-border">
                 <PhotoTile
                   title="Indian practice"
                   description="CPC, BNSS, constitutional and commercial"
@@ -261,7 +261,7 @@ const LandingScreen: React.FC = () => {
                   return next;
                 });
               }}
-              className="text-[12px] text-brand-text-primary/50 hover:text-brand-text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-sm"
+              className="text-[12px] text-brand-text-primary/50 hover:text-brand-text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 rounded-sm"
               aria-expanded={showTrust}
             >
               {showTrust ? 'Hide training notice' : 'Training only. Not legal advice.'}
@@ -277,7 +277,7 @@ const LandingScreen: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleClearLocal}
-                  className="mt-2 text-brand-text-primary/80 underline underline-offset-2 hover:text-brand-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-sm"
+                  className="mt-2 text-brand-text-primary/80 underline underline-offset-2 hover:text-brand-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 rounded-sm"
                 >
                   {dataCleared ? 'Local LexForge data cleared' : 'Clear saved local data'}
                 </button>
@@ -287,7 +287,7 @@ const LandingScreen: React.FC = () => {
         </div>
       </main>
 
-      <footer className="relative z-20 px-5 sm:px-8 lg:px-12 h-11 flex items-center justify-between border-t border-white/10 text-[12px] text-brand-text-primary/45">
+      <footer className="relative z-20 px-5 sm:px-8 lg:px-12 h-11 flex items-center justify-between border-t border-brand-border text-[12px] text-brand-text-primary/45">
         <span>{APP_NAME}</span>
         <span className="hidden sm:inline">Argue · Score · Review</span>
       </footer>
@@ -300,7 +300,7 @@ const LandingScreen: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate(ROUTES.PRACTICE)}
-            className="min-h-11 rounded-md border border-brand-border px-4 text-sm font-medium text-brand-text-primary hover:bg-brand-bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            className="min-h-11 rounded-md border border-brand-border px-4 text-sm font-medium text-brand-text-primary hover:bg-brand-bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25"
           >
             Resume hearing
           </button>
@@ -310,7 +310,7 @@ const LandingScreen: React.FC = () => {
               setShowDemoConfirm(false);
               void startDemo(true);
             }}
-            className="min-h-11 rounded-md bg-brand-accent px-4 text-sm font-semibold text-brand-bg-primary hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+            className="min-h-11 rounded-md bg-brand-accent px-4 text-sm font-semibold text-brand-bg-primary hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30"
           >
             Start fresh demo
           </button>

@@ -23,6 +23,7 @@ import { RoomBanner, RoomStepper } from '../components/RoomChrome';
 import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
 import { PhotoTile } from '../components/PhotoTile';
 import { buildDraftMarkdown, downloadMarkdown, draftFilename } from '../services/exportService';
+import { saveGenericState, readGenericState } from '../services/storageService';
 import draftingPen from '../assets/drafting_pen.jpg';
 import trialBinderDesk from '../assets/trial_binder_desk.jpg';
 import counselScales from '../assets/counsel_scales.jpg';
@@ -131,7 +132,7 @@ const DraftingStudioScreen: React.FC = () => {
     };
     const updated = [newSnapshot, ...snapshots];
     setSnapshots(updated);
-    localStorage.setItem(key, JSON.stringify(updated));
+    saveGenericState(key, updated);
     
     setShowAutoSave(true);
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -141,17 +142,8 @@ const DraftingStudioScreen: React.FC = () => {
   useEffect(() => {
     if (currentTask) {
       const key = `draft-snapshots-${currentTask.id}`;
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        try {
-          setSnapshots(JSON.parse(saved));
-        } catch (e) {
-          console.error("Failed to parse snapshots", e);
-          setSnapshots([]);
-        }
-      } else {
-        setSnapshots([]);
-      }
+      const saved = readGenericState<typeof snapshots>(key);
+      setSnapshots(Array.isArray(saved) ? saved : []);
     }
   }, [currentTask]);
 
@@ -269,7 +261,7 @@ const DraftingStudioScreen: React.FC = () => {
                   rowBg = 'bg-brand-error/10';
                   oldTextColor = 'text-brand-error font-medium line-through';
                 } else if (row.type === 'added') {
-                  rowBg = 'bg-white/5';
+                  rowBg = 'bg-[#1c1914]/[0.04]';
                   newTextColor = 'text-brand-text-primary font-medium';
                 } else {
                   oldTextColor = 'text-brand-text-primary/80';
@@ -499,24 +491,29 @@ const DraftingStudioScreen: React.FC = () => {
     return fallback;
   }, []);
 
-  // Auto-save logic
+  // Auto-save: debounced 600ms, routed through storageService's versioned
+  // envelope (quota recovery + private-mode safety) instead of raw writes.
   useEffect(() => {
-    if (currentTask && userDraft) {
-      localStorage.setItem(`draft-save-${currentTask.id}`, userDraft);
+    if (!currentTask || !userDraft) return;
+    const key = `draft-save-${currentTask.id}`;
+    const draft = userDraft;
+    const timer = setTimeout(() => {
+      saveGenericState(key, draft);
       setShowAutoSave(true);
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
       autoSaveTimerRef.current = setTimeout(() => setShowAutoSave(false), 2000);
-    }
-    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+    }, 600);
+    return () => clearTimeout(timer);
   }, [userDraft, currentTask]);
 
   useEffect(() => {
     if (currentTask) {
-        const saved = localStorage.getItem(`draft-save-${currentTask.id}`);
+        const saved = readGenericState<string>(`draft-save-${currentTask.id}`);
         if (saved && !userDraft) {
             setUserDraft(saved);
         }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTask]);
 
   // Debounced live scoring: runs 800ms after the user stops typing
@@ -535,7 +532,7 @@ const DraftingStudioScreen: React.FC = () => {
 
   const resetTaskStateFull = useCallback(() => {
     if (currentTask) {
-        localStorage.removeItem(`draft-save-${currentTask.id}`);
+        try { localStorage.removeItem(`draft-save-${currentTask.id}`); } catch { /* private mode */ }
     }
     setCurrentTask(null);
     setGeneratedFacts('');
@@ -573,7 +570,7 @@ const DraftingStudioScreen: React.FC = () => {
 
     // Clear prior instrument state without wiping the pending selection path.
     if (currentTask && currentTask.id !== selected.id) {
-      localStorage.removeItem(`draft-save-${currentTask.id}`);
+      try { localStorage.removeItem(`draft-save-${currentTask.id}`); } catch { /* private mode */ }
     }
     setGeneratedFacts('');
     setUserDraft('');
@@ -1063,7 +1060,7 @@ Section 8.2 Limitation of Liability.
                         {studioError && (
                           <div
                             role="alert"
-                            className="border border-white/15 bg-brand-bg-secondary p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
+                            className="border border-brand-border bg-brand-bg-secondary p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
                           >
                             <div className="flex-1 min-w-0">
                               <p className="text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary mb-1">
@@ -1192,9 +1189,9 @@ Section 8.2 Limitation of Liability.
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Score</span>
                                     {scoringResult && (
                                         <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
-                                            ${scoringResult.verdictTier === 'excellent' ? 'bg-white/15 text-brand-text-primary' :
-                                              scoringResult.verdictTier === 'good' ? 'bg-white/10 text-brand-text-primary' :
-                                              scoringResult.verdictTier === 'fair' ? 'bg-white/5 text-brand-text-secondary' :
+                                            ${scoringResult.verdictTier === 'excellent' ? 'bg-[#1c1914]/[0.08] text-brand-text-primary' :
+                                              scoringResult.verdictTier === 'good' ? 'bg-[#1c1914]/[0.06] text-brand-text-primary' :
+                                              scoringResult.verdictTier === 'fair' ? 'bg-[#1c1914]/[0.04] text-brand-text-secondary' :
                                               'bg-brand-error/15 text-brand-error'}
                                         `}>
                                             {Math.round(scoringResult.totalScore)}
@@ -1209,8 +1206,8 @@ Section 8.2 Limitation of Liability.
                                     <CheckCircleIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'compliance' ? 'text-brand-accent' : ''}`} />
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">Rules</span>
                                     <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
-                                        ${complianceMetrics.score === 100 ? 'bg-white/15 text-brand-text-primary' :
-                                          complianceMetrics.score >= 60 ? 'bg-white/10 text-brand-text-primary' :
+                                        ${complianceMetrics.score === 100 ? 'bg-[#1c1914]/[0.08] text-brand-text-primary' :
+                                          complianceMetrics.score >= 60 ? 'bg-[#1c1914]/[0.06] text-brand-text-primary' :
                                           'bg-brand-error/15 text-brand-error'}
                                     `}>
                                         {complianceMetrics.score}
@@ -1261,7 +1258,7 @@ Section 8.2 Limitation of Liability.
                                             <span className="text-[10px] font-mono uppercase tracking-widest">{currentTask?.type} Case Facts</span>
                                         </div>
                                         {generatedFacts ? (
-                                            <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-white/20 prose-sm prose-invert">
+                                            <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-[#1c1914]/[0.08] prose-sm">
                                                 {renderLegalMarkdown(generatedFacts)}
                                             </div>
                                         ) : (
@@ -1312,8 +1309,8 @@ Section 8.2 Limitation of Liability.
                                                 {complianceMetrics.score}%
                                             </span>
                                             <span className={`text-[10px] uppercase font-bold tracking-widest mt-2 px-2 py-0.5 border ${
-                                                complianceMetrics.score === 100 ? 'border-white/25 text-brand-text-primary bg-white/10' :
-                                                complianceMetrics.score >= 60 ? 'border-white/15 text-brand-text-primary bg-white/5' :
+                                                complianceMetrics.score === 100 ? 'border-brand-border-light text-brand-text-primary bg-[#1c1914]/[0.06]' :
+                                                complianceMetrics.score >= 60 ? 'border-brand-border text-brand-text-primary bg-[#1c1914]/[0.04]' :
                                                 'border-brand-error/30 text-brand-error bg-brand-error/10'
                                             }`}>
                                                 {complianceMetrics.verdict}
@@ -1327,7 +1324,7 @@ Section 8.2 Limitation of Liability.
                                                     key={check.id} 
                                                     className={`p-3 border text-left transition-all ${
                                                         check.satisfied 
-                                                            ? 'border-white/15 bg-[#1c1914]/[0.04] text-brand-text-primary' 
+                                                            ? 'border-brand-border bg-[#1c1914]/[0.04] text-brand-text-primary' 
                                                             : 'border-brand-text-primary/10 text-brand-text-secondary bg-black/10'
                                                     }`}
                                                 >
@@ -1337,14 +1334,14 @@ Section 8.2 Limitation of Liability.
                                                         </span>
                                                         <span className={`text-[8px] uppercase px-1 py-0.5 border leading-none ${
                                                             check.satisfied 
-                                                                ? 'border-white/20 text-brand-text-primary' 
+                                                                ? 'border-brand-border text-brand-text-primary' 
                                                                 : 'border-brand-text-primary/20 text-brand-text-secondary'
                                                         }`}>
                                                             {check.satisfied ? 'PASSED' : 'MISSING'}
                                                         </span>
                                                     </div>
                                                     {!check.satisfied && (
-                                                        <p className="text-[10px] text-brand-text-secondary leading-relaxed font-sans pl-3 border-l border-white/15">
+                                                        <p className="text-[10px] text-brand-text-secondary leading-relaxed font-sans pl-3 border-l border-brand-border">
                                                             {check.tip}
                                                         </p>
                                                     )}
@@ -1376,7 +1373,7 @@ Section 8.2 Limitation of Liability.
                                             />
                                         ) : aiFeedback ? (
                                             <div>
-                                                <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-white/20 prose-sm prose-invert">
+                                                <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-[#1c1914]/[0.08] prose-sm">
                                                     {renderLegalMarkdown(aiFeedback)}
                                                 </div>
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
@@ -1421,7 +1418,7 @@ Section 8.2 Limitation of Liability.
                                                 className="py-8"
                                             />
                                         ) : filingProcedure ? (
-                                            <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-white/20 prose-sm prose-invert">
+                                            <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-[#1c1914]/[0.08] prose-sm">
                                                 {renderLegalMarkdown(filingProcedure)}
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                     <button
@@ -1495,7 +1492,7 @@ Section 8.2 Limitation of Liability.
                                                                     const key = `draft-snapshots-${currentTask?.id}`;
                                                                     const updated = snapshots.filter(s => s.id !== snap.id);
                                                                     setSnapshots(updated);
-                                                                    localStorage.setItem(key, JSON.stringify(updated));
+                                                                    if (currentTask) saveGenericState(key, updated);
                                                                 }}
                                                                 className="text-[9px] font-mono text-brand-error hover:text-brand-error transition-colors border border-brand-error/25 px-2 py-1 uppercase ml-auto"
                                                             >
@@ -1597,9 +1594,9 @@ Section 8.2 Limitation of Liability.
                                 <button
                                     onClick={() => { setActiveRefTab('score'); if(!isRefPanelOpen) setIsRefPanelOpen(true); }}
                                     className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-xl border transition-all cursor-pointer
-                                        ${scoringResult.verdictTier === 'excellent' ? 'border-white/25 bg-white/10 text-brand-text-primary' :
-                                          scoringResult.verdictTier === 'good' ? 'border-white/15 bg-white/5 text-brand-text-primary' :
-                                          scoringResult.verdictTier === 'fair' ? 'border-white/10 bg-transparent text-brand-text-secondary' :
+                                        ${scoringResult.verdictTier === 'excellent' ? 'border-brand-border-light bg-[#1c1914]/[0.06] text-brand-text-primary' :
+                                          scoringResult.verdictTier === 'good' ? 'border-brand-border bg-[#1c1914]/[0.04] text-brand-text-primary' :
+                                          scoringResult.verdictTier === 'fair' ? 'border-brand-border bg-transparent text-brand-text-secondary' :
                                           'border-brand-error/30 bg-brand-error/10 text-brand-error'}
                                     `}
                                     title="View full scoring breakdown"

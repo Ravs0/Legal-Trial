@@ -489,6 +489,19 @@ export const DreadlerArenaScreen: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // ESC closes any open mobile drawer.
+  useEffect(() => {
+    if (!isMobile) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showMobileVKDrawer) { setShowMobileVKDrawer(false); return; }
+      if (showMobileCritic) { setShowMobileCritic(false); return; }
+      if (showMobileReference) { setShowMobileReference(false); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobile, showMobileVKDrawer, showMobileCritic, showMobileReference]);
+
   // Load unlock catalog from API GET (multi-world / multi-skin)
   useEffect(() => {
     let cancelled = false;
@@ -1373,7 +1386,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-white/[0.04] to-transparent pointer-events-none" />
           
           {/* Chat Feed */}
-          <div className="flex-grow p-2 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4 custom-scrollbar relative z-10">
+          <div aria-live="polite" aria-relevant="additions text" className="flex-grow p-2 sm:p-4 overflow-y-auto space-y-3 sm:space-y-4 custom-scrollbar relative z-10">
             {/* FLOATING VOIGHT-KAMPFF SCOPE FOR MOBILE */}
             {isMobile && (
               <div 

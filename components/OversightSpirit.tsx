@@ -422,10 +422,10 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
       }`}
     >
       {isOpen && (
-        <div className="bg-brand-bg-primary border border-white/10 rounded-lg w-80 sm:w-96 h-[28rem] flex flex-col mb-3 overflow-hidden animate-fadeInUp">
-          <div className="bg-brand-bg-secondary border-b border-white/10 px-4 py-2.5 flex justify-between items-center">
+        <div className="bg-brand-bg-primary border border-brand-border rounded-lg w-80 sm:w-96 h-[28rem] flex flex-col mb-3 overflow-hidden animate-fadeInUp">
+          <div className="bg-brand-bg-secondary border-b border-brand-border px-4 py-2.5 flex justify-between items-center">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 bg-[#1c1914]/[0.06] border border-white/15 rounded-md flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 bg-[#1c1914]/[0.06] border border-brand-border rounded-md flex items-center justify-center shrink-0">
                 <span className="text-sm font-semibold text-brand-text-primary font-serif">K</span>
               </div>
               <div className="min-w-0">
@@ -433,7 +433,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
                   <span className="text-brand-text-primary font-serif font-semibold text-[15px]">
                     Koku
                   </span>
-                  <span className="text-[9px] text-brand-text-secondary tracking-widest uppercase border border-white/15 px-1.5 py-0.5 rounded-sm">
+                  <span className="text-[9px] text-brand-text-secondary tracking-widest uppercase border border-brand-border px-1.5 py-0.5 rounded-sm">
                     Optional coach
                   </span>
                 </div>
@@ -453,7 +453,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-3 border-b border-white/10 px-4 py-2 text-[10px] text-brand-text-secondary">
+          <div className="flex flex-wrap gap-3 border-b border-brand-border px-4 py-2 text-[10px] text-brand-text-secondary">
             <label className="flex items-center gap-1.5 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -481,7 +481,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.sender === 'koku' && (
-                  <div className="w-6 h-6 bg-[#1c1914]/[0.06] border border-white/15 rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                  <div className="w-6 h-6 bg-[#1c1914]/[0.06] border border-brand-border rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
                     <span className="text-[10px] font-semibold text-brand-text-primary font-serif">
                       K
                     </span>
@@ -491,7 +491,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
                   className={`max-w-[80%] px-3 py-2 text-sm leading-relaxed rounded-md ${
                     msg.sender === 'user'
                       ? 'bg-white text-brand-bg-primary border border-white'
-                      : 'bg-[#1c1914]/[0.05] text-brand-text-primary border border-white/10'
+                      : 'bg-[#1c1914]/[0.05] text-brand-text-primary border border-brand-border'
                   }`}
                 >
                   {msg.text}
@@ -500,12 +500,12 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
             ))}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="w-6 h-6 bg-[#1c1914]/[0.06] border border-white/15 rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+                <div className="w-6 h-6 bg-[#1c1914]/[0.06] border border-brand-border rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
                   <span className="text-[10px] font-semibold text-brand-text-primary font-serif">
                     K
                   </span>
                 </div>
-                <div className="max-w-[80%] px-3 py-2 text-sm bg-[#1c1914]/[0.05] text-brand-text-primary border border-white/10 rounded-md flex space-x-1 items-center">
+                <div className="max-w-[80%] px-3 py-2 text-sm bg-[#1c1914]/[0.05] text-brand-text-primary border border-brand-border rounded-md flex space-x-1 items-center">
                   <span
                     className="w-1.5 h-1.5 bg-brand-text-secondary rounded-full animate-bounce"
                     style={{ animationDelay: '0ms' }}
@@ -524,7 +524,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-3 border-t border-white/10 bg-brand-bg-secondary flex items-center gap-2">
+          <div className="p-3 border-t border-brand-border bg-brand-bg-secondary flex items-center gap-2">
             <input
               type="text"
               value={input}
@@ -556,8 +556,8 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
           onClick={expandToastToChat}
           role="status"
         >
-          <div className="bg-brand-bg-primary border border-white/15 rounded-lg px-4 py-3 flex items-start gap-3 group hover:border-white/30 transition-colors">
-            <div className="w-8 h-8 bg-[#1c1914]/[0.06] border border-white/15 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div className="bg-brand-bg-primary border border-brand-border rounded-lg px-4 py-3 flex items-start gap-3 group hover:border-brand-border-light transition-colors">
+            <div className="w-8 h-8 bg-[#1c1914]/[0.06] border border-brand-border rounded-md flex items-center justify-center flex-shrink-0 mt-0.5">
               <span className="text-sm font-semibold text-brand-text-primary font-serif">K</span>
             </div>
             <div className="flex-grow min-w-0">
@@ -591,11 +591,11 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
             dismissToast();
             setIsOpen(true);
           }}
-          className="hidden sm:flex w-12 h-12 bg-brand-bg-secondary border border-white/20 rounded-lg hover:bg-[#1c1914]/[0.06] hover:border-white/35 transition-colors items-center justify-center relative group"
+          className="hidden sm:flex w-12 h-12 bg-brand-bg-secondary border border-brand-border rounded-lg hover:bg-[#1c1914]/[0.06] hover:border-white/35 transition-colors items-center justify-center relative group"
           aria-label="Open optional coach"
         >
           <span className="text-lg font-semibold text-brand-text-primary font-serif">K</span>
-          <div className="absolute right-14 bg-brand-bg-secondary border border-white/15 text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-md">
+          <div className="absolute right-14 bg-brand-bg-secondary border border-brand-border text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-md">
             Optional coach
           </div>
         </button>

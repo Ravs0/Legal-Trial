@@ -91,7 +91,7 @@ const MetricRow: React.FC<{ metric: MetricBreakdown }> = ({ metric }) => {
           <span className="text-[9px] text-brand-text-secondary/45">/ {metric.target}</span>
         </div>
       </div>
-      <div className="w-full h-px bg-white/10 overflow-hidden">
+      <div className="w-full h-px bg-[#1c1914]/[0.06] overflow-hidden">
         <div
           className={`h-full transition-[width] duration-500 ease-out ${barColor}`}
           style={{ width: `${barWidth}%` }}
@@ -106,7 +106,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode; strong?: boolean }> = 
   strong = false,
 }) => (
   <div className="flex items-center gap-2 mb-1.5">
-    <div className={`h-px w-3 ${strong ? 'bg-white/40' : 'bg-white/20'}`} />
+    <div className={`h-px w-3 ${strong ? 'bg-white/40' : 'bg-[#1c1914]/[0.08]'}`} />
     <span className="text-[9px] font-mono text-brand-text-secondary uppercase tracking-[0.18em]">
       {children}
     </span>
@@ -133,18 +133,18 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ result, className = '' }) 
 
   return (
     <div className={`space-y-5 ${className}`}>
-      <div className="text-center space-y-3 pb-4 border-b border-white/10">
+      <div className="text-center space-y-3 pb-4 border-b border-brand-border">
         <ScoreGauge score={result.totalScore} tier={result.verdictTier} />
         <p className={`text-xs font-medium tracking-tight ${TIER_TEXT[result.verdictTier]}`}>
           {result.verdict}
         </p>
         <div className="flex items-center justify-center gap-3 text-[10px] font-mono text-brand-text-secondary/70">
           <span>{result.wordCount.toLocaleString()} words</span>
-          <span className="w-px h-3 bg-white/15" aria-hidden="true" />
+          <span className="w-px h-3 bg-[#1c1914]/[0.08]" aria-hidden="true" />
           <span>{result.sentenceCount} sentences</span>
           {result.aiTellCount > 0 && (
             <>
-              <span className="w-px h-3 bg-white/15" aria-hidden="true" />
+              <span className="w-px h-3 bg-[#1c1914]/[0.08]" aria-hidden="true" />
               <span className="text-brand-error">{result.aiTellCount} AI tells</span>
             </>
           )}
@@ -154,7 +154,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ result, className = '' }) 
       {critical.length > 0 && (
         <div>
           <SectionLabel strong>Core Metrics</SectionLabel>
-          <div className="border border-white/10 bg-brand-bg-secondary/40">
+          <div className="border border-brand-border bg-brand-bg-secondary/40">
             {critical.map(([key, metric]) => (
               <MetricRow key={key} metric={metric} />
             ))}
@@ -165,7 +165,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ result, className = '' }) 
       {secondary.length > 0 && (
         <div>
           <SectionLabel>Punctuation Profile</SectionLabel>
-          <div className="border border-white/10 bg-brand-bg-secondary/40">
+          <div className="border border-brand-border bg-brand-bg-secondary/40">
             {secondary.map(([key, metric]) => (
               <MetricRow key={key} metric={metric} />
             ))}

@@ -107,13 +107,13 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
                 role="status"
                 className={`text-[11px] tabular-nums border rounded-md px-2 py-1 ${
                   saveState === 'dirty'
-                    ? 'border-white/25 text-brand-text-primary bg-[#1c1914]/[0.08]'
-                    : 'border-white/15 text-brand-text-primary/55'
+                    ? 'border-brand-border-light text-brand-text-primary bg-[#1c1914]/[0.08]'
+                    : 'border-brand-border text-brand-text-primary/55'
                 }`}
               >
                 {saveLabel}
               </span>
-              <span className="text-[11px] text-brand-text-primary/55 tabular-nums border border-white/15 rounded-md px-2 py-1">
+              <span className="text-[11px] text-brand-text-primary/55 tabular-nums border border-brand-border rounded-md px-2 py-1">
                 {sections.length} sections
               </span>
             </div>
@@ -280,7 +280,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
               sections.map((s, idx) => (
                 <div
                   key={s.id}
-                  className="group flex items-start justify-between gap-2 p-2.5 rounded-lg border border-brand-border bg-brand-bg-primary hover:border-white/20"
+                  className="group flex items-start justify-between gap-2 p-2.5 rounded-lg border border-brand-border bg-brand-bg-primary hover:border-brand-border"
                 >
                   <div className="min-w-0">
                     <span className="text-[10px] text-brand-text-secondary/50 font-mono tabular-nums">

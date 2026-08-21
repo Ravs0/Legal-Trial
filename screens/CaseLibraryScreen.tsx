@@ -451,7 +451,7 @@ const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ ini
             placeholder="Search docket (copyright, contract, negligence…)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-3 sm:p-3.5 bg-brand-bg-primary border border-brand-border rounded-lg focus:outline-none focus:ring-1 focus:ring-white/20 text-[14px] text-brand-text-primary placeholder-brand-text-secondary/50"
+            className="w-full p-3 sm:p-3.5 bg-brand-bg-primary border border-brand-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#1c1914]/20 text-[14px] text-brand-text-primary placeholder-brand-text-secondary/50"
           />
           {searchQuery && (
             <button
@@ -487,7 +487,7 @@ const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ ini
                       searchPipeline === pipe ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary'
                     }`}
                   >
-                    {pipe === 'bm25' ? 'BM25' : pipe === 'legal-bert' ? 'Legal-BERT' : 'Hybrid'}
+                    {pipe === 'bm25' ? 'Keyword' : pipe === 'legal-bert' ? 'Weighted' : 'Hybrid'}
                   </button>
                 ))}
               </div>
@@ -500,7 +500,7 @@ const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ ini
                 {/* Semantic weight */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[9px] text-brand-text-secondary">
-                    <span>Semantic Similarity (BERT)</span>
+                    <span>Semantic Weight</span>
                     <span className="text-brand-accent">{(weightSemantic * 100).toFixed(0)}%</span>
                   </div>
                   <input
@@ -788,7 +788,7 @@ const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ ini
                       </div>
 
                       <div className="p-6 pt-0 mt-auto">
-                        <Button variant="outline" size="sm" fullWidth className="group-hover:bg-white group-hover:text-black group-hover:border-white/50 transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
+                        <Button variant="outline" size="sm" fullWidth className="group-hover:bg-[#3a352c] group-hover:text-brand-bg-primary group-hover:border-brand-border transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
                           Review Case File
                         </Button>
                       </div>
@@ -866,7 +866,7 @@ const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ ini
                         </div>
 
                         <div className="p-6 pt-0 mt-auto">
-                          <Button variant="outline" size="sm" fullWidth className="group-hover:bg-white group-hover:text-black group-hover:border-white/50 transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
+                          <Button variant="outline" size="sm" fullWidth className="group-hover:bg-[#3a352c] group-hover:text-brand-bg-primary group-hover:border-brand-border transition-all duration-300 shadow-none border-brand-text-primary/30 text-brand-text-primary py-2.5">
                             Review Case File
                           </Button>
                         </div>

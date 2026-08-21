@@ -82,7 +82,7 @@ export const Editor: React.FC<EditorProps> = ({
             role="status"
             className={`hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider tabular-nums px-2 py-1 rounded-md border ${
               saveState === 'dirty'
-                ? 'border-white/25 text-brand-text-primary bg-[#1c1914]/[0.05]'
+                ? 'border-brand-border-light text-brand-text-primary bg-[#1c1914]/[0.05]'
                 : saveState === 'saving'
                   ? 'border-brand-border text-brand-text-secondary bg-brand-bg-primary'
                   : 'border-brand-border text-brand-text-secondary/80 bg-brand-bg-primary'
@@ -93,8 +93,8 @@ export const Editor: React.FC<EditorProps> = ({
                 saveState === 'dirty'
                   ? 'bg-white'
                   : saveState === 'saving'
-                    ? 'bg-white/50 animate-pulse'
-                    : 'bg-white/30'
+                    ? 'bg-[#1c1914]/[0.04]0 animate-pulse'
+                    : 'bg-[#1c1914]/[0.12]'
               }`}
               aria-hidden
             />
@@ -174,7 +174,7 @@ export const Editor: React.FC<EditorProps> = ({
           onChange={(e) => onUpdate(e.target.value)}
           placeholder={`Begin drafting ${section.title.toLowerCase()}…`}
           aria-label={`Editor for ${section.title}`}
-          className="relative z-0 flex-1 w-full bg-transparent p-8 sm:p-12 text-brand-text-primary leading-[1.85] focus:outline-none resize-none text-[15px] custom-scrollbar overflow-y-auto pb-28 selection:bg-white/20"
+          className="relative z-0 flex-1 w-full bg-transparent p-8 sm:p-12 text-brand-text-primary leading-[1.85] focus:outline-none resize-none text-[15px] custom-scrollbar overflow-y-auto pb-28 selection:bg-[#1c1914]/[0.08]"
         />
 
         {showFootnoteList && (
@@ -212,7 +212,7 @@ export const Editor: React.FC<EditorProps> = ({
                 {sectionFootnotes.map((f) => (
                   <div
                     key={f.id}
-                    className="text-[12px] text-brand-text-secondary p-3 bg-brand-bg-primary border border-brand-border rounded-lg flex gap-4 leading-relaxed hover:border-white/20 transition-colors"
+                    className="text-[12px] text-brand-text-secondary p-3 bg-brand-bg-primary border border-brand-border rounded-lg flex gap-4 leading-relaxed hover:border-brand-border transition-colors"
                   >
                     <span className="text-brand-text-primary font-mono font-medium shrink-0">[{f.index}]</span>
                     <span className="text-brand-text-secondary/90">{f.text}</span>

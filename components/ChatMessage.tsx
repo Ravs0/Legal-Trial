@@ -251,7 +251,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <button
             type="button"
             onClick={() => setShowActions(prev => !prev)}
-            className="absolute right-4 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-md border border-white/15 bg-brand-bg-secondary text-sm font-bold text-brand-text-secondary md:hidden"
+            className="absolute right-4 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-md border border-brand-border bg-brand-bg-secondary text-sm font-bold text-brand-text-secondary md:hidden"
             aria-label="Message actions"
             aria-expanded={showActions}
             aria-controls={actionsId}
@@ -260,7 +260,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </button>
           <div
             id={actionsId}
-            className={`absolute right-4 top-10 z-10 flex items-center space-x-2 rounded-md border border-white/15 bg-brand-bg-primary/95 px-2 py-1 font-mono text-[10px] shadow-sm transition-opacity duration-200 ${
+            className={`absolute right-4 top-10 z-10 flex items-center space-x-2 rounded-md border border-brand-border bg-brand-bg-primary/95 px-2 py-1 font-mono text-[10px] shadow-sm transition-opacity duration-200 ${
               showActions
                 ? 'pointer-events-auto opacity-100'
                 : 'pointer-events-none opacity-0 md:pointer-events-auto md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 md:focus-within:pointer-events-auto'
@@ -300,8 +300,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         <div
           className={`mx-2 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border sm:mx-3 sm:h-11 sm:w-11 ${
             isUser
-              ? 'border-white/10 bg-brand-bg-tertiary'
-              : 'border-white/10 bg-brand-bg-secondary'
+              ? 'border-brand-border bg-brand-bg-tertiary'
+              : 'border-brand-border bg-brand-bg-secondary'
           }`}
           aria-hidden="true"
         >
@@ -321,12 +321,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
           <div className={`w-full ${isUser ? 'flex justify-end' : ''}`}>
             {isUser ? (
-              <div className="max-w-[85%] rounded-md border border-white/20 bg-[#1c1914]/[0.08] px-4 py-3 text-left text-brand-text-primary shadow-sm sm:px-5 sm:py-3.5">
-                <p className="whitespace-pre-wrap text-xs font-light leading-relaxed selection:bg-white/20 sm:text-sm">
+              <div className="max-w-[85%] rounded-md border border-brand-border bg-[#1c1914]/[0.08] px-4 py-3 text-left text-brand-text-primary shadow-sm sm:px-5 sm:py-3.5">
+                <p className="whitespace-pre-wrap text-xs font-light leading-relaxed selection:bg-[#1c1914]/[0.08] sm:text-sm">
                   {formatText(message.text)}
                 </p>
                 {(typeof scoreDelta === 'number' || scoreReason) && (
-                  <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/10 pt-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-brand-border pt-2">
                     {typeof scoreDelta === 'number' && (
                       <span
                         className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${
@@ -334,7 +334,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                             ? 'border-brand-success/40 bg-brand-success/10 text-brand-success'
                             : scoreDelta < 0
                               ? 'border-brand-error/40 bg-brand-error/10 text-brand-error'
-                              : 'border-white/15 bg-white/5 text-brand-text-secondary'
+                              : 'border-brand-border bg-[#1c1914]/[0.04] text-brand-text-secondary'
                         }`}
                       >
                         {scoreDelta > 0 ? `+${scoreDelta}` : scoreDelta} pts
@@ -351,7 +351,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 className="max-w-[85%] rounded-md border border-brand-border bg-brand-bg-secondary px-4 py-3 text-left text-brand-text-primary shadow-sm sm:px-5 sm:py-3.5"
                 aria-live="polite"
               >
-                <p className="whitespace-pre-wrap text-xs font-light leading-relaxed selection:bg-white/15 sm:text-sm">
+                <p className="whitespace-pre-wrap text-xs font-light leading-relaxed selection:bg-[#1c1914]/[0.08] sm:text-sm">
                   {formatText(message.text)}
                 </p>
                 {speakTruncated && isSpeaking && (

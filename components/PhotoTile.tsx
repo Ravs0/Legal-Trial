@@ -125,7 +125,7 @@ export const PhotoTile: React.FC<PhotoTileProps> = ({
 
   const base = `group relative overflow-hidden rounded-lg border border-brand-border text-left bg-brand-bg-secondary w-full
     ${compact ? 'min-h-[96px] sm:min-h-[104px]' : 'min-h-[148px] sm:min-h-[168px]'}
-    ${onClick ? 'cursor-pointer hover:border-white/20 transition-colors duration-200' : ''}
+    ${onClick ? 'cursor-pointer hover:border-brand-border transition-colors duration-200' : ''}
     ${className}`;
 
   if (onClick) {
@@ -135,7 +135,7 @@ export const PhotoTile: React.FC<PhotoTileProps> = ({
         onClick={onClick}
         aria-label={accessibleName}
         aria-busy={status === 'loading' || undefined}
-        className={`${base} focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30`}
+        className={`${base} focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30`}
       >
         {inner}
       </button>

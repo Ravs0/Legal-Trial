@@ -427,7 +427,7 @@ export const CommandPalette: React.FC = () => {
         aria-labelledby={labelId}
         aria-describedby={`${listboxId}-hint`}
         tabIndex={-1}
-        className={`flex w-full flex-col overflow-hidden border border-white/15 bg-brand-bg-primary sm:max-h-[560px] sm:max-w-2xl sm:rounded-md sm:border-white/20 ${focusRing}`}
+        className={`flex w-full flex-col overflow-hidden border border-brand-border bg-brand-bg-primary sm:max-h-[560px] sm:max-w-2xl sm:rounded-md sm:border-brand-border ${focusRing}`}
         style={mobilePanelStyle}
         onClick={e => e.stopPropagation()}
       >
@@ -438,7 +438,7 @@ export const CommandPalette: React.FC = () => {
           Use arrow keys to move, Enter to run a command, Escape to close.
         </p>
 
-        <div className="flex items-center justify-between border-b border-white/10 bg-brand-bg-secondary px-4 py-2 sm:hidden">
+        <div className="flex items-center justify-between border-b border-brand-border bg-brand-bg-secondary px-4 py-2 sm:hidden">
           <div>
             <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary">
               Quick Actions
@@ -455,7 +455,7 @@ export const CommandPalette: React.FC = () => {
           </button>
         </div>
 
-        <div className="flex flex-shrink-0 items-center gap-3 border-b border-white/10 bg-brand-bg-secondary px-4 py-3">
+        <div className="flex flex-shrink-0 items-center gap-3 border-b border-brand-border bg-brand-bg-secondary px-4 py-3">
           <svg className="h-5 w-5 text-brand-text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -476,13 +476,13 @@ export const CommandPalette: React.FC = () => {
             aria-haspopup="listbox"
             className={`w-full bg-transparent text-sm font-light text-brand-text-primary placeholder:text-brand-text-secondary/40 ${focusRing} rounded-sm`}
           />
-          <kbd className="hidden border border-white/15 px-1.5 py-0.5 font-mono text-[9px] uppercase text-brand-text-secondary sm:inline-block" aria-hidden="true">
+          <kbd className="hidden border border-brand-border px-1.5 py-0.5 font-mono text-[9px] uppercase text-brand-text-secondary sm:inline-block" aria-hidden="true">
             ESC
           </kbd>
         </div>
 
         {activeSessionLabel && (
-          <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#1c1914]/[0.04] px-4 py-2">
+          <div className="flex items-center justify-between gap-3 border-b border-brand-border bg-[#1c1914]/[0.04] px-4 py-2">
             <div className="min-w-0">
               <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary">
                 Active Session
@@ -495,7 +495,7 @@ export const CommandPalette: React.FC = () => {
                 navigate(ROUTES.PRACTICE);
                 close();
               }}
-              className={`whitespace-nowrap border border-white/20 bg-white px-2.5 py-1 text-[11px] font-medium text-brand-bg-primary transition-colors hover:bg-white/90 ${focusRing}`}
+              className={`whitespace-nowrap border border-brand-border bg-white px-2.5 py-1 text-[11px] font-medium text-brand-bg-primary transition-colors hover:bg-white/90 ${focusRing}`}
               aria-label={`Resume hearing: ${activeSessionLabel}`}
             >
               Resume
@@ -535,7 +535,7 @@ export const CommandPalette: React.FC = () => {
                     cmd.disabled
                       ? 'cursor-not-allowed border-transparent text-brand-text-secondary/40 opacity-50'
                       : isSelected
-                        ? 'border-white/25 bg-white text-brand-bg-primary'
+                        ? 'border-brand-border-light bg-white text-brand-bg-primary'
                         : 'border-transparent bg-transparent text-brand-text-secondary hover:bg-[#1c1914]/[0.05] hover:text-brand-text-primary'
                   }`}
                 >
@@ -545,7 +545,7 @@ export const CommandPalette: React.FC = () => {
                         className={`border px-1 py-0.5 font-mono text-[8px] uppercase tracking-wider ${
                           isSelected && !cmd.disabled
                             ? 'border-brand-bg-primary/20 bg-brand-bg-primary/10 text-brand-bg-primary/80'
-                            : 'border-white/10 bg-brand-bg-secondary text-brand-text-secondary/60'
+                            : 'border-brand-border bg-brand-bg-secondary text-brand-text-secondary/60'
                         }`}
                       >
                         {cmd.category}
@@ -569,7 +569,7 @@ export const CommandPalette: React.FC = () => {
                       className={`flex-shrink-0 border px-1.5 py-0.5 font-mono text-[9px] uppercase ${
                         isSelected && !cmd.disabled
                           ? 'border-brand-bg-primary/25 text-brand-bg-primary/80'
-                          : 'border-white/10 text-brand-text-secondary/40'
+                          : 'border-brand-border text-brand-text-secondary/40'
                       }`}
                     >
                       {cmd.shortcut}
@@ -585,7 +585,7 @@ export const CommandPalette: React.FC = () => {
           )}
         </div>
 
-        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-white/10 bg-brand-bg-secondary/60 px-4 py-2 font-mono text-[9px] text-brand-text-secondary/50">
+        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-brand-border bg-brand-bg-secondary/60 px-4 py-2 font-mono text-[9px] text-brand-text-secondary/50">
           <span>↑↓ navigate · Enter select · Esc close</span>
           <span className="hidden sm:inline">⌘K toggle</span>
           <span className="sm:hidden">Tap a command</span>

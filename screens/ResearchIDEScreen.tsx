@@ -101,8 +101,10 @@ const ResearchIDEScreen: React.FC = () => {
   };
 
   const clearSession = () => {
+    const hasWork = state.fullContent.trim() || state.sections.length > 0;
+    if (hasWork && !window.confirm('Clear the manuscript and all sections?')) return;
     setState(INITIAL_STATE);
-    localStorage.removeItem(STORAGE_KEY);
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* private mode */ }
   };
 
   const enterSandbox = async (sectionId: string) => {
@@ -191,9 +193,13 @@ const ResearchIDEScreen: React.FC = () => {
       id: `fn-${Date.now()}`,
       sectionId,
       text,
-      index: state.footnotes.length + 1,
     };
-    setState(prev => ({ ...prev, footnotes: [...prev.footnotes, newFootnote] }));
+    setState(prev => ({
+      ...prev,
+      // Index derives from the live ledger inside the updater — a captured
+      // length here could duplicate numbers when citations land back-to-back.
+      footnotes: [...prev.footnotes, { ...newFootnote, index: prev.footnotes.length + 1 }],
+    }));
   };
 
   const handleCite = useCallback((result: LexIDEResearchResult) => {
@@ -492,7 +498,7 @@ const ResearchIDEScreen: React.FC = () => {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <button onClick={toggleResearch} aria-label={state.isResearchVisible ? 'Hide research panel' : 'Show research panel'} className={`p-1.5 rounded-lg border transition-colors ${state.isResearchVisible ? 'text-black bg-white border-white' : 'text-brand-text-secondary/50 border-brand-border hover:border-white/20'}`}>
+                <button onClick={toggleResearch} aria-label={state.isResearchVisible ? 'Hide research panel' : 'Show research panel'} className={`p-1.5 rounded-lg border transition-colors ${state.isResearchVisible ? 'text-black bg-white border-white' : 'text-brand-text-secondary/50 border-brand-border hover:border-brand-border'}`}>
                   <Search size={16} />
                 </button>
               </div>
@@ -595,11 +601,11 @@ const ResearchIDEScreen: React.FC = () => {
               onChange={(e) => setSectionTitleInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && sectionTitleInput.trim()) confirmCreateSection(); if (e.key === 'Escape') setShowSectionTitleDialog(false); }}
               placeholder="e.g. Introduction, Legal Framework…"
-              className="w-full bg-brand-bg-secondary border border-brand-border rounded-lg px-4 py-3 text-sm text-brand-text-primary focus:ring-1 focus:ring-white/20 outline-none placeholder:text-brand-text-secondary/30"
+              className="w-full bg-brand-bg-secondary border border-brand-border rounded-lg px-4 py-3 text-sm text-brand-text-primary focus:ring-1 focus:ring-[#1c1914]/20 outline-none placeholder:text-brand-text-secondary/30"
             />
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowSectionTitleDialog(false)} className="flex-1 py-2.5 text-xs text-brand-text-secondary hover:text-brand-text-primary border border-brand-border rounded-lg transition-colors font-medium uppercase tracking-wide">Cancel</button>
-              <button onClick={confirmCreateSection} disabled={!sectionTitleInput.trim()} className="flex-1 py-2.5 text-xs bg-white hover:bg-white/90 text-black rounded-lg transition-colors font-medium uppercase tracking-wide disabled:opacity-50">Create</button>
+              <button onClick={confirmCreateSection} disabled={!sectionTitleInput.trim()} className="flex-1 py-2.5 text-xs bg-brand-text-primary hover:bg-[#3a352c] text-brand-bg-primary rounded-lg transition-colors font-medium uppercase tracking-wide disabled:opacity-50">Create</button>
             </div>
           </div>
       </Modal>

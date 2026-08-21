@@ -1163,7 +1163,7 @@ const PracticeArena: React.FC = () => {
                     <div
                       key={phase}
                       title={phaseLabel(phase)}
-                      className={`h-1 flex-1 rounded-full border border-white/10 ${filled ? 'bg-brand-text-primary/55' : 'bg-white/5'}`}
+                      className={`h-1 flex-1 rounded-full border border-brand-border ${filled ? 'bg-brand-text-primary/55' : 'bg-[#1c1914]/[0.04]'}`}
                     />
                   );
                 })}
@@ -1185,7 +1185,7 @@ const PracticeArena: React.FC = () => {
                 <span className="w-[7.5rem] text-[10px] font-mono text-brand-text-secondary/80 truncate">
                   {SCORE_DIMENSION_LABELS[key]}
                 </span>
-                <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                <div className="flex-1 h-1 bg-[#1c1914]/[0.04] rounded-full overflow-hidden border border-brand-border">
                   <div
                     className="h-full bg-brand-text-primary/50 rounded-full"
                     style={{ width: `${Math.min(100, Math.max(0, (value / 50) * 100))}%` }}
@@ -1292,7 +1292,7 @@ const PracticeArena: React.FC = () => {
                   setIsMobileDrawerOpen(false);
                 }}
                 disabled={!objectionExplanation.trim() || !!isAiTyping || sessionEnded || !isTimerRunning}
-                className="w-full min-h-11 py-2.5 rounded-lg text-xs tracking-wider uppercase font-semibold bg-brand-text-primary text-brand-bg-primary hover:bg-white disabled:bg-brand-bg-tertiary disabled:text-brand-text-secondary/50 border-none transition-all flex items-center justify-center"
+                className="w-full min-h-11 py-2.5 rounded-lg text-xs tracking-wider uppercase font-semibold bg-brand-text-primary text-brand-bg-primary hover:bg-[#3a352c] disabled:bg-brand-bg-tertiary disabled:text-brand-text-secondary/50 border-none transition-all flex items-center justify-center"
               >
                 Raise Formal Objection
               </button>
@@ -1340,7 +1340,7 @@ const PracticeArena: React.FC = () => {
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('lexforge-open-coach'))}
-              className="sm:hidden shrink-0 min-h-11 min-w-11 px-3 rounded-lg border border-brand-border text-[11px] font-mono uppercase tracking-wide text-brand-text-secondary hover:border-white/25 hover:text-brand-text-primary"
+              className="sm:hidden shrink-0 min-h-11 min-w-11 px-3 rounded-lg border border-brand-border text-[11px] font-mono uppercase tracking-wide text-brand-text-secondary hover:border-brand-border-light hover:text-brand-text-primary"
               aria-label="Open coach"
             >
               Coach
@@ -1420,7 +1420,7 @@ const PracticeArena: React.FC = () => {
                               {isInlineObjectionActive ? 'Paused' : `${objectionWindowSecondsLeft.toFixed(1)}s remaining`}
                             </span>
                           </div>
-                          <div className="w-full bg-brand-bg-tertiary h-1.5 rounded-full overflow-hidden border border-white/10">
+                          <div className="w-full bg-brand-bg-tertiary h-1.5 rounded-full overflow-hidden border border-brand-border">
                             <div
                               className="bg-brand-text-primary/55 h-full transition-all duration-100 ease-linear rounded-full"
                               style={{ width: `${(objectionWindowSecondsLeft / OBJECTION_WINDOW_SECONDS) * 100}%` }}
@@ -1453,9 +1453,9 @@ const PracticeArena: React.FC = () => {
                 <div className="flex items-start mb-6 px-4 py-3 w-full animate-fadeInUp">
                   <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-brand-bg-secondary border border-brand-text-primary/15 flex items-center justify-center mx-2 sm:mx-3">
                     {isTranscribing || isAiTyping === 'judge' ? (
-                      <CourtIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-brand-text-primary/80" />
+                      <CourtIcon className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-brand-text-primary/80" />
                     ) : (
-                      <BriefcaseIcon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-brand-text-secondary" />
+                      <BriefcaseIcon className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-brand-text-secondary" />
                     )}
                   </div>
                   <div className="flex flex-col flex-grow items-start max-w-[calc(100%-3rem)] pl-1">
@@ -1569,7 +1569,7 @@ const PracticeArena: React.FC = () => {
                           className={`min-h-11 rounded-xl border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-all ${
                             voiceEnabled
                               ? 'bg-white text-brand-bg-primary border-transparent'
-                              : 'border-brand-text-primary/15 bg-brand-bg-tertiary/45 text-brand-text-primary hover:border-white/25'
+                              : 'border-brand-text-primary/15 bg-brand-bg-tertiary/45 text-brand-text-primary hover:border-brand-border-light'
                           }`}
                           title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
                           aria-pressed={voiceEnabled}
@@ -1580,7 +1580,7 @@ const PracticeArena: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsMobileDrawerOpen(true)}
-                        className="min-h-11 rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-white/25"
+                        className="min-h-11 rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-brand-border-light"
                         aria-expanded={isMobileDrawerOpen}
                         aria-controls="practice-bench-drawer"
                       >
@@ -1650,7 +1650,7 @@ const PracticeArena: React.FC = () => {
                   </div>
                 )}
 
-                <div className={`max-w-3xl mx-auto rounded-2xl border transition-all px-3 py-2 sm:py-2.5 shadow-card ${isInlineObjectionActive ? 'bg-brand-bg-secondary/75 border-white/25' : 'bg-brand-bg-secondary/50 border-brand-text-primary/20 focus-within:border-white/25'}`}>
+                <div className={`max-w-3xl mx-auto rounded-2xl border transition-all px-3 py-2 sm:py-2.5 shadow-card ${isInlineObjectionActive ? 'bg-brand-bg-secondary/75 border-brand-border-light' : 'bg-brand-bg-secondary/50 border-brand-text-primary/20 focus-within:border-brand-border-light'}`}>
                   <div className="flex items-end gap-2.5">
                     <button
                       type="button"
@@ -1664,7 +1664,7 @@ const PracticeArena: React.FC = () => {
                       }}
                       disabled={!!isAiTyping || sessionEnded || !isTimerRunning || isTranscribing}
                       aria-disabled={Boolean(sttDisabledReason && !isRecording)}
-                      className={`min-h-11 min-w-11 w-11 h-11 sm:w-11 sm:h-11 flex-shrink-0 rounded-xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:opacity-40
+                      className={`min-h-11 min-w-11 w-11 h-11 sm:w-11 sm:h-11 flex-shrink-0 rounded-xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 disabled:opacity-40
                         ${isRecording
                           ? 'bg-brand-error/15 border border-brand-error/30 text-brand-error animate-pulse'
                           : sttDisabledReason
@@ -1685,7 +1685,7 @@ const PracticeArena: React.FC = () => {
                       {isRecording ? (
                         <span className="w-2.5 h-2.5 bg-brand-error rounded-sm animate-ping"></span>
                       ) : (
-                        <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/>
                         </svg>
                       )}
@@ -1724,7 +1724,7 @@ const PracticeArena: React.FC = () => {
                       type="button"
                       onClick={isInlineObjectionActive ? handleObjectionSubmit : handleSendMessage}
                       disabled={!!isAiTyping || (isInlineObjectionActive ? !objectionExplanation.trim() : !userInput.trim()) || sessionEnded || !isTimerRunning}
-                      className={`min-h-11 min-w-11 w-11 h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25
+                      className={`min-h-11 min-w-11 w-11 h-11 flex-shrink-0 rounded-full flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25
                         ${(isInlineObjectionActive ? objectionExplanation.trim() : userInput.trim()) && !isAiTyping && isTimerRunning
                           ? 'bg-brand-text-primary text-brand-bg-primary hover:bg-white'
                           : 'bg-brand-bg-tertiary text-brand-text-secondary/50 border border-brand-text-primary/15 cursor-not-allowed'
@@ -1732,7 +1732,7 @@ const PracticeArena: React.FC = () => {
                       title={isInlineObjectionActive ? 'Submit Objection' : 'Send Statement'}
                       aria-label={isInlineObjectionActive ? 'Submit objection' : 'Send statement'}
                     >
-                      <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5 transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 sm:h-[18px] sm:w-[18px] transform rotate-90" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                       </svg>
                     </button>
