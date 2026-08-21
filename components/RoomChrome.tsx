@@ -50,19 +50,19 @@ export const RoomBanner: React.FC<RoomBannerProps> = ({
     >
       <div className="min-w-0">
         {eyebrow && (
-          <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] text-brand-text-primary/50 mb-0.5">
+          <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.14em] text-white/60 mb-0.5">
             {eyebrow}
           </p>
         )}
         <h1
-          className={`font-serif font-semibold text-brand-text-primary tracking-tight leading-snug ${
+          className={`font-serif font-semibold text-white tracking-tight leading-snug ${
             dense ? 'text-[1.05rem] sm:text-[1.2rem]' : 'text-[1.2rem] sm:text-[1.4rem]'
           }`}
         >
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-0.5 text-[12px] sm:text-[13px] text-brand-text-primary/65 leading-snug max-w-xl line-clamp-2">
+          <p className="mt-0.5 text-[12px] sm:text-[13px] text-white/70 leading-snug max-w-xl line-clamp-2">
             {subtitle}
           </p>
         )}
@@ -92,7 +92,7 @@ export const RoomTabs: React.FC<{
         aria-selected={active === t.id}
         onClick={() => onChange(t.id)}
         className={`relative z-10 min-h-10 px-2.5 sm:px-3.5 py-1.5 rounded-md text-[11px] sm:text-[12px] font-medium transition-colors ${
-          active === t.id ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-primary/70 hover:text-brand-text-primary'
+          active === t.id ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-white/70 hover:text-white'
         }`}
       >
         {t.label}
@@ -122,7 +122,7 @@ export const RoomStepper: React.FC<{
           </div>
           <span
             className={`hidden sm:block text-[9px] mt-1 uppercase tracking-wide ${
-              idx <= currentIndex ? 'text-brand-text-primary/80' : 'text-brand-text-primary/35'
+              idx <= currentIndex ? 'text-white/85' : 'text-white/40'
             }`}
           >
             {step.label}

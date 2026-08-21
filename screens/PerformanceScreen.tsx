@@ -748,12 +748,12 @@ const SessionDetailsPanel: React.FC<{
           <img src={stripImage} alt="" className="absolute inset-0 w-full h-full object-cover grayscale" />
           <div className="absolute inset-0 bg-black/75" />
           <div className="relative z-10 h-full flex items-center px-4">
-            <h3 className="text-[15px] font-medium text-brand-text-primary">Session details</h3>
+            <h3 className="text-[15px] font-medium text-white">Session details</h3>
           </div>
         </div>
       ) : (
         <div className="px-4 sm:px-5 pt-4 sm:pt-5">
-          <h3 className="text-[15px] font-medium text-brand-text-primary">Session details</h3>
+          <h3 className="text-[15px] font-medium text-white">Session details</h3>
         </div>
       )}
       <div className="p-4 sm:p-5 space-y-3.5 text-[13px]">

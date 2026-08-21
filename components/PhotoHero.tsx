@@ -144,7 +144,9 @@ export const PhotoHero: React.FC<PhotoHeroProps> = ({
           )}
         </div>
         {actions && (
-          <div className={`flex flex-wrap gap-2 ${align === 'center' ? 'justify-center' : ''}`}>
+          <div
+            className={`flex flex-wrap gap-2 [&>button]:!border-white/40 [&>button]:!text-white [&>button:hover]:!bg-white/10 ${align === 'center' ? 'justify-center' : ''}`}
+          >
             {actions}
           </div>
         )}

@@ -144,7 +144,7 @@ const LandingScreen: React.FC = () => {
         <div className="max-w-6xl mx-auto w-full">
           {/* Recovery path: active hearing beats cold start */}
           {activeSession && (
-            <div className="mb-6 max-w-xl rounded-md border border-white/15 bg-black/40 px-3.5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="mb-6 max-w-xl rounded-md border border-brand-border bg-brand-bg-secondary/85 px-3.5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-primary/50">Hearing in progress</p>
                 <p className="mt-1 text-[13px] text-brand-text-primary/90 truncate">

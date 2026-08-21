@@ -499,8 +499,8 @@ const SetupScreen: React.FC = () => {
                     <img src={screenMedia.setup.bench} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/70" />
                     <div className="relative z-10 h-full flex items-center gap-2.5 px-4">
-                      <GavelIcon className="h-4 w-4 text-brand-text-primary/75" />
-                      <span className="text-[13px] font-medium text-brand-text-primary">The bench</span>
+                      <GavelIcon className="h-4 w-4 text-white/80" />
+                      <span className="text-[13px] font-medium text-white">The bench</span>
                     </div>
                   </div>
                   <div className="p-4 flex flex-col flex-grow">
@@ -517,8 +517,8 @@ const SetupScreen: React.FC = () => {
                     <img src={screenMedia.setup.counsel} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/70" />
                     <div className="relative z-10 h-full flex items-center gap-2.5 px-4">
-                      <BriefcaseIcon className="h-4 w-4 text-brand-text-primary/75" />
-                      <span className="text-[13px] font-medium text-brand-text-primary">Opposing counsel</span>
+                      <BriefcaseIcon className="h-4 w-4 text-white/80" />
+                      <span className="text-[13px] font-medium text-white">Opposing counsel</span>
                     </div>
                   </div>
                   <div className="p-4 flex flex-col flex-grow">
