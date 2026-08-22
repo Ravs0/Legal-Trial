@@ -437,7 +437,7 @@ const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ ini
                   'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
               }}
             />
-            <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-brand-text-primary/80">
+            <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-white/85">
               {t.label}
             </span>
           </div>

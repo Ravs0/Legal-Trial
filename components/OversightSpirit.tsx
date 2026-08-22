@@ -490,7 +490,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
                 <div
                   className={`max-w-[80%] px-3 py-2 text-sm leading-relaxed rounded-md ${
                     msg.sender === 'user'
-                      ? 'bg-white text-brand-bg-primary border border-white'
+                      ? 'bg-brand-text-primary text-brand-bg-primary border border-white'
                       : 'bg-[#1c1914]/[0.05] text-brand-text-primary border border-brand-border'
                   }`}
                 >

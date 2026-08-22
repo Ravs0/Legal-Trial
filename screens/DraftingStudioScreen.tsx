@@ -22,7 +22,7 @@ import { renderLegalMarkdown } from '../utils/markdown';
 import { RoomBanner, RoomStepper } from '../components/RoomChrome';
 import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
 import { PhotoTile } from '../components/PhotoTile';
-import { buildDraftMarkdown, downloadMarkdown, draftFilename } from '../services/exportService';
+import { buildDraftMarkdown, downloadMarkdown, draftFilename, draftDocxFilename, exportDocx } from '../services/exportService';
 import { saveGenericState, readGenericState } from '../services/storageService';
 import draftingPen from '../assets/drafting_pen.jpg';
 import trialBinderDesk from '../assets/trial_binder_desk.jpg';
@@ -717,6 +717,23 @@ const DraftingStudioScreen: React.FC = () => {
       setGlobalError(msg);
     }
   }, [currentTask, userDraft, practiceMode, generatedFacts, aiFeedback, setGlobalError]);
+
+  const handleExportDocx = useCallback(async () => {
+    if (!currentTask || !userDraft.trim()) return;
+    try {
+      const ok = await exportDocx(userDraft, draftDocxFilename(currentTask.title));
+      if (!ok) {
+        const msg = 'Could not download the draft file in this environment.';
+        setStudioError({ scope: 'general', message: msg });
+        setGlobalError(msg);
+      }
+    } catch (error) {
+      console.warn('[DraftingStudio] docx export failed', error);
+      const msg = 'Could not build the .docx file. Your draft is preserved; use Export or retry.';
+      setStudioError({ scope: 'general', message: msg });
+      setGlobalError(msg);
+    }
+  }, [currentTask, userDraft, setGlobalError]);
 
   // Sync scroll on ref changes
   useEffect(() => {
@@ -1668,6 +1685,16 @@ Section 8.2 Limitation of Liability.
                                 className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                             >
                                 Export
+                            </Button>
+
+                            <Button
+                                onClick={() => void handleExportDocx()}
+                                variant="ghost"
+                                size="sm"
+                                disabled={!userDraft.trim() || stage === 'task_details_display'}
+                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                            >
+                                Download .docx
                             </Button>
 
                             {stage === 'feedback_review' || stage === 'filing_procedure' ? (

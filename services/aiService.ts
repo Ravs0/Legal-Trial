@@ -416,6 +416,60 @@ const normalizePerformanceMetrics = (parsed: any): PerformanceMetrics => {
   };
 };
 
+const PERFORMANCE_SCORE_FIELDS = [
+  'argumentStrength',
+  'precedentUsage',
+  'legalGrounding',
+  'responseQuality',
+  'objectionHandling',
+  'courtroomPresence',
+  'overallScore',
+] as const;
+
+/** Alternate key names models emit for a score; first present key wins. */
+const PERFORMANCE_SCORE_ALIASES: Partial<Record<(typeof PERFORMANCE_SCORE_FIELDS)[number], string[]>> = {
+  legalGrounding: ['legalGrounding', 'legalBasis', 'constitutionalBasis'],
+  objectionHandling: ['objectionHandling', 'objections', 'responseQuality'],
+  courtroomPresence: ['courtroomPresence', 'professionalism', 'argumentStrength'],
+};
+
+/**
+ * Type guard for judge/score LLM output. Returns null when the payload carries
+ * every required score field plus feedback strings; otherwise a short reason
+ * suitable for quoting back to the model. Mirrors the aliases that
+ * normalizePerformanceMetrics accepts so valid payloads are never rejected.
+ */
+export const validatePerformancePayload = (parsed: unknown): string | null => {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return 'response must be a raw JSON object';
+  }
+  const record = parsed as Record<string, unknown>;
+  for (const field of PERFORMANCE_SCORE_FIELDS) {
+    const keys = PERFORMANCE_SCORE_ALIASES[field] ?? [field];
+    let value: unknown;
+    for (const key of keys) {
+      if (record[key] !== undefined && record[key] !== null) {
+        value = record[key];
+        break;
+      }
+    }
+    const numeric = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+    if (!Number.isFinite(numeric)) {
+      return `field "${field}" must be a number`;
+    }
+  }
+  if (typeof record.feedback !== 'string' || !record.feedback.trim()) {
+    return 'field "feedback" must be a non-empty string';
+  }
+  if (
+    !Array.isArray(record.improvementAreas)
+    || !record.improvementAreas.every((item) => typeof item === 'string')
+  ) {
+    return 'field "improvementAreas" must be an array of strings';
+  }
+  return null;
+};
+
 /**
  * Keeps a completed hearing useful when an AI analysis request is unavailable.
  * This is deliberately labelled as local coaching and uses only transparent
@@ -472,6 +526,19 @@ export const buildLocalPerformanceMetrics = (
 const parseJsonResponse = (raw: string) => {
   const cleaned = raw.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
   return JSON.parse(cleaned);
+};
+
+type JsonParseResult = { ok: true; value: unknown } | { ok: false; error: string };
+
+const safeParseJsonResponse = (raw: string): JsonParseResult => {
+  try {
+    return { ok: true, value: parseJsonResponse(raw) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error && error.message ? error.message : 'response was not valid JSON',
+    };
+  }
 };
 
 const buildInitialHistory = (
@@ -567,7 +634,9 @@ export const sendMessageToChatStream = async (
 // ─── Performance analysis ─────────────────────────────────────────────────────
 
 /**
- * Always returns metrics: AI when available, otherwise transparent local coaching.
+ * Returns AI metrics when the model output passes validation, labelled local
+ * coaching on transport failure, and throws AiServiceError when the payload
+ * stays invalid after one corrective retry (callers surface their error UI).
  * Callers should stamp `analysisStatus.source` from the returned `source` field.
  */
 export const analyzeSessionPerformance = async (
@@ -595,23 +664,45 @@ ${transcriptText}
 
 Generate the JSON evaluation.`;
 
+  let raw: string;
   try {
-    const raw = await callApi([{ role: 'user', content: userPrompt }], system);
-    try {
-      return { metrics: normalizePerformanceMetrics(parseJsonResponse(raw)), source: 'ai' };
-    } catch {
-      const repairRaw = await callApi(
-        [{ role: 'user', content: `Repair this response into the required raw JSON object only:\n\n${raw}` }],
-        system,
-      );
-      return { metrics: normalizePerformanceMetrics(parseJsonResponse(repairRaw)), source: 'ai' };
-    }
+    raw = await callApi([{ role: 'user', content: userPrompt }], system);
   } catch {
+    // Transport failure keeps the labelled local-coaching path.
     return {
       metrics: buildLocalPerformanceMetrics(sessionRecord, scoreBreakdown),
       source: 'local',
     };
   }
+
+  const firstParsed = safeParseJsonResponse(raw);
+  const firstError = firstParsed.ok ? validatePerformancePayload(firstParsed.value) : firstParsed.error;
+  if (firstParsed.ok && firstError === null) {
+    return { metrics: normalizePerformanceMetrics(firstParsed.value), source: 'ai' };
+  }
+
+  // One retry, quoting the validation error so the model can correct itself.
+  const correctionPrompt = `${userPrompt}
+
+Your previous response was rejected: ${firstError}
+Return ONLY the corrected raw JSON object with integer scores from 1 to 10, a feedback string, and improvementAreas as an array of strings.`;
+  let retryRaw: string;
+  try {
+    retryRaw = await callApi([{ role: 'user', content: correctionPrompt }], system);
+  } catch (err) {
+    throw err instanceof AiServiceError
+      ? err
+      : new AiServiceError('The performance analysis retry failed. Retry the analysis.', { code: 'unknown' });
+  }
+  const retryParsed = safeParseJsonResponse(retryRaw);
+  const retryError = retryParsed.ok ? validatePerformancePayload(retryParsed.value) : retryParsed.error;
+  if (!retryParsed.ok || retryError !== null) {
+    throw new AiServiceError(
+      `The AI service returned an invalid performance analysis (${retryError}). Retry the analysis.`,
+      { code: 'invalid_json' },
+    );
+  }
+  return { metrics: normalizePerformanceMetrics(retryParsed.value), source: 'ai' };
 };
 
 // ─── Drafting helpers ─────────────────────────────────────────────────────────

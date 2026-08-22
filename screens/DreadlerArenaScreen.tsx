@@ -1066,7 +1066,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           variant="primary"
           size="lg"
           onClick={handleStartSession}
-          className="w-full sm:w-[320px] bg-white text-black border border-white hover:bg-zinc-200 font-mono uppercase tracking-widest py-4 text-sm font-semibold rounded-none transition-colors duration-200"
+          className="w-full sm:w-[320px] font-mono uppercase tracking-widest py-4 text-sm font-semibold rounded-none transition-colors duration-200"
         >
           Enter
         </Button>

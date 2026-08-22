@@ -535,7 +535,7 @@ export const CommandPalette: React.FC = () => {
                     cmd.disabled
                       ? 'cursor-not-allowed border-transparent text-brand-text-secondary/40 opacity-50'
                       : isSelected
-                        ? 'border-brand-border-light bg-white text-brand-bg-primary'
+                        ? 'border-brand-border-light bg-brand-text-primary text-brand-bg-primary'
                         : 'border-transparent bg-transparent text-brand-text-secondary hover:bg-[#1c1914]/[0.05] hover:text-brand-text-primary'
                   }`}
                 >

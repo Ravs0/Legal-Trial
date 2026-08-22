@@ -1,5 +1,13 @@
 import { APP_NAME } from '../constants';
 import type { AnalysisMetricsSource, ChatMessage, SessionRecord } from '../types';
+import {
+  AlignmentType,
+  Document,
+  HeadingLevel,
+  LevelFormat,
+  Packer,
+  Paragraph,
+} from 'docx';
 
 /** How coaching metrics were produced for a completed session (extends AnalysisMetricsSource). */
 export type AnalysisSourceKind = AnalysisMetricsSource | 'unavailable' | 'pending' | 'unknown';
@@ -491,4 +499,122 @@ ${feedbackBlock}${notesBlock}`;
 export const draftFilename = (title: string) => {
   const base = sanitizeFilename(typeof title === 'string' ? title : '');
   return `${base || 'untitled-draft'}-draft.md`;
+};
+
+// ── Drafting Studio DOCX export ──────────────────────────────────────────────
+
+type DraftLineKind = 'heading1' | 'heading2' | 'heading3' | 'bullet' | 'numbered' | 'body';
+
+interface ClassifiedDraftLine {
+  kind: DraftLineKind;
+  text: string;
+}
+
+const NUMBERED_LINE_RE = /^\d{1,3}[.)]\s+/;
+
+const HEADING_BY_KIND = {
+  heading1: HeadingLevel.HEADING_1,
+  heading2: HeadingLevel.HEADING_2,
+  heading3: HeadingLevel.HEADING_3,
+} as const;
+
+const DRAFT_NUMBERING_REFERENCE = 'lexforge-draft-numbered';
+
+/** Map one plain-text line to a deterministic docx paragraph kind. */
+const classifyDraftLine = (raw: string): ClassifiedDraftLine | null => {
+  const line = raw.replace(/\s+$/, '');
+  if (!line.trim()) return null;
+  if (line.startsWith('### ')) return { kind: 'heading3', text: line.slice(4).trim() };
+  if (line.startsWith('## ')) return { kind: 'heading2', text: line.slice(3).trim() };
+  if (line.startsWith('# ')) return { kind: 'heading1', text: line.slice(2).trim() };
+  if (line.startsWith('- ') || line.startsWith('* ')) return { kind: 'bullet', text: line.slice(2).trim() };
+  const numbered = line.match(NUMBERED_LINE_RE);
+  if (numbered) return { kind: 'numbered', text: line.slice(numbered[0].length).trim() };
+  return { kind: 'body', text: line.trim() };
+};
+
+const toDocxParagraph = (line: ClassifiedDraftLine): Paragraph => {
+  switch (line.kind) {
+    case 'heading1':
+    case 'heading2':
+    case 'heading3':
+      return new Paragraph({ text: line.text, heading: HEADING_BY_KIND[line.kind] });
+    case 'bullet':
+      return new Paragraph({ text: line.text, bullet: { level: 0 } });
+    case 'numbered':
+      return new Paragraph({
+        text: line.text,
+        numbering: { reference: DRAFT_NUMBERING_REFERENCE, level: 0 },
+      });
+    default:
+      return new Paragraph({ text: line.text });
+  }
+};
+
+/** Convert plain drafted text into a .docx Blob (headings, bullets, numbered items, body). */
+export const buildDraftDocxBlob = async (text: string): Promise<Blob> => {
+  const lines = (text ?? '')
+    .split(/\r?\n/)
+    .map(classifyDraftLine)
+    .filter((line): line is ClassifiedDraftLine => line !== null);
+  const doc = new Document({
+    numbering: {
+      config: [
+        {
+          reference: DRAFT_NUMBERING_REFERENCE,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: '%1.',
+              alignment: AlignmentType.START,
+            },
+          ],
+        },
+      ],
+    },
+    sections: [{ properties: {}, children: lines.map(toDocxParagraph) }],
+  });
+  return Packer.toBlob(doc);
+};
+
+export const draftDocxFilename = (title: string) => {
+  const base = sanitizeFilename(typeof title === 'string' ? title : '');
+  return `${base || 'untitled-draft'}.docx`;
+};
+
+/** Download pre-built docx bytes through the same anchor flow as downloadMarkdown. */
+export const downloadDocx = (filename: string, blob: Blob): boolean => {
+  if (typeof document === 'undefined') {
+    console.warn('[exportService] downloadDocx requires a browser document');
+    return false;
+  }
+  try {
+    const safeName = sanitizeFilename(filename.replace(/\.docx$/i, '')) + '.docx';
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = safeName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    // Delay revoke so the browser can start the download.
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {
+        /* noop */
+      }
+    }, 0);
+    return true;
+  } catch (error) {
+    console.warn('[exportService] download failed', error);
+    return false;
+  }
+};
+
+/** Convert drafted plain text to .docx and trigger the download. */
+export const exportDocx = async (text: string, filename: string): Promise<boolean> => {
+  const blob = await buildDraftDocxBlob(text);
+  return downloadDocx(filename, blob);
 };

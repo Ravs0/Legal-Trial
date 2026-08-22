@@ -104,20 +104,20 @@ export const PhotoTile: React.FC<PhotoTileProps> = ({
         {(badge || meta) && (
           <div className="mb-1.5 flex items-center justify-between gap-2">
             {badge ? (
-              <span className="text-[10px] uppercase tracking-[0.12em] text-brand-text-primary/55">{badge}</span>
+              <span className="text-[10px] uppercase tracking-[0.12em] text-white/60">{badge}</span>
             ) : (
               <span />
             )}
             {meta && (
-              <span className="text-[10px] tabular-nums tracking-wide text-brand-text-primary/50 shrink-0">{meta}</span>
+              <span className="text-[10px] tabular-nums tracking-wide text-white/55 shrink-0">{meta}</span>
             )}
           </div>
         )}
-        <p className={`font-medium text-brand-text-primary leading-snug ${compact ? 'text-[13px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]'}`}>
+        <p className={`font-medium text-white leading-snug ${compact ? 'text-[13px] sm:text-[14px]' : 'text-[14px] sm:text-[15px]'}`}>
           {title}
         </p>
         {description && (
-          <p className="mt-1 text-[12px] text-brand-text-primary/62 leading-snug line-clamp-2">{description}</p>
+          <p className="mt-1 text-[12px] text-white/70 leading-snug line-clamp-2">{description}</p>
         )}
       </div>
     </>

@@ -439,7 +439,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     ${a.disabled
                       ? 'border-brand-border text-brand-text-secondary/40'
                       : a.primary
-                        ? 'border-transparent bg-white text-brand-bg-primary hover:bg-white/95 font-medium'
+                        ? 'border-transparent bg-brand-text-primary text-brand-bg-primary hover:bg-[#3a352c] font-medium'
                         : 'border-brand-border text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.04]'
                     } ${focusRing}`}
                 >
@@ -469,7 +469,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     ${a.disabled
                       ? 'text-brand-text-secondary/35'
                       : a.primary
-                        ? 'bg-white text-brand-bg-primary'
+                        ? 'bg-brand-text-primary text-brand-bg-primary'
                         : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05]'
                     } ${focusRing}`}
                 >

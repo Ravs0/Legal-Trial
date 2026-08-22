@@ -186,7 +186,7 @@ const LandingScreen: React.FC = () => {
               {LOOP_STEPS.map((step, index) => (
                 <li
                   key={step.label}
-                  className="inline-flex items-center gap-2 rounded-md border border-white/12 bg-black/30 px-2.5 py-1.5"
+                  className="inline-flex items-center gap-2 rounded-md border border-brand-border bg-brand-bg-secondary/85 px-2.5 py-1.5"
                 >
                   <span className="text-[10px] tabular-nums text-brand-text-primary/40 w-3">{index + 1}</span>
                   <span className="text-[12px] font-medium text-brand-text-primary/90">{step.label}</span>
@@ -199,7 +199,7 @@ const LandingScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={handleDemoStart}
-                className="h-12 px-7 rounded-md bg-white text-brand-bg-primary text-[14px] font-semibold hover:bg-white/95 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg-primary"
+                className="h-12 px-7 rounded-md bg-brand-text-primary text-brand-bg-primary text-[14px] font-semibold hover:bg-[#3a352c] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg-primary"
               >
                 Start 15-minute demo
               </button>
@@ -213,7 +213,7 @@ const LandingScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openModes('inline')}
-                className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary underline underline-offset-4 decoration-white/25 hover:decoration-white/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 rounded-sm"
+                className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary underline underline-offset-4 decoration-[#1c1914]/25 hover:decoration-[#1c1914]/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 rounded-sm"
                 aria-expanded={showModes}
               >
                 {showModes ? 'Hide jurisdiction options' : 'Or choose a jurisdiction'}
@@ -267,7 +267,7 @@ const LandingScreen: React.FC = () => {
               {showTrust ? 'Hide training notice' : 'Training only. Not legal advice.'}
             </button>
             {showTrust && (
-              <div className="mt-3 rounded-md border border-white/12 bg-black/30 px-3.5 py-3 text-[11px] leading-relaxed text-white/65">
+              <div className="mt-3 rounded-md border border-brand-border bg-brand-bg-secondary/85 px-3.5 py-3 text-[11px] leading-relaxed text-white/65">
                 <p>
                   <span className="font-medium text-brand-text-primary/85">Training only. Not legal advice.</span>{' '}
                   Do not enter confidential or client-identifying information. Trial transcripts and
