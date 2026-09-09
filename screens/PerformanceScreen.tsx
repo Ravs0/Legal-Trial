@@ -20,6 +20,8 @@ import { trackEvent } from '../services/analyticsService';
 import { SCORE_DIMENSION_LABELS } from '../services/trialScoring';
 import { PhotoHero } from '../components/PhotoHero';
 import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
+import ScoreCard2 from '../components/ScoreCard2';
+import type { Vote, Voters } from '../components/ScoreCard2';
 import { screenMedia } from '../assets';
 
 /** Score dimensions shown on the post-session review (all /10). */
@@ -432,6 +434,21 @@ const PerformanceScreen: React.FC = () => {
   }
 
   // ── Full scorecard ───────────────────────────────────────────────────────
+  const toHundred = (value: unknown): number => Math.round(clampScore(value) * 10);
+  const scoreCardVerdict: Vote = overall >= 6 ? 'A' : overall < 5 ? 'B' : 'ABSTAIN';
+  const scoreCardDimensions = {
+    argument: toHundred(performanceMetrics.argumentStrength),
+    precedent: toHundred(performanceMetrics.precedentUsage),
+    grounding: toHundred(performanceMetrics.legalGrounding),
+    response: toHundred(performanceMetrics.responseQuality),
+    objections: toHundred(performanceMetrics.objectionHandling),
+    presence: toHundred(performanceMetrics.courtroomPresence),
+  };
+  const scoreCardVoters: Voters = {
+    heuristic: scoreCardVerdict,
+    llm: analysisSource === 'ai' ? scoreCardVerdict : 'ABSTAIN',
+    human: null,
+  };
   return (
     <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn relative z-10">
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-6 pb-12">
@@ -649,6 +666,13 @@ const PerformanceScreen: React.FC = () => {
             </PatternPanel>
           </div>
         </div>
+
+        <ScoreCard2
+          dimensions={scoreCardDimensions}
+          voters={scoreCardVoters}
+          verdict={scoreCardVerdict}
+          confidence={overall / 10}
+        />
 
         <TranscriptPanel record={sessionRecord} transcript={transcript} />
 

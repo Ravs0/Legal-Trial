@@ -17,6 +17,7 @@ import { AiServiceError, generateDraftingFacts, generateDraftingGuidance, getFil
 import { SelectInput } from '../components/SelectInput';
 import { scoreLegalWriting, ScoringResult } from '../services/legalWritingScorer';
 import { ScoreCard } from '../components/ScoreCard';
+import { DraftPipelinePanel } from '../components/DraftPipelinePanel';
 import { Modal } from '../components/Modal';
 import { renderLegalMarkdown } from '../utils/markdown';
 import { RoomBanner, RoomStepper } from '../components/RoomChrome';
@@ -1370,6 +1371,17 @@ Section 8.2 Limitation of Liability.
 
                                 {activeRefTab === 'feedback' && (
                                     <div className="animate-fadeIn space-y-4">
+                                        <DraftPipelinePanel
+                                            passes={[
+                                                { id: 'drafter', status: userDraft.trim() ? 'done' : 'idle' },
+                                                { id: 'critic', status: isLoadingAiInteraction ? 'running' : aiFeedback ? 'done' : 'idle' },
+                                                { id: 'formatter', status: 'idle' },
+                                            ]}
+                                            criticIssues={[]}
+                                            criticSkipped={false}
+                                            onRun={() => void handleSubmitForReview()}
+                                            isRunning={isLoadingAiInteraction}
+                                        />
                                         <div className="flex items-center space-x-2 text-brand-accent mb-2">
                                             <div className="h-px w-4 bg-brand-accent"></div>
                                             <span className="text-[10px] font-mono uppercase tracking-widest">AI Mentor Guidance</span>

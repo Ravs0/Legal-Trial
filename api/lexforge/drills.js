@@ -16,7 +16,7 @@ async function curriculum() {
   }
   return { drills: [{ id: "irsc-101" }, { id: "irsc-102" }] };
 }
-module.exports = async (req, res) => {
+export default async (req, res) => {
   sec(res);
   const uid = owner(req);
   if (!uid) return res.status(401).json({ error: "unauthorized" });

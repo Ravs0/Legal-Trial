@@ -1,5 +1,5 @@
-const crypto = require("crypto");
-const { readRawBody } = require("../_lib/security");
+import crypto from 'node:crypto';
+import { readRawBody } from '../_lib/security.js';
 
 const WINDOW_S = 300;
 const ALLOWED = new Set([
@@ -37,7 +37,7 @@ function verifyV2(raw, ts, sig, secret) {
   return timingEqual(expect, got);
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.statusCode = 405;
     return res.end("method not allowed");

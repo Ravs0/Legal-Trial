@@ -23,7 +23,7 @@ function ledgerRow(user, cards) {
   LEDGER.push(row); // TODO wire: persist to executions ledger store.
   return row;
 }
-module.exports = async (req, res) => {
+export default async (req, res) => {
   if (req.method !== "GET") return res.status(405).json({ ok: false, error: "GET only" });
   const got = (req.headers.authorization || "").replace("Bearer ", "") || (req.query && req.query.secret);
   if (!process.env.CRON_SECRET || got !== process.env.CRON_SECRET) return res.status(401).json({ ok: false, error: "unauthorized" });

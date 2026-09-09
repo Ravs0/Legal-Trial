@@ -1,7 +1,7 @@
 // LexForge Legal-Trial: per-API-key token bucket (additive only, zero deps).
 // Limit/window from env, default 30/min to match security.js. Deny => 429 + Retry-After.
 // Usage:
-//   const { allowByKey } = require("../_lib/keyQuota");
+//   import { allowByKey } from "../_lib/keyQuota.js";
 //   const q = allowByKey(key);
 //   if (!q.allowed) { res.setHeader("Retry-After", String(q.retryAfter)); return res.status(429).json({ error: "rate_limited", retry_after: q.retryAfter }); }
 "use strict";
@@ -39,4 +39,4 @@ function allowByKey(key, now) {
   return { allowed: false, status: 429, retryAfter, remaining: 0, limit };
 }
 
-module.exports = { allowByKey };
+export { allowByKey };

@@ -1,6 +1,6 @@
 'use strict';
 // LexForge Legal-Trial: campus-scoped Bearer auth. Zero deps (node:crypto only).
-const crypto = require('crypto');
+import crypto from 'node:crypto';
 const GRANTS = new Set(['scorer:status', 'coach:dispatch', 'coach:approve']);
 const allowlist = () => (process.env.LEXFORGE_CAMPUS_ALLOWLIST || '')
   .split(',').map((s) => s.trim()).filter(Boolean);
@@ -31,4 +31,4 @@ function requireCampus(requiredScope) { // e.g. requireCampus('coach:dispatch')
 // Stubs: wire to a grant store later; fail-closed (deny by default).
 const refreshGrant = () => ({ ok: false, error: 'stub: refresh not implemented' });
 const revokeGrant = () => ({ ok: false, error: 'stub: revoke not implemented' });
-module.exports = { requireCampus, refreshGrant, revokeGrant, GRANTS };
+export { requireCampus, refreshGrant, revokeGrant, GRANTS };

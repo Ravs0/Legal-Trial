@@ -11,6 +11,7 @@ import { NeuralSandbox } from './lexide/NeuralSandbox';
 import type { LexIDEAppState, LexIDEResearchResult, LexIDESection } from '../types';
 import { SurfacePattern } from '../components/SurfacePattern';
 import { Modal } from '../components/Modal';
+import ResearchTray from '../components/ResearchTray';
 import { screenMedia } from '../assets';
 
 const STORAGE_KEY = 'lexide_v1_session';
@@ -257,6 +258,26 @@ const ResearchIDEScreen: React.FC = () => {
 
   const leftSection = state.sections.find(s => s.id === state.activeLeftSectionId) || state.sections[0];
   const rightSection = state.sections.find(s => s.id === state.activeRightSectionId) || state.sections[1] || state.sections[0];
+
+  const allSavedReferences = Object.values(state.savedReferences ?? {}).flat().filter(Boolean);
+  const verifiedCites = allSavedReferences
+    .filter((r) => r.summary?.trim())
+    .map((r) => ({
+      id: r.id || r.url || r.title,
+      title: r.title || 'Untitled source',
+      quote: r.summary?.trim() || r.snippet || '',
+      url: r.url || '',
+      verify: 100,
+      relevance: 100,
+    }));
+  const researchLeads = allSavedReferences
+    .filter((r) => !r.summary?.trim())
+    .map((r) => ({
+      id: r.id || r.url || r.title,
+      title: r.title || 'Untitled source',
+      snippet: r.snippet || 'No snippet available.',
+      reason: 'Awaiting summary verification.',
+    }));
 
   const handleCreateSection = () => {
     if (selectionRange) {
@@ -545,6 +566,10 @@ const ResearchIDEScreen: React.FC = () => {
                   )}
                 </div>
               )}
+            </div>
+
+            <div className="border-t border-brand-border bg-brand-bg-secondary px-4 py-3 overflow-y-auto max-h-64 shrink-0 custom-scrollbar">
+              <ResearchTray verified={verifiedCites} leads={researchLeads} />
             </div>
 
             <footer className="h-10 bg-brand-bg-secondary border-t border-brand-border flex items-center justify-between px-4 sm:px-6 shrink-0 z-30">

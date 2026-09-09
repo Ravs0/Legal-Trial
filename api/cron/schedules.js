@@ -13,7 +13,7 @@ function send(res, code, obj) {
   res.setHeader("Cache-Control", "no-store");
   return res.status(code).json(obj);
 }
-module.exports = async (req, res) => {
+export default async (req, res) => {
   if (req.method === "GET") {
     const user_id = req.query && req.query.user_id;
     if (!user_id) return send(res, 400, { error: "user_id required" });

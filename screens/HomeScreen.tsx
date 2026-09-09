@@ -4,6 +4,7 @@ import { Button } from '../components/Button';
 import { ROUTES } from '../constants';
 import { TrialSimContext } from '../App';
 import { loadActiveSession, loadCompletedSessions, savePendingSettings } from '../services/storageService';
+import { DRILLS, pickEvening, type Attempt, type Card } from '../services/curriculum';
 import { SessionRecord } from '../types';
 import { createDemoSessionSettings } from '../services/demoSessionService';
 import { trackDemoTrialStarted, trackEvent } from '../services/analyticsService';
@@ -137,6 +138,17 @@ const HomeScreen: React.FC = () => {
           : null,
     };
   }, [completedSessions]);
+
+  const dueDrills = useMemo(() => {
+    const now = Date.now();
+    const stubCards: Card[] = DRILLS.map((d, i) => ({
+      drillId: d.id,
+      intervalDays: 1,
+      dueAt: now - (DRILLS.length - i) * 1000,
+    }));
+    const stubAttempts: Attempt[] = [];
+    return pickEvening(stubCards, stubAttempts, now).slice(0, 3);
+  }, []);
 
   const trendCopy =
     progress.trend === 'up'
@@ -313,6 +325,40 @@ const HomeScreen: React.FC = () => {
               </button>
             </div>
           </PatternPanel>
+        )}
+
+        {dueDrills.length > 0 && (
+          <section aria-label="Due drills">
+            <div className="flex items-center gap-2 mb-2.5">
+              <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Due drills</p>
+              <div className="flex-1 h-px bg-brand-border" />
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.PRACTICE)}
+                className="text-[11px] text-brand-text-secondary hover:text-brand-text-primary transition-colors"
+              >
+                Open practice
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+              {dueDrills.map((drill) => (
+                <button
+                  key={drill.id}
+                  type="button"
+                  onClick={() => navigate(ROUTES.PRACTICE)}
+                  className="text-left rounded-lg border border-brand-border bg-brand-bg-secondary px-3.5 py-3 hover:bg-[#1c1914]/[0.04] transition-colors"
+                >
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-secondary">
+                    {drill.skill} · Level {drill.level}
+                  </p>
+                  <p className="mt-1 text-[13px] text-brand-text-primary leading-snug line-clamp-2">
+                    {drill.prompt}
+                  </p>
+                  <p className="mt-2 text-[11px] text-brand-text-secondary">Practice now</p>
+                </button>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Motif strip: wires remaining classic stills (pen, gavel, scales, astrolabe, key, abstract) */}

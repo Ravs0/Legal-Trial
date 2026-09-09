@@ -10,7 +10,7 @@ function sec(res) {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Cache-Control", "no-store");
 }
-module.exports = async (req, res) => {
+export default async (req, res) => {
   sec(res);
   const uid = owner(req);
   if (!uid) return res.status(401).json({ error: "unauthorized" });

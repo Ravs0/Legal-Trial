@@ -1,8 +1,14 @@
 'use strict';
 // LexForge 3-pass drafting: drafter -> critic (IRAC/citation) -> formatter (ILI/OSCOLA).
-const { route } = require('./router');
-const { checkBudget, spend } = require('./budget');
-const { withFallback } = require('./fallback');
+// Inline lazy stubs: ./router, ./budget and ./fallback do not exist (yet).
+// They preserve the call shapes used below so this module loads under ESM;
+// swap each stub for a real import once the corresponding module lands.
+function route(model, prompt, _opts) {
+  return Promise.resolve({ text: `stub-draft(${model}): ${String(prompt).slice(0, 120)}`, usage: undefined });
+}
+function checkBudget(_budget, _model) { return true; }
+function spend(_budget, _model, _usage) { /* no-op */ }
+function withFallback(fn, model) { return fn(model); }
 
 const PASSES = {
   drafter: { model: 'gpt-4o', temperature: 0.7, timeoutMs: 45000 },
@@ -50,4 +56,4 @@ async function runDraftPipeline({ issue, facts = '', authorities = [], style = '
   return { text, degraded, issues: critique.issues, notes, warnings: context.warnings, passes: ['drafter', degraded ? null : 'critic', 'formatter'].filter(Boolean) };
 }
 
-module.exports = { runDraftPipeline, runPass, merge, PASSES };
+export { runDraftPipeline, runPass, merge, PASSES };
