@@ -1,0 +1,26 @@
+# LexForge example interview: bail-application intake (Docassemble-style subset).
+---
+question: Applicant details
+fields:
+  - Full name: applicant_name
+  - FIR number: fir_number
+  - Offence sections: sections
+---
+question: Custody of {{ applicant_name }}
+subquestion: Needed to plead custody length in the bail application.
+fields:
+  - Date of arrest: arrest_date
+  - Custody days so far: custody_days
+    datatype: integer
+---
+mandatory: applicant_name
+---
+code: |
+  bail_prayer = "Release " + applicant_name + " (FIR " + fir_number + ") after " + custody_days + " days in custody"
+---
+attachment:
+  name: Bail application draft
+  template: |
+    BAIL APPLICATION U/S 483 BNSS
+    Applicant {{ applicant_name }}, FIR {{ fir_number }} ({{ sections }}), arrested {{ arrest_date }}.
+    In custody {{ custody_days }} days. Prayer: {{ bail_prayer }}.

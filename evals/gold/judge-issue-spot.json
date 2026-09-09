@@ -1,0 +1,1 @@
+{"id":"judge-issue-spot","kind":"judge","prompt":"Spot issues: contractor sues homeowner over unpaid renovation, counterclaim defective work.","expected":"Breach of contract: unpaid renovation. Counterclaim negligence and breach of warranty. Damages: cost of repair, delay damages.","regex":"breach|damages|warranty|negligence","rubric":"issues,claims,defenses","minScore":0.7}

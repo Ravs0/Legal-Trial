@@ -1,0 +1,1 @@
+{"id":"counsel-intake","kind":"counsel","prompt":"Intake: new client, landlord-tenant eviction threat, gather facts.","expected":"Parties: tenant client vs landlord. Facts: 3-day notice received. Goals: stay, negotiate. Deadline: answer eviction notice this week.","regex":"parties|facts|goals|deadline","rubric":"facts,goals,risks","minScore":0.7}
