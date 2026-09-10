@@ -7,7 +7,7 @@ import {
   clientError,
   enforceBodyLimit,
   fetchWithTimeout,
-} from './security.js';
+} from './_lib/security.js';
 
 const SAFE_URL_SCHEMES = /^(https?:\/\/)/i;
 const MIN_QUERY_LENGTH = 2;

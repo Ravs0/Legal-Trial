@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "bash scripts/run-tests.sh",
-    "check": "npm run typecheck && npm run test && npm run build"
+    "check": "bash scripts/check-function-count.sh && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
     "docx": "^9.7.1",

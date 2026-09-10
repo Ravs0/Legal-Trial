@@ -8,7 +8,7 @@ import {
   fetchWithTimeout,
   sanitizeProviderSnippet,
   validText,
-} from './security.js';
+} from './_lib/security.js';
 
 const MAX_TTS_CHARS = 6_000;
 /** Raw base64 character budget (~6 MB decoded). */

@@ -1,4 +1,4 @@
-import { applyCors, allowRequest, enforceBodyLimit, clientError } from './security.js';
+import { applyCors, allowRequest, enforceBodyLimit, clientError } from './_lib/security.js';
 
 // Owner-scoped key vault refs. TODO: JWT verify owner + durable vault store.
 const store = globalThis.__lexforgeKeys || (globalThis.__lexforgeKeys = new Map());

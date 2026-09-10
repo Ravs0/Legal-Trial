@@ -9,7 +9,7 @@ import {
   fetchWithTimeout,
   sanitizeProviderSnippet,
   validText,
-} from './security.js';
+} from './_lib/security.js';
 
 const MAX_MESSAGES = 30;
 // Single-message cap. Must stay ≤ MAX_TOTAL_CHARS (which binds multi-message

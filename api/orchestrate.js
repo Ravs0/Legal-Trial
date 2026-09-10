@@ -1,6 +1,6 @@
-import { applyCors, allowRequest, clientError } from './security.js';
+import { applyCors, allowRequest, clientError } from './_lib/security.js';
 
-const WINDOW_MS = 60_000, LIMIT = 30; // use allowRequest from api/security.js: 30 req/min
+const WINDOW_MS = 60_000, LIMIT = 30; // use allowRequest from api/_lib/security.js: 30 req/min
 const frame = (res, event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 const post = (base, path, body, signal) =>
   fetch(`${base}/api/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal }).then((r) => { if (!r.ok) throw new Error(`${path}:${r.status}`); return r.json(); });

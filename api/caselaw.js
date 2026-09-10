@@ -8,7 +8,7 @@ import {
   enforceBodyLimit,
   fetchWithTimeout,
   sanitizeProviderSnippet,
-} from './security.js';
+} from './_lib/security.js';
 
 const UPSTREAM_TIMEOUT_MS = 20_000;
 /** Caselaw hits paid/fragile upstreams — tighter than generic search. */

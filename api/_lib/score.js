@@ -1,4 +1,7 @@
 // LexForge hybrid scorer: heuristic (port of trialScoring.ts) + LLM judge.
+// Parked under _lib (not a routed function; no client callers at time of
+// parking). Restore as api/score.js only if the Vercel function budget allows
+// — see scripts/check-function-count.sh.
 // POST {transcript,rubric_version,phase} -> {score,dimensions,voters,decision}
 const DIMS = ["clarity", "reasoning", "authority", "rebuttal", "delivery"];
 const W_H = 0.3, W_LLM = 0.7, ABSTAIN_GAP = 0.3;

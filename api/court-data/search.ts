@@ -13,7 +13,7 @@ import {
   applyCors,
   clientError,
   enforceBodyLimit,
-} from '../security.js';
+} from '../_lib/security.js';
 import {
   ALLOWED_COURT_DATA_FILTERS,
   buildCourtDataResponse,

@@ -65,6 +65,25 @@ vercel --prod
 Vercel `buildCommand` is `npm run check` (see `vercel.json`), so typecheck, tests,
 and production build must pass for a deploy to succeed.
 
+### Serverless function budget (Hobby limit)
+
+Vercel counts every non-underscore runtime file under `api/` as a Serverless
+Function — **max 12 per deployment on Hobby**. Exceeding it fails the deploy
+about a minute after push ("Deploying outputs" stage) while `npm run check`
+passes locally — which is exactly how deploys silently broke after the Sep 9
+API-layer expansion.
+
+Budget rules:
+
+- `npm run check` now starts with `scripts/check-function-count.sh`, which fails
+  fast at >12 (`FN_LIMIT=<n>` to override for other plans).
+- Shared helpers live in `api/_lib/` (leading underscore = not routed, not counted).
+- Sibling routes share one function via catch-all dispatchers — same URLs:
+  `api/cron/[...job].js` (`/api/cron/{drills,due,schedules}`) and
+  `api/lexforge/[...fn].js` (`/api/lexforge/{drills,scores}`).
+- `api/_lib/score.js` (was `/api/score`) is parked, not routed — restore it only
+  if the function budget frees up.
+
 ## CI
 
 There is **no GitHub Actions workflow** in this repo yet (`.github/workflows` is
