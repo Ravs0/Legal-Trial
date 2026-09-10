@@ -83,8 +83,7 @@ class DreadlerAgent:
         self.api_key: str = api_key or os.environ.get(
             "DEEPSEEK_API_KEY", ""
         ) or os.environ.get("DEEPSEEK_CHAT_API_KEY", "")
-
-        # Optional bookkeeping populated by the critic each turn.
+        self._block0_template: str | None = None
         self.last_tactic: Any | None = None
         self.last_challenge: Any | None = None
         self.last_acceptance: Any | None = None
@@ -103,25 +102,26 @@ class DreadlerAgent:
         misspelling ``[CHARACTER_STYLE_DECRIPTION]`` as well as the correct
         ``[CHARACTER_STYLE_DESCRIPTION]``.
         """
-        prompt_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "full_dreadler_system_prompt.md",
-        )
+        if self._block0_template is None:
+            prompt_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "full_dreadler_system_prompt.md",
+            )
 
-        try:
-            with open(prompt_path, "r", encoding="utf-8") as fh:
-                template = fh.read()
-        except FileNotFoundError as exc:
-            raise FileNotFoundError(
-                f"Dreadler system prompt not found at {prompt_path}"
-            ) from exc
+            try:
+                with open(prompt_path, "r", encoding="utf-8") as fh:
+                    self._block0_template = fh.read()
+            except FileNotFoundError as exc:
+                raise FileNotFoundError(
+                    f"Dreadler system prompt not found at {prompt_path}"
+                ) from exc
 
         character_name = self.spawner.get_character_name()
 
         # Canonical alpha system_prompt (normalized dict; no dual-shape branch).
-        character_style = self.spawner.get_variant_system_prompt("alpha")
+        character_style = self.spawner.get_variant_system_prompt("alpha") or ""
 
-        block = template.replace("[CHARACTER_NAME]", character_name or "")
+        block = self._block0_template.replace("[CHARACTER_NAME]", character_name or "")
         block = block.replace("[CHARACTER_STYLE_DESCRIPTION]", character_style)
         block = block.replace("[CHARACTER_STYLE_DECRIPTION]", character_style)
 
@@ -215,8 +215,8 @@ class DreadlerAgent:
                     chunk_obj = json.loads(payload)
                 except json.JSONDecodeError:
                     continue
-
-                delta = chunk_obj.get("choices", [{}])[0].get("delta", {})
+                choices = chunk_obj.get("choices") or [{}]
+                delta = choices[0].get("delta") or {}
                 content = delta.get("content")
                 if content:
                     if on_delta is not None:
@@ -298,7 +298,7 @@ class DreadlerAgent:
 
     def _classify_user_input(self, user_input: str) -> str:
         """Classify whether the player is challenging the current narrative."""
-        text = user_input.lower()
+        text = user_input.lower().replace("\u2019", "'").replace("\u2018", "'")
         challenge_markers = (
             "you're lying",
             "you are lying",
@@ -322,8 +322,10 @@ class DreadlerAgent:
     def _trim_dialogue_history(self) -> None:
         """Keep only the newest messages needed for prompt continuity."""
         if len(self.dialogue_history) > self.max_history_messages:
-            self.dialogue_history = self.dialogue_history[-self.max_history_messages :]
-
+            excess = len(self.dialogue_history) - self.max_history_messages
+            if excess % 2 != 0:
+                excess += 1
+            self.dialogue_history = self.dialogue_history[excess:]
     def _apply_critic_result(self, critic_result: Dict[str, Any], user_input: str) -> None:
         """Apply critic scoring and update state-side bookkeeping."""
         self.state.apply_delta(
@@ -419,12 +421,18 @@ class DreadlerAgent:
             # the respawn comes back meaner instead of identical.
             collapse_skill = self.state.apply_collapse_bonus()
             prior = self.last_tier_summary or {}
+            prior_changed = bool(prior.get("tier_changed"))
+            collapse_changed = bool(collapse_skill.get("tier_changed"))
+            combined_reason = " + ".join(
+                r for r in (prior.get("reason"), collapse_skill.get("reason")) if r
+            )
             self.last_tier_summary = {
                 **prior,
                 **collapse_skill,
-                "reason": f"{prior.get('reason', '')} + {collapse_skill['reason']}".strip(" +"),
+                "tier_changed": prior_changed or collapse_changed,
+                "notice": collapse_skill.get("notice") or prior.get("notice"),
+                "reason": combined_reason,
             }
-
         self.dialogue_history.append({"role": "user", "content": user_input})
         self.dialogue_history.append({"role": "assistant", "content": agent_response})
         self._trim_dialogue_history()

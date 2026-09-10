@@ -37,7 +37,7 @@ function allowedOrigins() {
  * Never sets Access-Control-Allow-Credentials (keep credentialless).
  */
 export function applyCors(req, res, methods = 'POST, OPTIONS', headers = 'Content-Type') {
-  const origin = req.headers.origin;
+  const origin = req?.headers?.origin;
   // Same-origin requests normally have no Origin header and remain valid.
   if (origin && !allowedOrigins().has(origin)) return false;
 
@@ -69,10 +69,9 @@ function pruneBuckets(now, windowMs) {
  * to one handler does not exhaust another route's budget.
  */
 export function allowRequest(req, { limit, windowMs, keyPrefix = '' }) {
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded || req.socket?.remoteAddress || 'unknown')
-    .split(',')[0]
-    .trim();
+  const forwarded = req?.headers?.['x-forwarded-for'];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded ?? req?.socket?.remoteAddress ?? 'unknown';
+  const ip = String(raw ?? 'unknown').split(',')[0].trim() || 'unknown';
   const prefix = typeof keyPrefix === 'string'
     ? keyPrefix.slice(0, 64).replace(/[^\w:.-]/g, '')
     : '';

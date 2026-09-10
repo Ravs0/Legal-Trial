@@ -120,10 +120,12 @@ const base = { ...DEFAULT_SCORE_BREAKDOWN };
   const sustained = scoreObjection(base, 'sustained', true, 'Hearsay: the witness recounts an out-of-court statement for its truth without an exception.');
   const overruled = scoreObjection(base, 'overruled', false, 'Relevance under the Evidence Act.');
   const thin = scoreObjection(base, 'sustained', true, 'no');
+  const empty = scoreObjection(base, 'sustained', true, '');
   assert(sustained.score.objections > base.objections, 'sustained raises objections score');
   assert(overruled.score.objections < base.objections || overruled.scoreDelta < 0, 'overruled should not reward');
   assert(sustained.scoreReason.includes('sustained'), sustained.scoreReason);
   assert(thin.score.objections < sustained.score.objections, 'thin basis should earn less than a grounded sustained objection');
+  assert(empty.score.objections === thin.score.objections, 'empty basis should be treated as thin');
 
   // Mid-length basis with no legal keyword: engagement only for quick timing.
   const midBasis = 'This question seems unfair and confusing to the witness here.';

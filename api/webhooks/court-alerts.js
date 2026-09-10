@@ -1,5 +1,4 @@
 import crypto from 'node:crypto';
-import { readRawBody } from '../_lib/security.js';
 
 const WINDOW_S = 300;
 const ALLOWED = new Set([
@@ -27,6 +26,46 @@ function timingEqual(a, b) {
   return crypto.timingSafeEqual(ab, bb); // hmac.compare_digest equiv.
 }
 
+// Bounded raw-body reader (256 KiB cap). Vercel may pre-parse req.body,
+// so prefer it when present; otherwise stream it.
+const MAX_BODY_BYTES = 256 * 1024;
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    const pre = req.body;
+    if (typeof pre === 'string') {
+      if (Buffer.byteLength(pre, 'utf8') > MAX_BODY_BYTES) {
+        const e = new Error('body too large'); e.code = 413; return reject(e);
+      }
+      return resolve(pre);
+    }
+    if (pre != null) {
+      try {
+        const s = JSON.stringify(pre);
+        if (Buffer.byteLength(s, 'utf8') > MAX_BODY_BYTES) {
+          const e = new Error('body too large'); e.code = 413; return reject(e);
+        }
+        return resolve(s);
+      } catch {
+        const e = new Error('bad body'); e.code = 400; return reject(e);
+      }
+    }
+    let size = 0;
+    const chunks = [];
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > MAX_BODY_BYTES) {
+        const e = new Error('body too large'); e.code = 413;
+        reject(e);
+        req.destroy?.();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
 function verifyV2(raw, ts, sig, secret) {
   const skew = Math.abs(Date.now() / 1000 - Number(ts));
   if (!ts || !Number.isFinite(skew) || skew > WINDOW_S) return false;
@@ -49,7 +88,7 @@ export default async function handler(req, res) {
   }
   let raw;
   try {
-    raw = await readRawBody(req);
+    raw = await readJsonBody(req);
   } catch (e) {
     res.statusCode = e.code === 413 ? 413 : 400;
     return res.json({ error: "body too large" });

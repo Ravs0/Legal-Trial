@@ -453,7 +453,11 @@ export const validatePerformancePayload = (parsed: unknown): string | null => {
         break;
       }
     }
-    const numeric = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+    const numeric = typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : NaN;
     if (!Number.isFinite(numeric)) {
       return `field "${field}" must be a number`;
     }
@@ -524,8 +528,18 @@ export const buildLocalPerformanceMetrics = (
 };
 
 const parseJsonResponse = (raw: string) => {
-  const cleaned = raw.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, '').trim();
-  return JSON.parse(cleaned);
+  const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const cleaned = (fenceMatch ? fenceMatch[1] : raw).trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start !== -1 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    }
+    throw new Error('response was not valid JSON');
+  }
 };
 
 type JsonParseResult = { ok: true; value: unknown } | { ok: false; error: string };

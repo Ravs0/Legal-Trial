@@ -94,11 +94,7 @@ def tier_for_score(score: float) -> int:
     Clamps out-of-range input to [0, 100].
     """
     score = max(0.0, min(100.0, float(score)))
-    tier = 1
-    for t, spec in TIERS.items():
-        if score >= spec["min_score"]:
-            tier = t
-    return tier
+    return max((t for t, s in TIERS.items() if score >= s["min_score"]), default=1)
 
 
 def render_tier_block(tier: int) -> str:
@@ -107,9 +103,10 @@ def render_tier_block(tier: int) -> str:
     Placed last so it overrides by recency (Part 5 covenant). Tells the model
     exactly which tactic IDs are in-bounds and its posture for this turn.
     """
+    tier = max(1, min(len(TIERS), int(tier)))
     spec = TIERS[tier]
     tactic_lines = "\n".join(
-        f"  - {tid} {TACTIC_NAMES[tid]}" for tid in spec["tactics"]
+        f"  - {tid} {TACTIC_NAMES[tid]}" for tid in spec["tactics"] if tid in TACTIC_NAMES
     )
     if spec["concede_on_press"]:
         concede = (

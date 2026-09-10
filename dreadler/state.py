@@ -120,22 +120,25 @@ class CoherenceState:
     skill_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        self.score = max(0, min(100, self.score))
+        self.score = int(round(max(0, min(100, float(self.score)))))
         self.skill_score = max(0.0, min(100.0, float(self.skill_score)))
         self._update_pressure_and_variant()
 
     def _update_pressure_and_variant(self) -> None:
         """Derive pressure_level and agent_variant from the current score."""
+        clamped = max(0, min(100, self.score))
         for level, (lo, hi) in PRESSURE_MAP.items():
-            if lo <= self.score <= hi:
+            if lo <= clamped <= hi:
                 self.pressure_level = level
                 self.agent_variant = VARIANT_MAP[level]
                 break
         else:
-            # Fallback for out-of-range scores.
-            self.pressure_level = "collapsed"
-            self.agent_variant = VARIANT_MAP["collapsed"]
-
+            if clamped > 100:
+                self.pressure_level = "calm"
+                self.agent_variant = VARIANT_MAP["calm"]
+            else:
+                self.pressure_level = "collapsed"
+                self.agent_variant = VARIANT_MAP["collapsed"]
     def apply_delta(self, event_key: str, note: str = "") -> int:
         """Apply a named delta event and update derived state.
 
@@ -178,8 +181,9 @@ class CoherenceState:
 
     def record_tactic(self, tactic: str) -> None:
         """Record a player fallacy id for the fallacy ledger (not agent tactics)."""
-        if tactic not in self.used_tactics:
-            self.used_tactics.append(tactic)
+        cleaned = " ".join(str(tactic).split())[:60]
+        if cleaned and cleaned not in self.used_tactics:
+            self.used_tactics.append(cleaned)
             if len(self.used_tactics) > 20:
                 self.used_tactics = self.used_tactics[-20:]
 
@@ -189,28 +193,32 @@ class CoherenceState:
         Kept as a multiset (repeats allowed) so the UI can tally how often
         each tactic was faced.
         """
-        self.agent_tactics.append(tactic)
-        if len(self.agent_tactics) > 40:
-            self.agent_tactics = self.agent_tactics[-40:]
+        cleaned = " ".join(str(tactic).split())[:60]
+        if cleaned:
+            self.agent_tactics.append(cleaned)
+            if len(self.agent_tactics) > 40:
+                self.agent_tactics = self.agent_tactics[-40:]
 
     def record_user_acceptance(self, text: str) -> None:
         # Cap the ledger: render_state_block shows only the last 3, and the
         # full list rides inside the signed state token every turn.
-        self.accepted_by_user.append(text)
-        if len(self.accepted_by_user) > 10:
-            self.accepted_by_user = self.accepted_by_user[-10:]
+        cleaned = " ".join(str(text).split())[:160]
+        if cleaned:
+            self.accepted_by_user.append(cleaned)
+            if len(self.accepted_by_user) > 10:
+                self.accepted_by_user = self.accepted_by_user[-10:]
 
     def record_user_challenge(self, text: str) -> None:
-        self.challenged_by_user.append(text)
-        if len(self.challenged_by_user) > 10:
-            self.challenged_by_user = self.challenged_by_user[-10:]
-
+        cleaned = " ".join(str(text).split())[:160]
+        if cleaned:
+            self.challenged_by_user.append(cleaned)
+            if len(self.challenged_by_user) > 10:
+                self.challenged_by_user = self.challenged_by_user[-10:]
     def advance_turn(self) -> None:
         self.turn_count += 1
 
     def is_collapsed(self) -> bool:
-        return self.pressure_level == "collapsed" or self.score <= 9
-
+        return self.pressure_level == "collapsed" or self.score <= PRESSURE_MAP["collapsed"][1]
     @property
     def tier(self) -> int:
         """Active difficulty tier (1..4) derived from the user's skill score."""

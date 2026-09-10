@@ -250,6 +250,34 @@ export const CommandPalette: React.FC = () => {
         description: 'Review AI judges and opposing counsel profiles.',
         action: run(() => navigate(ROUTES.BENCH)),
       },
+      {
+        id: 'action-evening-drill',
+        category: 'Actions',
+        title: 'Start evening drill',
+        description: 'Start a focused evening practice drill.',
+        action: run(() => navigate(ROUTES.HOME)),
+      },
+      {
+        id: 'action-open-coach',
+        category: 'Actions',
+        title: 'Open coach',
+        description: 'Open coaching guidance for your practice.',
+        action: run(() => navigate(ROUTES.HOME)),
+      },
+      {
+        id: 'action-manage-keys',
+        category: 'Actions',
+        title: 'Manage keys',
+        description: 'Manage API keys and access settings.',
+        action: run(() => navigate(ROUTES.HOME)),
+      },
+      {
+        id: 'action-view-schedules',
+        category: 'Actions',
+        title: 'View schedules',
+        description: 'View practice and session schedules.',
+        action: run(() => navigate(ROUTES.HOME)),
+      },
     ];
 
     if (currentPath.includes(ROUTES.DRAFTING_STUDIO)) {

@@ -62,6 +62,13 @@ VALID_AGENT_TACTICS: frozenset[str] = frozenset({
 })
 
 
+def _coerce_bool(value: Any) -> bool:
+    """Coerce boolean values safely from booleans, strings, or numbers."""
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "1", "yes")
+    return bool(value)
+
+
 def reconcile(result: dict[str, Any]) -> dict[str, Any]:
     """Enforce internal consistency on a raw critic JSON verdict.
 
@@ -75,34 +82,53 @@ def reconcile(result: dict[str, Any]) -> dict[str, Any]:
         lie with a neutral/positive event would score nothing)
       * user_exposed=True never coexists with an agent-gain event
       * tactic_used is either a known player fallacy id or None
+      * agent_tactic is either a known agent tactic id or None
 
     Mutates and returns the result dict.
     """
-    # Coerce booleans: the model may return "true"/1 instead of real booleans.
-    result["is_direct_lie"] = bool(result.get("is_direct_lie"))
-    result["deception_succeeded"] = bool(result.get("deception_succeeded"))
-    result["user_exposed"] = bool(result.get("user_exposed"))
+    if not isinstance(result, dict):
+        return {
+            "is_direct_lie": False,
+            "deception_succeeded": False,
+            "user_exposed": False,
+            "score_event": "neutral_response",
+            "tactic_used": None,
+            "agent_tactic": None,
+            "explanation": "Invalid critic payload format.",
+        }
 
-    score_event = result.get("score_event")
+    # Coerce booleans safely: strings like "false" must not coerce to True.
+    result["is_direct_lie"] = _coerce_bool(result.get("is_direct_lie"))
+    result["deception_succeeded"] = _coerce_bool(result.get("deception_succeeded"))
+    result["user_exposed"] = _coerce_bool(result.get("user_exposed"))
+
+    raw_score_event = result.get("score_event")
+    score_event = str(raw_score_event).strip().lower() if isinstance(raw_score_event, str) else ""
     if score_event not in VALID_SCORE_EVENTS:
         result["score_event"] = "neutral_response"
-    score_event = result["score_event"]
+    else:
+        result["score_event"] = score_event
 
-    if result["is_direct_lie"] and score_event != "direct_lie_detected":
+    if result["is_direct_lie"] and result["score_event"] != "direct_lie_detected":
         result["score_event"] = "direct_lie_detected"
-    elif result["user_exposed"] and score_event in AGENT_GAIN_EVENTS:
+    elif result["user_exposed"] and result["score_event"] in AGENT_GAIN_EVENTS:
         result["score_event"] = "user_exposed_deception"
-
-    tactic = result.get("tactic_used")
-    if tactic not in VALID_TACTICS:
+    raw_tactic = result.get("tactic_used")
+    if isinstance(raw_tactic, str):
+        tactic = raw_tactic.strip().lower()
+        result["tactic_used"] = tactic if tactic in VALID_TACTICS else None
+    else:
         result["tactic_used"] = None
 
-    agent_tactic = result.get("agent_tactic")
-    if agent_tactic not in VALID_AGENT_TACTICS:
+    raw_agent_tactic = result.get("agent_tactic")
+    if isinstance(raw_agent_tactic, str):
+        agent_tactic = raw_agent_tactic.strip().lower()
+        result["agent_tactic"] = agent_tactic if agent_tactic in VALID_AGENT_TACTICS else None
+    else:
         result["agent_tactic"] = None
 
+    result["explanation"] = str(result.get("explanation", ""))
     return result
-
 
 class CriticLayer:
     """
@@ -134,8 +160,7 @@ class CriticLayer:
             if val:
                 self._api_key = val
                 break
-        self._base_url = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1").rstrip("/")
-
+        self._base_url = os.environ.get("DEEPSEEK_API_BASE", "https://api.deepseek.com").rstrip("/")
     def _build_prompt(
         self,
         grounded_facts: list[str],
@@ -163,8 +188,9 @@ class CriticLayer:
         dialogue_text = ""
         if dialogue_history:
             dialogue_text = "Dialogue History:\n" + "\n".join(
-                f"  {msg['role'].capitalize()}: {msg['content']}"
+                f"  {str(msg.get('role', 'unknown')).capitalize()}: {str(msg.get('content', ''))}"
                 for msg in dialogue_history
+                if isinstance(msg, dict)
             ) + "\n\n"
 
         return (
@@ -234,7 +260,25 @@ class CriticLayer:
             if lines and lines[-1].startswith("```"):
                 lines = lines[:-1]
             stripped = "\n".join(lines).strip()
-        return json.loads(stripped)
+        try:
+            parsed = json.loads(stripped)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback: scan for first valid JSON object in content
+        decoder = json.JSONDecoder()
+        idx = content.find("{")
+        while idx != -1:
+            try:
+                obj, _ = decoder.raw_decode(content, idx)
+                if isinstance(obj, dict):
+                    return obj
+            except json.JSONDecodeError:
+                pass
+            idx = content.find("{", idx + 1)
+        raise json.JSONDecodeError("No JSON object found in response", content, 0)
 
     def _default_result(self) -> dict[str, Any]:
         """

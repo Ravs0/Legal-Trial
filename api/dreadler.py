@@ -228,6 +228,9 @@ class handler(BaseHTTPRequestHandler):
         except Exception:
             self.send_json(400, {"error": "Invalid JSON body."})
             return
+        if not isinstance(req_body, dict):
+            self.send_json(400, {"error": "Invalid JSON body."})
+            return
 
         action = req_body.get("action", "turn")
         world_id = req_body.get("world", "dreadler_logic")
@@ -238,7 +241,7 @@ class handler(BaseHTTPRequestHandler):
         if not STATE_SECRET:
             self.send_json(503, {"error": "DREADLER_STATE_SECRET is required to run this training simulation."})
             return
-        if world_id not in ALLOWED_WORLDS or skin_id not in ALLOWED_SKINS:
+        if not isinstance(world_id, str) or not isinstance(skin_id, str) or world_id not in ALLOWED_WORLDS or skin_id not in ALLOWED_SKINS:
             self.send_json(400, {"error": "Unsupported training scenario."})
             return
 

@@ -1,18 +1,23 @@
 // api/cron/drills.js — Vercel Cron: evening spaced drills (3 due + 2 weakest-skill).
 // Hermes jobs.json names reused: id, name, schedule{kind,expr}, schedule_display,
 // skills, state, created_at, last_run_at, last_status, last_error.
-const { randomUUID } = require("crypto");
+import crypto from 'node:crypto';
 
 const EXPR = "30 19 * * *";
 
-module.exports = async function handler(req, res) {
+// Curriculum + assignment stores are server TODOs: keep this endpoint
+// fail-soft (empty drills, 200) until api/_lib/curriculum.js and
+// api/_lib/assignments.js land, so the cron never 500s on Vercel.
+async function getDueDrills(_n) { return []; }
+async function getWeakestDrills(_n) { return []; }
+async function saveAssignment(a) { return a; }
+
+export default async function handler(req, res) {
   if (req.method !== "GET")
     return res.status(405).json({ state: "error", last_error: "method_not_allowed" });
   if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`)
     return res.status(401).json({ state: "error", last_error: "unauthorized" });
   try {
-    const { getDueDrills, getWeakestDrills } = require("../_lib/curriculum");
-    const { saveAssignment } = require("../_lib/assignments");
     const created_at = new Date().toISOString();
     const due = await getDueDrills(3);
     const seen = new Set(due.map((d) => d.id));
@@ -20,7 +25,7 @@ module.exports = async function handler(req, res) {
     const drills = [...due, ...weak];
     const skills = [...new Set(drills.flatMap((d) => d.skills || (d.skill ? [d.skill] : [])))];
     const assignment = {
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       name: `evening-drills-${created_at.slice(0, 10)}`,
       schedule: { kind: "cron", expr: EXPR },
       schedule_display: EXPR,

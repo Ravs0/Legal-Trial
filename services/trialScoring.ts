@@ -427,7 +427,7 @@ export const scoreObjection = (
 ): ScoreResult => {
   // Basis quality: empty or one-word bases should not fully reward a sustained ruling.
   const basis = basisText.trim();
-  const basisThin = basis.length > 0 && basis.length < 24;
+  const basisThin = basis.length < 24;
   const basisOk = basis.length >= 24
     && findPositiveSignal(basis.toLowerCase(), /\b(relevance|hearsay|privilege|foundation|prejudice|speculation|leading|argumentative|misstates|assumes|beyond|scope|authority|section|article|rule|record|evidence)\b/i);
 
@@ -528,8 +528,8 @@ export const inferNextPhase = (messages: ChatMessage[]): TrialPhase => {
 export const detectObjectionOutcome = (rulingText: string): ObjectionDetails['outcome'] => {
   const lower = rulingText.toLowerCase();
   // Prefer decisive court language over incidental mentions.
-  if (/\b(objection\s+is\s+)?sustained\b/.test(lower) && !/\bnot\s+sustained\b/.test(lower)) return 'sustained';
-  if (/\b(objection\s+is\s+)?overruled\b/.test(lower) && !/\bnot\s+overruled\b/.test(lower)) return 'overruled';
+  if (/\b(objection\s+(?:is\s+)?)?sustained\b/.test(lower) && !/\b(not|never)\s+sustained\b/.test(lower)) return 'sustained';
+  if (/\b(objection\s+(?:is\s+)?)?overruled\b/.test(lower) && !/\b(not|never)\s+overruled\b/.test(lower)) return 'overruled';
   if (/\breserv(?:e|ed|es)\b/.test(lower)) return 'reserved';
   return 'reserved';
 };
