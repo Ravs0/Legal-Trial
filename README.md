@@ -78,9 +78,13 @@ Budget rules:
 - `npm run check` now starts with `scripts/check-function-count.sh`, which fails
   fast at >12 (`FN_LIMIT=<n>` to override for other plans).
 - Shared helpers live in `api/_lib/` (leading underscore = not routed, not counted).
-- Sibling routes share one function via catch-all dispatchers — same URLs:
-  `api/cron/[...job].js` (`/api/cron/{drills,due,schedules}`) and
-  `api/lexforge/[...fn].js` (`/api/lexforge/{drills,scores}`).
+- Sibling routes share one literal dispatcher file, mapped back to their
+  public URLs with `vercel.json` rewrites: `api/cron.js` with
+  `/api/cron/:job` → `/api/cron?job=:job`, and `api/lexforge.js` with
+  `/api/lexforge/:fn` → `/api/lexforge?fn=:fn`.
+- Dynamic filenames (`[slug].js` / `[...slug].js`) are a Next.js-only routing
+  feature: on a no-framework project they deploy but never match a URL. The
+  guard fails `npm run check` if one appears under `api/`.
 - `api/_lib/score.js` (was `/api/score`) is parked, not routed — restore it only
   if the function budget frees up.
 

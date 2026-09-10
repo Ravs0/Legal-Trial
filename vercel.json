@@ -10,6 +10,14 @@
   },
   "rewrites": [
     {
+      "source": "/api/cron/:job",
+      "destination": "/api/cron"
+    },
+    {
+      "source": "/api/lexforge/:fn",
+      "destination": "/api/lexforge"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api/:path*"
     },
