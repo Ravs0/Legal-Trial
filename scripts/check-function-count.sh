@@ -38,6 +38,27 @@ if [ -n "$BRACKETED" ]; then
   exit 1
 fi
 
+TS_ROUTED=$(printf '%s\n' "$LIST" | grep -E '\.ts$' || true)
+if [ -n "$TS_ROUTED" ]; then
+  echo
+  echo "FAIL: TypeScript file(s) directly under api/ (routed as functions):"
+  printf '%s\n' "$TS_ROUTED" | sed 's/^/  /'
+  echo "A .ts endpoint importing .ts broke the remote bundle while local tests"
+  echo "stayed green (/api/court-data/search 500, Sep 2026). Routed endpoints"
+  echo "must be plain .js importing only .js; compile TS logic into api/_lib/:"
+  echo "  ./node_modules/.bin/esbuild services/<x>.ts --platform=node"
+  echo "    --format=esm --outfile=api/_lib/<x>.js"
+  exit 1
+fi
+
+# NOTE: api/_lib/courtDataGateway.js is a compiled copy of
+# services/courtDataGateway.ts (plain-JS endpoints cannot import TS without
+# breaking the remote bundle). Recompile by hand after editing the TS:
+#   ./node_modules/.bin/esbuild services/courtDataGateway.ts --platform=node \
+#     --format=esm --outfile=api/_lib/courtDataGateway.js
+# (Deliberately NOT auto-run here: esbuild hangs under some shells and would
+# stall the whole check gate.)
+
 if [ "$N" -gt "$LIMIT" ]; then
   echo
   echo "FAIL: $N functions exceed the $LIMIT allowed on this Vercel plan."

@@ -1,13 +1,10 @@
-// Vercel Node.js 18+ serverless function — official Indian court data gateway.
-//
-// Pure catalog / filter / ranking logic lives in services/courtDataGateway.ts
-// (single source of truth; covered by unit tests). This file is the thin HTTP
-// shell: CORS, rate limit, body size, method routing, and error mapping.
-//
-// Compliance: returns official source references only. Does not scrape
-// captcha-protected / session-only court portals or paid legal databases.
-// CORS / origin policy lives only in security.js (ALLOWED_ORIGINS / APP_ORIGIN).
-
+// Vercel Node.js serverless function — official Indian court data gateway.
+// Plain .js on purpose: the previous search.ts imported TS directly, which
+// broke the remote bundle while local tests stayed green (prod 500 on every
+// query). Logic lives in api/_lib/courtDataGateway.js, compiled from
+// services/courtDataGateway.ts via esbuild. Recompile after editing the TS:
+//   ./node_modules/.bin/esbuild services/courtDataGateway.ts --platform=node \
+//     --format=esm --outfile=api/_lib/courtDataGateway.js
 import {
   allowRequest,
   applyCors,
@@ -18,68 +15,43 @@ import {
   ALLOWED_COURT_DATA_FILTERS,
   buildCourtDataResponse,
   CourtDataQueryError,
-} from '../../services/courtDataGateway';
+} from '../_lib/courtDataGateway.js';
 
 const CACHE_CONTROL_GET = 'public, max-age=60, stale-while-revalidate=300';
 
-/** Minimal Vercel-style request surface used by this handler. */
-type CourtDataRequest = {
-  method?: string;
-  body?: unknown;
-  query?: Record<string, string | string[] | undefined>;
-  headers: Record<string, string | string[] | undefined> & {
-    origin?: string;
-    'x-forwarded-for'?: string;
-    'content-length'?: string;
-  };
-  url?: string;
-  socket?: { remoteAddress?: string };
-};
-
-/** Minimal Vercel-style response surface used by this handler. */
-type CourtDataResponseWriter = {
-  status: (code: number) => CourtDataResponseWriter;
-  json: (body: unknown) => unknown;
-  setHeader: (name: string, value: string) => unknown;
-  end: () => unknown;
-};
-
-function parseBody(req: CourtDataRequest): Record<string, unknown> {
+function parseBody(req) {
   if (!req.body) return {};
   if (typeof req.body === 'string') {
     const trimmed = req.body.trim();
     if (!trimmed) return {};
-    const parsed: unknown = JSON.parse(trimmed);
+    const parsed = JSON.parse(trimmed);
     if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) {
       throw new CourtDataQueryError('Query payload must be an object.');
     }
-    return parsed as Record<string, unknown>;
+    return parsed;
   }
   if (typeof req.body === 'object' && !Array.isArray(req.body)) {
-    return req.body as Record<string, unknown>;
+    return req.body;
   }
   throw new CourtDataQueryError('Query payload must be an object.');
 }
 
-function parseGetQuery(req: CourtDataRequest): Record<string, unknown> {
-  // Prefer already-parsed Vercel query when present (avoids double-parse).
+function parseGetQuery(req) {
   if (req.query && typeof req.query === 'object') {
-    const out: Record<string, unknown> = {};
+    const out = {};
     for (const [key, value] of Object.entries(req.query)) {
       if (Array.isArray(value)) out[key] = value[0];
       else if (value !== undefined) out[key] = value;
     }
     return out;
   }
-  // Base URL is only used to resolve relative req.url; not an allow-list origin.
   const url = new URL(req.url || '/api/court-data/search', 'http://localhost');
   return Object.fromEntries(url.searchParams.entries());
 }
 
-function setSafeHeaders(res: CourtDataResponseWriter, method: string | undefined) {
+function setSafeHeaders(res, method) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  // Directory responses are cacheable briefly for GET; POST stays private.
   if (method === 'GET') {
     res.setHeader('Cache-Control', CACHE_CONTROL_GET);
   } else {
@@ -87,7 +59,7 @@ function setSafeHeaders(res: CourtDataResponseWriter, method: string | undefined
   }
 }
 
-export default async function handler(req: CourtDataRequest, res: CourtDataResponseWriter) {
+export default async function handler(req, res) {
   if (!applyCors(req, res, 'GET, POST, OPTIONS')) {
     return res.status(403).json(clientError('Origin is not allowed.'));
   }
