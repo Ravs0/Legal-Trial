@@ -4,13 +4,11 @@ import { Button } from '../components/Button';
 import { ROUTES } from '../constants';
 import { TrialSimContext } from '../App';
 import { loadActiveSession, loadCompletedSessions, savePendingSettings } from '../services/storageService';
-import { DRILLS, pickEvening, type Attempt, type Card } from '../services/curriculum';
 import { SessionRecord } from '../types';
 import { createDemoSessionSettings } from '../services/demoSessionService';
 import { trackDemoTrialStarted, trackEvent } from '../services/analyticsService';
 import { screenMedia } from '../assets';
 import { PhotoHero } from '../components/PhotoHero';
-import { PhotoTile } from '../components/PhotoTile';
 import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
 
 const formatElapsed = (session: SessionRecord) => {
@@ -51,7 +49,6 @@ const HomeScreen: React.FC = () => {
   const modeDisplay = practiceMode ? practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1) : '';
   const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
   const [completedSessions, setCompletedSessions] = useState<SessionRecord[]>([]);
-  const [labsOpen, setLabsOpen] = useState(false);
 
   useEffect(() => {
     trackEvent('dashboard_viewed', { mode: practiceMode || 'none' });
@@ -139,17 +136,6 @@ const HomeScreen: React.FC = () => {
     };
   }, [completedSessions]);
 
-  const dueDrills = useMemo(() => {
-    const now = Date.now();
-    const stubCards: Card[] = DRILLS.map((d, i) => ({
-      drillId: d.id,
-      intervalDays: 1,
-      dueAt: now - (DRILLS.length - i) * 1000,
-    }));
-    const stubAttempts: Attempt[] = [];
-    return pickEvening(stubCards, stubAttempts, now).slice(0, 3);
-  }, []);
-
   const trendCopy =
     progress.trend === 'up'
       ? 'Up vs last'
@@ -158,8 +144,6 @@ const HomeScreen: React.FC = () => {
         : progress.trend === 'flat'
           ? 'Flat vs last'
           : null;
-
-  const strip = screenMedia.home.strip;
 
   return (
     <div className="flex-1 min-h-0 w-full overflow-y-auto bg-brand-bg-primary">
@@ -209,22 +193,12 @@ const HomeScreen: React.FC = () => {
           }
         />
 
-        {/* Loop health: dense stats + spark trail (design tip 11) */}
-        <section aria-label="Loop health">
+        <section aria-label="Your progress">
           <div className="flex items-center gap-2 mb-2.5">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Loop health</p>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Your progress</p>
             <div className="flex-1 h-px bg-brand-border relative overflow-hidden">
               <SurfacePattern variant="dots" className="!opacity-100" />
             </div>
-            {progress.scored > 0 && (
-              <button
-                type="button"
-                onClick={() => navigate(ROUTES.ANALYSIS)}
-                className="text-[11px] text-brand-text-secondary hover:text-brand-text-primary transition-colors"
-              >
-                Open review
-              </button>
-            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg border border-brand-border overflow-hidden bg-brand-border">
@@ -316,159 +290,9 @@ const HomeScreen: React.FC = () => {
                   ))}
                 </ul>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate(ROUTES.ANALYSIS)}
-                className="shrink-0 text-[11px] uppercase tracking-[0.1em] text-brand-text-secondary hover:text-brand-text-primary border border-brand-border px-2.5 py-1.5 rounded-md hover:bg-[#1c1914]/[0.04] transition-colors"
-              >
-                Review
-              </button>
             </div>
           </PatternPanel>
         )}
-
-        {dueDrills.length > 0 && (
-          <section aria-label="Due drills">
-            <div className="flex items-center gap-2 mb-2.5">
-              <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Due drills</p>
-              <div className="flex-1 h-px bg-brand-border" />
-              <button
-                type="button"
-                onClick={() => navigate(ROUTES.PRACTICE)}
-                className="text-[11px] text-brand-text-secondary hover:text-brand-text-primary transition-colors"
-              >
-                Open practice
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              {dueDrills.map((drill) => (
-                <button
-                  key={drill.id}
-                  type="button"
-                  onClick={() => navigate(ROUTES.PRACTICE)}
-                  className="text-left rounded-lg border border-brand-border bg-brand-bg-secondary px-3.5 py-3 hover:bg-[#1c1914]/[0.04] transition-colors"
-                >
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-brand-text-secondary">
-                    {drill.skill} · Level {drill.level}
-                  </p>
-                  <p className="mt-1 text-[13px] text-brand-text-primary leading-snug line-clamp-2">
-                    {drill.prompt}
-                  </p>
-                  <p className="mt-2 text-[11px] text-brand-text-secondary">Practice now</p>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Motif strip: wires remaining classic stills (pen, gavel, scales, astrolabe, key, abstract) */}
-        <div
-          className="grid grid-cols-3 sm:grid-cols-6 gap-px rounded-lg border border-brand-border overflow-hidden bg-brand-border"
-          aria-hidden
-        >
-          {strip.map((cell) => (
-            <div key={cell.label} className="relative h-12 sm:h-14 bg-brand-bg-secondary overflow-hidden">
-              <img
-                src={cell.image}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover opacity-75 grayscale contrast-[1.05] brightness-[0.92] saturate-0"
-                loading="lazy"
-                decoding="async"
-              />
-              <div
-                className="absolute inset-0 opacity-[0.12]"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-              <span className="absolute bottom-1 left-1.5 text-[9px] uppercase tracking-[0.1em] text-brand-text-primary/55">
-                {cell.label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div>
-          <div className="flex items-center gap-2 mb-2.5">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Practice tools</p>
-            <div className="flex-1 h-px bg-brand-border relative overflow-hidden">
-              <SurfacePattern variant="lines" className="!opacity-100" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-            <PhotoTile
-              title="Cases"
-              description="Browse scenarios and start a trial"
-              image={screenMedia.home.cases}
-              badge="Library"
-              meta={progress.done > 0 ? `${progress.done} done` : undefined}
-              onClick={() => navigate(ROUTES.LIBRARY)}
-            />
-            <PhotoTile
-              title="Drafting"
-              description="Filings with structured feedback"
-              image={screenMedia.home.drafting}
-              badge="Write"
-              onClick={() => navigate(ROUTES.DRAFTING_STUDIO)}
-            />
-            <PhotoTile
-              title="Bench"
-              description="Judges and opposing counsel"
-              image={screenMedia.home.bench}
-              badge="Reference"
-              onClick={() => navigate(ROUTES.BENCH)}
-            />
-          </div>
-        </div>
-
-        {/* Labs last, collapsed by default */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setLabsOpen((v) => !v)}
-            className="w-full flex items-center gap-2 mb-2.5 text-left group"
-            aria-expanded={labsOpen}
-          >
-            <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary group-hover:text-brand-text-primary transition-colors">
-              Labs
-              <span className="ml-2 normal-case tracking-normal text-brand-text-secondary/60">Optional</span>
-            </p>
-            <div className="flex-1 h-px bg-brand-border" />
-            <span className="text-[11px] text-brand-text-secondary/70 tabular-nums" aria-hidden>
-              {labsOpen ? '−' : '+'}
-            </span>
-          </button>
-          {labsOpen && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              <PhotoTile
-                title="Strategy"
-                description="Pressure-test your theory"
-                image={screenMedia.home.strategy}
-                badge="Lab"
-                onClick={() => navigate(ROUTES.STRATEGY)}
-                compact
-              />
-              <PhotoTile
-                title="Personas"
-                description="Specialist advisors"
-                image={screenMedia.home.personas}
-                badge="Lab"
-                onClick={() => navigate(ROUTES.PERSONAS)}
-                compact
-              />
-              <PhotoTile
-                title="Deception"
-                description="High-pressure interrogation"
-                image={screenMedia.home.deception}
-                badge="Lab"
-                onClick={() => navigate(ROUTES.DREADLER)}
-                compact
-              />
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useContext, ChangeEvent, useEffect, useRef } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { TrialSimContext } from '../App';
@@ -193,14 +193,21 @@ const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
 // Court Sources lives here as a tab (IA consolidation): one research surface.
 const CourtSourcesPanel = React.lazy(() => import('./CourtSourcesScreen'));
 
-const CaseLibraryScreen: React.FC<{ initialTab?: 'cases' | 'sources' }> = ({ initialTab = 'cases' }) => {
+const CaseLibraryScreen: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error("TrialSimContext not found");
   const { setCurrentSessionSettings, setIsLoading: setGlobalLoading, practiceMode } = context;
 
-  const [activeTab, setActiveTab] = useState<'cases' | 'sources'>(initialTab);
+  const activeTab = searchParams.get('tab') === 'sources' ? 'sources' : 'cases';
+  const setActiveTab = (tab: 'cases' | 'sources') => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (tab === 'sources') nextParams.set('tab', tab);
+    else nextParams.delete('tab');
+    setSearchParams(nextParams, { replace: true });
+  };
   const [selectedCaseForPractice, setSelectedCaseForPractice] = useState<CaseDetail | null>(null);
   const [isCustomSimExpanded, setIsCustomSimExpanded] = useState(false);
 

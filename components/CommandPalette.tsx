@@ -219,7 +219,7 @@ export const CommandPalette: React.FC = () => {
             category: 'Navigation' as const,
             title: 'Court Sources',
             description: 'Official Indian court portal entry points (directory).',
-            action: run(() => navigate(ROUTES.COURT_SOURCES)),
+            action: run(() => navigate(`${ROUTES.LIBRARY}?tab=sources`)),
           }]
         : []),
       {

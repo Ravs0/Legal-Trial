@@ -4,7 +4,6 @@ import { APP_NAME, ROUTES } from '../routes';
 import { TrialSimContext } from '../App';
 import {
   Bars3Icon,
-  CourtIcon,
   DocumentTextIcon,
   GavelIcon,
   HomeIcon,
@@ -174,14 +173,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [activeSessionLabel, setActiveSessionLabel] = useState<string | null>(null);
-  const labRoutes: string[] = [ROUTES.STRATEGY, ROUTES.PERSONAS, ROUTES.DREADLER];
-  const [labsExpanded, setLabsExpanded] = useState(() => labRoutes.includes(location.pathname));
+  const moreToolRoutes: string[] = [
+    ROUTES.DRAFTING_STUDIO,
+    ROUTES.RESEARCH_IDE,
+    ROUTES.BENCH,
+    ROUTES.STRATEGY,
+    ROUTES.PERSONAS,
+    ROUTES.DREADLER,
+  ];
+  const [moreToolsExpanded, setMoreToolsExpanded] = useState(() => moreToolRoutes.includes(location.pathname));
 
   const sidebarRef = useRef<HTMLElement>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const sidebarId = useId();
-  const labsPanelId = useId();
+  const moreToolsPanelId = useId();
   const mainId = 'main-content';
 
   useEffect(() => {
@@ -207,7 +213,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (labRoutes.includes(location.pathname)) setLabsExpanded(true);
+    if (moreToolRoutes.includes(location.pathname)) setMoreToolsExpanded(true);
   }, [location.pathname]);
 
   const closeMobileMenu = useCallback(() => setIsMobileOpen(false), []);
@@ -286,22 +292,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const quickActions = useMemo(
     () => [
-      {
-        id: 'new',
-        label: 'New trial',
-        icon: <PlusCircleIcon className="h-4 w-4" />,
-        disabled: false,
-        primary: !activeSessionLabel,
-        onClick: () => navigate(ROUTES.SETUP),
-      },
-      {
-        id: 'resume',
-        label: activeSessionLabel ? 'Resume hearing' : 'No hearing',
-        icon: <ResumeIcon className="h-4 w-4" />,
-        disabled: !activeSessionLabel,
-        primary: Boolean(activeSessionLabel),
-        onClick: () => navigate(ROUTES.PRACTICE),
-      },
+      ...(activeSessionLabel
+        ? [{
+            id: 'resume',
+            label: 'Resume hearing',
+            icon: <ResumeIcon className="h-4 w-4" />,
+            disabled: false,
+            primary: true,
+            onClick: () => navigate(ROUTES.PRACTICE),
+          }]
+        : []),
       {
         id: 'search',
         label: 'Search',
@@ -426,7 +426,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {isExpanded && (
             <div className="relative z-10 p-2 border-b border-brand-border space-y-1" aria-label="Quick actions">
               <p className="px-2.5 pb-1 text-[10px] uppercase tracking-[0.12em] text-brand-text-secondary/70">
-                Now
+                Shortcuts
               </p>
               {quickActions.map((a) => (
                 <button
@@ -480,56 +480,50 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
 
           <nav className="relative z-10 flex-grow py-2 px-2 space-y-0.5 overflow-y-auto custom-scrollbar overscroll-contain" aria-label="Workspace">
-            <SectionLabel label="Practice" isOpen={isExpanded} />
+            <SectionLabel label="Workspace" isOpen={isExpanded} />
             <NavItem to={ROUTES.HOME} label="Home" icon={<HomeIcon />} end isSidebarOpen={isExpanded} />
             <NavItem to={ROUTES.SETUP} label="New trial" icon={<PlusCircleIcon />} isSidebarOpen={isExpanded} />
             <NavItem to={ROUTES.LIBRARY} label="Cases" icon={<DocumentTextIcon />} isSidebarOpen={isExpanded} />
             <NavItem to={ROUTES.ANALYSIS} label="Review" icon={<ChartIcon />} isSidebarOpen={isExpanded} />
 
-            <SectionLabel label="Write" isOpen={isExpanded} />
-            <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting" icon={<QuillIcon />} isSidebarOpen={isExpanded} />
-
-            <SectionLabel label="Research" isOpen={isExpanded} />
-            <NavItem to={ROUTES.RESEARCH_IDE} label="Research" icon={<DocumentTextIcon />} isSidebarOpen={isExpanded} />
-            {practiceMode === 'indian' && (
-              <NavItem to={ROUTES.COURT_SOURCES} label="Court sources" icon={<CourtIcon />} isSidebarOpen={isExpanded} />
-            )}
-
             <div className={`mt-3 ${isExpanded ? 'px-0.5' : ''}`}>
               <button
                 type="button"
-                onClick={() => setLabsExpanded((open) => !open)}
-                aria-expanded={labsExpanded}
-                aria-controls={labsPanelId}
+                onClick={() => setMoreToolsExpanded((open) => !open)}
+                aria-expanded={moreToolsExpanded}
+                aria-controls={moreToolsPanelId}
                 className={`w-full min-h-11 flex items-center rounded-md px-2.5 py-2.5 text-[13px] text-brand-text-secondary hover:bg-[#1c1914]/[0.04] hover:text-brand-text-primary ${isExpanded ? 'justify-between' : 'justify-center'} ${focusRing}`}
-                aria-label={labsExpanded ? 'Collapse optional labs' : 'Expand optional labs'}
+                aria-label={moreToolsExpanded ? 'Collapse more tools' : 'Expand more tools'}
               >
                 <span className={`flex items-center min-w-0 ${isExpanded ? 'gap-2.5' : ''}`}>
                   <SparklesIcon />
                   {isExpanded && (
                     <span className="truncate">
-                      Labs
-                      <span className="ml-1.5 text-[10px] uppercase tracking-wide text-brand-text-secondary/60">Optional</span>
+                      More tools
                     </span>
                   )}
                 </span>
                 {isExpanded && (
                   <span className="text-[11px] text-brand-text-secondary/70 tabular-nums" aria-hidden="true">
-                    {labsExpanded ? '−' : '+'}
+                    {moreToolsExpanded ? '−' : '+'}
                   </span>
                 )}
               </button>
-              {labsExpanded && (
-                <div id={labsPanelId} className={isExpanded ? 'mt-0.5 space-y-0.5 pl-0.5' : 'space-y-0.5'} role="group" aria-label="Optional labs">
-                  <NavItem to={ROUTES.STRATEGY} label="Strategy" icon={<SparklesIcon />} isSidebarOpen={isExpanded} />
-                  <NavItem to={ROUTES.PERSONAS} label="Personas" icon={<BrainIcon />} isSidebarOpen={isExpanded} />
-                  <NavItem to={ROUTES.DREADLER} label="Deception" icon={<TargetIcon />} isSidebarOpen={isExpanded} />
-                </div>
-              )}
+              <div
+                id={moreToolsPanelId}
+                hidden={!moreToolsExpanded}
+                className={isExpanded ? 'mt-0.5 space-y-0.5 pl-0.5' : 'space-y-0.5'}
+                role="group"
+                aria-label="More tools"
+              >
+                <NavItem to={ROUTES.DRAFTING_STUDIO} label="Drafting" icon={<QuillIcon />} isSidebarOpen={isExpanded} />
+                <NavItem to={ROUTES.RESEARCH_IDE} label="Research" icon={<DocumentTextIcon />} isSidebarOpen={isExpanded} />
+                <NavItem to={ROUTES.BENCH} label="Bench" icon={<GavelIcon />} isSidebarOpen={isExpanded} />
+                <NavItem to={ROUTES.STRATEGY} label="Strategy" icon={<SparklesIcon />} isSidebarOpen={isExpanded} />
+                <NavItem to={ROUTES.PERSONAS} label="Personas" icon={<BrainIcon />} isSidebarOpen={isExpanded} />
+                <NavItem to={ROUTES.DREADLER} label="Deception" icon={<TargetIcon />} isSidebarOpen={isExpanded} />
+              </div>
             </div>
-
-            <SectionLabel label="Reference" isOpen={isExpanded} />
-            <NavItem to={ROUTES.BENCH} label="Bench" icon={<GavelIcon />} isSidebarOpen={isExpanded} />
           </nav>
 
           <div className={`relative z-10 p-2 border-t border-brand-border space-y-1.5 ${!isExpanded ? 'flex flex-col items-center' : ''}`}>

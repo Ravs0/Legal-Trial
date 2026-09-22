@@ -44,7 +44,6 @@ const AIPersonasScreen = lazyWithRetry(() => import('./screens/AIPersonasScreen'
 const StrategyRoomScreen = lazyWithRetry(() => import('./screens/StrategyRoomScreen'));
 const DreadlerArenaScreen = lazyWithRetry(() => import('./screens/DreadlerArenaScreen'));
 const ResearchIDEScreen = lazyWithRetry(() => import('./screens/ResearchIDEScreen'));
-const CourtSourcesScreen = lazyWithRetry(() => import('./screens/CourtSourcesScreen'));
 // Non-critical global overlays: defer their module graphs out of the initial chunk.
 const OversightSpirit = lazyWithRetry(() => import('./components/OversightSpirit').then(m => ({ default: m.OversightSpirit })));
 const CommandPalette = lazyWithRetry(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
@@ -338,7 +337,7 @@ function App() {
           <Route path={ROUTES.STRATEGY} element={guardedLazy(<StrategyRoomScreen />, 'Strategy room encountered an error.')} />
           <Route path={ROUTES.DREADLER} element={guardedLazy(<DreadlerArenaScreen />, 'Dreadler Arena encountered an error.')} />
           <Route path={ROUTES.RESEARCH_IDE} element={guardedLazy(<ResearchIDEScreen />, 'Research IDE encountered an error.')} />
-          <Route path={ROUTES.COURT_SOURCES} element={guardedLazy(<CourtSourcesScreen />, 'Court Sources encountered an error.')} />
+          <Route path={ROUTES.COURT_SOURCES} element={<Navigate to={`${ROUTES.LIBRARY}?tab=sources`} replace />} />
           <Route path="*" element={<Navigate to={defaultRedirect} replace />} />
         </Routes>
       </HashRouter>
