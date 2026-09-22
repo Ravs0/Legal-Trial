@@ -72,6 +72,170 @@ const HistoryIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const ExtractIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+  </svg>
+);
+
+// --- Needle extraction assist (sidecar JSON consumer, UI only) ---
+// Shape mirror of LEGAL/api/_lib/needle/schemas.js: Authority{case_name,
+// citation, proposition} + TurnFacts{cited_any, hedge_count}, gate at
+// EXTRACTION_CONFIDENCE_THRESHOLD (0.6, above Needle's 0.25-0.56 legal band).
+// Below threshold -> escalate, never invent. Extracted text is NEVER
+// auto-inserted as cited — insertion needs an explicit user confirm and is
+// marked UNVERIFIED.
+const EXTRACTION_CONFIDENCE_THRESHOLD = 0.6;
+
+interface ExtractionAuthority {
+  case_name: string;
+  citation: string;
+  proposition: string;
+  confidence: number | null;
+  belowThreshold: boolean;
+}
+
+interface ExtractionTurnFacts {
+  cited_any: boolean | null;
+  hedge_count: number;
+}
+
+interface ParsedExtractionResult {
+  status: 'ready' | 'invalid' | 'escalated';
+  errors: string[];
+  authorities: ExtractionAuthority[];
+  turnFacts: ExtractionTurnFacts | null;
+  escalate: boolean;
+  codes: string[];
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+const asNonEmptyString = (v: unknown): string | null =>
+  typeof v === 'string' && v.trim().length > 0 ? v : null;
+
+// Pure: parse + shape-validate Needle sidecar JSON, apply the confidence gate.
+function parseExtractionAssist(rawText: string): ParsedExtractionResult {
+  const invalid = (errors: string[]): ParsedExtractionResult => ({
+    status: 'invalid', errors, authorities: [], turnFacts: null, escalate: false, codes: [],
+  });
+  let doc: unknown;
+  try {
+    doc = JSON.parse(rawText);
+  } catch {
+    return invalid(['Sidecar JSON is not valid JSON — paste the exact stdout of extract.py.']);
+  }
+  if (!isRecord(doc)) return invalid(['Sidecar JSON must be an object.']);
+
+  const errors: string[] = [];
+  const codes: string[] = [];
+  const pushCode = (c: string) => { if (!codes.includes(c)) codes.push(c); };
+
+  // ok:false -> ExtractionValidationError pattern: escalate, never invent.
+  if (doc.ok === false) {
+    const code = typeof doc.code === 'string' && doc.code ? doc.code : 'EXTRACTION_UNGROUNDED';
+    pushCode(code);
+    errors.push(typeof doc.error === 'string' && doc.error ? doc.error : 'Extraction failed without detail.');
+    errors.push('Verify manually — do not cite.');
+    return { status: 'escalated', errors, authorities: [], turnFacts: null, escalate: true, codes };
+  }
+
+  const authorities: ExtractionAuthority[] = [];
+  const entries: unknown[] = [];
+  let shapeBroken = false;
+  if (Array.isArray(doc.authorities)) {
+    entries.push(...doc.authorities);
+  } else if (isRecord(doc.authority)) {
+    entries.push(doc.authority);
+  } else if (doc.authority === null || doc.authority === undefined) {
+    const st = typeof doc.authority_status === 'string' ? doc.authority_status : '';
+    if (st.startsWith('ungrounded')) {
+      pushCode('EXTRACTION_UNGROUNDED');
+      errors.push(`Authority ungrounded (${st.slice(0, 120)}). Escalated — verify manually, do not cite.`);
+    } else if (st.startsWith('error:')) {
+      pushCode('EXTRACTION_ERROR');
+      errors.push(`Authority extraction error (${st.slice(0, 120)}). Escalated — verify manually, do not cite.`);
+    } else {
+      errors.push('No authority in sidecar JSON (authority is null).');
+    }
+  } else {
+    errors.push('authority must be an object (or authorities an array).');
+  }
+
+  const allowedAuthorityKeys = new Set(['case_name', 'citation', 'proposition', 'confidence']);
+  const topConfidence = typeof doc.confidence === 'number' ? doc.confidence : null;
+  entries.forEach((entry, idx) => {
+    const label = `#${idx + 1}`;
+    if (!isRecord(entry)) {
+      errors.push(`Authority ${label} is not an object.`);
+      return;
+    }
+    for (const k of Object.keys(entry)) {
+      if (!allowedAuthorityKeys.has(k)) {
+        errors.push(`Authority ${label} has unexpected key: ${k}.`);
+        shapeBroken = true;
+      }
+    }
+    const caseName = asNonEmptyString(entry.case_name);
+    const citation = asNonEmptyString(entry.citation);
+    const proposition = asNonEmptyString(entry.proposition);
+    if (!caseName) { errors.push(`Authority ${label} missing non-empty case_name.`); shapeBroken = true; }
+    if (!citation) { errors.push(`Authority ${label} missing non-empty citation.`); shapeBroken = true; }
+    if (!proposition) { errors.push(`Authority ${label} missing non-empty proposition.`); shapeBroken = true; }
+    const conf = typeof entry.confidence === 'number' ? (entry.confidence as number) : topConfidence;
+    const belowThreshold = conf === null || conf < EXTRACTION_CONFIDENCE_THRESHOLD;
+    if (caseName && citation && proposition && belowThreshold) {
+      pushCode('LOW_CONFIDENCE');
+      errors.push(`Authority "${caseName}" below threshold (${conf === null ? 'confidence missing' : conf}). Escalated — verify manually, do not cite.`);
+    }
+    authorities.push({
+      case_name: caseName ?? '',
+      citation: citation ?? '',
+      proposition: proposition ?? '',
+      confidence: conf,
+      belowThreshold,
+    });
+  });
+
+  let turnFacts: ExtractionTurnFacts | null = null;
+  if (isRecord(doc.turn_facts)) {
+    const tf = doc.turn_facts;
+    const allowedTurnFactKeys = new Set(['cited_any', 'hedge_count']);
+    for (const k of Object.keys(tf)) {
+      if (!allowedTurnFactKeys.has(k)) {
+        errors.push(`turn_facts has unexpected key: ${k}.`);
+        shapeBroken = true;
+      }
+    }
+    if (tf.cited_any !== null && typeof tf.cited_any !== 'boolean') {
+      errors.push('turn_facts.cited_any must be a boolean or null.');
+    }
+    const hedgeOk = Number.isInteger(tf.hedge_count) && (tf.hedge_count as number) >= 0;
+    if (!hedgeOk) errors.push('turn_facts.hedge_count must be an integer >= 0.');
+    const citedStatus = typeof doc.cited_status === 'string' ? doc.cited_status : '';
+    if (tf.cited_any === null && citedStatus.startsWith('ungrounded')) {
+      codes.push('EXTRACTION_UNGROUNDED');
+      errors.push('turn_facts.cited_any ungrounded. Escalated — verify manually.');
+    }
+    turnFacts = {
+      cited_any: typeof tf.cited_any === 'boolean' ? tf.cited_any : null,
+      hedge_count: hedgeOk ? (tf.hedge_count as number) : 0,
+    };
+  } else if (doc.turn_facts !== undefined && doc.turn_facts !== null) {
+    errors.push('turn_facts must be an object.');
+  }
+
+  let escalate = doc.escalate === true || codes.length > 0;
+  // Shape-broken records are ungrounded: escalate, never invent.
+  if (shapeBroken || authorities.some((a) => !a.case_name || !a.citation || !a.proposition)) {
+    escalate = true;
+    pushCode('EXTRACTION_UNGROUNDED');
+  }
+  const status: ParsedExtractionResult['status'] = escalate ? 'escalated' : errors.length > 0 ? 'invalid' : 'ready';
+  return { status, errors, authorities, turnFacts, escalate, codes };
+}
+
 
 interface GroupedTaskOption {
   label: string;
@@ -104,7 +268,7 @@ const DraftingStudioScreen: React.FC = () => {
   const [lastFailedTaskId, setLastFailedTaskId] = useState<string | null>(null);
   
   // Reference Panel States
-  const [activeRefTab, setActiveRefTab] = useState<'facts' | 'feedback' | 'procedure' | 'score' | 'compliance' | 'course' | 'history'>('facts');
+  const [activeRefTab, setActiveRefTab] = useState<'facts' | 'feedback' | 'procedure' | 'score' | 'compliance' | 'course' | 'history' | 'extract'>('facts');
   const [snapshots, setSnapshots] = useState<{ id: string; timestamp: string; text: string }[]>([]);
   const [selectedSnapshotForDiff, setSelectedSnapshotForDiff] = useState<string | null>(null);
   const [isDiffModalOpen, setIsDiffModalOpen] = useState(false);
@@ -117,6 +281,39 @@ const DraftingStudioScreen: React.FC = () => {
   const [openModule, setOpenModule] = useState<number | null>(0);
   const [checklistChecked, setChecklistChecked] = useState<boolean[]>([false, false, false, false, false]);
   const [copiedSnippetIndex, setCopiedSnippetIndex] = useState<number | null>(null);
+
+  // Needle extraction assist (sidecar JSON pasted from offline extract.py).
+  // Extracted text is NEVER auto-inserted: confirmInsertAuthority asks first.
+  const [sidecarJsonText, setSidecarJsonText] = useState<string>('');
+  const [extraction, setExtraction] = useState<ParsedExtractionResult | null>(null);
+
+  const loadExtraction = useCallback(() => {
+    if (!sidecarJsonText.trim()) {
+      setExtraction({
+        status: 'invalid',
+        errors: ['Paste sidecar JSON first (stdout of `echo \'{"text":"..."}\' | python3 api/_lib/needle/extract.py`).'],
+        authorities: [], turnFacts: null, escalate: false, codes: [],
+      });
+      return;
+    }
+    setExtraction(parseExtractionAssist(sidecarJsonText));
+  }, [sidecarJsonText]);
+
+  const clearExtraction = useCallback(() => {
+    setExtraction(null);
+    setSidecarJsonText('');
+  }, []);
+
+  const confirmInsertAuthority = useCallback((index: number) => {
+    const auth = extraction?.authorities[index];
+    if (!auth || !auth.case_name || !auth.citation || !auth.proposition) return;
+    const ok = window.confirm(
+      `Insert UNVERIFIED extraction into your draft?\n\n"${auth.case_name}" — ${auth.citation}\n\nThis text is NOT a verified citation. Verify the source yourself before relying on it. Insert anyway?`
+    );
+    if (!ok) return;
+    const block = `\n[UNVERIFIED extraction — verify before citing] ${auth.proposition} (${auth.citation})\n`;
+    setUserDraft((prev) => (prev ? `${prev}${block}` : block));
+  }, [extraction]);
 
   // Focus Mode & Auto-Save
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
@@ -1265,6 +1462,19 @@ Section 8.2 Limitation of Liability.
                                     <HistoryIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'history' ? 'text-brand-accent' : ''}`} />
                                     <span className="text-[9px] font-mono uppercase tracking-tighter">History</span>
                                 </button>
+                                <button
+                                    onClick={() => setActiveRefTab('extract')}
+                                    className={`flex-1 flex flex-col items-center py-3 px-1 transition-all border-b-2 relative
+                                        ${activeRefTab === 'extract' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
+                                >
+                                    <ExtractIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'extract' ? 'text-brand-accent' : ''}`} />
+                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Extract</span>
+                                    {extraction?.escalate && (
+                                        <span className="absolute -top-1 -right-1 text-[8px] font-bold font-mono px-1 h-5 rounded-xl border border-brand-error bg-brand-error/15 text-brand-error flex items-center justify-center">
+                                            !
+                                        </span>
+                                    )}
+                                </button>
                             </div>
 
                             {/* Tab Content */}
@@ -1532,6 +1742,126 @@ Section 8.2 Limitation of Liability.
                                                 ))}
                                             </div>
                                         )}
+                                    </div>
+                                )}
+
+                                {activeRefTab === 'extract' && (
+                                    <div className="animate-fadeIn space-y-4">
+                                        <div className="flex items-center space-x-2 text-brand-accent mb-2">
+                                            <div className="h-px w-4 bg-brand-accent"></div>
+                                            <span className="text-[10px] font-mono uppercase tracking-widest">Needle Extraction Assist</span>
+                                        </div>
+                                        <p className="text-[11px] text-brand-text-secondary font-light leading-relaxed">
+                                            Paste the stdout JSON of the offline Needle sidecar
+                                            (<span className="font-mono">api/_lib/needle/extract.py</span>).
+                                            Authorities and facts are shown with confidence; anything below
+                                            threshold escalates. Nothing is inserted into your draft until you confirm it.
+                                        </p>
+                                        <textarea
+                                            value={sidecarJsonText}
+                                            onChange={(e) => setSidecarJsonText(e.target.value)}
+                                            placeholder={'{"ok": true, "authority": {"case_name": "...", "citation": "...", "proposition": "..."}, "turn_facts": {"cited_any": true, "hedge_count": 0}, "escalate": false}'}
+                                            spellCheck={false}
+                                            className="w-full h-28 p-3 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl text-brand-text-primary font-mono text-[10px] leading-relaxed resize-y outline-none custom-scrollbar placeholder-brand-text-secondary/30"
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button size="sm" variant="primary" onClick={loadExtraction} className="px-3 py-1 text-[9px] font-mono rounded-xl uppercase tracking-wider">
+                                                [ Load ]
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={clearExtraction} className="px-3 py-1 text-[9px] font-mono rounded-xl uppercase tracking-wider border border-brand-text-primary/30">
+                                                Clear
+                                            </Button>
+                                            {extraction && (
+                                                <span className={`ml-auto self-center text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border ${
+                                                    extraction.status === 'ready'
+                                                        ? 'border-brand-border text-brand-text-primary bg-[#1c1914]/[0.04]'
+                                                        : extraction.status === 'escalated'
+                                                            ? 'border-brand-error/30 text-brand-error bg-brand-error/10'
+                                                            : 'border-brand-text-primary/20 text-brand-text-secondary'
+                                                }`}>
+                                                    {extraction.status}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {extraction?.escalate && (
+                                            <div role="alert" className="border border-brand-error/30 bg-brand-error/10 text-brand-error p-3 rounded-xl text-left">
+                                                <div className="text-[10px] font-mono font-bold uppercase tracking-widest mb-1">
+                                                    Escalated — verify manually, do not cite
+                                                </div>
+                                                <div className="text-[10px] font-mono opacity-80">
+                                                    {extraction.codes.length > 0 ? `Codes: ${extraction.codes.join(', ')}` : 'Below-confidence extraction.'}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {extraction && extraction.errors.length > 0 && (
+                                            <ul className="space-y-1 text-left">
+                                                {extraction.errors.map((err, idx) => (
+                                                    <li key={idx} className="text-[10px] font-mono text-brand-text-secondary border-l border-brand-error/40 pl-2">
+                                                        {err}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+
+                                        {extraction && extraction.authorities.length > 0 && (
+                                            <div className="space-y-3">
+                                                <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">
+                                                    Authorities ({extraction.authorities.length})
+                                                </span>
+                                                {extraction.authorities.map((auth, idx) => (
+                                                    <div key={idx} className={`bg-brand-bg-secondary border p-3 rounded-xl flex flex-col space-y-2 text-left ${auth.belowThreshold ? 'border-brand-error/30' : 'border-brand-text-primary/30'}`}>
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <span className="text-[11px] font-serif font-semibold text-brand-text-primary">{auth.case_name || '(unnamed)'}</span>
+                                                            {auth.belowThreshold ? (
+                                                                <span className="text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 border border-brand-error/30 text-brand-error bg-brand-error/10 leading-none flex-shrink-0">
+                                                                    Escalate
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[8px] font-mono uppercase px-1.5 py-0.5 border border-brand-border text-brand-text-primary leading-none flex-shrink-0">
+                                                                    conf {auth.confidence !== null ? auth.confidence.toFixed(2) : 'n/a'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[10px] font-mono text-brand-text-secondary">{auth.citation || '(no citation)'}</div>
+                                                        <p className="text-[11px] font-light text-brand-text-primary/90 leading-relaxed">{auth.proposition || '(no proposition)'}</p>
+                                                        <div>
+                                                            <button
+                                                                onClick={() => confirmInsertAuthority(idx)}
+                                                                disabled={!auth.case_name || !auth.citation || !auth.proposition}
+                                                                className="text-[9px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+                                                            >
+                                                                Insert into draft (confirm)
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {extraction?.turnFacts && (
+                                            <div className="bg-brand-bg-secondary border border-brand-text-primary/30 p-3 rounded-xl text-left">
+                                                <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">Turn facts</span>
+                                                <div className="mt-1.5 text-[11px] font-mono text-brand-text-secondary space-y-0.5">
+                                                    <div>cited_any: <span className="text-brand-text-primary">{String(extraction.turnFacts.cited_any)}</span></div>
+                                                    <div>hedge_count: <span className="text-brand-text-primary">{extraction.turnFacts.hedge_count}</span></div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {!extraction && (
+                                            <EmptyState
+                                                icon={<ExtractIcon className="w-10 h-10" />}
+                                                title="No extraction loaded"
+                                                description="Run extract.py offline on your source text, paste its JSON above, then Load. Extracted text is never auto-inserted as cited — you confirm each insert."
+                                                className="py-6"
+                                            />
+                                        )}
+
+                                        <p className="text-[9px] font-mono uppercase tracking-widest text-brand-text-secondary/60 text-left">
+                                            Extracted text is never auto-inserted as cited — each insert needs your confirm and is marked unverified.
+                                        </p>
                                     </div>
                                 )}
                             </div>

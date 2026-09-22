@@ -759,3 +759,176 @@ export function buildCourtDataResponse(
     warnings: buildWarnings(query, records),
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Chain-aware Needle sidecar helpers (B13 — JEV/Needle chain).         */
+/*                                                                      */
+/* Needle (`cactus-needle`) is a local python lib: it cannot run inside */
+/* Vercel Node functions, so it runs offline (sidecar pattern) and the  */
+/* server consumes its stdout JSON. `extract.py` emits:                 */
+/*   {ok, ms, authority|null, authority_status,                         */
+/*    turn_facts:{cited_any, hedge_count}, cited_status, escalate}       */
+/* `authority` is non-null ONLY when strictly grounded; otherwise       */
+/* `authority_status` is "ungrounded:*"/"error:*" and `escalate` is     */
+/* true. These helpers mirror that contract in TS so chain code can     */
+/* consume sidecar JSON without duplicating shape knowledge.            */
+/* All pure: no network I/O, never throw on bad input (null = absent).  */
+/* ------------------------------------------------------------------ */
+
+/** Grounded authority block: literal strings quoted from the text. */
+export interface NeedleAuthority {
+  readonly case_name: string;
+  readonly citation: string;
+  readonly proposition: string;
+}
+
+/** Turn-level facts: strict-validated bool + deterministic regex count. */
+export interface NeedleTurnFacts {
+  readonly cited_any: boolean | null;
+  readonly hedge_count: number;
+}
+
+/** Loose input view of one `extract.py` stdout record. Every field is */
+/* optional/unknown because the helpers validate before use. */
+export interface NeedleSidecarPayload {
+  readonly ok?: unknown;
+  readonly ms?: unknown;
+  readonly authority?: unknown;
+  readonly authority_status?: unknown;
+  readonly turn_facts?: unknown;
+  readonly cited_status?: unknown;
+  readonly escalate?: unknown;
+}
+
+/** Authority resolution status derived from a sidecar payload. */
+export type NeedleAuthorityStatus = 'extracted' | 'ungrounded' | 'error' | 'missing';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readGroundedAuthority(value: unknown): NeedleAuthority | null {
+  if (!isRecord(value)) return null;
+  const { case_name, citation, proposition } = value;
+  if (typeof case_name !== 'string' || !case_name.trim()) return null;
+  if (typeof citation !== 'string' || !citation.trim()) return null;
+  if (typeof proposition !== 'string' || !proposition.trim()) return null;
+  return { case_name, citation, proposition };
+}
+
+/**
+ * Extract the grounded Needle authority from a sidecar payload.
+ * Returns the authority only when it is a fully-grounded triple of
+ * non-empty strings AND `authority_status` is absent or "extracted".
+ * Returns null otherwise; never throws.
+ */
+export function extractNeedleAuthority(payload: unknown): NeedleAuthority | null {
+  try {
+    if (!isRecord(payload)) return null;
+    const status: unknown = (payload as NeedleSidecarPayload).authority_status;
+    if (status !== undefined && status !== 'extracted') return null;
+    return readGroundedAuthority((payload as NeedleSidecarPayload).authority);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Classify the authority status of a sidecar payload from
+ * `authority_status` (prefix match: "ungrounded:*"/"error:*"), falling
+ * back to inference from `authority` presence when the status is absent.
+ */
+export function needleAuthorityStatus(payload: unknown): NeedleAuthorityStatus {
+  if (!isRecord(payload)) return 'missing';
+  const status: unknown = (payload as NeedleSidecarPayload).authority_status;
+  if (typeof status === 'string') {
+    if (status.startsWith('ungrounded')) return 'ungrounded';
+    if (status.startsWith('error')) return 'error';
+    if (status === 'extracted') return 'extracted';
+  }
+  return readGroundedAuthority((payload as NeedleSidecarPayload).authority) === null
+    ? 'missing'
+    : 'extracted';
+}
+
+/**
+ * Confidence-gated handoff: true = escalate, never invent (same abstain
+ * philosophy as score.js ABSTAIN_GAP). Escalates when the payload is not
+ * a clean `ok:true` record, when no grounded authority survives, or —
+ * under `strict` — when the sidecar itself raised `escalate`.
+ */
+export function shouldEscalateNeedleAuthority(
+  payload: unknown,
+  opts?: { readonly strict?: boolean },
+): boolean {
+  if (!isRecord(payload)) return true;
+  if ((payload as NeedleSidecarPayload).ok !== true) return true;
+  if (extractNeedleAuthority(payload) === null) return true;
+  if (opts?.strict === true && (payload as NeedleSidecarPayload).escalate === true) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Parse `turn_facts` from a sidecar payload. Returns null unless
+ * `cited_any` is boolean|null and `hedge_count` is a finite number ≥ 0
+ * (truncated). Never throws.
+ */
+export function parseNeedleTurnFacts(payload: unknown): NeedleTurnFacts | null {
+  try {
+    if (!isRecord(payload)) return null;
+    const tf: unknown = (payload as NeedleSidecarPayload).turn_facts;
+    if (!isRecord(tf)) return null;
+    const { cited_any, hedge_count } = tf as {
+      cited_any?: unknown;
+      hedge_count?: unknown;
+    };
+    if (cited_any !== null && typeof cited_any !== 'boolean') return null;
+    if (typeof hedge_count !== 'number' || !Number.isFinite(hedge_count) || hedge_count < 0) {
+      return null;
+    }
+    return { cited_any, hedge_count: Math.trunc(hedge_count) };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Lowercase alphanumeric hint tokens from an authority's case name and
+ * citation (proposition prose is deliberately excluded — it pollutes
+ * ranking with generic words). Feeds `scoreSourceRelevance` free-text
+ * ranking downstream; carries no judgment.
+ */
+export function authorityHintsForQuery(
+  authority: NeedleAuthority | null | undefined,
+): string[] {
+  if (!authority) return [];
+  const raw = `${authority.case_name} ${authority.citation}`.toLowerCase();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const token of raw.split(/[^a-z0-9]+/)) {
+    if (token.length < 2 || seen.has(token)) continue;
+    seen.add(token);
+    out.push(token);
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+
+/**
+ * Return a NEW query with `q` enriched by the authority's case name and
+ * citation (whitespace-collapsed, sliced to MAX_QUERY_LENGTH). Pure:
+ * the input query is never mutated; a null authority returns a copy.
+ */
+export function applyAuthorityToQuery(
+  query: CourtDataQuery,
+  authority: NeedleAuthority | null | undefined,
+): CourtDataQuery {
+  if (!authority) return { ...query };
+  const enriched = `${query.q} ${authority.case_name} ${authority.citation}`
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_QUERY_LENGTH);
+  return { ...query, q: enriched };
+}

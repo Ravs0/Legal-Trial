@@ -13,7 +13,14 @@ import {
   buildJudgePrompt,
   buildOpposingCounselPrompt,
 } from '../../services/aiService';
-import { clearActiveSession, loadActiveSession, saveActiveSession, saveCompletedSession } from '../../services/storageService';
+import {
+  clearActiveSession,
+  loadActiveSession,
+  readGenericState,
+  saveActiveSession,
+  saveCompletedSession,
+  saveGenericState,
+} from '../../services/storageService';
 import {
   speak,
   cancelSpeech,
@@ -48,10 +55,247 @@ const PHASE_SEQUENCE: TrialPhase[] = ['opening', 'issue_framing', 'rebuttal', 'j
 const OBJECTION_WINDOW_SECONDS = 6;
 /** Soft ceiling so a hung /api/chat stream cannot leave the composer locked forever. */
 const AI_STREAM_TIMEOUT_MS = 90_000;
+const CHAIN_REQUEST_TIMEOUT_MS = 20_000;
 const formatCounselName = (name: string) => /^(adv\.?|advocate)\s/i.test(name.trim()) ? name : `Advocate ${name}`;
 const phaseIndex = (phase: TrialPhase) => {
   const idx = PHASE_SEQUENCE.indexOf(phase);
   return idx < 0 ? 0 : idx;
+};
+
+/** B15 — chain verdict surface (chain.js return + optional drill/session envelope). */
+export const CHAIN_VERDICTS_KEY = 'lexforge:chain-verdicts';
+export const CHAIN_VERDICT_EVENT = 'lexforge-chain-verdict';
+/** guardrails.js parity — rendered under every surfaced verdict. */
+export const CHAIN_VERDICT_DISCLAIMER =
+  'LexForge output is general information only and is not legal advice. Consult a licensed attorney.';
+export interface ChainVoter {
+  source: string;
+  score: number | null;
+  confidence?: number | null;
+  error?: string;
+  route?: 'auto' | 'probe' | 'human_review' | string;
+  gates?: Record<string, number>;
+}
+export interface ChainVerdict {
+  score: number;
+  dimensions?: Record<string, number>;
+  voters: ChainVoter[];
+  decision: 'auto' | 'human_review' | string;
+  confidence?: number | null;
+  usage?: { jevTokens?: number; llmSkipped?: boolean };
+  code?: string;
+  drillId?: string | null;
+  sessionId?: string | null;
+  at?: number;
+}
+const MAX_CHAIN_VERDICTS = 32;
+const isChainScore = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+const isChainVoter = (v: unknown): v is ChainVoter => {
+  if (typeof v !== 'object' || v === null) return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.source === 'string' &&
+    (o.score === null || isChainScore(o.score)) &&
+    (o.confidence === undefined || o.confidence === null || isChainScore(o.confidence)) &&
+    (o.error === undefined || typeof o.error === 'string') &&
+    (o.route === undefined || typeof o.route === 'string') &&
+    (o.gates === undefined || (
+      typeof o.gates === 'object' && o.gates !== null && !Array.isArray(o.gates) &&
+      Object.values(o.gates as Record<string, unknown>).every(isChainScore)
+    ))
+  );
+};
+const normalizeChainVerdict = (value: unknown): ChainVerdict | null => {
+  if (typeof value !== 'object' || value === null) return null;
+  const o = value as Record<string, unknown>;
+  if (!isChainScore(o.score) || !Array.isArray(o.voters) || o.voters.length === 0 || !o.voters.every(isChainVoter)) return null;
+  if (typeof o.decision !== 'string' || !o.decision) return null;
+  if (
+    o.dimensions !== undefined &&
+    (typeof o.dimensions !== 'object' || o.dimensions === null || Array.isArray(o.dimensions) ||
+      !Object.values(o.dimensions as Record<string, unknown>).every(isChainScore))
+  ) {
+    return null;
+  }
+  const dimensions =
+    typeof o.dimensions === 'object' && o.dimensions !== null && !Array.isArray(o.dimensions)
+      ? Object.fromEntries(
+          Object.entries(o.dimensions as Record<string, unknown>)
+            .filter(([, score]) => isChainScore(score))
+            .map(([key, score]) => [key, score as number]),
+        )
+      : undefined;
+  return {
+    score: o.score,
+    dimensions,
+    voters: o.voters as ChainVoter[],
+    decision: o.decision,
+    confidence: o.confidence === null || o.confidence === undefined ? null : isChainScore(o.confidence) ? o.confidence : null,
+    usage:
+      typeof o.usage === 'object' && o.usage !== null && !Array.isArray(o.usage)
+        ? (o.usage as ChainVerdict['usage'])
+        : undefined,
+    code: typeof o.code === 'string' ? o.code : undefined,
+    drillId: typeof o.drillId === 'string' ? o.drillId : null,
+    sessionId: typeof o.sessionId === 'string' ? o.sessionId : null,
+    at: typeof o.at === 'number' && Number.isFinite(o.at) ? o.at : undefined,
+  };
+};
+/** Best-known chain confidence: top-level first, else the JEV voter's. */
+export const chainConfidence = (v: ChainVerdict): number | null => {
+  if (typeof v.confidence === 'number' && Number.isFinite(v.confidence)) return v.confidence;
+  const jev = v.voters.find((x) => x.source === 'jev');
+  if (jev && typeof jev.confidence === 'number' && Number.isFinite(jev.confidence)) return jev.confidence;
+  return null;
+};
+/** Tolerant localStorage read: array-or-single, shape-validated, newest first.
+ *  Writers append oldest→newest, so storage order is reversed first; a numeric
+ *  `at` (when present) then decides. Items without `at` keep
+ *  newest-written-first order among themselves and rank below timestamped ones. */
+export const readChainVerdicts = (): ChainVerdict[] => {
+  let raw: unknown = null;
+  try {
+    raw = readGenericState<unknown>(CHAIN_VERDICTS_KEY);
+  } catch {
+    return [];
+  }
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  const out: ChainVerdict[] = [];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const verdict = normalizeChainVerdict(list[i]);
+    if (verdict) out.push(verdict);
+  }
+  // Stable: `at` decides; ties (incl. missing `at`) keep newest-written-first.
+  return out.sort((a, b) => (b.at ?? -1) - (a.at ?? -1));
+};
+type ChainTurnContext = { drillId?: string | null; sessionId?: string | null };
+
+/** Persist only a contract-shaped chain result. API failures leave the drill usable. */
+const persistChainVerdict = (response: unknown, context: ChainTurnContext): ChainVerdict | null => {
+  const parsed = normalizeChainVerdict(response);
+  if (!parsed) return null;
+  const verdict: ChainVerdict = {
+    ...parsed,
+    drillId: context.drillId ?? parsed.drillId ?? null,
+    sessionId: context.sessionId ?? parsed.sessionId ?? null,
+    at: Date.now(),
+  };
+  try {
+    // readChainVerdicts is newest-first; storage writers append oldest→newest.
+    const next = [...readChainVerdicts().reverse(), verdict].slice(-MAX_CHAIN_VERDICTS);
+    saveGenericState(CHAIN_VERDICTS_KEY, next);
+  } catch {
+    // Private mode/quota failures must not interrupt a hearing.
+  }
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(CHAIN_VERDICT_EVENT, { detail: verdict }));
+  }
+  return verdict;
+};
+
+const requestChainVerdict = async (transcript: string, phase: TrialPhase, context: ChainTurnContext) => {
+  if (transcript.trim().length < 10) return;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), CHAIN_REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch('/api/lexforge/chain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        transcript: transcript.slice(-12000),
+        phase,
+        rubric_version: 'v1',
+        ...(context.drillId ? { drill_id: context.drillId } : {}),
+        ...(context.sessionId ? { session_id: context.sessionId } : {}),
+      }),
+    });
+    const payload: unknown = await response.json().catch(() => null);
+    // 202 is a valid chain response when the confidence gate queues review.
+    if (!response.ok && response.status !== 202) return;
+    persistChainVerdict(payload, context);
+  } catch {
+    // Chain scoring is an enrichment; preserve the local turn and continue the hearing.
+  } finally {
+    window.clearTimeout(timer);
+  }
+};
+const fmtPct = (x: number): string => `${Math.round(x * 100)}%`;
+/** B15 — chain verdict panel: score, voters, decision, confidence + disclaimer. */
+export const ChainVerdictPanel: React.FC<{ verdict: ChainVerdict | null; contextLabel?: string }> = ({
+  verdict,
+  contextLabel,
+}) => {
+  if (!verdict) {
+    return (
+      <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 text-center">
+        <p className="text-xs text-brand-text-secondary/80 leading-relaxed font-light">
+          No chain verdict yet{contextLabel ? ` for ${contextLabel}` : ''}. Score one drill turn to see the chain vote here.
+        </p>
+        <p className="mt-2 text-[10px] font-mono text-brand-text-secondary/50 leading-relaxed">{CHAIN_VERDICT_DISCLAIMER}</p>
+      </div>
+    );
+  }
+  const conf = chainConfidence(verdict);
+  const review = verdict.decision === 'human_review';
+  return (
+    <div
+      className={`rounded-xl border p-4 space-y-3 shadow-card ${
+        review
+          ? 'bg-brand-accent-muted border-brand-error/30'
+          : 'bg-brand-bg-secondary/60 border-brand-text-primary/15'
+      }`}
+      role="status"
+      aria-label={review ? 'Chain verdict: queued for human review' : `Chain verdict: ${fmtPct(verdict.score)}`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Chain verdict</p>
+        {review ? (
+          <span className="rounded-sm border border-brand-error/40 bg-brand-accent-muted px-2 py-0.5 text-[10px] font-semibold text-brand-error">
+            Queued for human review
+          </span>
+        ) : (
+          <span className="rounded-sm border border-brand-text-primary/15 bg-brand-bg-tertiary px-2 py-0.5 text-[10px] font-medium text-brand-text-secondary">
+            Auto
+          </span>
+        )}
+      </div>
+      <div className="flex items-end justify-between gap-3">
+        <p className="text-2xl font-mono text-brand-text-primary font-bold">{fmtPct(verdict.score)}</p>
+        {conf !== null && (
+          <p className="text-[10px] font-mono text-brand-text-secondary/80">confidence {fmtPct(conf)}</p>
+        )}
+      </div>
+      <div className="space-y-1.5">
+        {verdict.voters.map((v) => (
+          <div key={v.source} className="flex items-center justify-between gap-2 text-[11px]">
+            <span className="font-mono text-brand-text-secondary/80 capitalize">{v.source}</span>
+            <span className="font-mono text-brand-text-primary">
+              {typeof v.score === 'number' && Number.isFinite(v.score)
+                ? fmtPct(v.score)
+                : `unavailable${v.error ? ` (${v.error})` : ''}`}
+              {typeof v.confidence === 'number' && Number.isFinite(v.confidence) && ` · ${fmtPct(v.confidence)} conf`}
+              {v.route && ` · route ${v.route}`}
+            </span>
+          </div>
+        ))}
+      </div>
+      {review && (
+        <p className="text-[11px] leading-relaxed text-brand-text-primary">
+          Queued for human review — not auto-passed. A reviewer decides the outcome; this drill stays open until then.
+        </p>
+      )}
+      {(verdict.code || verdict.usage) && (
+        <div className="space-y-1 text-[10px] font-mono text-brand-text-secondary/70">
+          {verdict.code && <p>gate: {verdict.code}</p>}
+          {typeof verdict.usage?.jevTokens === 'number' && <p>JEV input tokens: {verdict.usage.jevTokens}</p>}
+          {typeof verdict.usage?.llmSkipped === 'boolean' && <p>LLM judge: {verdict.usage.llmSkipped ? 'skipped' : 'used'}</p>}
+        </div>
+      )}
+      <p className="text-[10px] font-mono text-brand-text-secondary/50 leading-relaxed">{CHAIN_VERDICT_DISCLAIMER}</p>
+    </div>
+  );
 };
 /** Never regress phase mid-hearing; quality gates may only advance. */
 const resolveForwardPhase = (current: TrialPhase, inferred: TrialPhase): TrialPhase =>
@@ -87,6 +331,8 @@ const PracticeArena: React.FC = () => {
   const [sessionStarted, setSessionStarted] = useState(false);
   const [activePhase, setActivePhase] = useState<TrialPhase>('opening');
   const [scoreBreakdown, setScoreBreakdown] = useState<TrialScoreBreakdown>(DEFAULT_SCORE_BREAKDOWN);
+  /** B15 — latest chain verdicts (UI only: read from localStorage + live event). */
+  const [chainVerdicts, setChainVerdicts] = useState<ChainVerdict[]>([]);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const currentSessionRecordRef = useRef<SessionRecord | null>(null);
 
@@ -137,6 +383,14 @@ const PracticeArena: React.FC = () => {
     voiceEnabledRef.current = voiceEnabled;
     try { localStorage.setItem('lexforge.voiceEnabled', voiceEnabled ? 'true' : 'false'); } catch { /* ignore */ }
   }, [voiceEnabled]);
+
+  // B15 — load chain verdicts once, then refresh on each live verdict push.
+  useEffect(() => {
+    setChainVerdicts(readChainVerdicts());
+    const onVerdict = () => setChainVerdicts(readChainVerdicts());
+    window.addEventListener(CHAIN_VERDICT_EVENT, onVerdict);
+    return () => window.removeEventListener(CHAIN_VERDICT_EVENT, onVerdict);
+  }, []);
 
   // Probe Sarvam availability so mic can degrade gracefully without a failed record cycle.
   useEffect(() => {
@@ -973,6 +1227,18 @@ const PracticeArena: React.FC = () => {
     }
 
     syncSessionRecord(submittedMessages, scored.score, nextPhase);
+    // Score the learner's submitted turn asynchronously so chain latency never
+    // blocks the opposing counsel response. This hearing has no Needle sidecar;
+    // the chain accepts the explicit transcript and remains fully degraded-safe.
+    const chainTranscript = submittedMessages
+      .slice(-8)
+      .filter((message) => message.sender === 'user' || message.sender === 'opposingCounsel')
+      .map((message) => `${message.sender}: ${message.text}`)
+      .join('\n');
+    void requestChainVerdict(chainTranscript, nextPhase, {
+      drillId: currentSessionSettings.caseDetail.id,
+      sessionId: currentSessionRecordRef.current?.id,
+    });
     setUserInput('');
     setAudioError(null);
     setHearingNotice(null);
@@ -1108,6 +1374,17 @@ const PracticeArena: React.FC = () => {
     },
   ]), [canObject, catColors.bgMuted, catColors.border, catColors.text, currentSessionSettings, handleSessionEnd, isTimerRunning, sessionEnded]);
 
+  /** B15 — verdict for this hearing when tagged, else the latest overall. */
+  const sessionVerdict = useMemo(() => {
+    if (chainVerdicts.length === 0) return null;
+    const sid = currentSessionRecordRef.current?.id;
+    if (sid) {
+      const match = chainVerdicts.find((v) => v.sessionId === sid);
+      if (match) return match;
+    }
+    return chainVerdicts[0];
+  }, [chainVerdicts]);
+
   const renderBenchCompanion = () => {
     if (!currentSessionSettings) return null;
 
@@ -1198,6 +1475,13 @@ const PracticeArena: React.FC = () => {
               Local structure signals only. Not a ruling on the merits.
             </p>
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <h4 className="text-xs uppercase font-mono tracking-widest text-brand-text-primary/80 border-b border-brand-text-primary/15 pb-1 flex items-center">
+            <GavelIcon className="h-4 w-4 mr-1.5 text-brand-text-primary/80" /> Chain verdict
+          </h4>
+          <ChainVerdictPanel verdict={sessionVerdict} contextLabel="this hearing" />
         </div>
 
         <div className="space-y-3">
@@ -1489,6 +1773,14 @@ const PracticeArena: React.FC = () => {
                     <GavelIcon className={`w-6 h-6 ${catColors.text}`} />
                   </div>
                   <p className="text-2xl font-serif font-semibold text-brand-text-primary mb-6">Session Concluded</p>
+                  {sessionVerdict?.decision === 'human_review' && (
+                    <div role="status" className="mb-4 rounded-xl border border-brand-error/30 bg-brand-accent-muted p-3 text-left">
+                      <p className="text-[11px] font-semibold text-brand-error">Queued for human review — not auto-passed.</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-brand-text-secondary">
+                        Chain score {fmtPct(sessionVerdict.score)}. A reviewer decides the outcome before this counts as passed.
+                      </p>
+                    </div>
+                  )}
                   <Button onClick={() => handleSessionEnd(true, !currentSessionRecordRef.current?.performance)} size="lg" variant="primary" className="w-full text-lg rounded-lg">
                     {currentSessionRecordRef.current?.performance ? 'View Detailed Analysis' : 'Analyze Performance'}
                   </Button>

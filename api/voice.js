@@ -9,6 +9,7 @@ import {
   sanitizeProviderSnippet,
   validText,
 } from './_lib/security.js';
+import { queryJev } from './_lib/jev/client.js';
 
 const MAX_TTS_CHARS = 6_000;
 /** Raw base64 character budget (~6 MB decoded). */
@@ -98,6 +99,12 @@ function sanitizeUpstreamError(errText, fallback) {
   return fallback;
 }
 
+// ---- B12: Needle+JEV pre-grade helpers (async-safe; never on the stt/tts audio path) ----
+const VOICE_GRADE_EXCERPT_CHARS = 4000;
+// Noul gates are yes/no probabilities (0..1, NO confidence field): 0.5 is the
+// decision boundary. Distinct from chain.js JEV_CONF_THRESHOLD (0.6), which
+// gates Score-type confidence — not applicable here.
+
 export default async function handler(req, res) {
   if (!applyCors(req, res)) return jsonError(res, 403, 'ORIGIN_FORBIDDEN', 'Origin is not allowed.');
 
@@ -139,7 +146,9 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!configured) {
+  // B12: grade never touches Sarvam (transcript in, voters out), so it must
+  // not require SARVAM_API_KEY. Only stt/tts need the provider key.
+  if (!configured && (action === 'stt' || action === 'tts')) {
     return jsonError(
       res,
       503,
@@ -297,8 +306,119 @@ export default async function handler(req, res) {
         text: transcript,
       });
 
+    } else if (action === 'grade') {
+      // B12: async-safe Needle+JEV pre-grade. Called by the client AFTER stt
+      // returns — never on the realtime audio path, so transcription latency
+      // is untouched. Never throws: every voter degrades independently.
+      const { text, needle } = body;
+      if (!validText(text, MAX_TTS_CHARS) || !String(text || '').trim()) {
+        return jsonError(res, 400, 'INVALID_TEXT', `Grade text must be 1–${MAX_TTS_CHARS} characters.`);
+      }
+      const excerpt = String(text).trim().slice(0, VOICE_GRADE_EXCERPT_CHARS);
+
+      // Voter 1 — Needle sidecar JSON (offline extract.py output, shipped by
+      // the client). Absent/unparseable -> honest degraded voter, gates go on.
+      let needleVoter;
+      let needleFields = {};
+      try {
+        if (needle === undefined || needle === null || needle === '') {
+          needleVoter = { source: 'needle', ok: false, code: 'NO_SIDECAR', escalate: null };
+        } else {
+          const { fromSidecar } = await import('./_lib/needle/schemas.js');
+          const side = fromSidecar(needle);
+          needleVoter = {
+            source: 'needle',
+            ok: side.ok === true,
+            code: side.ok ? 'OK' : (side.code || (side.codes && side.codes[0]) || 'SIDECAR_FAILED'),
+            escalate: side.escalate === true,
+          };
+          if (side.authority) needleFields.authority = side.authority;
+          if (side.turnFacts) needleFields.turnFacts = side.turnFacts;
+        }
+      } catch {
+        needleVoter = { source: 'needle', ok: false, code: 'NEEDLE_PARSE_ERROR', escalate: true };
+      }
+
+      // Voter 2 — heuristic (chain.js parity, inline fallback if import fails).
+      let heuristicVoter;
+      try {
+        const { heuristic } = await import('./_lib/lexforge/chain.js');
+        const h = heuristic(excerpt);
+        heuristicVoter = { source: 'heuristic', score: h.score };
+      } catch {
+        const n = excerpt.split(/\s+/).filter(Boolean).length;
+        const score = Math.max(0, Math.min(1, 0.3 + n / 600));
+        heuristicVoter = { source: 'heuristic', score: +score.toFixed(3) };
+      }
+
+      // Voter 3 — ONE batched JEV call, 3 Noul gates (prob 0..1, no confidence).
+      let jevVoter;
+      let thinAnswer = null;
+      let hedged = null;
+      let needsEscalation = null;
+      let jevTokens = 0;
+      try {
+        const state = `Transcript excerpt:\n${excerpt}${Object.keys(needleFields).length ? `\n\nNeedle-extracted fields:\n${Object.entries(needleFields).map(([k, v]) => `${k}: ${JSON.stringify(v)?.slice(0, 300)}`).join('\n')}` : ''}`;
+        const jevRes = await queryJev({
+          state,
+          questions: {
+            thin_answer: { type: 'noul', instructions: 'Is this drill answer thin or lacking substance?', criteria: { true: 'The answer is thin or lacks substance.', false: 'The answer contains substantive content.' } },
+            hedged: { type: 'noul', instructions: 'Is this answer heavily hedged?', criteria: { true: 'The answer is heavily hedged.', false: 'The answer commits to a position.' } },
+            needs_escalation: { type: 'noul', instructions: 'Does this turn need human escalation?', criteria: { true: 'A human reviewer must see this turn.', false: 'This turn is safe for automated grading.' } },
+          },
+        });
+        if (!jevRes.ok) {
+          jevVoter = { source: 'jev', ok: false, code: jevRes.code || 'chain-degraded' };
+        } else {
+          const pick = (a) => Number.isFinite(Number(a?.probability)) ? Math.max(0, Math.min(1, Number(a.probability))) : null;
+          const t = pick(jevRes.answers?.thin_answer);
+          const hd = pick(jevRes.answers?.hedged);
+          const ne = pick(jevRes.answers?.needs_escalation);
+          if (t === null || hd === null || ne === null) {
+            jevVoter = { source: 'jev', ok: false, code: 'chain-degraded' };
+          } else {
+            thinAnswer = t;
+            hedged = hd;
+            needsEscalation = ne;
+            jevTokens = Number.isFinite(Number(jevRes.usage?.input_tokens)) ? Number(jevRes.usage.input_tokens) : Math.ceil(state.length / 4);
+            jevVoter = { source: 'jev', ok: true };
+          }
+        }
+      } catch {
+        jevVoter = { source: 'jev', ok: false, code: 'chain-degraded' };
+      }
+
+      const degraded = jevVoter.ok === false;
+      const decision = (
+        (typeof needsEscalation === 'number' && needsEscalation >= 0.5) ||
+        (typeof thinAnswer === 'number' && thinAnswer >= 0.5) ||
+        needleVoter.escalate === true ||
+        degraded
+      ) ? 'human_review' : 'auto';
+
+      return res.status(200).json({
+        status: 'success',
+        decision,
+        // Top-level degrade mirroring the chain contract: JEV absent/bad
+        // shape never blocks grading, but callers see it without digging
+        // into voters[2].
+        ...(degraded ? { code: 'chain-degraded' } : {}),
+        text: excerpt,
+        gates: { thin_answer: thinAnswer, hedged, needs_escalation: needsEscalation },
+        needle: { ok: needleVoter.ok, code: needleVoter.code, escalate: needleVoter.escalate },
+        voters: [needleVoter, heuristicVoter, jevVoter],
+        // NOTE: hedged + heuristic are telemetry here (they do not move the
+        // gate): hedged is advisory per spec; there is no ABSTAIN_GAP-style
+        // heuristic-vs-Noul gap because Noul gates are probabilities, not
+        // scores on the same 0..1 scale as the heuristic. Full numeric
+        // agreement (heuristic vs JEV Score vs LLM) lives in runChain —
+        // pregrade.needleFields/transcript feed it directly.
+        pregrade: { transcript: excerpt, needleFields, threshold: 0.5 },
+        usage: { jevTokens, llmSkipped: 'deferred', gradedAsync: true },
+      });
+
     } else {
-      return jsonError(res, 400, 'UNKNOWN_ACTION', `Unknown action: ${action || '(missing)'}. Use stt, tts, or status.`);
+      return jsonError(res, 400, 'UNKNOWN_ACTION', `Unknown action: ${action || '(missing)'}. Use stt, tts, status, or grade.`);
     }
   } catch (err) {
     console.error('[voice] unhandled', err?.message || err);

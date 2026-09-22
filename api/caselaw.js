@@ -271,7 +271,86 @@ function softUnavailable(message) {
         provider: null,
         available: false,
         message,
+        meta: buildAuthorityMeta([], 'none'),
     };
+}
+
+// ─── Chain authorities (B14 — additive-only) ────────────────────────────────
+// Attaches Needle Authority[] extraction to every caselaw response as `meta`.
+// Deterministic mapping only (title→case_name, citation→citation,
+// snippet→proposition): explicit fields, never judgment (judgment = JEV).
+// Surfaces verification state, never overrides it. Respects the flagLead
+// 422 rule (guardrails.js, untouched): an unverified lead can never produce
+// an assertable citation — `asserted` is always false here; assertion happens
+// downstream only after verification.
+
+function leadState(body) {
+    const lead = body?.lead;
+    if (!lead || typeof lead !== 'object') return 'none';
+    return lead.verified === true ? 'verified' : lead.verified === false ? 'unverified' : 'none';
+}
+
+// Mirror of guardrails flagLead (same code string), without touching that file.
+function isUnverifiedAssertion(body) {
+    const lead = body?.lead;
+    return Boolean(
+        lead && typeof lead === 'object' && lead.verified === false
+        && (body.assertCitation || body.citations),
+    );
+}
+
+function buildAuthorityMeta(results, lead) {
+    const list = Array.isArray(results) ? results : [];
+    const authorities = list.map((r) => {
+        const verification = typeof r?.verification === 'string' && r.verification
+            ? r.verification
+            : 'unverified';
+        return {
+            case_name: String(r?.title || ''),
+            citation: String(r?.citation || ''),
+            proposition: String(r?.snippet || '').slice(0, 280),
+            verification,
+            // Only provider-backed metadata is assertable, and never for an
+            // unverified lead (flagLead 422 rule surfaced, not overridden).
+            assertable: verification === 'provider_metadata' && lead !== 'unverified',
+        };
+    });
+    const kinds = new Set(authorities.map((a) => a.verification));
+    const verification = authorities.length === 0
+        ? 'none'
+        : kinds.size === 1 ? [...kinds][0] : 'mixed';
+    const meta = {
+        authorities,
+        verification,
+        lead,
+        asserted: false,
+    };
+    if (authorities.length === 0) {
+        meta.note = 'No authorities extracted: verify via official court sources.';
+    } else if (!authorities.some((a) => a.assertable)) {
+        meta.note = 'Unverified leads: verify the linked primary judgment, court, date, citation, and current status before citing.';
+    }
+    return meta;
+}
+
+// Optional sidecar seam: offline `extract.py` stdout JSON shipped in
+// `body.needle`, validated fail-open via _lib/needle/schemas.js (lazy import
+// so a missing module can never crash this endpoint). Surfaced, never trusted
+// for assertion: `meta.sidecar = {ok, authority|null, escalate}`.
+async function surfaceSidecar(needle) {
+    if (needle == null || typeof needle !== 'object') return null;
+    try {
+        const mod = await import('./_lib/needle/schemas.js');
+        if (typeof mod.fromSidecar !== 'function') return null;
+        const out = mod.fromSidecar(needle);
+        return {
+            ok: Boolean(out?.ok),
+            authority: out?.authority ?? null,
+            escalate: out?.escalate !== false,
+        };
+    } catch {
+        return null;
+    }
 }
 
 // ─── Handler ───────────────────────────────────────────────────────────────
@@ -331,8 +410,22 @@ export default async function handler(req, res) {
             provider: null,
             available: false,
             message: 'International case-law lookup not yet implemented.',
+            meta: buildAuthorityMeta([], leadState(body)),
         });
     }
+
+    // flagLead mirror (guardrails.js untouched): an unverified lead can never
+    // assert a citation. Surface the 422, never override it.
+    if (isUnverifiedAssertion(body)) {
+        return res.status(422).json(clientError('unverified_lead_cannot_assert_citation'));
+    }
+    const metaLead = leadState(body);
+    const sidecar = await surfaceSidecar(body.needle);
+    const withMeta = (payload) => {
+        const meta = buildAuthorityMeta(payload.results, metaLead);
+        if (sidecar) meta.sidecar = sidecar;
+        return { ...payload, meta };
+    };
 
     // Never expose whether INDIANKANOON_API_KEY is set to the client.
     const apiKey = process.env.INDIANKANOON_API_KEY;
@@ -347,19 +440,19 @@ export default async function handler(req, res) {
                 limit,
             );
             if (providerResults) {
-                return res.status(200).json({
+                return res.status(200).json(withMeta({
                     results: providerResults,
                     jurisdiction: 'indian',
                     provider: 'indiankanoon-api',
                     available: true,
-                });
+                }));
             }
         }
 
         const results = await searchPublicWeb(buildPublicWebQuery(query, court, fromDate, toDate), limit);
         const hasResults = Array.isArray(results) && results.length > 0;
         // Soft 200 keeps client contract (available + message); no stack / provider bodies.
-        return res.status(200).json({
+        return res.status(200).json(withMeta({
             results: results || [],
             jurisdiction: 'indian',
             provider: results ? 'public-web-discovery' : null,
@@ -369,7 +462,7 @@ export default async function handler(req, res) {
                 : results
                     ? 'No public-web judgment leads matched those terms. Try a narrower issue, another court, or the official court-source links below.'
                     : 'Public-web case discovery is temporarily unavailable. Use the official court-source links below to continue research.',
-        });
+        }));
     } catch (error) {
         // Client-safe soft failure — log name only, never stack or raw provider text.
         console.error(

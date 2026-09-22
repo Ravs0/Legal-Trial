@@ -35,6 +35,23 @@ done <"$SORTED"
 
 echo "Ran $count TS test file(s)"
 
+# Chain integration coverage uses a local mock JEV server and injected LLM
+# scorer, so it never needs a live provider key. Keep the Needle sidecar test
+# (`evals/chain/integration.test.ts`) as a separate opt-in check because that
+# test requires the local cactus-needle Python package. Set SKIP_CHAIN_EVAL=1
+# only for environments that forbid loopback listeners.
+if [[ "${SKIP_CHAIN_EVAL:-0}" != "1" ]]; then
+  if command -v node >/dev/null 2>&1; then
+    echo "==> evals/chain/run.js"
+    node evals/chain/run.js
+  else
+    echo "node not found; cannot run chain integration eval" >&2
+    exit 1
+  fi
+else
+  echo "SKIP_CHAIN_EVAL=1; skipping chain integration eval"
+fi
+
 # Python engine contract tests (Dreadler). Skipped when python3 is absent
 # (minimal CI images) — a python failure still fails the gate via exit code.
 if command -v python3 >/dev/null 2>&1; then

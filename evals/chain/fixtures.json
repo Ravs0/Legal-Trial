@@ -1,0 +1,74 @@
+[
+  {
+    "name": "clean-cite",
+    "kind": "counsel",
+    "prompt": "Closing argument: tenant eviction defense with cited authority.",
+    "state": "Counsel: my client received a 3-day notice to quit. Under Section 1942, Civil Code, and as held in Green v. Superior Court, the landlord must maintain habitable premises. The notice is defective because it misstates the cure period. Therefore the eviction must fail.",
+    "expected": "Cites statute and precedent, resolves the issue, no hedging.",
+    "regex": "section|held|therefore|v\\.",
+    "rubric": "authority,reasoning,conclusion",
+    "minScore": 0.7,
+    "expectedDecision": "auto",
+    "expectedUsage": { "jevCalls": 1, "llmCalls": 0 }
+  },
+  {
+    "name": "no-authority",
+    "kind": "counsel",
+    "prompt": "Closing argument with zero cited authority.",
+    "state": "Counsel: my client is a good person and tries hard. The landlord is being unfair. Everyone knows this is wrong. You should rule for us because it feels right and just.",
+    "expected": "No statute, no case, no section cited anywhere in the answer.",
+    "regex": "^(?!.*(section|article|§| v\\. |vs\\.|held|precedent)).*$",
+    "rubric": "authority,reasoning,conclusion",
+    "minScore": 0.7,
+    "expectedDecision": "human_review",
+    "expectedUsage": { "jevCalls": 1, "llmCalls": 1 }
+  },
+  {
+    "name": "hedged",
+    "kind": "judge",
+    "prompt": "Issue-spotting answer full of hedging.",
+    "state": "Maybe there is arguably a possible breach of contract, I'm not really sure. It could perhaps be negligence, or maybe not. I guess damages might possibly be available, though I can't say for certain.",
+    "expected": "Hedged language throughout: maybe, arguably, possibly, not sure.",
+    "regex": "maybe|arguably|possibly|not sure|perhaps",
+    "rubric": "clarity,reasoning,conclusion",
+    "minScore": 0.7,
+    "expectedDecision": "human_review",
+    "expectedUsage": { "jevCalls": 1, "llmCalls": 1 }
+  },
+  {
+    "name": "thin",
+    "kind": "judge",
+    "prompt": "Single-sentence thin answer.",
+    "state": "Breach, so damages.",
+    "expected": "Answer is under ten words with no reasoning chain.",
+    "regex": "breach",
+    "rubric": "reasoning,completeness,clarity",
+    "minScore": 0.7,
+    "expectedDecision": "human_review",
+    "expectedUsage": { "jevCalls": 1, "llmCalls": 1 }
+  },
+  {
+    "name": "conflicting",
+    "kind": "judge",
+    "prompt": "Answer citing two contradictory holdings without resolving them.",
+    "state": "In Smith v. Jones the court held the clause is enforceable. In Doe v. Roe the court held the identical clause is void against public policy. Both apply here. I conclude both outcomes.",
+    "expected": "Two contradictory holdings cited, conflict never resolved.",
+    "regex": "held.*held|enforceable.*void|both",
+    "rubric": "reasoning,authority,resolution",
+    "minScore": 0.7,
+    "expectedDecision": "human_review",
+    "expectedUsage": { "jevCalls": 1, "llmCalls": 1 }
+  },
+  {
+    "name": "empty",
+    "kind": "counsel",
+    "prompt": "Empty transcript excerpt (degenerate input).",
+    "state": "",
+    "expected": "Empty state must degrade to human_review, never auto.",
+    "regex": "^$",
+    "rubric": "robustness,degradation,honesty",
+    "minScore": 0.7,
+    "expectedDecision": "human_review",
+    "expectedUsage": { "jevCalls": 0, "llmCalls": 0 }
+  }
+]

@@ -21,7 +21,8 @@ const MAX_MESSAGE_CHARS = 48_000;
 const MAX_TOTAL_CHARS = 60_000;
 /** Request body budget (~256 KiB) — defense in depth beyond per-field caps. */
 const MAX_CHAT_BODY_BYTES = 256 * 1024;
-const UPSTREAM_TIMEOUT_MS = 55_000;
+/** Upstream fetch budget (ms) — fail fast so clients get a diagnosable 504 and can retry. */
+const UPSTREAM_TIMEOUT_MS = 20_000;
 
 /**
  * Client-facing model IDs we accept. Unknown strings are rejected (400) rather
@@ -102,6 +103,58 @@ async function cancelUpstreamBody(body) {
   } catch {
     // ignore — stream may already be closed
   }
+}
+
+/** Short per-request id so clients can report an error the server logs can match. */
+function newRequestId() {
+  return `chat_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/**
+ * Map an upstream failure to an honest client-facing status + envelope.
+ * Client messages are static strings — never echo provider bodies, headers,
+ * URLs, or exception text (any of which could carry key material).
+ * @returns {{ httpStatus: number, code: string, retryable: boolean, message: string }}
+ */
+function classifyUpstreamError(status) {
+  if (status === 401 || status === 403) {
+    return {
+      httpStatus: 502,
+      code: 'UPSTREAM_AUTH',
+      retryable: false,
+      message: 'The AI provider refused the request (account or key issue). The team has the details — reference the request id if you report this.',
+    };
+  }
+  if (status === 429) {
+    return {
+      httpStatus: 503,
+      code: 'UPSTREAM_RATE_LIMIT',
+      retryable: true,
+      message: 'The AI provider is rate-limited. Please wait a moment and try again.',
+    };
+  }
+  if (status === 408 || status === 504) {
+    return {
+      httpStatus: 504,
+      code: 'UPSTREAM_TIMEOUT',
+      retryable: true,
+      message: 'The AI provider timed out. Try a shorter prompt.',
+    };
+  }
+  if (status >= 500) {
+    return {
+      httpStatus: 502,
+      code: 'UPSTREAM_UNAVAILABLE',
+      retryable: true,
+      message: 'The AI provider returned an error. Please try again.',
+    };
+  }
+  return {
+    httpStatus: 502,
+    code: 'UPSTREAM_REJECTED',
+    retryable: false,
+    message: 'The AI provider rejected the request. Try a shorter prompt.',
+  };
 }
 
 /**
@@ -237,7 +290,8 @@ async function pipeChatStream(req, res, upstream) {
 }
 
 export default async function handler(req, res) {
-  if (!applyCors(req, res)) return res.status(403).json(clientError('Origin is not allowed.'));
+  const requestId = newRequestId();
+  if (!applyCors(req, res)) return res.status(403).json(clientError('Origin is not allowed.', { requestId }));
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json(clientError('Method not allowed'));
@@ -303,6 +357,7 @@ export default async function handler(req, res) {
   if (!config) {
     return res.status(503).json(clientError(
       'No AI API key configured. Add DEEPSEEK_API_KEY or DEEPSEEK_CHAT_API_KEY in Vercel env vars.',
+      { code: 'NO_API_KEY', retryable: false, requestId },
     ));
   }
 
@@ -343,10 +398,16 @@ export default async function handler(req, res) {
     }, UPSTREAM_TIMEOUT_MS);
   } catch (err) {
     const aborted = err?.name === 'AbortError';
-    console.error('[chat] upstream network', aborted ? 'timeout' : (err?.message || err));
-    return res.status(aborted ? 504 : 502).json(clientError(
-      aborted ? 'The AI provider timed out. Try a shorter prompt.' : 'Could not reach the AI provider.',
-    ));
+    // Never echo exception text to the client — it can embed key material.
+    console.error('[chat] upstream network', requestId, aborted ? 'timeout' : (err?.message || err));
+    const classification = aborted
+      ? { httpStatus: 504, code: 'UPSTREAM_TIMEOUT', retryable: true, message: 'The AI provider timed out. Try a shorter prompt.' }
+      : { httpStatus: 502, code: 'UPSTREAM_NETWORK', retryable: true, message: 'Could not reach the AI provider.' };
+    return res.status(classification.httpStatus).json(clientError(classification.message, {
+      code: classification.code,
+      retryable: classification.retryable,
+      requestId,
+    }));
   }
 
   if (!upstream.ok) {
@@ -356,12 +417,18 @@ export default async function handler(req, res) {
     } catch { /* ignore */ }
     console.error(
       '[chat] upstream status',
+      requestId,
       config.model,
       upstream.status,
       sanitizeProviderSnippet(JSON.stringify(upstreamData)),
     );
     await cancelUpstreamBody(upstream.body);
-    return res.status(502).json(clientError('The AI provider returned an error. Please try again.'));
+    const classification = classifyUpstreamError(upstream.status);
+    return res.status(classification.httpStatus).json(clientError(classification.message, {
+      code: classification.code,
+      retryable: classification.retryable,
+      requestId,
+    }));
   }
 
   if (streamRequested) {
@@ -376,11 +443,16 @@ export default async function handler(req, res) {
     const rawText = await upstream.text().catch(() => '');
     console.error(
       '[chat] bad JSON from provider',
+      requestId,
       config.model,
       upstream.status,
       sanitizeProviderSnippet(rawText),
     );
-    return res.status(502).json(clientError('Bad response from the AI provider.'));
+    return res.status(502).json(clientError('Bad response from the AI provider.', {
+      code: 'UPSTREAM_BAD_RESPONSE',
+      retryable: true,
+      requestId,
+    }));
   }
 
   let text = upstreamData?.choices?.[0]?.message?.content || '';

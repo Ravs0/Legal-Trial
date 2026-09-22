@@ -536,6 +536,79 @@ function buildCourtDataResponse(raw, now = /* @__PURE__ */ new Date()) {
     warnings: buildWarnings(query, records)
   };
 }
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function readGroundedAuthority(value) {
+  if (!isRecord(value)) return null;
+  const { case_name, citation, proposition } = value;
+  if (typeof case_name !== "string" || !case_name.trim()) return null;
+  if (typeof citation !== "string" || !citation.trim()) return null;
+  if (typeof proposition !== "string" || !proposition.trim()) return null;
+  return { case_name, citation, proposition };
+}
+function extractNeedleAuthority(payload) {
+  try {
+    if (!isRecord(payload)) return null;
+    const status = payload.authority_status;
+    if (status !== void 0 && status !== "extracted") return null;
+    return readGroundedAuthority(payload.authority);
+  } catch {
+    return null;
+  }
+}
+function needleAuthorityStatus(payload) {
+  if (!isRecord(payload)) return "missing";
+  const status = payload.authority_status;
+  if (typeof status === "string") {
+    if (status.startsWith("ungrounded")) return "ungrounded";
+    if (status.startsWith("error")) return "error";
+    if (status === "extracted") return "extracted";
+  }
+  return readGroundedAuthority(payload.authority) === null ? "missing" : "extracted";
+}
+function shouldEscalateNeedleAuthority(payload, opts) {
+  if (!isRecord(payload)) return true;
+  if (payload.ok !== true) return true;
+  if (extractNeedleAuthority(payload) === null) return true;
+  if (opts?.strict === true && payload.escalate === true) {
+    return true;
+  }
+  return false;
+}
+function parseNeedleTurnFacts(payload) {
+  try {
+    if (!isRecord(payload)) return null;
+    const tf = payload.turn_facts;
+    if (!isRecord(tf)) return null;
+    const { cited_any, hedge_count } = tf;
+    if (cited_any !== null && typeof cited_any !== "boolean") return null;
+    if (typeof hedge_count !== "number" || !Number.isFinite(hedge_count) || hedge_count < 0) {
+      return null;
+    }
+    return { cited_any, hedge_count: Math.trunc(hedge_count) };
+  } catch {
+    return null;
+  }
+}
+function authorityHintsForQuery(authority) {
+  if (!authority) return [];
+  const raw = `${authority.case_name} ${authority.citation}`.toLowerCase();
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const token of raw.split(/[^a-z0-9]+/)) {
+    if (token.length < 2 || seen.has(token)) continue;
+    seen.add(token);
+    out.push(token);
+    if (out.length >= 12) break;
+  }
+  return out;
+}
+function applyAuthorityToQuery(query, authority) {
+  if (!authority) return { ...query };
+  const enriched = `${query.q} ${authority.case_name} ${authority.citation}`.replace(/\s+/g, " ").trim().slice(0, MAX_QUERY_LENGTH);
+  return { ...query, q: enriched };
+}
 export {
   ALLOWED_COURT_DATA_FILTERS,
   COURT_LEVELS,
@@ -546,14 +619,20 @@ export {
   MAX_QUERY_LENGTH,
   MIN_LIMIT,
   SOURCE_IDS,
+  applyAuthorityToQuery,
+  authorityHintsForQuery,
   buildCourtDataResponse,
   courtDataSources,
   describeActiveFilters,
   detectQueryShape,
   extractCaseNumber,
   extractCnr,
+  extractNeedleAuthority,
   getCourtDataSourceById,
+  needleAuthorityStatus,
   parseCourtDataQuery,
+  parseNeedleTurnFacts,
   prioritizeDocuments,
-  scoreSourceRelevance
+  scoreSourceRelevance,
+  shouldEscalateNeedleAuthority
 };
