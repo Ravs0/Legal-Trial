@@ -35,6 +35,11 @@ done <"$SORTED"
 
 echo "Ran $count TS test file(s)"
 
+# The deploy gate must survive a fresh Git checkout (mtime order is arbitrary)
+# and still reject genuine source/generated-JS drift.
+echo "==> scripts/check-function-count.test.mjs"
+node --test scripts/check-function-count.test.mjs
+
 # Chain integration coverage uses a local mock JEV server and injected LLM
 # scorer, so it never needs a live provider key. Keep the Needle sidecar test
 # (`evals/chain/integration.test.ts`) as a separate opt-in check because that
