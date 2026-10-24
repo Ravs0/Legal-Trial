@@ -38,8 +38,14 @@ function allowedOrigins() {
  */
 export function applyCors(req, res, methods = 'POST, OPTIONS', headers = 'Content-Type') {
   const origin = req?.headers?.origin;
-  // Same-origin requests normally have no Origin header and remain valid.
-  if (origin && !allowedOrigins().has(origin)) return false;
+  // Browser POSTs include Origin even on the serving host. Vercel routes Host
+  // to this deployment; compare it exactly, never trust X-Forwarded-Host or
+  // allow a wildcard *.vercel.app. HTTPS covers deployed/custom domains;
+  // local HTTP development origins remain explicitly listed above.
+  const host = req?.headers?.host;
+  const sameOrigin = typeof host === 'string' && host.length > 0
+    && origin === `https://${host.toLowerCase()}`;
+  if (origin && !sameOrigin && !allowedOrigins().has(origin)) return false;
 
   if (origin) res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');

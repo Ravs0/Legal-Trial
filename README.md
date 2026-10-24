@@ -10,7 +10,7 @@ do. Server-authoritative scoring uses a signed `state_token`.
 
 ## Run Locally
 
-**Prerequisites:** Node.js 18+
+**Prerequisites:** Node.js 22 (matches CI and the Vercel runtime)
 
 1. Install dependencies:
    ```
@@ -33,7 +33,10 @@ do. Server-authoritative scoring uses a signed `state_token`.
 npm run check
 ```
 
-Runs `typecheck` → unit tests → `vite build`. Use this before pushing.
+Checks the serverless function budget and generated gateway, then runs
+`typecheck` → unit tests → `vite build`. Use this before pushing. Generated
+gateway parity compares compiled content, so fresh checkout timestamps cannot
+cause false failures.
 
 ## Deploy (Vercel)
 
@@ -46,7 +49,7 @@ Set these in the Vercel project **Environment Variables**:
 |---|---|---|---|
 | `DEEPSEEK_API_KEY` | **Yes** for AI | `/api/chat`, `/api/dreadler` | Chat, judges, counsel, drafting, performance, and Dreadler agent/critic. Aliases: `DEEPSEEK_CHAT_API_KEY` (and reasoner via `DEEPSEEK_REASONER_API_KEY` where used). |
 | `DREADLER_STATE_SECRET` | **Yes** for Dreadler | `/api/dreadler` | Long random secret to HMAC-sign simulation state between turns. Missing → 503. |
-| `ALLOWED_ORIGINS` | **Yes** in production | All API routes | Comma-separated app origins allowed to call the API. Localhost origins are allowed in dev. Alias: `APP_ORIGIN`. |
+| `ALLOWED_ORIGINS` | For cross-origin callers | Public API routes | Comma-separated additional origins allowed to call the API. The serving HTTPS origin and listed localhost origins work automatically. Alias: `APP_ORIGIN`. |
 | `SARVAM_API_KEY` | Optional | `/api/voice` | STT (mic) and TTS ("Read Aloud"). Without it, voice is disabled. |
 | `INDIANKANOON_API_KEY` | Optional | `/api/caselaw` | Structured SC/HC retrieval with provider court/date filters. Without it, public-web discovery only (unverified leads). |
 
@@ -62,8 +65,24 @@ Then deploy:
 vercel --prod
 ```
 
+Production: [legal-trial.vercel.app](https://legal-trial.vercel.app).
+The Vercel project is `legal-trial` in `ravs0s-projects`.
+
 Vercel `buildCommand` is `npm run check` (see `vercel.json`), so typecheck, tests,
 and production build must pass for a deploy to succeed.
+
+After Vercel reports a ready deployment, verify its public routes:
+
+```
+npm run smoke:deployment -- https://legal-trial.vercel.app
+```
+
+Use the preview URL to check a preview deployment before releasing it. The
+smoke check validates the HTML entry point, JSON response shapes, court-data
+lookup, Dreadler catalogue, and grouped API routing, including the chain
+endpoints. It sends only read-only requests with the deployment's Origin;
+it does not call a model or write application data. Authentication redirects
+on a protected preview fail the check; run it against an accessible deployment.
 
 ### Serverless function budget (Hobby limit)
 
@@ -90,13 +109,15 @@ Budget rules:
 
 ## CI
 
-There is **no GitHub Actions workflow** in this repo yet (`.github/workflows` is
-empty). Quality is enforced by:
+Quality is enforced by:
 
 1. **Local / pre-push:** `npm run check`
-2. **Vercel deploy:** same `npm run check` as the build command
+2. **GitHub Actions:** `.github/workflows/check.yml` runs `npm ci` and
+   `npm run check` on pushes and pull requests to `main`, using Node.js 22.
+3. **Vercel deploy:** same `npm run check` as the build command
 
-Add a Actions workflow later if you want PR checks independent of deploys.
+The deployment smoke check is a separate post-deployment check; a green local
+or GitHub check does not prove that the deployed functions are available.
 
 ## Dreadler (Deception Arena)
 

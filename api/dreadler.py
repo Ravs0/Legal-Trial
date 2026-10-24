@@ -39,7 +39,7 @@ _rate_lock = threading.Lock()
 
 
 def _allowed_origins() -> set[str]:
-    # Keep in sync with api/security.js DEV_ORIGINS + ALLOWED_ORIGINS/APP_ORIGIN.
+    # Keep in sync with api/_lib/security.js DEV_ORIGINS + origin configuration.
     configured = os.environ.get("ALLOWED_ORIGINS", os.environ.get("APP_ORIGIN", ""))
     return {
         "http://localhost:3000", "http://localhost:3001", "http://localhost:5173",
@@ -156,13 +156,16 @@ def _hydrate(agent: DreadlerAgent, state: dict) -> None:
 class handler(BaseHTTPRequestHandler):
     def _origin_allowed(self) -> bool:
         origin = self.headers.get("Origin")
-        # Same-origin / non-browser: no Origin header → allow (no ACAO set).
-        return not origin or origin in _allowed_origins()
+        # Browser POSTs send Origin on same-origin requests too. Compare the
+        # actual serving Host, never a client-supplied X-Forwarded-Host.
+        host = self.headers.get("Host", "").lower()
+        same_origin = bool(host) and origin == f"https://{host}"
+        return not origin or same_origin or origin in _allowed_origins()
 
     def send_cors_headers(self, *, allow_origin: bool = True):
-        """Emit CORS only for allow-listed origins. Never reflect a denied Origin."""
+        """Emit CORS for same/allowed origins. Never reflect a denied Origin."""
         origin = self.headers.get("Origin")
-        if allow_origin and origin and origin in _allowed_origins():
+        if allow_origin and origin and self._origin_allowed():
             self.send_header("Access-Control-Allow-Origin", origin)
         self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS, GET")
