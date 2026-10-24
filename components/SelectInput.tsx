@@ -24,14 +24,14 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   const selectId = id || props.name || `select-${generatedId}`;
 
   const baseInputStyle =
-    'block w-full bg-brand-bg-primary rounded-md py-2.5 px-3 ' +
+    'lf-select block w-full bg-brand-bg-primary rounded-md py-2.5 px-3 ' +
     'border border-brand-border text-brand-text-primary text-sm ' +
-    'hover:border-brand-border focus:outline-none focus:border-white/35 ' +
+    'hover:border-brand-border focus:outline-none focus:border-brand-text-primary ' +
     'focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 ' +
     'transition-colors duration-150 disabled:opacity-45 disabled:cursor-not-allowed';
 
   const labelColor =
-    'text-brand-text-secondary font-medium tracking-[0.12em] text-[11px] uppercase mb-1.5';
+    'lf-field-label text-brand-text-secondary font-medium tracking-[0.12em] text-[11px] uppercase mb-1.5';
 
   return (
     <div className={`mb-4 ${containerClassName}`}>

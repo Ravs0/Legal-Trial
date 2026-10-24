@@ -19,7 +19,7 @@ export const SessionChip: React.FC<SessionChipProps> = ({
   <div
     className={`min-w-0 rounded-sm border border-brand-border bg-brand-bg-secondary px-2.5 py-2 ${className}`}
   >
-    <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/80 truncate">
+    <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary/80 truncate">
       {label}
     </p>
     <p

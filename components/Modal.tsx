@@ -26,7 +26,7 @@ function getFocusable(container: HTMLElement): HTMLElement[] {
 }
 
 const focusRing =
-  'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/35';
+  'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-text-primary/50';
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -138,7 +138,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-bg-primary/95 p-4 sm:p-6 animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-brand-text-primary/25 backdrop-blur-sm p-4 sm:p-6 animate-fadeIn"
       onClick={onClose}
       role="presentation"
     >
@@ -149,11 +149,11 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
         aria-labelledby={title ? titleId : undefined}
         aria-label={title ? undefined : 'Dialog'}
         tabIndex={-1}
-        className={`relative flex max-h-full w-full transform flex-col overflow-hidden rounded-2xl border border-brand-text-primary/30 bg-brand-bg-primary transition-all animate-slideInUp ${sizeClasses[size]} ${focusRing}`}
+        className={`relative flex max-h-full w-full transform flex-col overflow-hidden rounded-lg border border-brand-border bg-brand-bg-secondary transition-all animate-slideInUp ${sizeClasses[size]} ${focusRing}`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="relative z-10 flex items-center justify-between border-b border-brand-text-primary/30 bg-brand-bg-primary p-5 pb-4 sm:p-6">
+          <div className="relative z-10 flex items-center justify-between border-b border-brand-border bg-brand-bg-secondary p-5 pb-4 sm:p-6">
             <h3
               id={titleId}
               className="pr-4 font-serif text-xl font-semibold tracking-tight text-brand-text-primary sm:text-2xl"

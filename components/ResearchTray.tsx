@@ -12,9 +12,9 @@ export default function ResearchTray({ verified, leads, onExport, onRefetch, ref
   return (
     <section className="grid gap-4 md:grid-cols-2" aria-label="Precedent research tray">
       <div className="rounded border border-brand-border bg-brand-bg-secondary p-4">
-        <header className="mb-3 flex items-center justify-between">
+        <header className="mb-3 flex flex-wrap gap-2 items-center justify-between">
           <h2 className="flex items-center gap-1.5 font-serif text-sm font-semibold text-brand-text-primary"><ShieldCheck className="h-4 w-4" /> VERIFIED · {verified.length}</h2>
-          <button onClick={exportAll} disabled={!verified.length} className="flex items-center gap-1 rounded border border-brand-text-primary bg-brand-text-primary px-2.5 py-1.5 font-sans text-xs font-semibold text-brand-bg-primary transition hover:bg-brand-navy-light disabled:opacity-40"><Download className="h-3.5 w-3.5" />{done ? "Exported" : "Export"}</button>
+          <button onClick={exportAll} disabled={!verified.length || !onExport} className="flex items-center gap-1 rounded border border-brand-text-primary bg-brand-text-primary px-2.5 py-1.5 font-sans text-xs font-semibold text-brand-bg-primary transition hover:bg-brand-navy-light disabled:opacity-40"><Download className="h-3.5 w-3.5" />{done ? "Exported" : "Export"}</button>
         </header>
         <ul className="space-y-3">
           {verified.map((c) => (
@@ -34,9 +34,9 @@ export default function ResearchTray({ verified, leads, onExport, onRefetch, ref
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <span className="-rotate-12 font-serif text-2xl font-black tracking-widest text-brand-text-primary/10">DO NOT CITE</span>
         </div>
-        <header className="relative mb-3 flex items-center justify-between">
+        <header className="relative mb-3 flex flex-wrap gap-2 items-center justify-between">
           <h2 className="flex items-center gap-1.5 font-serif text-sm font-semibold text-brand-text-secondary"><ShieldAlert className="h-4 w-4" /> UNVERIFIED LEADS · {leads.length}</h2>
-          <button onClick={onRefetch} disabled={refetching} className="flex items-center gap-1 rounded border border-brand-border-light bg-brand-bg-secondary px-2.5 py-1.5 font-sans text-xs font-semibold text-brand-text-primary transition hover:border-brand-text-primary disabled:opacity-40"><RefreshCw className={`h-3.5 w-3.5 ${refetching ? "animate-spin" : ""}`} />{refetching ? "Fetching" : "Re-fetch"}</button>
+          <button onClick={onRefetch} disabled={refetching || !onRefetch} className="flex items-center gap-1 rounded border border-brand-border-light bg-brand-bg-secondary px-2.5 py-1.5 font-sans text-xs font-semibold text-brand-text-primary transition hover:border-brand-text-primary disabled:opacity-40"><RefreshCw className={`h-3.5 w-3.5 ${refetching ? "animate-spin" : ""}`} />{refetching ? "Fetching" : "Re-fetch"}</button>
         </header>
         <ul className="relative space-y-3">
           {leads.map((l) => (

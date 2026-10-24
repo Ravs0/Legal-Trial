@@ -40,11 +40,11 @@ const VerdictQueueRow: React.FC<{ verdict: ChainVerdict }> = ({ verdict }) => {
           {verdict.drillId ?? "Drill verdict"} · {fmtPct(verdict.score)}
         </p>
         {review ? (
-          <span className="rounded-sm border border-brand-error/40 bg-brand-accent-muted px-2 py-0.5 text-[10px] font-semibold text-brand-error">
+          <span className="rounded-sm border border-brand-error/40 bg-brand-accent-muted px-2 py-0.5 text-[11px] font-semibold text-brand-error">
             Queued for human review
           </span>
         ) : (
-          <span className="rounded-sm border border-brand-text-primary/15 bg-brand-bg-tertiary px-2 py-0.5 text-[10px] font-medium text-brand-text-secondary">
+          <span className="rounded-sm border border-brand-text-primary/15 bg-brand-bg-tertiary px-2 py-0.5 text-[11px] font-medium text-brand-text-secondary">
             Auto
           </span>
         )}
@@ -60,7 +60,7 @@ const VerdictQueueRow: React.FC<{ verdict: ChainVerdict }> = ({ verdict }) => {
         {conf !== null ? ` · confidence ${fmtPct(conf)}` : ""}
       </p>
       {verdict.code && (
-        <p className="mt-1 text-[10px] font-mono text-brand-error/80">gate: {verdict.code}</p>
+        <p className="mt-1 text-[11px] font-mono text-brand-error/80">gate: {verdict.code}</p>
       )}
       {review && (
         <p className="mt-1 text-[11px] leading-relaxed text-brand-text-primary">

@@ -705,10 +705,10 @@ export function EmotionBars({
         role="status"
         aria-disabled="true"
       >
-        <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">
+        <span className="text-[11px] font-mono uppercase tracking-widest text-zinc-500">
           Emotions unavailable
         </span>
-        <span className="text-[8px] font-mono text-zinc-600 leading-snug max-w-[220px]">
+        <span className="text-[11px] font-mono text-zinc-600 leading-snug max-w-[220px]">
           {disabledReason || 'Classifier not loaded'}
         </span>
       </div>

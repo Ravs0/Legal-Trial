@@ -59,7 +59,7 @@ export const Editor: React.FC<EditorProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-brand-bg-primary relative group">
-      <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-brand-bg-secondary border-b border-brand-border sticky top-0 z-20">
+      <div className="editor-toolbar flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-2.5 bg-brand-bg-secondary border-b border-brand-border sticky top-0 z-20">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 rounded-md bg-[#1c1914]/[0.05] flex items-center justify-center border border-brand-border shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-brand-text-secondary" aria-hidden>
@@ -71,16 +71,16 @@ export const Editor: React.FC<EditorProps> = ({
             <span className="text-[11px] font-medium text-brand-text-primary tracking-wide leading-none block truncate">
               {section.title}
             </span>
-            <span className="text-[10px] text-brand-text-secondary/70 font-mono mt-1 block uppercase tracking-wider">
+            <span className="text-[11px] text-brand-text-secondary/70 font-mono mt-1 block uppercase tracking-wider">
               Section pane
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="editor-actions flex flex-wrap items-center gap-2 min-w-0">
           <span
             role="status"
-            className={`hidden sm:inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider tabular-nums px-2 py-1 rounded-md border ${
+            className={`hidden sm:inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider tabular-nums px-2 py-1 rounded-md border ${
               saveState === 'dirty'
                 ? 'border-brand-border-light text-brand-text-primary bg-[#1c1914]/[0.05]'
                 : saveState === 'saving'
@@ -91,9 +91,9 @@ export const Editor: React.FC<EditorProps> = ({
             <span
               className={`w-1.5 h-1.5 rounded-full ${
                 saveState === 'dirty'
-                  ? 'bg-white'
+                  ? 'bg-brand-text-primary'
                   : saveState === 'saving'
-                    ? 'bg-[#1c1914]/[0.04]0 animate-pulse'
+                    ? 'bg-brand-text-primary/50 animate-pulse'
                     : 'bg-[#1c1914]/[0.12]'
               }`}
               aria-hidden
@@ -101,11 +101,11 @@ export const Editor: React.FC<EditorProps> = ({
             {saveStatusText}
           </span>
 
-          <div className="flex items-center gap-0.5 bg-brand-bg-primary p-0.5 rounded-md border border-brand-border">
+          <div className="flex flex-wrap items-center gap-0.5 bg-brand-bg-primary p-0.5 rounded-md border border-brand-border">
             <button
               type="button"
               onClick={handleSelection}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] rounded transition-colors uppercase tracking-wide"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05] rounded transition-colors uppercase tracking-wide"
               title="Send selected text to research"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
@@ -118,7 +118,7 @@ export const Editor: React.FC<EditorProps> = ({
             <button
               type="button"
               onClick={() => setShowFootnoteList(!showFootnoteList)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] rounded transition-colors uppercase tracking-wide ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] rounded transition-colors uppercase tracking-wide ${
                 showFootnoteList
                   ? 'bg-brand-text-primary text-brand-bg-primary'
                   : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-[#1c1914]/[0.05]'
@@ -135,7 +135,7 @@ export const Editor: React.FC<EditorProps> = ({
             <button
               type="button"
               onClick={() => onAddFootnote(textareaRef.current?.selectionStart || 0)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] text-brand-text-primary hover:bg-[#1c1914]/[0.06] rounded transition-colors font-medium uppercase tracking-wide"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] text-brand-text-primary hover:bg-[#1c1914]/[0.06] rounded transition-colors font-medium uppercase tracking-wide"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                 <path d="M12 5v14" />
@@ -150,7 +150,7 @@ export const Editor: React.FC<EditorProps> = ({
       {selectionHint && (
         <div
           role="status"
-          className="px-4 sm:px-5 py-1.5 border-b border-brand-border bg-[#1c1914]/[0.04] text-[10px] text-brand-text-secondary tracking-wide"
+          className="px-4 sm:px-5 py-1.5 border-b border-brand-border bg-[#1c1914]/[0.04] text-[11px] text-brand-text-secondary tracking-wide"
         >
           {selectionHint}
         </div>
@@ -223,7 +223,7 @@ export const Editor: React.FC<EditorProps> = ({
           </div>
         )}
 
-        <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-brand-border/80 bg-brand-bg-secondary/95 backdrop-blur-sm px-4 sm:px-6 py-2 flex items-center justify-between gap-3 text-[10px] uppercase tracking-wider text-brand-text-secondary">
+        <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-brand-border/80 bg-brand-bg-secondary/95 backdrop-blur-sm px-4 sm:px-6 py-2 flex items-center justify-between gap-3 text-[11px] uppercase tracking-wider text-brand-text-secondary">
           <div className="flex items-center gap-4 tabular-nums">
             <span>{words} words</span>
             <span className="text-brand-text-secondary/50">{chars} chars</span>

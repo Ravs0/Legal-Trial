@@ -12,7 +12,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 /**
  * Flat monochrome CTAs (design.md):
- * - primary = white fill / black text
+ * - primary = ink fill / paper text
  * - no glow, lift shadow, or color cast
  * - minimal radius
  */
@@ -30,11 +30,11 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   void _categoryId;
   const base =
-    'inline-flex items-center justify-center font-medium rounded-md transition-colors duration-150 ' +
+    'lf-button inline-flex items-center justify-center font-medium rounded-md transition-colors duration-150 ' +
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-text-primary/30 focus-visible:ring-offset-0 ' +
     'disabled:opacity-45 disabled:cursor-not-allowed min-h-11 sm:min-h-0 select-none';
 
-  // Primary hierarchy: white on black. Secondary/outline share a border stroke. No shadows.
+  // Primary hierarchy: paper on ink. Secondary/outline share a border stroke. No shadows.
   const variants = {
     primary:
       'bg-brand-text-primary text-brand-bg-primary border border-brand-text-primary hover:bg-[#3a352c] active:bg-[#3a352c]',

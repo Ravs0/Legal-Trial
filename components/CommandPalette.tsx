@@ -8,7 +8,7 @@ import type { PracticeMode } from '../types';
 
 interface CommandItem {
   id: string;
-  category: 'Navigation' | 'Actions' | 'Precedents';
+  category: 'Navigation' | 'Actions' | 'Case files';
   title: string;
   description: string;
   shortcut?: string;
@@ -21,11 +21,14 @@ const FOCUSABLE_SELECTOR =
 
 /** Monochrome keyboard focus ring (white outline only). */
 const focusRing =
-  'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/35';
+  'focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-text-primary/50';
 
 function readPracticeMode(): PracticeMode | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('practiceMode') as PracticeMode | null;
+  try {
+    const mode = localStorage.getItem('practiceMode');
+    return mode === 'indian' || mode === 'international' ? mode : null;
+  } catch { return null; }
 }
 
 export const CommandPalette: React.FC = () => {
@@ -61,7 +64,7 @@ export const CommandPalette: React.FC = () => {
       window.removeEventListener('focus', syncActiveSession);
       window.removeEventListener('storage', syncActiveSession);
     };
-  }, []);
+  }, [location.pathname, isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -162,21 +165,21 @@ export const CommandPalette: React.FC = () => {
       {
         id: 'nav-dashboard',
         category: 'Navigation',
-        title: 'Go to Dashboard',
+        title: 'Open overview',
         description: 'Practice loop hub: demo, resume, and progress.',
         action: run(() => navigate(ROUTES.HOME)),
       },
       {
         id: 'nav-setup',
         category: 'Navigation',
-        title: 'Start New Trial Session',
+        title: 'Prepare a hearing',
         description: 'Configure a new simulated courtroom trial.',
         action: run(() => navigate(ROUTES.SETUP)),
       },
       {
         id: 'nav-resume',
         category: 'Navigation',
-        title: hasSession ? 'Resume Active Session' : 'No Active Session',
+        title: hasSession ? 'Resume hearing' : 'No hearing in progress',
         description: hasSession
           ? `Return to ${activeSessionLabel}.`
           : 'No saved in-progress courtroom session is available right now.',
@@ -188,28 +191,28 @@ export const CommandPalette: React.FC = () => {
       {
         id: 'nav-analysis',
         category: 'Navigation',
-        title: 'Review Performance',
+        title: 'Review performance',
         description: 'Open scorecards, transcripts, and exports.',
         action: run(() => navigate(ROUTES.ANALYSIS)),
       },
       {
         id: 'nav-library',
         category: 'Navigation',
-        title: 'Open Case Library',
+        title: 'Open case library',
         description: 'Browse scenarios and start a trial from a case.',
         action: run(() => navigate(ROUTES.LIBRARY)),
       },
       {
         id: 'nav-drafting',
         category: 'Navigation',
-        title: 'Open Drafting Studio',
+        title: 'Open drafting studio',
         description: 'Draft petitions, plaints, memorials, and briefs with AI feedback.',
         action: run(() => navigate(ROUTES.DRAFTING_STUDIO)),
       },
       {
         id: 'nav-research-ide',
         category: 'Navigation',
-        title: 'Open Research IDE',
+        title: 'Open research desk',
         description: 'Split-view research workspace with AI grounding.',
         action: run(() => navigate(ROUTES.RESEARCH_IDE)),
       },
@@ -251,32 +254,11 @@ export const CommandPalette: React.FC = () => {
         action: run(() => navigate(ROUTES.BENCH)),
       },
       {
-        id: 'action-evening-drill',
-        category: 'Actions',
-        title: 'Start evening drill',
-        description: 'Start a focused evening practice drill.',
-        action: run(() => navigate(ROUTES.HOME)),
-      },
-      {
         id: 'action-open-coach',
         category: 'Actions',
         title: 'Open coach',
-        description: 'Open coaching guidance for your practice.',
-        action: run(() => navigate(ROUTES.HOME)),
-      },
-      {
-        id: 'action-manage-keys',
-        category: 'Actions',
-        title: 'Manage keys',
-        description: 'Manage API keys and access settings.',
-        action: run(() => navigate(ROUTES.HOME)),
-      },
-      {
-        id: 'action-view-schedules',
-        category: 'Actions',
-        title: 'View schedules',
-        description: 'View practice and session schedules.',
-        action: run(() => navigate(ROUTES.HOME)),
+        description: 'Think through the next step in your practice.',
+        action: run(() => window.dispatchEvent(new CustomEvent('lexforge-open-coach'))),
       },
     ];
 
@@ -325,11 +307,11 @@ export const CommandPalette: React.FC = () => {
       caseCatalog.forEach(c => {
         list.push({
           id: `case-${c.id}`,
-          category: 'Precedents',
+          category: 'Case files',
           title: `Case: ${c.title}`,
           description: `${c.briefFacts.substring(0, 75)}...`,
           action: run(() => {
-            window.dispatchEvent(new CustomEvent('cmd-palette-select-case', { detail: { caseId: c.id } }));
+            navigate(ROUTES.SETUP + '?case=' + encodeURIComponent(c.id));
           }),
         });
       });
@@ -468,7 +450,7 @@ export const CommandPalette: React.FC = () => {
 
         <div className="flex items-center justify-between border-b border-brand-border bg-brand-bg-secondary px-4 py-2 sm:hidden">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary">
+            <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary">
               Quick Actions
             </p>
             <p className="text-xs text-brand-text-secondary/80">Search tools, routes, and live actions.</p>
@@ -504,7 +486,7 @@ export const CommandPalette: React.FC = () => {
             aria-haspopup="listbox"
             className={`w-full bg-transparent text-sm font-light text-brand-text-primary placeholder:text-brand-text-secondary/40 ${focusRing} rounded-sm`}
           />
-          <kbd className="hidden border border-brand-border px-1.5 py-0.5 font-mono text-[9px] uppercase text-brand-text-secondary sm:inline-block" aria-hidden="true">
+          <kbd className="hidden border border-brand-border px-1.5 py-0.5 font-mono text-[11px] uppercase text-brand-text-secondary sm:inline-block" aria-hidden="true">
             ESC
           </kbd>
         </div>
@@ -512,7 +494,7 @@ export const CommandPalette: React.FC = () => {
         {activeSessionLabel && (
           <div className="flex items-center justify-between gap-3 border-b border-brand-border bg-[#1c1914]/[0.04] px-4 py-2">
             <div className="min-w-0">
-              <p className="text-[9px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary">
+              <p className="text-[11px] font-mono uppercase tracking-[0.16em] text-brand-text-secondary">
                 Active Session
               </p>
               <p className="truncate text-xs text-brand-text-primary/90">{activeSessionLabel}</p>
@@ -570,7 +552,7 @@ export const CommandPalette: React.FC = () => {
                   <div className="min-w-0 flex-grow pr-3">
                     <div className="mb-0.5 flex flex-wrap items-center gap-2">
                       <span
-                        className={`border px-1 py-0.5 font-mono text-[8px] uppercase tracking-wider ${
+                        className={`border px-1 py-0.5 font-mono text-[11px] uppercase tracking-wider ${
                           isSelected && !cmd.disabled
                             ? 'border-brand-bg-primary/20 bg-brand-bg-primary/10 text-brand-bg-primary/80'
                             : 'border-brand-border bg-brand-bg-secondary text-brand-text-secondary/60'
@@ -583,7 +565,7 @@ export const CommandPalette: React.FC = () => {
                       </span>
                     </div>
                     <p
-                      className={`text-[11px] sm:text-[10px] ${
+                      className={`text-[11px] sm:text-[11px] ${
                         isSelected && !cmd.disabled
                           ? 'text-brand-bg-primary/70'
                           : 'text-brand-text-secondary/55'
@@ -594,7 +576,7 @@ export const CommandPalette: React.FC = () => {
                   </div>
                   {cmd.shortcut && (
                     <kbd
-                      className={`flex-shrink-0 border px-1.5 py-0.5 font-mono text-[9px] uppercase ${
+                      className={`flex-shrink-0 border px-1.5 py-0.5 font-mono text-[11px] uppercase ${
                         isSelected && !cmd.disabled
                           ? 'border-brand-bg-primary/25 text-brand-bg-primary/80'
                           : 'border-brand-border text-brand-text-secondary/40'
@@ -613,7 +595,7 @@ export const CommandPalette: React.FC = () => {
           )}
         </div>
 
-        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-brand-border bg-brand-bg-secondary/60 px-4 py-2 font-mono text-[9px] text-brand-text-secondary/50">
+        <div className="flex flex-shrink-0 items-center justify-between gap-3 border-t border-brand-border bg-brand-bg-secondary/60 px-4 py-2 font-mono text-[11px] text-brand-text-secondary/50">
           <span>↑↓ navigate · Enter select · Esc close</span>
           <span className="hidden sm:inline">⌘K toggle</span>
           <span className="sm:hidden">Tap a command</span>

@@ -8,6 +8,16 @@ advocacy — across both Indian and International (common-law) practice modes.
 and opponent skin, then pressure-test coherence until the agent collapses or you
 do. Server-authoritative scoring uses a signed `state_token`.
 
+## Workspace
+
+The overview connects courtroom practice, drafting, research, and performance.
+Choose Indian or international law to load the relevant catalogue. Saved
+hearings and manuscripts stay in the current browser; provider-backed features
+use the serverless API.
+
+See [the revamp notes](docs/REVAMP-2026-10-24.md) for the current interface and
+verification scope, and [design.md](design.md) for the shared visual system.
+
 ## Run Locally
 
 **Prerequisites:** Node.js 22 (matches CI and the Vercel runtime)

@@ -394,7 +394,7 @@ const PerformanceScreen: React.FC = () => {
                   ] as const
                 ).map(([key, value]) => (
                   <div key={key} className="flex items-center gap-2">
-                    <span className="w-[7.5rem] text-[10px] font-mono text-brand-text-secondary/80 truncate">
+                    <span className="w-[7.5rem] text-[11px] font-mono text-brand-text-secondary/80 truncate">
                       {SCORE_DIMENSION_LABELS[key]}
                     </span>
                     <div className="flex-1 h-1 bg-[#1c1914]/[0.04] overflow-hidden border border-brand-border">
@@ -405,7 +405,7 @@ const PerformanceScreen: React.FC = () => {
                         }}
                       />
                     </div>
-                    <span className="w-6 text-right text-[10px] font-mono text-brand-text-primary">
+                    <span className="w-6 text-right text-[11px] font-mono text-brand-text-primary">
                       {clampScore(value, LIVE_DIM_CAP)}
                     </span>
                   </div>
@@ -504,7 +504,7 @@ const PerformanceScreen: React.FC = () => {
                 <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary">
                   Score breakdown
                 </p>
-                <span className="text-[10px] font-mono text-brand-text-secondary/70 border border-brand-border px-1.5 py-0.5 rounded">
+                <span className="text-[11px] font-mono text-brand-text-secondary/70 border border-brand-border px-1.5 py-0.5 rounded">
                   /10
                 </span>
               </div>
@@ -587,7 +587,7 @@ const PerformanceScreen: React.FC = () => {
                     ] as const
                   ).map(([key, value]) => (
                     <div key={key} className="flex items-center gap-2">
-                      <span className="w-[7.5rem] text-[10px] font-mono text-brand-text-secondary/80 truncate">
+                      <span className="w-[7.5rem] text-[11px] font-mono text-brand-text-secondary/80 truncate">
                         {SCORE_DIMENSION_LABELS[key]}
                       </span>
                       <div className="flex-1 h-1 bg-[#1c1914]/[0.04] overflow-hidden border border-brand-border">
@@ -598,7 +598,7 @@ const PerformanceScreen: React.FC = () => {
                           }}
                         />
                       </div>
-                      <span className="w-6 text-right text-[10px] font-mono text-brand-text-primary">
+                      <span className="w-6 text-right text-[11px] font-mono text-brand-text-primary">
                         {clampScore(value, LIVE_DIM_CAP)}
                       </span>
                     </div>
@@ -632,7 +632,7 @@ const PerformanceScreen: React.FC = () => {
                         key={`${index}-${area.slice(0, 24)}`}
                         className="flex items-start gap-3 p-3 border border-brand-border bg-brand-bg-primary"
                       >
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-brand-border text-[10px] font-mono text-brand-text-secondary">
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border border-brand-border text-[11px] font-mono text-brand-text-secondary">
                           {index + 1}
                         </span>
                         <span className="text-brand-text-primary/90 text-[13px] leading-relaxed">
@@ -839,7 +839,7 @@ const TranscriptPanel: React.FC<{
               key={msg.id || `line-${index}`}
               className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full`}
             >
-              <span className="text-[10px] uppercase tracking-wide text-brand-text-secondary mb-1 opacity-80">
+              <span className="text-[11px] uppercase tracking-wide text-brand-text-secondary mb-1 opacity-80">
                 {senderName}
               </span>
               <div

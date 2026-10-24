@@ -42,7 +42,7 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({ profile,
 
           <div className="text-center sm:text-left flex-grow min-w-0 space-y-3 w-full">
             <header className="space-y-1">
-              <p className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary">
+              <p className="text-[11px] font-mono tracking-widest uppercase text-brand-text-secondary">
                 {roleLabel}
               </p>
               <h3 className="text-2xl sm:text-3xl font-semibold text-brand-text-primary font-serif leading-tight tracking-tight">
