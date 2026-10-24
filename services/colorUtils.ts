@@ -1,14 +1,14 @@
-/** Category accents stay monochrome-adjacent so the app doesn't go green/teal. */
+/** Category treatments use the daylight workspace's ink and paper tokens. */
 const NEUTRAL = {
-  text: 'text-white/80',
-  bg: 'bg-white',
-  border: 'border-white/25',
-  borderHover: 'hover:border-white/50',
-  bgMuted: 'bg-white/[0.06]',
-  textMuted: 'text-white/55',
-  accentGlow: 'hover:border-white/30',
-  bgHover: 'hover:bg-white/90',
-  bgHoverMuted: 'hover:bg-white/10',
+  text: 'text-brand-text-primary',
+  bg: 'bg-brand-text-primary',
+  border: 'border-brand-border',
+  borderHover: 'hover:border-brand-border-light',
+  bgMuted: 'bg-brand-text-primary/[0.05]',
+  textMuted: 'text-brand-text-secondary',
+  accentGlow: 'hover:border-brand-border-light',
+  bgHover: 'hover:bg-brand-navy-light',
+  bgHoverMuted: 'hover:bg-brand-bg-tertiary',
 } as const;
 
 export type CategoryColorClasses = typeof NEUTRAL;

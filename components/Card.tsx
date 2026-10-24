@@ -35,7 +35,7 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <div
-      className={`rounded-md bg-brand-bg-secondary border border-brand-border overflow-hidden
+      className={`lf-card rounded-md bg-brand-bg-secondary border border-brand-border overflow-hidden
         ${onClick ? 'cursor-pointer' : ''}
         ${hoverEffect && onClick ? 'hover:bg-brand-bg-tertiary hover:border-brand-border transition-colors duration-150' : ''}
         ${className}`}
@@ -67,7 +67,7 @@ export const Card: React.FC<CardProps> = ({
         >
           {title && (
             <h3
-              className={`text-[13px] font-medium tracking-tight text-brand-text-primary min-w-0 ${titleClassName}`}
+              className={`lf-card-heading text-[13px] font-medium tracking-tight text-brand-text-primary min-w-0 ${titleClassName}`}
             >
               {title}
             </h3>

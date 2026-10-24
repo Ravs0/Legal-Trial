@@ -104,12 +104,12 @@ export const PhotoTile: React.FC<PhotoTileProps> = ({
         {(badge || meta) && (
           <div className="mb-1.5 flex items-center justify-between gap-2">
             {badge ? (
-              <span className="text-[10px] uppercase tracking-[0.12em] text-white/60">{badge}</span>
+              <span className="text-[11px] uppercase tracking-[0.12em] text-white/60">{badge}</span>
             ) : (
               <span />
             )}
             {meta && (
-              <span className="text-[10px] tabular-nums tracking-wide text-white/55 shrink-0">{meta}</span>
+              <span className="text-[11px] tabular-nums tracking-wide text-white/55 shrink-0">{meta}</span>
             )}
           </div>
         )}

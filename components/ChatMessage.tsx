@@ -228,7 +228,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         aria-live="polite"
       >
         <div className="w-full max-w-2xl rounded-md border border-brand-error/30 bg-brand-error/10 px-4 py-3 text-center">
-          <p className="mb-1 font-mono text-[10px] uppercase tracking-[0.18em] text-brand-error/90">System</p>
+          <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.18em] text-brand-error/90">System</p>
           <p className="whitespace-pre-wrap text-xs font-light leading-relaxed text-brand-text-primary/90 sm:text-sm">
             {formatText(message.text)}
           </p>
@@ -260,7 +260,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </button>
           <div
             id={actionsId}
-            className={`absolute right-4 top-10 z-10 flex items-center space-x-2 rounded-md border border-brand-border bg-brand-bg-primary/95 px-2 py-1 font-mono text-[10px] shadow-sm transition-opacity duration-200 ${
+            className={`absolute right-4 top-10 z-10 flex items-center space-x-2 rounded-md border border-brand-border bg-brand-bg-primary/95 px-2 py-1 font-mono text-[11px] shadow-sm transition-opacity duration-200 ${
               showActions
                 ? 'pointer-events-auto opacity-100'
                 : 'pointer-events-none opacity-0 md:pointer-events-auto md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 md:focus-within:pointer-events-auto'
@@ -311,7 +311,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         </div>
 
         <div className={`flex max-w-[calc(100%-3rem)] flex-grow flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-          <div className="mb-1.5 flex items-center space-x-2 font-mono text-[10px] uppercase tracking-widest text-brand-text-secondary/70">
+          <div className="mb-1.5 flex items-center space-x-2 font-mono text-[11px] uppercase tracking-widest text-brand-text-secondary/70">
             <span className={`font-bold ${isUser ? 'text-brand-text-secondary' : 'text-brand-text-primary'}`}>
               {senderName}
             </span>
@@ -329,7 +329,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-brand-border pt-2">
                     {typeof scoreDelta === 'number' && (
                       <span
-                        className={`rounded border px-1.5 py-0.5 font-mono text-[10px] ${
+                        className={`rounded border px-1.5 py-0.5 font-mono text-[11px] ${
                           scoreDelta > 0
                             ? 'border-brand-success/40 bg-brand-success/10 text-brand-success'
                             : scoreDelta < 0
@@ -341,7 +341,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       </span>
                     )}
                     {scoreReason && (
-                      <span className="font-mono text-[10px] text-brand-text-secondary/80">{scoreReason}</span>
+                      <span className="font-mono text-[11px] text-brand-text-secondary/80">{scoreReason}</span>
                     )}
                   </div>
                 )}
@@ -355,7 +355,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {formatText(message.text)}
                 </p>
                 {speakTruncated && isSpeaking && (
-                  <p className="mt-2 font-mono text-[10px] text-brand-text-secondary/70">
+                  <p className="mt-2 font-mono text-[11px] text-brand-text-secondary/70">
                     Reading first {TTS_CHAR_LIMIT} characters
                   </p>
                 )}

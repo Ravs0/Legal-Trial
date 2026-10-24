@@ -60,11 +60,11 @@ export const DraftPipelinePanel: React.FC<DraftPipelinePanelProps> = ({
   return (
     <section aria-label="Draft pipeline" className="border border-brand-border bg-brand-bg-secondary rounded-md p-3 space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary">3 pass pipeline</p>
+        <p className="text-[11px] font-mono uppercase tracking-widest text-brand-text-secondary">3 pass pipeline</p>
         <div role="group" aria-label="Citation style" className="flex border border-brand-border rounded-md overflow-hidden">
           {(['ILI', 'OSCOLA'] as CitationStyle[]).map((s) => (
             <button key={s} type="button" aria-pressed={activeStyle === s} onClick={() => pickStyle(s)}
-              className={`px-2 py-1 text-[10px] font-mono uppercase ${activeStyle === s ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}>
+              className={`px-2 py-1 text-[11px] font-mono uppercase ${activeStyle === s ? 'bg-brand-text-primary text-brand-bg-primary' : 'text-brand-text-secondary hover:text-brand-text-primary'}`}>
               {s}
             </button>
           ))}
@@ -75,7 +75,7 @@ export const DraftPipelinePanel: React.FC<DraftPipelinePanelProps> = ({
           <li key={p.id} className="flex items-center gap-2 text-[12px]">
             <span aria-hidden="true" className={`w-2 h-2 rounded-full flex-shrink-0 ${STATUS_DOT[p.status]}`} />
             <span className="text-brand-text-primary">{PASS_LABELS[p.id]}</span>
-            <span className="ml-auto text-[10px] font-mono uppercase text-brand-text-secondary">{STATUS_TEXT[p.status]}</span>
+            <span className="ml-auto text-[11px] font-mono uppercase text-brand-text-secondary">{STATUS_TEXT[p.status]}</span>
           </li>
         ))}
       </ol>

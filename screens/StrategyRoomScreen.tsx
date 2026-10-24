@@ -723,11 +723,11 @@ export const StrategyRoomScreen: React.FC = () => {
         {/* Retrieved precedents (Stage 2) */}
         {hasCitations && (
           <div className="p-2 bg-brand-bg-primary/50 border border-brand-border rounded-xl space-y-1.5">
-            <h6 className="flex items-center gap-1 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-text-primary/80">
+            <h6 className="flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-wider text-brand-text-primary/80">
               <CitationIcon className="w-3 h-3" /> Retrieved Precedents
             </h6>
             {(item.citations || []).map((c, i) => (
-              <div key={i} className="text-[9px] space-y-0.5 p-1.5 bg-brand-bg-primary/30 rounded-lg border border-brand-border/30">
+              <div key={i} className="text-[11px] space-y-0.5 p-1.5 bg-brand-bg-primary/30 rounded-lg border border-brand-border/30">
                 <div className="flex items-start justify-between gap-2">
                   <span className="font-semibold text-brand-text-primary leading-tight">{c.title}</span>
                   {c.url ? (
@@ -741,7 +741,7 @@ export const StrategyRoomScreen: React.FC = () => {
                   ) : null}
                 </div>
                 {(c.citation || c.court || c.date) && (
-                  <div className="text-[7px] font-mono text-brand-text-secondary/60 flex flex-wrap gap-x-2">
+                  <div className="text-[11px] font-mono text-brand-text-secondary/60 flex flex-wrap gap-x-2">
                     {c.citation && <span>📖 {c.citation}</span>}
                     {c.court && <span>⚖ {c.court}</span>}
                     {c.date && <span>📅 {c.date}</span>}
@@ -755,18 +755,18 @@ export const StrategyRoomScreen: React.FC = () => {
         {/* Verification rows (Stage 5) */}
         {hasVerification && (
           <div className="p-2 bg-brand-bg-primary/50 border border-brand-border rounded-xl space-y-1">
-            <h6 className="flex items-center gap-1 text-[8px] font-mono font-bold uppercase tracking-wider text-brand-text-primary/80">
+            <h6 className="flex items-center gap-1 text-[11px] font-mono font-bold uppercase tracking-wider text-brand-text-primary/80">
               <CitationIcon className="w-3 h-3" /> Citation Verification
             </h6>
             {(item.verification || []).map((v, i) => (
-              <div key={i} className="text-[8px] flex items-center gap-1.5 py-1 border-b border-brand-border/20 last:border-b-0">
+              <div key={i} className="text-[11px] flex items-center gap-1.5 py-1 border-b border-brand-border/20 last:border-b-0">
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
                   v.status.startsWith('LOCATED') ? 'bg-brand-success' : 'bg-amber-500'
                 }`} />
                 <span className="font-semibold text-brand-text-primary/90 truncate">{v.caseName}</span>
                 <span className="text-brand-text-secondary/50">·</span>
                 <span className="text-brand-text-secondary/70 truncate max-w-[120px]">{v.citation}</span>
-                <span className={`ml-auto flex-shrink-0 text-[7px] font-mono ${
+                <span className={`ml-auto flex-shrink-0 text-[11px] font-mono ${
                   v.status.startsWith('LOCATED') ? 'text-brand-success' : 'text-[#7a5c12]'
                 }`}>
                   {v.status.startsWith('LOCATED') ? '✓' : '⚠'} {v.status.slice(0, 22)}
@@ -778,7 +778,7 @@ export const StrategyRoomScreen: React.FC = () => {
 
         {/* Retrieval health note */}
         {item.retrievalNote && (
-          <div className={`text-[7px] font-mono px-2 py-1 rounded-lg flex items-center gap-1 ${
+          <div className={`text-[11px] font-mono px-2 py-1 rounded-lg flex items-center gap-1 ${
             item.retrievalNote.includes('Located') || item.retrievalNote.includes('Retrieved')
               ? 'bg-brand-success/10 text-brand-success border border-brand-success/30'
               : 'bg-[#7a5c12]/10 text-[#7a5c12] border border-[#7a5c12]/40'
@@ -1589,7 +1589,7 @@ ctx.verificationBlock = [
         {/* Mobile Council persona strip */}
         {activeTab === ChamberMode.COUNCIL && (
           <div className="w-full flex flex-col gap-0.5 mb-2 flex-shrink-0">
-            <span className="text-[9px] font-mono uppercase tracking-wide text-brand-text-secondary/70 block ml-1">Consult jurist</span>
+            <span className="text-[11px] font-mono uppercase tracking-wide text-brand-text-secondary/70 block ml-1">Consult jurist</span>
             <div className="grid grid-cols-5 gap-1 select-none items-start w-full">
               {PERSONAS.map((p) => {
                 const isSelected = selectedPersona.id === p.id;
@@ -1602,7 +1602,7 @@ ctx.verificationBlock = [
                     aria-label={p.name}
                     className="flex flex-col items-center gap-0.5 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1c1914]/40 rounded-md min-w-0 min-h-11"
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-[10px] font-mono font-bold border relative
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-[11px] font-mono font-bold border relative
                       ${isSelected 
                         ? 'bg-brand-text-primary text-brand-bg-primary border-white' 
                         : 'bg-brand-bg-primary border-brand-border text-brand-text-primary/80'
@@ -1610,10 +1610,10 @@ ctx.verificationBlock = [
                     >
                       {p.avatar}
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-black text-white rounded border border-white/30 flex items-center justify-center text-[6px] font-bold" aria-hidden="true">§</span>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-black text-white rounded border border-white/30 flex items-center justify-center text-[11px] font-bold" aria-hidden="true">§</span>
                       )}
                     </div>
-                    <span className={`text-[8px] tracking-wide font-mono transition-colors text-center truncate w-full
+                    <span className={`text-[11px] tracking-wide font-mono transition-colors text-center truncate w-full
                       ${isSelected ? 'text-brand-text-primary font-semibold' : 'text-brand-text-secondary/60'}`}
                     >
                       {p.name.split(' ')[0]}
@@ -1648,7 +1648,7 @@ ctx.verificationBlock = [
 
             {activeHistory.map((item) => (
               <div key={item.id} className={`flex flex-col ${item.sender === 'user' ? 'items-end' : 'items-start'} `}>
-                <div className="flex items-center space-x-1.5 mb-0.5 text-[9px] font-mono">
+                <div className="flex items-center space-x-1.5 mb-0.5 text-[11px] font-mono">
                   {item.meta && (
                     <span className="text-brand-text-primary font-semibold bg-[#1c1914]/[0.05] px-1.5 py-0.5 border border-brand-border rounded">
                       {item.meta}
@@ -1674,13 +1674,13 @@ ctx.verificationBlock = [
 
                   {item.trace && item.trace.length > 0 && (
                     <details className="mt-2 pt-2 border-t border-brand-border text-[11px] font-light text-brand-text-secondary/80">
-                      <summary className="cursor-pointer text-[10px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1c1914]/40 rounded min-h-9 flex items-center">
+                      <summary className="cursor-pointer text-[11px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1c1914]/40 rounded min-h-9 flex items-center">
                         View trace logs ({item.trace.length})
                       </summary>
                       <div className="mt-2 space-y-2 font-sans text-[11px]">
                         {item.trace.map((tr, index) => (
                           <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-brand-border rounded-lg text-left">
-                            <h6 className="font-mono text-[9px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-brand-border pb-0.5">
+                            <h6 className="font-mono text-[11px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-brand-border pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
                             <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap max-h-[120px] overflow-y-auto custom-scrollbar">{tr.content}</p>
@@ -1697,7 +1697,7 @@ ctx.verificationBlock = [
                       type="button"
                       onClick={() => handleSpeak(item.text)}
                       aria-label="Speak message"
-                      className="min-h-9 px-2.5 py-1.5 border border-brand-border rounded-md bg-brand-bg-primary hover:bg-[#3a352c] hover:text-brand-bg-primary text-[10px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
+                      className="min-h-9 px-2.5 py-1.5 border border-brand-border rounded-md bg-brand-bg-primary hover:bg-[#3a352c] hover:text-brand-bg-primary text-[11px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
                     >
                       Speak
                     </button>
@@ -1709,7 +1709,7 @@ ctx.verificationBlock = [
                         });
                       }}
                       aria-label="Copy message"
-                      className="min-h-9 px-2.5 py-1.5 border border-brand-border rounded-md bg-brand-bg-primary hover:bg-[#1c1914]/[0.04] text-[10px] font-mono uppercase tracking-wide text-brand-text-secondary cursor-pointer"
+                      className="min-h-9 px-2.5 py-1.5 border border-brand-border rounded-md bg-brand-bg-primary hover:bg-[#1c1914]/[0.04] text-[11px] font-mono uppercase tracking-wide text-brand-text-secondary cursor-pointer"
                     >
                       Copy
                     </button>
@@ -1729,13 +1729,13 @@ ctx.verificationBlock = [
                   <div className="flex items-center justify-between gap-2 border-b border-brand-border pb-1.5">
                     <div className="flex items-center space-x-2 min-w-0">
                       <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold" />
-                      <span className="text-[10px] font-mono tracking-wide text-brand-text-primary font-semibold uppercase truncate">{oracleStage}</span>
+                      <span className="text-[11px] font-mono tracking-wide text-brand-text-primary font-semibold uppercase truncate">{oracleStage}</span>
                     </div>
                     <button 
                       type="button"
                       onClick={handleCancel}
                       aria-label="Cancel deliberation"
-                      className="min-h-9 text-[10px] font-mono uppercase px-2.5 py-1.5 border border-brand-error/40 rounded-md bg-brand-error/10 text-brand-error hover:bg-brand-error/25 cursor-pointer font-semibold flex-shrink-0"
+                      className="min-h-9 text-[11px] font-mono uppercase px-2.5 py-1.5 border border-brand-error/40 rounded-md bg-brand-error/10 text-brand-error hover:bg-brand-error/25 cursor-pointer font-semibold flex-shrink-0"
                     >
                       Cancel
                     </button>
@@ -1754,9 +1754,9 @@ ctx.verificationBlock = [
                       const isCompleted = idx < oracleTrace.length;
                       const isActive = idx === oracleTrace.length;
                       return (
-                        <div key={idx} className="flex items-center justify-between text-[10px] font-mono gap-1">
+                        <div key={idx} className="flex items-center justify-between text-[11px] font-mono gap-1">
                           <div className="flex items-center space-x-1.5 min-w-0">
-                            <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[7px] font-bold flex-shrink-0
+                            <span className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[11px] font-bold flex-shrink-0
                               ${isCompleted
                                 ? 'bg-[#1c1914]/[0.08] border-brand-border-light text-brand-text-primary'
                                 : isActive
@@ -1769,7 +1769,7 @@ ctx.verificationBlock = [
                               {stg}
                             </span>
                             {activeTab === ChamberMode.SYNTHESIS && SYNTHESIS_BY_KEY[SYNTHESIS_STAGES[idx]?.key] && (
-                              <span className="text-[8px] font-mono text-brand-text-secondary/40 ml-1 flex-shrink-0">
+                              <span className="text-[11px] font-mono text-brand-text-secondary/40 ml-1 flex-shrink-0">
                                 {SYNTHESIS_STAGES[idx].model.replace('deepseek-', 'ds-')}
                               </span>
                             )}
@@ -1930,14 +1930,14 @@ ctx.verificationBlock = [
                       ${isActive 
                         ? 'bg-brand-text-primary text-brand-bg-primary border-white font-medium' 
                         : isProcessing
-                          ? 'bg-black/40 border-white/10 text-white/35 cursor-not-allowed'
-                          : 'bg-black/40 border-white/15 text-white/75 hover:border-white/30 hover:text-white'
+                          ? 'bg-brand-bg-tertiary border-brand-border text-brand-text-secondary/50 cursor-not-allowed'
+                          : 'bg-brand-bg-secondary border-brand-border text-brand-text-primary hover:border-brand-border-light'
                       }`}
                   >
-                    <span className={`w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0 border ${isActive ? 'border-black/15 bg-black/5' : 'border-white/20'}`}>{m.icon}</span>
+                    <span className={`w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-semibold flex-shrink-0 border ${isActive ? 'border-black/15 bg-black/5' : 'border-brand-border'}`}>{m.icon}</span>
                     <div className="flex-grow flex items-center justify-between min-w-0 gap-2">
                       <span className="text-[13px] font-medium truncate whitespace-nowrap">{m.title}</span>
-                      <span className={`text-[10px] uppercase tracking-wide flex-shrink-0 ${isActive ? 'text-black/50' : 'text-brand-text-primary/40'}`}>
+                      <span className={`text-[11px] uppercase tracking-wide flex-shrink-0 ${isActive ? 'text-brand-bg-primary/70' : 'text-brand-text-secondary'}`}>
                         {m.badge}
                       </span>
                     </div>
@@ -1951,7 +1951,7 @@ ctx.verificationBlock = [
 
           {activeTab === ChamberMode.COUNCIL && (
             <Card className="p-5 border border-brand-border bg-brand-bg-secondary rounded-2xl flex flex-col gap-3 ">
-              <h4 className="text-[10px] font-mono font-semibold text-brand-text-primary uppercase tracking-widest border-b border-brand-border pb-1">Expert Advisor Minds</h4>
+              <h4 className="text-[11px] font-mono font-semibold text-brand-text-primary uppercase tracking-widest border-b border-brand-border pb-1">Expert Advisor Minds</h4>
               <div className="flex flex-col gap-2 max-h-[240px] overflow-y-auto custom-scrollbar pr-0.5">
                 {PERSONAS.map((p) => {
                   const isSelected = selectedPersona.id === p.id;
@@ -1974,7 +1974,7 @@ ctx.verificationBlock = [
                       </span>
                       <div className="space-y-0.5 min-w-0 flex-grow">
                         <h5 className="text-[11px] font-bold font-serif truncate">{p.name}</h5>
-                        <p className={`text-[9px] font-light truncate ${isSelected ? 'text-brand-bg-primary/70' : 'text-brand-text-secondary/70'}`}>{p.role}</p>
+                        <p className={`text-[11px] font-light truncate ${isSelected ? 'text-brand-bg-primary/70' : 'text-brand-text-secondary/70'}`}>{p.role}</p>
                       </div>
                     </button>
                   );
@@ -2012,7 +2012,7 @@ ctx.verificationBlock = [
                   <h4 className="text-sm font-serif font-bold text-shimmer">
                     {activeTab === ChamberMode.ORACLE ? 'Oracle Deliberation' : activeTab === ChamberMode.COUNCIL ? 'Historical Council' : 'Adversarial Synthesis'}
                   </h4>
-                  <p className="text-[10px] text-brand-text-secondary font-light leading-relaxed max-w-sm">
+                  <p className="text-[11px] text-brand-text-secondary font-light leading-relaxed max-w-sm">
                     {activeTab === ChamberMode.ORACLE 
                         ? '6-Stage sequential reasoning deconstructing issues, strategies, flaws, and safeguards.'
                         : activeTab === ChamberMode.COUNCIL
@@ -2031,7 +2031,7 @@ ctx.verificationBlock = [
                       {item.meta}
                     </span>
                   )}
-                  <span className="text-[8px] text-brand-text-secondary/40 font-mono">
+                  <span className="text-[11px] text-brand-text-secondary/40 font-mono">
                     {item.sender === 'user' ? 'Counsel' : 'Chamber'}
                   </span>
                 </div>
@@ -2048,14 +2048,14 @@ ctx.verificationBlock = [
                   <div className="font-light text-brand-text-primary">{renderLegalMarkdown(item.text)}</div>
                   {renderCitationPanel(item)}
                   {item.trace && item.trace.length > 0 && (
-                    <details className="mt-2 pt-2 border-t border-brand-border text-[10px] font-light text-brand-text-secondary/80">
-                      <summary className="cursor-pointer text-[8px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
+                    <details className="mt-2 pt-2 border-t border-brand-border text-[11px] font-light text-brand-text-secondary/80">
+                      <summary className="cursor-pointer text-[11px] font-mono uppercase tracking-wider text-brand-text-primary font-semibold hover:text-brand-text-primary focus:outline-none">
                         View Trace Logs ({item.trace.length})
                       </summary>
-                      <div className="mt-2 space-y-2 font-sans text-[10px]">
+                      <div className="mt-2 space-y-2 font-sans text-[11px]">
                         {item.trace.map((tr, index) => (
                           <div key={index} className="space-y-1 p-1.5 bg-brand-bg-primary/50 border border-brand-border rounded-xl text-left">
-                            <h6 className="font-mono text-[8px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
+                            <h6 className="font-mono text-[11px] font-bold text-brand-text-primary uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5">
                               Stage {index + 1}: {tr.stage}
                             </h6>
                             <p className="leading-relaxed font-light text-brand-text-secondary whitespace-pre-wrap max-h-[120px] overflow-y-auto custom-scrollbar">{tr.content}</p>
@@ -2070,13 +2070,13 @@ ctx.verificationBlock = [
                   <div className="flex space-x-2 mt-1.5 pl-1">
                     <button
                       onClick={() => handleSpeak(item.text)}
-                      className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[9px] text-brand-text-primary font-semibold font-mono uppercase tracking-wide cursor-pointer"
+                      className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[11px] text-brand-text-primary font-semibold font-mono uppercase tracking-wide cursor-pointer"
                     >
                       Speak
                     </button>
                     <button
                       onClick={() => navigator.clipboard.writeText(item.text)}
-                      className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[9px] text-brand-text-secondary hover:text-brand-text-primary  font-mono uppercase tracking-wide cursor-pointer"
+                      className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[11px] text-brand-text-secondary hover:text-brand-text-primary  font-mono uppercase tracking-wide cursor-pointer"
                     >
                       Copy
                     </button>
@@ -2091,7 +2091,7 @@ ctx.verificationBlock = [
           {/* Bottom Input Composer */}
           <div className="p-3 border-t border-brand-border bg-brand-bg-secondary/90 relative z-20">
             {audioError && (
-              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error text-brand-error text-[10px] rounded-xl text-left ">
+              <div className="p-2 mb-2 bg-brand-error/10 border border-brand-error text-brand-error text-[11px] rounded-xl text-left ">
                 [Error] {audioError}
               </div>
             )}
@@ -2158,7 +2158,7 @@ ctx.verificationBlock = [
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 border border-brand-error/40 rounded-xl bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[10px] font-mono uppercase tracking-wider flex-shrink-0  font-semibold"
+                  className="px-4 border border-brand-error/40 rounded-xl bg-brand-error/10 text-brand-error hover:bg-brand-error/25 text-[11px] font-mono uppercase tracking-wider flex-shrink-0  font-semibold"
                 >
                   Cancel
                 </button>
@@ -2167,7 +2167,7 @@ ctx.verificationBlock = [
                   type="submit"
                   variant="primary"
                   disabled={!inputVal.trim()}
-                  className="px-4 font-mono text-[10px] uppercase tracking-wider  flex-shrink-0"
+                  className="px-4 font-mono text-[11px] uppercase tracking-wider  flex-shrink-0"
                 >
                   Consult
                 </Button>
@@ -2187,11 +2187,11 @@ ctx.verificationBlock = [
                   </svg>
                   Deliberation map
                 </span>
-                <span className="text-[8px] font-mono border border-brand-border text-brand-text-primary font-semibold px-1.5 py-0.5 rounded bg-brand-bg-primary uppercase">
+                <span className="text-[11px] font-mono border border-brand-border text-brand-text-primary font-semibold px-1.5 py-0.5 rounded bg-brand-bg-primary uppercase">
                   {isProcessing ? 'Active' : 'Standby'}
                 </span>
               </h3>
-              <p className="text-[9px] text-brand-text-secondary font-light">Nodes track each stage.</p>
+              <p className="text-[11px] text-brand-text-secondary font-light">Nodes track each stage.</p>
             </div>
 
             {/* Render the interactive SVG Blueprint Map */}
@@ -2215,7 +2215,7 @@ ctx.verificationBlock = [
                 {oracleTrace.length > 0 && (
                   <button 
                     onClick={() => setShowReasoningLogs(!showReasoningLogs)}
-                    className="text-[9px] font-mono border border-brand-border rounded-lg px-2 py-0.5 hover:text-brand-accent transition-colors uppercase"
+                    className="text-[11px] font-mono border border-brand-border rounded-lg px-2 py-0.5 hover:text-brand-accent transition-colors uppercase"
                   >
                     {showReasoningLogs ? 'Hide Reasoning' : 'Show Reasoning'}
                   </button>
@@ -2227,7 +2227,7 @@ ctx.verificationBlock = [
                   <div className="p-3.5 rounded-xl border border-brand-border bg-brand-bg-primary  space-y-3 ">
                     <div className="flex items-center space-x-2">
                       <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary font-semibold " />
-                      <span className="text-[9px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
+                      <span className="text-[11px] font-mono tracking-widest text-brand-text-primary font-semibold uppercase font-bold">{oracleStage}</span>
                     </div>
 
                     <div className="space-y-1.5">
@@ -2243,9 +2243,9 @@ ctx.verificationBlock = [
                         const isCompleted = idx < oracleTrace.length;
                         const isActive = idx === oracleTrace.length;
                         return (
-                          <div key={idx} className="flex items-center justify-between text-[9px] font-mono">
+                          <div key={idx} className="flex items-center justify-between text-[11px] font-mono">
                             <div className="flex items-center space-x-2">
-                              <span className={`w-3.5 h-3.5 rounded-lg flex items-center justify-center border border-brand-border text-[7px] font-bold
+                              <span className={`w-3.5 h-3.5 rounded-lg flex items-center justify-center border border-brand-border text-[11px] font-bold
                                 ${isCompleted 
                                   ? 'bg-brand-accent/20 border-brand-accent text-brand-text-primary font-semibold' 
                                   : isActive 
@@ -2260,7 +2260,7 @@ ctx.verificationBlock = [
                               </span>
                               {/* Per-stage model badge (Synthesis only) */}
                               {activeTab === ChamberMode.SYNTHESIS && SYNTHESIS_BY_KEY[SYNTHESIS_STAGES[idx]?.key] && (
-                                <span className="text-[7px] font-mono px-1 py-[1px] border border-brand-border rounded bg-brand-bg-primary text-brand-text-secondary/60 ml-1">
+                                <span className="text-[11px] font-mono px-1 py-[1px] border border-brand-border rounded bg-brand-bg-primary text-brand-text-secondary/60 ml-1">
                                   {SYNTHESIS_STAGES[idx].model.replace('deepseek-', 'ds-')}
                                 </span>
                               )}
@@ -2277,11 +2277,11 @@ ctx.verificationBlock = [
                     <div className="space-y-3 animate-fadeIn">
                       {oracleTrace.map((tr, index) => (
                         <div key={index} className="space-y-1 p-3 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl ">
-                          <h6 className="font-mono text-[9px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5 flex items-center justify-between">
+                          <h6 className="font-mono text-[11px] font-bold text-brand-text-primary font-semibold uppercase tracking-wider border-b border-brand-text-primary/30 pb-0.5 flex items-center justify-between">
                             <span>Stage {index + 1}: {tr.stage}</span>
-                            <span className="text-[7px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">READY</span>
+                            <span className="text-[11px] text-green-400 font-semibold bg-green-500/10 border border-green-500/20 px-1 rounded">READY</span>
                           </h6>
-                          <p className="leading-relaxed font-light text-brand-text-secondary text-[10px] whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{tr.content}</p>
+                          <p className="leading-relaxed font-light text-brand-text-secondary text-[11px] whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{tr.content}</p>
                         </div>
                       ))}
                     </div>
@@ -2290,7 +2290,7 @@ ctx.verificationBlock = [
                   <div className="p-4 border border-brand-border bg-brand-bg-primary rounded-xl space-y-2 text-center text-brand-text-secondary font-light">
                     <span className="text-2xl "></span>
                     <h5 className="text-xs font-serif font-bold text-brand-text-primary">Standing by</h5>
-                    <p className="text-[9px] leading-relaxed max-w-[200px] mx-auto text-brand-text-secondary/70">
+                    <p className="text-[11px] leading-relaxed max-w-[200px] mx-auto text-brand-text-secondary/70">
                       Send a query to start the pipeline.
                     </p>
                   </div>

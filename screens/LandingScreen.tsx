@@ -1,323 +1,145 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowDown, ArrowRight, ArrowUpRight, BookOpen, Check, FilePenLine, Gavel, Scale, ShieldCheck } from 'lucide-react';
 import { TrialSimContext } from '../App';
-import { ROUTES, APP_NAME } from '../routes';
-import { clearStoredLexForgeData, savePendingSettings } from '../services/storageService';
-import { clearActiveSession, loadActiveSession } from '../services/storageService';
+import { ROUTES } from '../routes';
+import { clearActiveSession, clearStoredLexForgeData, loadActiveSession, savePendingSettings } from '../services/storageService';
 import { trackDemoTrialStarted, trackEvent } from '../services/analyticsService';
 import { Modal } from '../components/Modal';
-import { PhotoTile } from '../components/PhotoTile';
-import { screenMedia } from '../assets';
-import type { SessionRecord } from '../types';
-
-const LOOP_STEPS = [
-  { label: 'Argue', hint: 'AI judge + counsel' },
-  { label: 'Score', hint: 'Rubric after the run' },
-  { label: 'Review', hint: 'Transcript + export' },
-] as const;
+import { Button } from '../components/Button';
+import { Brand } from '../components/Brand';
+import { heroCourtroom } from '../assets';
+import type { PracticeMode, SessionRecord } from '../types';
 
 const LandingScreen: React.FC = () => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
-
-  if (!context) {
-    throw new Error('TrialSimContext not found in LandingScreen');
-  }
-  const { setPracticeMode, setIsLoading, setCurrentSessionSettings, setError } = context;
-  const [dataCleared, setDataCleared] = useState(false);
-  const [showDemoConfirm, setShowDemoConfirm] = useState(false);
-  const [showModes, setShowModes] = useState(false);
-  const [showTrust, setShowTrust] = useState(false);
+  if (!context) throw new Error('LexForge context is unavailable.');
   const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
+  const [showModes, setShowModes] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [dataCleared, setDataCleared] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [destination, setDestination] = useState<string>(ROUTES.HOME);
 
-  useEffect(() => {
-    trackEvent('landing_viewed');
-    setActiveSession(loadActiveSession());
-  }, []);
+  useEffect(() => { trackEvent('landing_viewed'); setActiveSession(loadActiveSession()); }, []);
 
-  const activeCaseTitle = useMemo(
-    () => activeSession?.settings?.caseDetail?.title ?? null,
-    [activeSession],
-  );
-
-  const openModes = (source: 'header' | 'inline') => {
-    setShowModes((prev) => {
-      const next = source === 'header' ? true : !prev;
-      if (next && !prev) {
-        trackEvent('landing_modes_opened', { source });
-      }
-      return next;
-    });
+  const chooseWorkspace = (target: string = ROUTES.HOME) => {
+    if (context.practiceMode) { navigate(target); return; }
+    setDestination(target);
+    setShowModes(true);
+    trackEvent('landing_modes_opened', { source: 'revamp' });
   };
-
-  const handleModeSelection = (mode: 'indian' | 'international') => {
+  const enterWorkspace = (mode: PracticeMode) => {
+    context.setPracticeMode(mode);
     trackEvent('practice_mode_selected', { mode, source: 'landing' });
-    setIsLoading(true);
-    setPracticeMode(mode);
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate(ROUTES.HOME);
-    }, 100);
+    navigate(destination);
   };
-
-  const startDemo = async (replaceActiveSession = false) => {
+  const startDemo = async (replace = false) => {
+    if (starting) return;
+    setStarting(true);
     try {
-      if (replaceActiveSession) clearActiveSession();
       const { createDemoSessionSettings } = await import('../services/demoSessionService');
       const settings = createDemoSessionSettings();
-      trackDemoTrialStarted({
-        source: 'landing',
-        mode: settings.practiceMode,
-        caseId: settings.caseDetail.id,
-        caseTitle: settings.caseDetail.title,
-        replacedActiveSession: replaceActiveSession,
-      });
-      setPracticeMode(settings.practiceMode);
-      setCurrentSessionSettings(settings);
+      if (replace) clearActiveSession();
+      trackDemoTrialStarted({ source: 'landing', mode: settings.practiceMode, caseId: settings.caseDetail.id, caseTitle: settings.caseDetail.title, replacedActiveSession: replace });
+      context.setPracticeMode(settings.practiceMode);
+      context.setCurrentSessionSettings(settings);
       savePendingSettings(settings);
       navigate(ROUTES.PRACTICE);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to start demo trial.');
-    }
+      context.setError(error instanceof Error ? error.message : 'Unable to start the practice hearing.');
+    } finally { setStarting(false); }
   };
 
-  const handleDemoStart = () => {
-    if (loadActiveSession()) {
-      setShowDemoConfirm(true);
-      return;
+  const enterPractice = () => {
+    const saved = loadActiveSession();
+    if (saved) {
+      setActiveSession(saved);
+      context.setPracticeMode(saved.settings.practiceMode);
+      context.setCurrentSessionSettings(saved.settings);
+      navigate(ROUTES.PRACTICE);
+    } else {
+      void startDemo();
     }
-    void startDemo();
-  };
-
-  const handleClearLocal = () => {
-    clearStoredLexForgeData();
-    setDataCleared(true);
-    setActiveSession(null);
-    trackEvent('landing_local_data_cleared');
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden bg-brand-bg-primary text-brand-text-primary">
-      {/* Full-bleed: court corridor night (entry motif; monochrome hatch language) */}
-      <div className="absolute inset-0" aria-hidden>
-        <img
-          src={screenMedia.landing.hero}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover object-center"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-bg-primary via-brand-bg-primary/80 to-brand-bg-primary/50" />
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-bg-primary/92 via-brand-bg-primary/55 to-brand-bg-primary/35" />
-        <div
-          className="absolute inset-0 opacity-[0.14] pointer-events-none"
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(-45deg, transparent, transparent 14px, rgba(255,255,255,0.05) 14px, rgba(255,255,255,0.05) 15px)',
-          }}
-        />
-        <div
-          className="absolute inset-0 opacity-[0.08] pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
-            backgroundSize: '64px 64px',
-          }}
-        />
-      </div>
-
-      <header className="relative z-20 flex items-center justify-between px-5 sm:px-8 lg:px-12 h-14 sm:h-16">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md overflow-hidden border border-brand-border">
-            <img src={screenMedia.landing.logo} alt="" className="w-full h-full object-cover" />
-          </div>
-          <span className="text-[15px] font-medium tracking-tight">{APP_NAME}</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => openModes('header')}
-          className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary transition-colors py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 rounded-sm"
-        >
-          Open workspace
-        </button>
+    <div className="landing-page">
+      <header className="landing-nav">
+        <a href="#/landing" aria-label="LexForge home"><Brand /></a>
+        <nav aria-label="Explore LexForge"><a href="#the-practice" onClick={event => { event.preventDefault(); document.getElementById('the-practice')?.scrollIntoView({ block: 'start' }); }}>The practice</a><a href="#the-workbench" onClick={event => { event.preventDefault(); document.getElementById('the-workbench')?.scrollIntoView({ block: 'start' }); }}>The workbench</a></nav>
+        <Button variant="outline" onClick={() => chooseWorkspace()}>Open workspace <ArrowUpRight size={15} /></Button>
       </header>
-
-      <main className="relative z-10 flex-1 flex flex-col justify-end sm:justify-center px-5 sm:px-8 lg:px-12 pb-10 sm:pb-16 pt-8">
-        <div className="max-w-6xl mx-auto w-full">
-          {/* Recovery path: active hearing beats cold start */}
-          {activeSession && (
-            <div className="mb-6 max-w-xl rounded-md border border-brand-border bg-brand-bg-secondary/85 px-3.5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-primary/50">Hearing in progress</p>
-                <p className="mt-1 text-[13px] text-brand-text-primary/90 truncate">
-                  {activeCaseTitle || 'Unsaved local session'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  trackEvent('landing_resume_clicked');
-                  navigate(ROUTES.PRACTICE);
-                }}
-                className="shrink-0 h-10 px-4 rounded-md border border-brand-border-light bg-[#1c1914]/[0.06] text-[13px] font-medium text-brand-text-primary hover:bg-[#1c1914]/[0.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30"
-              >
-                Resume hearing
-              </button>
+      <main>
+        <section className="landing-hero" aria-labelledby="landing-title">
+          <div className="landing-hero-copy">
+            <p className="eyebrow"><span className="eyebrow-rule" />A workspace for the considered advocate</p>
+            <h1 id="landing-title">Better arguments.<br />Built by <em>practice.</em></h1>
+            <p className="landing-introduction">Find your footing before you take the floor. Rehearse a hearing, develop your argument, and learn from every exchange.</p>
+            <div className="landing-primary-actions">
+              <Button size="lg" isLoading={starting} onClick={enterPractice}>{activeSession ? 'Resume hearing' : 'Start practicing'}<ArrowRight size={17} /></Button>
+              <span>{activeSession ? activeSession.settings.caseDetail.title : 'A 15-minute hearing. No setup needed.'}</span>
             </div>
-          )}
-
-          {/* Core conversion: one primary decision */}
-          <div className="max-w-xl">
-            <p className="text-[12px] uppercase tracking-[0.16em] text-brand-text-primary/60 mb-4">
-              Courtroom practice
-            </p>
-            <h1 className="text-[2.35rem] sm:text-[3rem] lg:text-[3.35rem] font-serif font-semibold leading-[1.08] tracking-tight text-brand-text-primary">
-              Argue the case.
-              <br />
-              Get scored.
-              <br />
-              Come back sharper.
-            </h1>
-            <p className="mt-5 text-[15px] sm:text-base leading-relaxed text-brand-text-primary/75 max-w-md">
-              Mock hearings against an AI judge and opposing counsel.
-              Score, transcript, export. Tools when you need them.
-            </p>
-
-            {/* Compact loop proof (conversion, not Labs) */}
-            <ol className="mt-6 flex flex-wrap gap-2" aria-label="Practice loop">
-              {LOOP_STEPS.map((step, index) => (
-                <li
-                  key={step.label}
-                  className="inline-flex items-center gap-2 rounded-md border border-brand-border bg-brand-bg-secondary/85 px-2.5 py-1.5"
-                >
-                  <span className="text-[10px] tabular-nums text-brand-text-primary/40 w-3">{index + 1}</span>
-                  <span className="text-[12px] font-medium text-brand-text-primary/90">{step.label}</span>
-                  <span className="hidden sm:inline text-[11px] text-brand-text-primary/45">{step.hint}</span>
-                </li>
-              ))}
-            </ol>
-
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:items-center">
-              <button
-                type="button"
-                onClick={handleDemoStart}
-                className="h-12 px-7 rounded-md bg-brand-text-primary text-brand-bg-primary text-[14px] font-semibold hover:bg-[#3a352c] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg-primary"
-              >
-                Start 15-minute demo
-              </button>
-              <p className="text-[12px] text-brand-text-primary/55 sm:pl-1">
-                No setup. Beginner Indian case.
-              </p>
-            </div>
-
-            {/* Layer 1: jurisdiction after primary CTA */}
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => openModes('inline')}
-                className="text-[13px] text-brand-text-primary/70 hover:text-brand-text-primary underline underline-offset-4 decoration-[#1c1914]/25 hover:decoration-[#1c1914]/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30 rounded-sm"
-                aria-expanded={showModes}
-              >
-                {showModes ? 'Hide jurisdiction options' : 'Or choose a jurisdiction'}
-              </button>
-            </div>
+            <div className="landing-proof"><ShieldCheck size={15} /><span>Indian & international law</span><span className="proof-separator" /><span>Training, not legal advice</span></div>
           </div>
-
-          {showModes && (
-            <div className="mt-8 sm:mt-10 max-w-2xl" id="landing-modes">
-              <p className="text-[11px] uppercase tracking-[0.14em] text-brand-text-primary/50 mb-3">
-                Choose workspace mode
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[#1c1914]/[0.06] rounded-md overflow-hidden border border-brand-border">
-                <PhotoTile
-                  title="Indian practice"
-                  description="CPC, BNSS, constitutional and commercial"
-                  image={screenMedia.landing.indian}
-                  badge="Jurisdiction"
-                  onClick={() => handleModeSelection('indian')}
-                  className="min-h-[144px] sm:min-h-[160px] !rounded-none !border-0"
-                />
-                <PhotoTile
-                  title="International"
-                  description="Public IL, arbitration, treaty work"
-                  image={screenMedia.landing.international}
-                  badge="Jurisdiction"
-                  onClick={() => handleModeSelection('international')}
-                  className="min-h-[144px] sm:min-h-[160px] !rounded-none !border-0"
-                />
-              </div>
-              <p className="mt-3 text-[12px] text-brand-text-primary/45 max-w-lg">
-                Mode picks the catalog, bench, and tools.
-              </p>
+          <div className="landing-study" aria-hidden="true">
+            <div className="study-topline"><span>THE ADVOCATE’S WORKSPACE</span><span>EST. IN PRACTICE</span></div>
+            <div className="study-photo"><img src={heroCourtroom} alt="" /><span className="study-photo-caption">Room to find your voice.</span></div>
+            <div className="practice-document">
+              <div className="document-meta"><span>YOUR NEXT HEARING</span><Scale size={22} strokeWidth={1.1} /></div>
+              <p className="document-title">A case to make.<br />A point to prove.</p>
+              <div className="document-rule" />
+              <div className="document-item"><span>01</span>Identify the issue.<Check size={13} /></div>
+              <div className="document-item"><span>02</span>Build the argument.<Check size={13} /></div>
+              <div className="document-item"><span>03</span>Answer the bench.<span className="document-cursor" /></div>
+              <span className="document-footnote">A practice brief, ready for your perspective.</span>
             </div>
-          )}
-
-          {/* Layer 2: trust / privacy last (progressive disclosure) */}
-          <div className="mt-8 max-w-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setShowTrust((v) => {
-                  const next = !v;
-                  if (next) trackEvent('landing_trust_opened');
-                  return next;
-                });
-              }}
-              className="text-[12px] text-brand-text-primary/50 hover:text-brand-text-primary/80 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 rounded-sm"
-              aria-expanded={showTrust}
-            >
-              {showTrust ? 'Hide training notice' : 'Training only. Not legal advice.'}
-            </button>
-            {showTrust && (
-              <div className="mt-3 rounded-md border border-brand-border bg-brand-bg-secondary/85 px-3.5 py-3 text-[11px] leading-relaxed text-white/65">
-                <p>
-                  <span className="font-medium text-brand-text-primary/85">Training only. Not legal advice.</span>{' '}
-                  Do not enter confidential or client-identifying information. Trial transcripts and
-                  workspace data stay in this browser; AI requests are sent to the configured service
-                  for a response.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleClearLocal}
-                  className="mt-2 text-brand-text-primary/80 underline underline-offset-2 hover:text-brand-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 rounded-sm"
-                >
-                  {dataCleared ? 'Local LexForge data cleared' : 'Clear saved local data'}
-                </button>
-              </div>
-            )}
+            <div className="study-bottomline"><span>PREPARE WITH PURPOSE</span><ArrowDown size={15} /></div>
           </div>
-        </div>
+        </section>
+
+        <section className="practice-section" id="the-practice" aria-labelledby="practice-title">
+          <div className="section-introduction"><p className="eyebrow">A better way to prepare</p><h2 id="practice-title">Make the room<br />your rehearsal.</h2><p>Good judgment comes from doing the work. Here’s a place to do it again.</p></div>
+          <ol className="practice-method">
+            {[
+              ['01', 'Take a position.', 'Choose a case and make your submissions to an AI bench and opposing counsel.'],
+              ['02', 'Meet the challenge.', 'Respond to questions, consider objections, and sharpen your reasoning in the moment.'],
+              ['03', 'Find your next step.', 'Review your transcript and feedback. Take one thing into your next hearing.'],
+            ].map(([number, title, description]) => <li key={number}><span>{number}</span><div><h3>{title}</h3><p>{description}</p></div></li>)}
+          </ol>
+        </section>
+
+        <section className="landing-workbench" id="the-workbench" aria-labelledby="workbench-title">
+          <div className="section-heading"><div><p className="eyebrow">Beyond the hearing</p><h2 id="workbench-title">Your argument starts here.</h2></div><span className="section-side-note">One connected legal workbench</span></div>
+          <div className="workbench-feature-grid">
+            {[
+              { icon: Gavel, number: 'I', title: 'Rehearse with intention', text: 'A case, a bench, and a reason to think on your feet.', target: ROUTES.SETUP, action: 'Prepare a hearing' },
+              { icon: FilePenLine, number: 'II', title: 'Put it into words', text: 'From the facts to a considered draft, with space to revise.', target: ROUTES.DRAFTING_STUDIO, action: 'Open drafting studio' },
+              { icon: BookOpen, number: 'III', title: 'Follow the authority', text: 'Research, organize sources, and build a manuscript you can defend.', target: ROUTES.RESEARCH_IDE, action: 'Open research desk' },
+            ].map(({ icon: Icon, number, title, text, target, action }) => <button className="workbench-feature" onClick={() => chooseWorkspace(target)} key={number} aria-label={action}><div className="feature-top"><Icon size={24} strokeWidth={1.3} /><span>{number}</span></div><h3>{title}</h3><p>{text}</p><span className="feature-link">{action}<ArrowUpRight size={17} /></span></button>)}
+          </div>
+        </section>
+        <section className="landing-closing"><p className="eyebrow">The next argument is yours.</p><h2>Show up better prepared.</h2><Button size="lg" onClick={() => chooseWorkspace()}>Enter workspace <ArrowRight size={17} /></Button></section>
       </main>
-
-      <footer className="relative z-20 px-5 sm:px-8 lg:px-12 h-11 flex items-center justify-between border-t border-brand-border text-[12px] text-brand-text-primary/45">
-        <span>{APP_NAME}</span>
-        <span className="hidden sm:inline">Argue · Score · Review</span>
+      <footer className="landing-footer">
+        <Brand />
+        <details className="privacy-details"><summary>Training & privacy</summary><div><p>Use fictional or anonymized material. Workspace data stays in this browser; AI requests are sent to the configured provider. Verify legal sources before real-world use.</p><button onClick={() => setShowClearConfirm(true)}>{dataCleared ? 'Local data cleared' : 'Clear local data'}</button></div></details>
+        <span>Made for the work of getting better.</span>
       </footer>
 
-      <Modal isOpen={showDemoConfirm} onClose={() => setShowDemoConfirm(false)} title="Resume or start a demo?" size="sm">
-        <p className="text-sm leading-relaxed text-brand-text-secondary">
-          You have a hearing in progress. Starting the demo will replace that local active session.
-        </p>
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={() => navigate(ROUTES.PRACTICE)}
-            className="min-h-11 rounded-md border border-brand-border px-4 text-sm font-medium text-brand-text-primary hover:bg-brand-bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25"
-          >
-            Resume hearing
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowDemoConfirm(false);
-              void startDemo(true);
-            }}
-            className="min-h-11 rounded-md bg-brand-accent px-4 text-sm font-semibold text-brand-bg-primary hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/30"
-          >
-            Start fresh demo
-          </button>
+      <Modal isOpen={showModes} onClose={() => setShowModes(false)} title="Choose your practice" size="lg">
+        <p className="text-sm text-brand-text-secondary mb-6">Your jurisdiction sets the cases, bench, and drafting instruments.</p>
+        <div className="jurisdiction-options">
+          <button onClick={() => enterWorkspace('indian')}><span className="jurisdiction-monogram">IN</span><h3>Indian practice</h3><p>Constitutional, criminal, civil & commercial law.</p><span>Enter workspace <ArrowRight size={16} /></span></button>
+          <button onClick={() => enterWorkspace('international')}><span className="jurisdiction-monogram">IL</span><h3>International law</h3><p>Arbitration, human rights, treaties & trade.</p><span>Enter workspace <ArrowRight size={16} /></span></button>
         </div>
+      </Modal>
+      <Modal isOpen={showClearConfirm} onClose={() => setShowClearConfirm(false)} title="Clear your local work?" size="sm">
+        <p className="text-sm text-brand-text-secondary">This removes saved hearings and LexForge workspace data from this browser.</p>
+        <div className="mt-6 flex justify-end gap-2"><Button variant="secondary" onClick={() => setShowClearConfirm(false)}>Keep work</Button><Button variant="danger" onClick={() => { clearStoredLexForgeData(); context.endPracticeMode(); setActiveSession(null); setDataCleared(true); setShowClearConfirm(false); }}>Clear data</Button></div>
       </Modal>
     </div>
   );
 };
-
 export default LandingScreen;

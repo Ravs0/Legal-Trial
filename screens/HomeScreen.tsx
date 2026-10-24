@@ -1,340 +1,107 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/Button';
-import { ROUTES } from '../constants';
+import { ArrowRight, ArrowUpRight, BookOpen, Clock3, FilePenLine, Gavel, Search, Sparkles } from 'lucide-react';
 import { TrialSimContext } from '../App';
+import { ROUTES } from '../routes';
+import { CASES, CASE_CATEGORIES, INTERNATIONAL_CASES, INTERNATIONAL_CASE_CATEGORIES } from '../constants';
 import { loadActiveSession, loadCompletedSessions, savePendingSettings } from '../services/storageService';
-import { SessionRecord } from '../types';
 import { createDemoSessionSettings } from '../services/demoSessionService';
 import { trackDemoTrialStarted, trackEvent } from '../services/analyticsService';
-import { screenMedia } from '../assets';
-import { PhotoHero } from '../components/PhotoHero';
-import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
+import { Button } from '../components/Button';
+import { PageHeader } from '../components/PageHeader';
+import type { SessionRecord } from '../types';
 
-const formatElapsed = (session: SessionRecord) => {
-  const minutes = Math.max(0, Math.round((session.elapsedSeconds ?? 0) / 60));
-  if (minutes <= 1) return 'just started';
-  return `${minutes} min in`;
+const score = (value: number | undefined) => typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(10, value)) : null;
+const displayScore = (value: number | null) => value === null ? '—' : Number.isInteger(value) ? String(value) : value.toFixed(1);
+const sessionDate = (value: Date) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Recent hearing' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 };
-
-/** Clamp analysis score 0–10 for display bars. */
-const clampTen = (value: unknown): number => {
-  const n = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, Math.min(10, n));
-};
-
-const formatScore = (value: number | undefined | null): string => {
-  if (value == null || !Number.isFinite(value)) return '-';
-  const n = clampTen(value);
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
-};
-
-const scoreLabel = (score: number): string => {
-  if (score >= 8.5) return 'Strong';
-  if (score >= 7) return 'Solid';
-  if (score >= 5.5) return 'Developing';
-  if (score >= 4) return 'Needs work';
-  return 'Early stage';
-};
-
-type Trend = 'up' | 'down' | 'flat' | 'none';
 
 const HomeScreen: React.FC = () => {
   const navigate = useNavigate();
   const context = useContext(TrialSimContext);
-  if (!context) throw new Error('TrialSimContext not found');
-
-  const { practiceMode, setPracticeMode, setCurrentSessionSettings, setError } = context;
-  const modeDisplay = practiceMode ? practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1) : '';
-  const [activeSession, setActiveSession] = useState<SessionRecord | null>(null);
-  const [completedSessions, setCompletedSessions] = useState<SessionRecord[]>([]);
-
+  if (!context) throw new Error('LexForge context is unavailable.');
+  const { practiceMode } = context;
+  const [active, setActive] = useState<SessionRecord | null>(null);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
   useEffect(() => {
     trackEvent('dashboard_viewed', { mode: practiceMode || 'none' });
-  }, [practiceMode]);
-
-  useEffect(() => {
     const sync = () => {
-      setActiveSession(loadActiveSession());
-      setCompletedSessions(loadCompletedSessions());
+      const current = loadActiveSession();
+      setActive(current?.settings.practiceMode === practiceMode ? current : null);
+      setSessions(loadCompletedSessions().filter(session => session.settings.practiceMode === practiceMode));
     };
     sync();
     window.addEventListener('focus', sync);
     window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener('focus', sync);
-      window.removeEventListener('storage', sync);
-    };
-  }, []);
+    return () => { window.removeEventListener('focus', sync); window.removeEventListener('storage', sync); };
+  }, [practiceMode]);
 
-  const handleDemoStart = () => {
+  const analyzed = useMemo(() => sessions.filter(session => score(session.performance?.overallScore) !== null), [sessions]);
+  const recentScores = analyzed.slice(0, 7).reverse().map(session => ({ id: session.id, title: session.settings.caseDetail.title, value: score(session.performance?.overallScore) as number }));
+  const average = analyzed.length ? analyzed.reduce((sum, session) => sum + (score(session.performance?.overallScore) || 0), 0) / analyzed.length : null;
+  const best = analyzed.length ? Math.max(...analyzed.map(session => score(session.performance?.overallScore) || 0)) : null;
+  const cases = practiceMode === 'international' ? INTERNATIONAL_CASES : CASES;
+  const categories = practiceMode === 'international' ? INTERNATIONAL_CASE_CATEGORIES : CASE_CATEGORIES;
+  const suggested = [...cases].sort((a, b) => Number(b.difficulty === 'Beginner') - Number(a.difficulty === 'Beginner')).slice(0, 3);
+  const focus = analyzed[0]?.performance?.improvementAreas?.find(value => typeof value === 'string' && value.trim());
+
+  const startDemo = () => {
+    if (active) { navigate(ROUTES.PRACTICE); return; }
     try {
       const settings = createDemoSessionSettings();
-      trackDemoTrialStarted({
-        source: 'dashboard',
-        mode: settings.practiceMode,
-        caseId: settings.caseDetail.id,
-        caseTitle: settings.caseDetail.title,
-      });
-      setPracticeMode(settings.practiceMode);
-      setCurrentSessionSettings(settings);
+      trackDemoTrialStarted({ source: 'dashboard', mode: settings.practiceMode, caseId: settings.caseDetail.id, caseTitle: settings.caseDetail.title });
+      context.setPracticeMode(settings.practiceMode);
+      context.setCurrentSessionSettings(settings);
       savePendingSettings(settings);
       navigate(ROUTES.PRACTICE);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to start demo trial.');
-    }
+    } catch (error) { context.setError(error instanceof Error ? error.message : 'Unable to start the hearing.'); }
   };
 
-  const progress = useMemo(() => {
-    const analyzed = completedSessions.filter((s) => s.performance);
-    const latest = analyzed[0] || null;
-    const previous = analyzed[1] || null;
-    const best = analyzed.reduce<SessionRecord | null>((acc, s) => {
-      if (!acc) return s;
-      return (s.performance?.overallScore || 0) > (acc.performance?.overallScore || 0) ? s : acc;
-    }, null);
-
-    const latestScore = latest?.performance?.overallScore;
-    const previousScore = previous?.performance?.overallScore;
-    let trend: Trend = 'none';
-    if (
-      typeof latestScore === 'number' &&
-      typeof previousScore === 'number' &&
-      Number.isFinite(latestScore) &&
-      Number.isFinite(previousScore)
-    ) {
-      const delta = latestScore - previousScore;
-      if (delta > 0.15) trend = 'up';
-      else if (delta < -0.15) trend = 'down';
-      else trend = 'flat';
-    }
-
-    /** Newest-first scores for spark bars (max 6). */
-    const recentScores = analyzed
-      .slice(0, 6)
-      .map((s) => clampTen(s.performance?.overallScore))
-      .filter((n) => n > 0);
-
-    const unscored = Math.max(0, completedSessions.length - analyzed.length);
-
-    return {
-      done: completedSessions.length,
-      scored: analyzed.length,
-      unscored,
-      latest: latestScore,
-      best: best?.performance?.overallScore,
-      latestTitle: latest?.settings?.caseDetail?.title || null,
-      bestTitle: best?.settings?.caseDetail?.title || null,
-      areas: latest?.performance?.improvementAreas?.filter((a) => typeof a === 'string' && a.trim()).slice(0, 3) || [],
-      trend,
-      recentScores,
-      avg:
-        recentScores.length > 0
-          ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
-          : null,
-    };
-  }, [completedSessions]);
-
-  const trendCopy =
-    progress.trend === 'up'
-      ? 'Up vs last'
-      : progress.trend === 'down'
-        ? 'Down vs last'
-        : progress.trend === 'flat'
-          ? 'Flat vs last'
-          : null;
-
   return (
-    <div className="flex-1 min-h-0 w-full overflow-y-auto bg-brand-bg-primary">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* One primary decision: resume / demo */}
-        <PhotoHero
-          image={activeSession ? screenMedia.home.heroActive : screenMedia.home.heroIdle}
-          size="lg"
-          eyebrow={modeDisplay ? `${modeDisplay} mode` : 'Workspace'}
-          title={
-            activeSession
-              ? 'Continue your hearing'
-              : progress.done
-                ? 'Ready for another run'
-                : 'Practice, score, improve'
-          }
-          subtitle={
-            activeSession
-              ? `${activeSession.settings.caseDetail.title} · ${formatElapsed(activeSession)}`
-              : 'Start a demo, or configure a trial.'
-          }
-          actions={
-            <>
-              <Button
-                variant="primary"
-                onClick={activeSession ? () => navigate(ROUTES.PRACTICE) : handleDemoStart}
-              >
-                {activeSession ? 'Resume hearing' : 'Start demo'}
-              </Button>
-              <Button
-                variant="secondary"
-                className="!border-brand-border-light !text-brand-text-primary hover:!bg-[#1c1914]/[0.06]"
-                onClick={() => navigate(ROUTES.SETUP)}
-              >
-                New trial
-              </Button>
-              {progress.done > 0 && (
-                <Button
-                  variant="ghost"
-                  className="!text-brand-text-primary/80 hover:!text-brand-text-primary"
-                  onClick={() => navigate(ROUTES.ANALYSIS)}
-                >
-                  Review
-                </Button>
-              )}
-            </>
-          }
-        />
+    <div className="workspace-scroll">
+      <div className="page-container dashboard-page">
+        <PageHeader eyebrow={practiceMode === 'indian' ? 'Indian practice / Your overview' : 'International law / Your overview'} title={sessions.length ? 'Welcome back to the work.' : 'Every argument is a beginning.'} description="A little preparation. A stronger point of view." actions={<Button onClick={() => navigate(ROUTES.SETUP)}>New hearing <ArrowRight size={16} /></Button>} />
+        <div className="dashboard-grid">
+          <div className="dashboard-primary">
+            <section className="next-hearing" aria-labelledby="next-hearing-title">
+              <div className="next-hearing-copy"><p className="eyebrow">{active ? 'Pick up where you left off' : 'Your next step'}</p><h2 id="next-hearing-title">{active ? 'The floor is still yours.' : 'Find your voice in the courtroom.'}</h2><p>{active ? active.settings.caseDetail.title : 'Take a position, answer the bench, and learn from the exchange.'}</p><Button onClick={active ? () => navigate(ROUTES.PRACTICE) : () => navigate(ROUTES.SETUP)}>{active ? 'Resume hearing' : 'Prepare hearing'}<ArrowRight size={16} /></Button>{!active && practiceMode === 'indian' && <button className="text-link next-demo" onClick={startDemo}>Or try a 15-minute demo</button>}</div>
+              <div className="hearing-illustration" aria-hidden="true"><Gavel size={75} strokeWidth={0.8} /><div /><span>PREPARATION<br />MEETS PRACTICE</span></div>
+            </section>
 
-        <section aria-label="Your progress">
-          <div className="flex items-center gap-2 mb-2.5">
-            <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Your progress</p>
-            <div className="flex-1 h-px bg-brand-border relative overflow-hidden">
-              <SurfacePattern variant="dots" className="!opacity-100" />
-            </div>
+            <section aria-labelledby="progress-heading">
+              <div className="section-heading compact"><h2 id="progress-heading">The work adds up.</h2><span className="eyebrow">Your practice record</span></div>
+              <div className="dashboard-stats"><div><span>Completed hearings</span><strong>{sessions.length.toString().padStart(2, '0')}</strong><small>{sessions.length ? 'Arguments put into practice' : 'Your first hearing is ahead'}</small></div><div><span>Average score</span><strong>{displayScore(average)}<i>/10</i></strong><small>{analyzed.length ? 'Across scored hearings' : 'Appears after your first review'}</small></div><div><span>Personal best</span><strong>{displayScore(best)}<i>/10</i></strong><small>{best === null ? 'A benchmark to build toward' : 'Something to build on'}</small></div></div>
+            </section>
+
+            <section className="recent-hearings" aria-labelledby="recent-heading">
+              <div className="section-heading compact"><h2 id="recent-heading">Recent hearings</h2><button className="text-link" onClick={() => navigate(ROUTES.ANALYSIS)}>View performance <ArrowUpRight size={14} /></button></div>
+              {sessions.length ? <div className="hearing-history">{sessions.slice(0, 4).map(session => <button key={session.id} onClick={() => navigate(ROUTES.ANALYSIS + '?sessionId=' + encodeURIComponent(session.id))}><span className="history-case-icon"><Gavel size={17} /></span><span className="history-title"><strong>{session.settings.caseDetail.title}</strong><small>{sessionDate(session.startTime)} · {session.settings.difficulty}</small></span><span className="history-score">{displayScore(score(session.performance?.overallScore))}<small>/10</small></span><ArrowUpRight size={16} /></button>)}</div> : <div className="empty-history"><div className="empty-history-mark"><BookOpen size={25} strokeWidth={1.2} /></div><h3>Your practice has a place here.</h3><p>Completed hearings, feedback, and transcripts will form your record.</p><button className="text-link" onClick={() => navigate(ROUTES.SETUP)}>Begin your first hearing <ArrowRight size={15} /></button></div>}
+            </section>
+
+            <section aria-labelledby="suggested-heading">
+              <div className="section-heading compact"><h2 id="suggested-heading">A case worth considering.</h2><button className="text-link" onClick={() => navigate(ROUTES.LIBRARY)}>Case library <ArrowUpRight size={14} /></button></div>
+              <div className="suggested-cases">{suggested.map((item, index) => <button key={item.id} onClick={() => navigate(ROUTES.SETUP + '?case=' + encodeURIComponent(item.id))} aria-label={'Prepare ' + item.title}><span className="case-number">0{index + 1}</span><span className="case-category">{categories.find(category => category.id === item.categoryId)?.name || 'Practice case'}</span><h3>{item.title}</h3><p>{item.briefFacts}</p><span className="case-card-foot"><span>{item.difficulty}</span><ArrowUpRight size={17} /></span></button>)}</div>
+            </section>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-lg border border-brand-border overflow-hidden bg-brand-border">
-            <StatCell
-              label="Done"
-              value={String(progress.done)}
-              hint={progress.done === 0 ? 'No hearings yet' : progress.unscored > 0 ? `${progress.unscored} unscored` : 'All scored'}
-            />
-            <StatCell
-              label="Scored"
-              value={String(progress.scored)}
-              hint={progress.avg != null ? `Avg ${formatScore(progress.avg)} / 10` : 'After a full run'}
-            />
-            <StatCell
-              label="Latest"
-              value={formatScore(progress.latest)}
-              hint={
-                progress.latest != null
-                  ? `${scoreLabel(clampTen(progress.latest))}${trendCopy ? ` · ${trendCopy}` : ''}`
-                  : 'Out of 10'
-              }
-              bar={progress.latest != null ? clampTen(progress.latest) : null}
-              emphasize
-            />
-            <StatCell
-              label="Best"
-              value={formatScore(progress.best)}
-              hint={progress.bestTitle ? progress.bestTitle : 'Out of 10'}
-              bar={progress.best != null ? clampTen(progress.best) : null}
-            />
-          </div>
+          <aside className="dashboard-secondary" aria-label="Your workbench">
+            <section className="workbench-links"><div className="section-heading compact"><h2>The workbench</h2><span className="eyebrow">Open a desk</span></div>{[
+              { to: ROUTES.DRAFTING_STUDIO, icon: FilePenLine, label: 'Drafting studio', description: 'Make every word count.' },
+              { to: ROUTES.RESEARCH_IDE, icon: Search, label: 'Research desk', description: 'Find the thread. Follow it.' },
+              { to: ROUTES.LIBRARY + '?tab=sources', icon: BookOpen, label: 'Court sources', description: 'Start with primary sources.' },
+              { to: ROUTES.STRATEGY, icon: Sparkles, label: 'Strategy room', description: 'Think the argument through.' },
+            ].map(({ to, icon: Icon, label, description }) => <button key={to} onClick={() => navigate(to)}><span className="workbench-link-icon"><Icon size={18} strokeWidth={1.5} /></span><span><strong>{label}</strong><small>{description}</small></span><ArrowUpRight size={15} /></button>)}</section>
 
-          {/* Recent score spark bars */}
-          {progress.recentScores.length > 0 && (
-            <PatternPanel pattern="lines" className="mt-2 px-3 py-3 sm:px-4">
-              <div className="flex items-end justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] text-brand-text-secondary">Recent scores</p>
-                  {progress.latestTitle && (
-                    <p className="mt-0.5 text-[12px] text-brand-text-primary/85 truncate">
-                      Last: {progress.latestTitle}
-                    </p>
-                  )}
-                </div>
-                <div
-                  className="flex items-end gap-1 h-10 shrink-0"
-                  aria-label={`Recent scores: ${progress.recentScores.map(formatScore).join(', ')}`}
-                >
-                  {[...progress.recentScores].reverse().map((score, i) => {
-                    const h = Math.max(12, Math.round((score / 10) * 40));
-                    const isNewest = i === progress.recentScores.length - 1;
-                    return (
-                      <div
-                        key={`${score}-${i}`}
-                        title={`${formatScore(score)} / 10`}
-                        className={`w-2 sm:w-2.5 rounded-[1px] ${
-                          isNewest ? 'bg-white/70' : 'bg-[#1c1914]/[0.10]'
-                        }`}
-                        style={{ height: h }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            </PatternPanel>
-          )}
+            <section className="practice-focus"><span className="eyebrow"><Clock3 size={13} />Make the next one count</span><h3>{focus ? 'A point to work on.' : 'One clear point. Well made.'}</h3><p>{focus || 'Before you argue, write down the single proposition you want the bench to remember.'}</p><button className="text-link" onClick={() => window.dispatchEvent(new CustomEvent('lexforge-open-coach'))}>Think with your coach <ArrowRight size={14} /></button></section>
 
-          {progress.done === 0 && (
-            <PatternPanel pattern="dots" className="mt-2 px-4 py-3">
-              <p className="text-[13px] text-brand-text-primary/90">No completed hearings yet</p>
-              <p className="mt-1 text-[12px] text-brand-text-secondary leading-relaxed">
-                Finish a demo or full trial to unlock scores, focus areas, and review.
-              </p>
-            </PatternPanel>
-          )}
-        </section>
-
-        {progress.areas.length > 0 && (
-          <PatternPanel pattern="grid" className="px-4 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Focus next</p>
-                <ul className="mt-2 space-y-1.5 text-[13px] text-brand-text-primary/90">
-                  {progress.areas.map((a) => (
-                    <li key={a} className="flex gap-2">
-                      <span className="mt-[7px] w-1 h-1 rounded-full bg-white/40 shrink-0" aria-hidden />
-                      <span className="leading-snug">{a}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </PatternPanel>
-        )}
+            <section className="progress-chart"><div className="section-heading compact"><h2>Your trajectory</h2><span className="eyebrow">/10</span></div>{recentScores.length ? <div className="score-chart" role="img" aria-label={recentScores.map((item, i) => 'Hearing ' + (i + 1) + ': ' + item.value + ' out of 10').join('; ')}>{recentScores.map((item, index) => <div key={item.id}><strong>{displayScore(item.value)}</strong><span style={{ height: Math.max(3, item.value * 9) }} /><small>{String(index + 1).padStart(2, '0')}</small></div>)}</div> : <div className="chart-empty"><div aria-hidden="true"><span /><span /><span /><span /><span /><span /></div><p>Each scored hearing adds a point to your progress.</p></div>}</section>
+            <p className="workspace-privacy-note">Your practice record is stored in this browser. Keep confidential client information out of training.</p>
+          </aside>
+        </div>
       </div>
     </div>
   );
 };
-
-/** Single loop-health cell: gap-px grid, monochrome bar, no glow. */
-const StatCell: React.FC<{
-  label: string;
-  value: string;
-  hint?: string;
-  bar?: number | null;
-  emphasize?: boolean;
-}> = ({ label, value, hint, bar = null, emphasize = false }) => (
-  <div className="relative bg-brand-bg-secondary px-3 py-3 sm:px-3.5 sm:py-3.5 min-h-[76px]">
-    <SurfacePattern variant="dots" className="opacity-80" />
-    <div className="relative z-10">
-      <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">{label}</p>
-      <p
-        className={`mt-1 text-xl sm:text-2xl tabular-nums tracking-tight ${
-          emphasize ? 'text-brand-text-primary' : 'text-brand-text-primary'
-        }`}
-      >
-        {value}
-        {(label === 'Latest' || label === 'Best') && value !== '-' && (
-          <span className="ml-1 text-[11px] text-brand-text-secondary/70 font-normal">/10</span>
-        )}
-      </p>
-      {bar != null && (
-        <div className="mt-2 h-1 w-full bg-[#1c1914]/[0.04] border border-brand-border overflow-hidden">
-          <div
-            className={`h-full ${emphasize ? 'bg-white/65' : 'bg-white/35'}`}
-            style={{ width: `${Math.max(0, Math.min(100, (bar / 10) * 100))}%` }}
-          />
-        </div>
-      )}
-      {hint && (
-        <p className="mt-1.5 text-[10px] sm:text-[11px] text-brand-text-secondary/75 truncate leading-snug">
-          {hint}
-        </p>
-      )}
-    </div>
-  </div>
-);
-
 export default HomeScreen;

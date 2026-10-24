@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useRef, useCallback, ChangeEvent } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { SelectInput } from '../components/SelectInput';
 import { TrialSimContext } from '../App';
@@ -21,7 +21,8 @@ import {
   OpposingCounselPersonality,
   PracticeMode,
 } from '../types';
-import { BriefcaseIcon, DocumentTextIcon, GavelIcon } from '../components/icons';
+import { ArrowRight, Check, FileText, Scale } from 'lucide-react';
+import { PageHeader } from '../components/PageHeader';
 import {
   savePendingSettings,
   loadPendingSettings,
@@ -29,9 +30,6 @@ import {
   isValidSessionSettings,
 } from '../services/storageService';
 import { trackEvent } from '../services/analyticsService';
-import { PhotoHero } from '../components/PhotoHero';
-import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
-import { screenMedia } from '../assets';
 
 const COUNSEL_MATCH_TERMS: Partial<Record<CaseCategoryId, string[]>> = {
   [CaseCategoryId.CONSTITUTIONAL]: ['constitutional', 'human rights'],
@@ -85,6 +83,7 @@ function loadLeaveSafeDraft(
 
 const SetupScreen: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const context = useContext(TrialSimContext);
 
   if (!context) throw new Error('TrialSimContext not found');
@@ -97,16 +96,17 @@ const SetupScreen: React.FC = () => {
 
   const { cases: currentCases, categories: currentCaseCategories, judges: currentJudges, counsel: currentOCs } =
     resolveCatalog(practiceMode);
+  const requestedCase = currentCases.find(item => item.id === searchParams.get('case'));
   const modeDisplay = practiceMode ? practiceMode.charAt(0).toUpperCase() + practiceMode.slice(1) : '';
 
   const initialDraft =
     practiceMode ? loadLeaveSafeDraft(practiceMode, currentSessionSettings) : null;
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<CaseCategoryId | ''>(
-    initialDraft?.caseDetail.categoryId || currentCaseCategories[0]?.id || '',
+    requestedCase?.categoryId || initialDraft?.caseDetail.categoryId || currentCaseCategories[0]?.id || '',
   );
   const [availableCases, setAvailableCases] = useState<CaseDetail[]>([]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(initialDraft?.caseDetail.id || '');
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(requestedCase?.id || initialDraft?.caseDetail.id || '');
   const [selectedJudgeId, setSelectedJudgeId] = useState<JudgePersonalityId | ''>(
     initialDraft?.judgePersonality.id || currentJudges[0]?.id || '',
   );
@@ -130,8 +130,19 @@ const SetupScreen: React.FC = () => {
   const startTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startingRef = useRef(false);
   const hydrateModeRef = useRef<PracticeMode | null>(practiceMode);
-  const skipCaseAutoPickRef = useRef(Boolean(initialDraft?.caseDetail.id));
+  const skipCaseAutoPickRef = useRef(Boolean(requestedCase?.id || initialDraft?.caseDetail.id));
   const skipCounselAutoPickRef = useRef(Boolean(initialDraft?.opposingCounselPersonality.id));
+
+  // Deep links from the library, overview, or palette can change on this route.
+  useEffect(() => {
+    if (!requestedCase) return;
+    skipCaseAutoPickRef.current = true;
+    setSelectedCategoryId(requestedCase.categoryId);
+    setSelectedCaseId(requestedCase.id);
+    setSelectedDifficulty(requestedCase.difficulty);
+    // Catalog objects are stable; the selected id is the URL intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedCase?.id]);
 
   // Mode switch: re-seed from leave-safe draft or catalog defaults.
   useEffect(() => {
@@ -342,246 +353,64 @@ const SetupScreen: React.FC = () => {
   const judgeOptions = currentJudges.map((j) => ({ value: j.id, label: j.name }));
   const opposingCounselOptions = currentOCs.map((oc) => ({ value: oc.id, label: `${oc.name} (${oc.specialty})` }));
   const sessionTypeOptions = Object.values(SessionType).map((st) => ({ value: st, label: st }));
-  const difficultyOptions = Object.values(CaseDifficulty).map((d) => ({ value: d, label: d }));
 
   return (
-    <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn relative z-10">
-      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full space-y-6 pb-12">
-        <PhotoHero
-          image={screenMedia.setup.hero}
-          size="md"
-          eyebrow={`${modeDisplay} · new trial`}
-          title="New trial setup"
-          subtitle="Case, bench, length."
-        />
-
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {[
-            { img: screenMedia.setup.case, label: 'Case' },
-            { img: screenMedia.setup.bench, label: 'Bench' },
-            { img: screenMedia.setup.counsel, label: 'Counsel' },
-          ].map((t) => (
-            <div key={t.label} className="relative overflow-hidden rounded-lg border border-brand-border h-14 sm:h-16">
-              <img src={t.img} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/55" />
-              <div
-                className="absolute inset-0 opacity-20"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
-                }}
-              />
-              <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-white/85">
-                {t.label}
-              </span>
+    <div className="workspace-scroll">
+      <div className="page-container setup-page">
+        <PageHeader eyebrow={modeDisplay + ' practice / New hearing'} title="Prepare your hearing." description="Choose the case. Get to know the room." actions={<span className="setup-saved" role="status"><Check size={14} />{draftSavedHint ? 'Changes saved' : 'Your setup saves automatically'}</span>} />
+        <form onSubmit={event => { event.preventDefault(); handleStartSession(); }}>
+          <div className="setup-grid">
+            <div className="setup-controls">
+              <section className="setup-control-group" aria-labelledby="setup-case-heading">
+                <div className="setup-group-heading"><span>01</span><h2 id="setup-case-heading">The case</h2></div>
+                <SelectInput label="Practice area" options={caseCategoryOptions} value={selectedCategoryId}
+                  onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedCategoryId(event.target.value as CaseCategoryId)}
+                  placeholder="Choose a practice area" disabled={!currentCaseCategories.length} />
+                <SelectInput label="Case file" options={caseOptions} value={selectedCaseId}
+                  onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedCaseId(event.target.value)}
+                  placeholder={availableCases.length ? 'Choose a case' : 'No cases in this area'} disabled={!availableCases.length} />
+              </section>
+              <section className="setup-control-group" aria-labelledby="setup-bench-heading">
+                <div className="setup-group-heading"><span>02</span><h2 id="setup-bench-heading">The room</h2></div>
+                <SelectInput label="Judge" options={judgeOptions} value={selectedJudgeId}
+                  onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedJudgeId(event.target.value as JudgePersonalityId)}
+                  placeholder="Choose the bench" disabled={!currentJudges.length} />
+                <SelectInput label="Opposing counsel" options={opposingCounselOptions} value={selectedOpposingCounselId}
+                  onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedOpposingCounselId(event.target.value as OpposingCounselPersonalityId)}
+                  placeholder="Choose opposing counsel" disabled={!currentOCs.length} />
+              </section>
+              <section className="setup-control-group" aria-labelledby="setup-format-heading">
+                <div className="setup-group-heading"><span>03</span><h2 id="setup-format-heading">The format</h2></div>
+                <SelectInput label="Hearing length" options={sessionTypeOptions} value={selectedSessionType}
+                  onChange={(event: ChangeEvent<HTMLSelectElement>) => setSelectedSessionType(event.target.value as SessionType)} />
+                <p className="text-xs text-brand-text-secondary">Difficulty follows the selected case: <strong className="font-medium">{selectedDifficulty}</strong>.</p>
+              </section>
             </div>
-          ))}
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-4 sm:gap-5">
-          <PatternPanel pattern="dots" className="md:col-span-1 p-4 sm:p-5">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-brand-text-secondary">Controls</p>
-                {draftSavedHint && (
-                  <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-text-secondary/60">
-                    Draft saved
-                  </p>
-                )}
+            <div>
+              {selectedCaseDetails ? (
+                <article className="case-preview" aria-label="Selected case brief">
+                  <div className="case-preview-meta"><span className="eyebrow"><FileText size={14} />The practice brief</span><span className="text-xs text-brand-text-secondary">{selectedCaseDetails.difficulty}</span></div>
+                  <h2>{selectedCaseDetails.title}</h2>
+                  <p className="case-preview-facts">{selectedCaseDetails.briefFacts}</p>
+                  <section className="case-preview-section"><h3>Questions before the court</h3><ol>{selectedCaseDetails.legalIssues.map((issue, index) => <li key={issue}><span>{String(index + 1).padStart(2, '0')}</span>{issue}</li>)}</ol></section>
+                  <section className="case-preview-section"><h3>{practiceMode === 'indian' ? 'Articles & sections to consider' : 'Relevant instruments'}</h3><p>{selectedCaseDetails.relevantArticlesSections}</p></section>
+                </article>
+              ) : <div className="case-preview"><FileText size={24} className="text-brand-text-secondary" /><h2>Your brief starts here.</h2><p className="text-sm text-brand-text-secondary">Choose a case file to see the facts and issues you will argue.</p></div>}
+              <div className="bench-preview">
+                <div><p className="eyebrow"><Scale size={14} />The bench</p><h3>{selectedJudgeDetails?.name || 'Choose a judge'}</h3><p>{selectedJudgeDetails?.description || 'The bench sets the questions and the tone.'}</p></div>
+                <div><p className="eyebrow">Opposing counsel</p><h3>{selectedOpposingCounselDetails?.name || 'Choose your counterpart'}</h3><p>{selectedOpposingCounselDetails?.specialty || 'A different perspective to test your position.'}</p></div>
               </div>
-              <p className="rounded-lg border border-brand-border bg-brand-bg-primary/50 px-3 py-2 text-[11px] leading-relaxed text-brand-text-secondary">
-                Training simulation only. Profile styles are fictionalized learning aids, and scenario law should be
-                checked against current primary sources before real-world use.
-              </p>
-              <SelectInput
-                label="Case Category"
-                options={caseCategoryOptions}
-                value={selectedCategoryId}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCategoryId(e.target.value as CaseCategoryId)}
-                placeholder={currentCaseCategories.length === 0 ? 'No categories for mode' : 'Select Category'}
-                disabled={currentCaseCategories.length === 0}
-              />
-              <SelectInput
-                label="Specific Case"
-                options={caseOptions}
-                value={selectedCaseId}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedCaseId(e.target.value)}
-                disabled={!selectedCategoryId || availableCases.length === 0}
-                placeholder={availableCases.length === 0 ? 'No cases in category' : 'Select a case'}
-              />
-              <div className="h-px w-full bg-brand-border" />
-              <SelectInput
-                label="Judge Personality"
-                options={judgeOptions}
-                value={selectedJudgeId}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  setSelectedJudgeId(e.target.value as JudgePersonalityId)
-                }
-                placeholder={currentJudges.length === 0 ? 'No judges for mode' : 'Select Judge'}
-                disabled={currentJudges.length === 0}
-              />
-              <SelectInput
-                label="Opposing Counsel"
-                options={opposingCounselOptions}
-                value={selectedOpposingCounselId}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  setSelectedOpposingCounselId(e.target.value as OpposingCounselPersonalityId)
-                }
-                placeholder={currentOCs.length === 0 ? 'No OCs for mode' : 'Select Opposing Counsel'}
-                disabled={currentOCs.length === 0}
-              />
-              <div className="h-px w-full bg-brand-border" />
-              <SelectInput
-                label="Session Type"
-                options={sessionTypeOptions}
-                value={selectedSessionType}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedSessionType(e.target.value as SessionType)}
-              />
-              <SelectInput
-                label="Difficulty (from case)"
-                options={difficultyOptions}
-                value={selectedDifficulty}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  setSelectedDifficulty(e.target.value as CaseDifficulty)
-                }
-                disabled
-                className="opacity-50 cursor-not-allowed"
-              />
+              <p className="preparation-notice">Training simulation only. Profiles are fictionalized learning aids. Check scenario law against current primary sources before real-world use.</p>
             </div>
-          </PatternPanel>
-
-          <div className="md:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-            {selectedCaseDetails && (
-              <PatternPanel pattern="lines" className="flex flex-col p-0 overflow-hidden">
-                <div className="relative h-20 sm:h-24 overflow-hidden border-b border-brand-border">
-                  <img src={screenMedia.setup.case} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/40" />
-                  <div className="relative z-10 h-full flex items-center gap-3 px-4">
-                    <div className="w-9 h-9 rounded-lg bg-black/40 border border-white/15 flex items-center justify-center">
-                      <DocumentTextIcon className="h-4 w-4 text-white/85" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-wide text-white/60">Selected case</p>
-                      <p className="text-[14px] font-medium text-white line-clamp-1">{selectedCaseDetails.title}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 sm:p-5 flex flex-col flex-grow">
-                  <span className="self-start px-2 py-0.5 rounded border border-brand-border text-[11px] text-brand-text-secondary uppercase tracking-wide mb-3">
-                    {selectedCaseDetails.difficulty}
-                  </span>
-                  <p className="text-brand-text-secondary text-[13px] mb-4 flex-grow leading-relaxed">
-                    {selectedCaseDetails.briefFacts}
-                  </p>
-                  <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary mb-2">Key issues</p>
-                  <ul className="space-y-1.5 mb-4 text-brand-text-secondary text-[13px]">
-                    {selectedCaseDetails.legalIssues.map((issue, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="text-brand-text-primary/40 mt-0.5">·</span>
-                        <span>{issue}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary mb-1.5">
-                    {practiceMode === 'indian' ? 'Articles / sections' : 'Instruments'}
-                  </p>
-                  <p className="text-brand-text-secondary text-[12px] p-2.5 rounded-lg bg-brand-bg-primary border border-brand-border">
-                    {selectedCaseDetails.relevantArticlesSections}
-                  </p>
-                </div>
-              </PatternPanel>
-            )}
-
-            <div className="space-y-4 sm:space-y-5 flex flex-col">
-              {selectedJudgeDetails && (
-                <PatternPanel pattern="grid" className="flex flex-col flex-1 p-0 overflow-hidden">
-                  <div className="relative h-16 overflow-hidden border-b border-brand-border">
-                    <img src={screenMedia.setup.bench} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/70" />
-                    <div className="relative z-10 h-full flex items-center gap-2.5 px-4">
-                      <GavelIcon className="h-4 w-4 text-white/80" />
-                      <span className="text-[13px] font-medium text-white">The bench</span>
-                    </div>
-                  </div>
-                  <div className="p-4 flex flex-col flex-grow">
-                    <p className="font-medium text-brand-text-primary text-[15px] mb-1.5">{selectedJudgeDetails.name}</p>
-                    <p className="text-brand-text-secondary text-[13px] line-clamp-5 leading-relaxed flex-grow">
-                      {selectedJudgeDetails.description}
-                    </p>
-                  </div>
-                </PatternPanel>
-              )}
-              {selectedOpposingCounselDetails && (
-                <PatternPanel pattern="dots" className="flex flex-col flex-1 p-0 overflow-hidden">
-                  <div className="relative h-16 overflow-hidden border-b border-brand-border">
-                    <img src={screenMedia.setup.counsel} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/70" />
-                    <div className="relative z-10 h-full flex items-center gap-2.5 px-4">
-                      <BriefcaseIcon className="h-4 w-4 text-white/80" />
-                      <span className="text-[13px] font-medium text-white">Opposing counsel</span>
-                    </div>
-                  </div>
-                  <div className="p-4 flex flex-col flex-grow">
-                    <p className="font-medium text-brand-text-primary text-[15px] mb-0.5">
-                      {selectedOpposingCounselDetails.name}
-                    </p>
-                    <p className="text-[11px] text-brand-text-secondary uppercase tracking-wide mb-2">
-                      {selectedOpposingCounselDetails.specialty}
-                    </p>
-                    <p className="text-brand-text-secondary text-[13px] line-clamp-4 leading-relaxed">
-                      {selectedOpposingCounselDetails.description}
-                    </p>
-                  </div>
-                </PatternPanel>
-              )}
-            </div>
-
-            {(!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails) &&
-              !currentCases.length && (
-                <PatternPanel pattern="grid" className="md:col-span-2 p-10 text-center">
-                  <p className="text-brand-text-secondary text-[14px] max-w-sm mx-auto">
-                    Make selections in the controls panel. Empty dropdowns mean no data for {modeDisplay} mode.
-                  </p>
-                </PatternPanel>
-              )}
           </div>
-        </div>
-
-        <div className="relative pt-6 border-t border-brand-border">
-          <SurfacePattern variant="lines" className="opacity-60 !absolute -inset-x-0 top-0 h-24" />
-          {validationError && (
-            <div className="relative z-10 max-w-xl mx-auto mb-4 p-3 border border-brand-border bg-brand-bg-secondary text-brand-text-primary text-sm text-center rounded-lg">
-              {validationError}
-            </div>
-          )}
-          {selectedCaseDetails && selectedJudgeDetails && selectedOpposingCounselDetails ? (
-            <div className="relative z-10 max-w-md mx-auto">
-              <Button
-                onClick={handleStartSession}
-                fullWidth
-                size="lg"
-                variant="primary"
-                disabled={!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails}
-                categoryId={selectedCategoryId || undefined}
-                className="py-3.5"
-              >
-                Enter the arena
-              </Button>
-              <p className="text-center mt-3 text-[12px] text-brand-text-secondary">
-                {selectedCaseDetails.title.length > 40
-                  ? `${selectedCaseDetails.title.slice(0, 40)}…`
-                  : selectedCaseDetails.title}
-              </p>
-            </div>
-          ) : (
-            <p className="relative z-10 text-center text-[12px] text-brand-text-secondary uppercase tracking-wide">
-              Complete configuration to enter {modeDisplay} arena
-            </p>
-          )}
-        </div>
+          {validationError && <p className="validation-notice" role="alert">{validationError}</p>}
+          <div className="setup-action-bar">
+            <div><p>{selectedSessionType}</p><strong>{selectedCaseDetails ? 'Your brief is ready. Make your case.' : 'Choose a case to begin.'}</strong></div>
+            <Button type="submit" size="lg" disabled={!selectedCaseDetails || !selectedJudgeDetails || !selectedOpposingCounselDetails}>Begin hearing <ArrowRight size={17} /></Button>
+          </div>
+        </form>
       </div>
     </div>
   );
 };
-
 export default SetupScreen;

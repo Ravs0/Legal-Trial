@@ -35,6 +35,10 @@ done <"$SORTED"
 
 echo "Ran $count TS test file(s)"
 
+# Deployment guards and real API safeguards have Node-only regression tests.
+echo "==> scripts/*.test.mjs"
+node --test scripts/*.test.mjs
+
 # Chain integration coverage uses a local mock JEV server and injected LLM
 # scorer, so it never needs a live provider key. Keep the Needle sidecar test
 # (`evals/chain/integration.test.ts`) as a separate opt-in check because that

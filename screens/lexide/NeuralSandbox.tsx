@@ -66,7 +66,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-medium tracking-wide text-brand-text-primary truncate">Draft sandbox</h2>
-            <p className="text-[10px] text-brand-text-primary/50 uppercase tracking-wider">Cross-document consistency</p>
+            <p className="text-[11px] text-brand-text-primary/50 uppercase tracking-wider">Cross-document consistency</p>
           </div>
         </div>
         <div className="relative z-10 flex items-center gap-2 shrink-0">
@@ -90,7 +90,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
       <main className="flex-1 flex overflow-hidden min-h-0">
         <div className="hidden md:flex w-72 lg:w-80 flex-col border-r border-brand-border bg-brand-bg-secondary shrink-0">
           <div className="p-3 border-b border-brand-border flex items-center justify-between">
-            <h3 className="text-[10px] font-medium text-brand-text-secondary uppercase tracking-wider flex items-center gap-2">
+            <h3 className="text-[11px] font-medium text-brand-text-secondary uppercase tracking-wider flex items-center gap-2">
               <Activity size={12} className="text-brand-text-secondary" aria-hidden /> Analysis
             </h3>
             <button
@@ -106,7 +106,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
             <div className="mb-5">
               <div className="flex items-center gap-2 mb-2.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#1c1914]/[0.04]0" aria-hidden />
-                <span className="text-[10px] font-medium text-brand-text-secondary/70 uppercase tracking-wider">
+                <span className="text-[11px] font-medium text-brand-text-secondary/70 uppercase tracking-wider">
                   Insights
                 </span>
               </div>
@@ -117,19 +117,19 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
             <div className="h-px bg-brand-border my-4" />
             <div className="grid grid-cols-2 gap-2">
               <div className="p-3 bg-brand-bg-primary border border-brand-border rounded-lg">
-                <p className="text-[9px] text-brand-text-secondary/60 font-medium uppercase mb-1">Words</p>
+                <p className="text-[11px] text-brand-text-secondary/60 font-medium uppercase mb-1">Words</p>
                 <p className="text-base font-mono text-brand-text-primary tabular-nums">
                   {getWordCount(sandboxProposed)}
                 </p>
               </div>
               <div className="p-3 bg-brand-bg-primary border border-brand-border rounded-lg">
-                <p className="text-[9px] text-brand-text-secondary/60 font-medium uppercase mb-1">Chars</p>
+                <p className="text-[11px] text-brand-text-secondary/60 font-medium uppercase mb-1">Chars</p>
                 <p className="text-base font-mono text-brand-text-primary tabular-nums">
                   {getCharCount(sandboxProposed)}
                 </p>
               </div>
             </div>
-            <p className="mt-4 text-[10px] text-brand-text-secondary/55 leading-relaxed">
+            <p className="mt-4 text-[11px] text-brand-text-secondary/55 leading-relaxed">
               Edits stay in the sandbox until you commit. Re-run analysis after refining.
             </p>
           </div>
@@ -138,10 +138,10 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
         <div className="flex-1 flex flex-col bg-brand-bg-primary min-w-0">
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar flex flex-col">
             <div className="flex items-center justify-between mb-4 gap-3">
-              <h4 className="text-[10px] font-medium text-brand-text-secondary/70 uppercase flex items-center gap-2 tracking-wider">
+              <h4 className="text-[11px] font-medium text-brand-text-secondary/70 uppercase flex items-center gap-2 tracking-wider">
                 <AlignLeft size={12} aria-hidden /> Proposed draft
               </h4>
-              <span className="text-[9px] bg-[#1c1914]/[0.05] text-brand-text-secondary border border-brand-border px-2 py-0.5 rounded uppercase tracking-wider">
+              <span className="text-[11px] bg-[#1c1914]/[0.05] text-brand-text-secondary border border-brand-border px-2 py-0.5 rounded uppercase tracking-wider">
                 Editable
               </span>
             </div>
@@ -168,7 +168,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
                   >
                     <p className="leading-relaxed">{m.text}</p>
                     <span
-                      className={`text-[9px] mt-2 block uppercase tracking-wider ${
+                      className={`text-[11px] mt-2 block uppercase tracking-wider ${
                         m.role === 'user' ? 'text-black/45' : 'text-brand-text-secondary/45'
                       }`}
                     >
@@ -189,7 +189,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
                   onClick={() =>
                     setUserIntent('Streamline for flow and remove document-wide redundancy.')
                   }
-                  className="text-[10px] font-medium text-brand-text-secondary/50 hover:text-brand-text-primary uppercase tracking-wider transition-colors"
+                  className="text-[11px] font-medium text-brand-text-secondary/50 hover:text-brand-text-primary uppercase tracking-wider transition-colors"
                 >
                   Quick: Streamline
                 </button>
@@ -198,7 +198,7 @@ export const NeuralSandbox: React.FC<NeuralSandboxProps> = ({
                   onClick={() =>
                     setUserIntent('Ensure formal legal drafting style across all paragraphs.')
                   }
-                  className="text-[10px] font-medium text-brand-text-secondary/50 hover:text-brand-text-primary uppercase tracking-wider transition-colors"
+                  className="text-[11px] font-medium text-brand-text-secondary/50 hover:text-brand-text-primary uppercase tracking-wider transition-colors"
                 >
                   Quick: Formalize
                 </button>

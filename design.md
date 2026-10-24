@@ -1,50 +1,79 @@
-# LexForge visual system — Paper Dossier
+# LexForge visual system: the advocate's workspace
 
-## The one-line brief
-A law journal, not an app. Warm paper, ink serif, hairline rules, a clerk's red pen.
-The Deception Arena is the single exception: hell-black, because the product lives in daylight and the examiner does not.
+Warm paper, considered type, and room to think. The interface supports the work;
+it does not imitate a control room.
 
-## Copy law (the bloat fix — this outranks every style rule)
-1. **One line per element.** No label + subtitle + explanation stacks. If it needs a sentence to explain what it is, rename it.
-2. **Buttons are verbs.** ≤2 words. Never `[ BRACKETED ]`, never "Enter the X to begin Y".
-3. **Numbers are bare.** `62/100`, `Turn 4`. No `LOGICAL COHERENCE:` prefixes, no `Mode:` labels.
-4. **No status cosplay.** No ENGAGE / ACTIVE / LIVE badges. State is shown, not announced.
-5. **Hero = title + ≤10-word subtitle.** Most screens get no subtitle at all.
-6. **Explanations live in one place** per screen (an affordance), never repeated inline.
-7. No em dashes. No "simply / just / powerful / seamless". No exclamation marks.
+## Foundations
 
-## Palette
-| Token | Value | Role |
-|-------|-------|------|
-| paper | `#f7f4ee` | Page |
-| paper-2 | `#fdfcf9` | Raised panels/cards |
-| well | `#efeae1` | Insets, inputs, code |
-| ink | `#1c1914` | Primary text · primary CTA fill |
-| ink-2 | `#5f594e` | Secondary text |
-| ink-3 | `#8f887a` | Faint text, disabled |
-| rule | `#ddd6c8` | Hairline borders |
-| rule-strong | `#cbc3b2` | Hover/focus borders |
-| clerk-red | `#8a2b23` | The red pen: errors, lies, collapse, ONE accent per screen |
-| ochre | `#7a5c12` | Warnings only |
+The shared palette is defined in styles.css and tailwind.config.cjs:
 
-## Type
-- **Serif leads everything human**: headings, prose, arguments, feedback. `Source Serif 4`.
-- **Mono is the machine voice**: scores, HUD, logs, code. `JetBrains Mono`, 11px floor.
-- **Sans (Inter)**: nav labels and button text only.
-- Prose 13–16px/relaxed. Nothing below 11px anywhere.
+| Role | Token | Value |
+|---|---|---|
+| Page | paper / brand-bg-primary | #f7f4ee |
+| Panel | surface / brand-bg-secondary | #fdfcf9 |
+| Inset | well / brand-bg-tertiary | #efeae1 |
+| Text | ink / brand-text-primary | #1c1914 |
+| Supporting text | secondary / brand-text-secondary | #5f594e |
+| Quiet text | muted | #746d60 |
+| Rule | rule / brand-border | #ddd6c8 |
+| Strong rule | rule-strong / brand-border-light | #cbc3b2 |
+| Accent and error | accent / brand-accent | #8a2b23 |
 
-## Rules
-1. One primary action per screen: **ink fill, paper text**.
-2. Red is scarce. If red appears twice on a screen, one of them is wrong.
-3. Borders over cards; radius ≤4px; no shadows except a 1px ring on hover.
-4. Photos: duotone-warm, dark gradient only under text that sits on them.
-5. Spacing is generous — whitespace is what makes monochrome expensive.
-6. Dark surfaces exist ONLY inside the Deception Arena. Nowhere else.
-7. Leave mode clears mode + active/pending session (unchanged).
+Source Serif 4 leads headings, briefs, and long-form legal reading. Inter handles
+navigation, controls, and supporting text. JetBrains Mono is reserved for short
+eyebrows, scores, and document references. Text never falls below 11px.
 
-## Shell
-Sidebar: paper, active item = ink fill / paper text. Nav groups: Practice · Write · Research · Labs · Reference.
-Interior screens: quiet PhotoHero (photo at ~60% visibility), no pattern wallpaper behind prose.
+Use hairline borders, 4px controls, and 5–6px panels. Avoid decorative shadows in
+workspaces. The landing page's paper brief may cast a subtle physical shadow.
+Red is reserved for small brand details, meaningful emphasis, and errors.
 
-## Module rooms
-Every room uses shared chrome (`RoomChrome.tsx`). White space does the separating; rules do the structuring.
+## Shared components
+
+- Brand: the column mark and wordmark.
+- PageHeader: the daylight page heading, description, and optional actions.
+- PhotoHero and RoomBanner: compatibility adapters to PageHeader. Interior
+  photographs are small supporting images, not dark backdrops for controls.
+- Button, Card, SelectInput, EmptyState, and Modal: shared controls and states.
+- RoomTabs: keyboard-operable segmented views; arrow keys, Home, and End work.
+- RoomStepper: a quiet sequence with a clear current step.
+- Category treatments come from services/colorUtils.ts and use ink tokens.
+
+Changes to these foundations should improve all consumers. Do not recreate them
+inside an individual screen.
+
+## Navigation and flow
+
+The sidebar exposes every shipped tool, grouped into Your practice, The workbench,
+and Think further. The active item stays visible in its scroll area. The header
+carries location and coach access. Mobile uses a labelled drawer with focus
+restoration, Escape, and a focus trap.
+
+The main journey is landing → jurisdiction → overview → hearing setup → practice
+→ performance. Suggested cases and command search deep-link into setup. A hearing
+can return to the overview and resume. Leaving a workspace confirms before
+clearing an active hearing.
+
+Overview metrics reflect saved hearings in the selected jurisdiction. Never use
+fabricated user statistics, testimonials, progress, or provider success states.
+
+The research desk offers a manuscript and an editing workspace. Preserve content
+while changing views. Split panes need at least 760px of available editor width.
+Adjacent panels become closable drawers when space is limited; researching a
+selection reveals the results.
+
+## Copy and states
+
+Use concrete verbs and short names: New hearing, Begin hearing, Research desk.
+One useful sentence beats several stacked explanations. Empty states identify
+the next action. Errors preserve the user's draft and offer a way forward.
+
+Use fictional or anonymized training material. Keep source-verification and AI
+consent labels. Training output is not legal advice. Local storage and provider
+requests are different data boundaries and must be described accurately.
+
+Deception Arena keeps its distinct dark setting. Its foregrounds must remain
+legible; daylight palette changes must not turn its text dark. White text is also
+appropriate over genuinely dark photographs, with sufficient scrim contrast.
+
+Honor reduced motion. Workspace content appears immediately. Keep visible focus
+indicators and touch targets, and check both desktop and phone layouts.

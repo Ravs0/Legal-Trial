@@ -63,7 +63,7 @@ const DifficultyBadge: React.FC<{ difficulty: CaseDifficulty; categoryId?: strin
 
   return (
     <span
-      className={`px-3 py-1.5 text-[10px] font-mono tracking-widest uppercase border ${borderColor} ${textColor} ${bgColor} rounded-xl transition-colors duration-300`}
+      className={`px-3 py-1.5 text-[11px] font-mono tracking-widest uppercase border ${borderColor} ${textColor} ${bgColor} rounded-xl transition-colors duration-300`}
     >
       {difficulty}
     </span>
@@ -184,7 +184,7 @@ const CitationGraph: React.FC<{ caseTitle: string }> = ({ caseTitle }) => {
 
   return (
     <div className="relative border border-brand-text-primary/20 bg-brand-bg-secondary p-3">
-      <div className="text-[7px] text-brand-text-secondary font-mono tracking-widest uppercase mb-1">Training argument map · not case law</div>
+      <div className="text-[11px] text-brand-text-secondary font-mono tracking-widest uppercase mb-1">Training argument map · not case law</div>
       <canvas ref={canvasRef} className="w-full h-[140px]" />
     </div>
   );
@@ -387,7 +387,7 @@ const CaseLibraryScreen: React.FC = () => {
 
   return (
     <div className="flex-1 min-h-0 w-full overflow-y-auto custom-scrollbar animate-fadeIn overflow-x-hidden relative">
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto w-full space-y-5 pb-12">
+    <div className="page-container library-page space-y-5">
       <PhotoHero
         image={screenMedia.caseLibrary.hero}
         size="md"
@@ -419,43 +419,17 @@ const CaseLibraryScreen: React.FC = () => {
 
       {activeTab === 'sources' ? (
         <React.Suspense fallback={<div className="py-16 text-center font-mono text-xs text-brand-text-secondary">Loading court sources…</div>}>
-          <CourtSourcesPanel />
+          <CourtSourcesPanel embedded />
         </React.Suspense>
       ) : (
       <>
-
-      {/* Photo strip: docket / binders / theory */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        {[
-          { img: screenMedia.caseLibrary.stripCase, label: 'Docket' },
-          { img: screenMedia.caseLibrary.stripBinders, label: 'Binders' },
-          { img: screenMedia.caseLibrary.stripTheory, label: 'Theory' },
-        ].map((t) => (
-          <div
-            key={t.label}
-            className="relative overflow-hidden rounded-lg border border-brand-border h-14 sm:h-16"
-          >
-            <img src={t.img} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/55" />
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
-              }}
-            />
-            <span className="relative z-10 flex h-full items-center justify-center text-[11px] sm:text-[12px] uppercase tracking-wide text-white/85">
-              {t.label}
-            </span>
-          </div>
-        ))}
-      </div>
 
       <PatternPanel pattern="dots" className="p-4 sm:p-5">
         <div className="relative">
           <input
             type="text"
-            placeholder="Search docket (copyright, contract, negligence…)"
+            aria-label="Search practice cases"
+            placeholder="Search cases, legal issues, or practice areas"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full p-3 sm:p-3.5 bg-brand-bg-primary border border-brand-border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#1c1914]/20 text-[14px] text-brand-text-primary placeholder-brand-text-secondary/50"
@@ -502,11 +476,11 @@ const CaseLibraryScreen: React.FC = () => {
 
             {searchPipeline === 'haystack-hybrid' && (
               <div className="space-y-3 pt-2 border-t border-brand-text-primary/20">
-                <span className="block text-[10px] uppercase text-brand-text-secondary tracking-wider font-bold">Ranking Relevance Weights</span>
+                <span className="block text-[11px] uppercase text-brand-text-secondary tracking-wider font-bold">Ranking Relevance Weights</span>
                 
                 {/* Semantic weight */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] text-brand-text-secondary">
+                  <div className="flex justify-between text-[11px] text-brand-text-secondary">
                     <span>Semantic Weight</span>
                     <span className="text-brand-accent">{(weightSemantic * 100).toFixed(0)}%</span>
                   </div>
@@ -523,7 +497,7 @@ const CaseLibraryScreen: React.FC = () => {
 
                 {/* Authority weight */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] text-brand-text-secondary">
+                  <div className="flex justify-between text-[11px] text-brand-text-secondary">
                     <span>Precedent Authority / Court Tier</span>
                     <span className="text-brand-accent">{(weightAuthority * 100).toFixed(0)}%</span>
                   </div>
@@ -540,7 +514,7 @@ const CaseLibraryScreen: React.FC = () => {
 
                 {/* Recency weight */}
                 <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] text-brand-text-secondary">
+                  <div className="flex justify-between text-[11px] text-brand-text-secondary">
                     <span>Decision Recency (Temporal)</span>
                     <span className="text-brand-accent">{(weightRecency * 100).toFixed(0)}%</span>
                   </div>
@@ -591,10 +565,10 @@ const CaseLibraryScreen: React.FC = () => {
                 <div className="space-y-1 text-left">
                   <h3 className="text-base sm:text-xl lg:text-2xl font-serif font-bold text-brand-text-primary flex items-center">
                     <svg className="w-5 h-5 lg:w-6 lg:h-6 mr-2 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Bespoke Custom Case Simulator
+                    Build your own hearing
                   </h3>
                   <p className="text-xs text-brand-text-secondary font-light">
-                    Upload legal briefs, copy-paste custom facts, and configure your own mock trial simulation instantly.
+                    Start from anonymized facts or a plain-text brief.
                   </p>
                 </div>
                 
@@ -755,7 +729,7 @@ const CaseLibraryScreen: React.FC = () => {
                         <div className="flex justify-between items-start mb-5">
                           <DifficultyBadge difficulty={caseItem.difficulty} categoryId={caseItem.categoryId} />
                           <div className="flex items-center space-x-2">
-                            <span className={`text-[10px] font-mono ${catColors.text} bg-brand-bg-secondary px-2 py-1 border ${catColors.border}/25`}>Score: {score}</span>
+                            <span className={`text-[11px] font-mono ${catColors.text} bg-brand-bg-secondary px-2 py-1 border ${catColors.border}/25`}>Score: {score}</span>
                             <div className="w-8 h-8 rounded-xl bg-brand-bg-secondary border border-brand-text-primary/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               <svg className={`w-4 h-4 ${catColors.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </div>
@@ -769,7 +743,7 @@ const CaseLibraryScreen: React.FC = () => {
                         {matchedTerms.length > 0 && (
                           <div className="mb-4 flex flex-wrap gap-1.5">
                             {matchedTerms.map((term, i) => (
-                              <span key={i} className={`text-[9px] font-mono ${catColors.bgMuted} ${catColors.text} border ${catColors.border}/20 px-1.5 py-0.5 uppercase`}>
+                              <span key={i} className={`text-[11px] font-mono ${catColors.bgMuted} ${catColors.text} border ${catColors.border}/20 px-1.5 py-0.5 uppercase`}>
                                 {term}
                               </span>
                             ))}
@@ -777,7 +751,7 @@ const CaseLibraryScreen: React.FC = () => {
                         )}
 
                         <div className="mb-6">
-                          <h5 className={`text-[10px] font-mono font-semibold ${catColors.text} uppercase tracking-widest mb-2 flex items-center`}>
+                          <h5 className={`text-[11px] font-mono font-semibold ${catColors.text} uppercase tracking-widest mb-2 flex items-center`}>
                             <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
                           </h5>
                           <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
@@ -850,7 +824,7 @@ const CaseLibraryScreen: React.FC = () => {
                           <p className="text-sm font-light text-brand-text-secondary/80 mb-6 line-clamp-3 leading-relaxed">{caseDetail.briefFacts}</p>
 
                           <div className="mb-6">
-                            <h5 className={`text-[10px] font-mono font-semibold ${catColors.text} uppercase tracking-widest mb-2 flex items-center`}>
+                            <h5 className={`text-[11px] font-mono font-semibold ${catColors.text} uppercase tracking-widest mb-2 flex items-center`}>
                               <span className="w-3 h-px bg-brand-text-primary/30 mr-2"></span>Key Legal Issues
                             </h5>
                             <ul className="text-xs text-brand-text-primary/90 space-y-2 font-light">
@@ -903,7 +877,7 @@ const CaseLibraryScreen: React.FC = () => {
             <div className="bg-brand-bg-secondary p-5 rounded-xl border border-brand-text-primary/30">
               <div className="flex items-center space-x-3 mb-2">
                 <DifficultyBadge difficulty={selectedCaseForPractice.difficulty} categoryId={selectedCaseForPractice.categoryId} />
-                <span className="text-[10px] font-mono tracking-widest uppercase text-brand-text-secondary/60">{modeDisplay} Arena</span>
+                <span className="text-[11px] font-mono tracking-widest uppercase text-brand-text-secondary/60">{modeDisplay} Arena</span>
               </div>
               <h3 className="text-2xl font-serif font-semibold text-brand-text-primary leading-tight">{selectedCaseForPractice.title}</h3>
             </div>
@@ -945,7 +919,7 @@ const CaseLibraryScreen: React.FC = () => {
                 <div className="p-4 bg-brand-bg-primary border border-brand-text-primary/30 rounded-xl min-h-[140px] flex flex-col">
                   <div className="mb-1">
                     <h5 className="font-semibold text-brand-accent text-sm inline-block mr-2">{selectedOpposingCounsel.name}</h5>
-                    <span className="text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">({selectedOpposingCounsel.specialty})</span>
+                    <span className="text-[11px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">({selectedOpposingCounsel.specialty})</span>
                   </div>
                   <p className="text-xs font-light text-brand-text-secondary leading-relaxed line-clamp-4 flex-grow">{selectedOpposingCounsel.description}</p>
                 </div>

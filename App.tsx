@@ -51,8 +51,8 @@ const ScreenLoader = () => <div className="flex justify-center items-center min-
 
 const ROUTE_TITLES: Record<string, string> = {
   [ROUTES.LANDING]: 'Legal skills training',
-  [ROUTES.HOME]: 'Dashboard',
-  [ROUTES.SETUP]: 'New trial',
+  [ROUTES.HOME]: 'Overview',
+  [ROUTES.SETUP]: 'New hearing',
   [ROUTES.PRACTICE]: 'Practice hearing',
   [ROUTES.ANALYSIS]: 'Performance review',
   [ROUTES.LIBRARY]: 'Case library',
@@ -63,7 +63,7 @@ const ROUTE_TITLES: Record<string, string> = {
   [ROUTES.PERSONAS]: 'Personas',
   [ROUTES.STRATEGY]: 'Strategy room',
   [ROUTES.DREADLER]: 'Deception arena',
-  [ROUTES.RESEARCH_IDE]: 'Research IDE',
+  [ROUTES.RESEARCH_IDE]: 'Research desk',
   [ROUTES.COURT_SOURCES]: 'Court sources',
 };
 

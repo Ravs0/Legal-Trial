@@ -233,7 +233,7 @@ export const ChainVerdictPanel: React.FC<{ verdict: ChainVerdict | null; context
         <p className="text-xs text-brand-text-secondary/80 leading-relaxed font-light">
           No chain verdict yet{contextLabel ? ` for ${contextLabel}` : ''}. Score one drill turn to see the chain vote here.
         </p>
-        <p className="mt-2 text-[10px] font-mono text-brand-text-secondary/50 leading-relaxed">{CHAIN_VERDICT_DISCLAIMER}</p>
+        <p className="mt-2 text-[11px] font-mono text-brand-text-secondary/50 leading-relaxed">{CHAIN_VERDICT_DISCLAIMER}</p>
       </div>
     );
   }
@@ -250,13 +250,13 @@ export const ChainVerdictPanel: React.FC<{ verdict: ChainVerdict | null; context
       aria-label={review ? 'Chain verdict: queued for human review' : `Chain verdict: ${fmtPct(verdict.score)}`}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Chain verdict</p>
+        <p className="text-[11px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Chain verdict</p>
         {review ? (
-          <span className="rounded-sm border border-brand-error/40 bg-brand-accent-muted px-2 py-0.5 text-[10px] font-semibold text-brand-error">
+          <span className="rounded-sm border border-brand-error/40 bg-brand-accent-muted px-2 py-0.5 text-[11px] font-semibold text-brand-error">
             Queued for human review
           </span>
         ) : (
-          <span className="rounded-sm border border-brand-text-primary/15 bg-brand-bg-tertiary px-2 py-0.5 text-[10px] font-medium text-brand-text-secondary">
+          <span className="rounded-sm border border-brand-text-primary/15 bg-brand-bg-tertiary px-2 py-0.5 text-[11px] font-medium text-brand-text-secondary">
             Auto
           </span>
         )}
@@ -264,7 +264,7 @@ export const ChainVerdictPanel: React.FC<{ verdict: ChainVerdict | null; context
       <div className="flex items-end justify-between gap-3">
         <p className="text-2xl font-mono text-brand-text-primary font-bold">{fmtPct(verdict.score)}</p>
         {conf !== null && (
-          <p className="text-[10px] font-mono text-brand-text-secondary/80">confidence {fmtPct(conf)}</p>
+          <p className="text-[11px] font-mono text-brand-text-secondary/80">confidence {fmtPct(conf)}</p>
         )}
       </div>
       <div className="space-y-1.5">
@@ -287,13 +287,13 @@ export const ChainVerdictPanel: React.FC<{ verdict: ChainVerdict | null; context
         </p>
       )}
       {(verdict.code || verdict.usage) && (
-        <div className="space-y-1 text-[10px] font-mono text-brand-text-secondary/70">
+        <div className="space-y-1 text-[11px] font-mono text-brand-text-secondary/70">
           {verdict.code && <p>gate: {verdict.code}</p>}
           {typeof verdict.usage?.jevTokens === 'number' && <p>JEV input tokens: {verdict.usage.jevTokens}</p>}
           {typeof verdict.usage?.llmSkipped === 'boolean' && <p>LLM judge: {verdict.usage.llmSkipped ? 'skipped' : 'used'}</p>}
         </div>
       )}
-      <p className="text-[10px] font-mono text-brand-text-secondary/50 leading-relaxed">{CHAIN_VERDICT_DISCLAIMER}</p>
+      <p className="text-[11px] font-mono text-brand-text-secondary/50 leading-relaxed">{CHAIN_VERDICT_DISCLAIMER}</p>
     </div>
   );
 };
@@ -1405,7 +1405,7 @@ const PracticeArena: React.FC = () => {
             </div>
             <div className="text-xs text-brand-text-secondary font-light space-y-1.5 pt-2.5 border-t border-brand-text-primary/15">
               <p className="font-semibold text-brand-text-primary">Relevant Law / Precedents:</p>
-              <p className="font-mono text-[10px] text-brand-text-primary/80 leading-relaxed">{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
+              <p className="font-mono text-[11px] text-brand-text-primary/80 leading-relaxed">{currentSessionSettings.caseDetail.relevantArticlesSections}</p>
             </div>
           </div>
         </div>
@@ -1417,17 +1417,17 @@ const PracticeArena: React.FC = () => {
           </h4>
           <div className="bg-brand-bg-secondary/60 border border-brand-text-primary/15 rounded-xl p-4 grid grid-cols-2 gap-4 shadow-card">
             <div>
-              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Structure score</p>
+              <p className="text-[11px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Structure score</p>
               <p className="text-2xl font-mono text-brand-text-primary font-bold mt-1">{scoreBreakdown.total}</p>
             </div>
             <div>
-              <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Quick Reflexes</p>
+              <p className="text-[11px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Quick Reflexes</p>
               <p className="text-2xl font-mono text-brand-text-primary font-bold mt-1">{quickObjectionsCount}</p>
             </div>
             <div className="col-span-2 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Phase</p>
-                <p className="text-[10px] font-mono text-brand-text-secondary/60 uppercase tracking-wider">
+                <p className="text-[11px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Phase</p>
+                <p className="text-[11px] font-mono text-brand-text-secondary/60 uppercase tracking-wider">
                   {phaseIndex(activePhase) + 1} / {PHASE_SEQUENCE.length}
                 </p>
               </div>
@@ -1448,7 +1448,7 @@ const PracticeArena: React.FC = () => {
             </div>
           </div>
           <div className="bg-brand-bg-secondary/40 border border-brand-text-primary/10 rounded-xl p-3 space-y-2">
-            <p className="text-[9px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Feedback dimensions</p>
+            <p className="text-[11px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Feedback dimensions</p>
             {(
               [
                 ['engagement', scoreBreakdown.engagement],
@@ -1459,7 +1459,7 @@ const PracticeArena: React.FC = () => {
               ] as const
             ).map(([key, value]) => (
               <div key={key} className="flex items-center gap-2">
-                <span className="w-[7.5rem] text-[10px] font-mono text-brand-text-secondary/80 truncate">
+                <span className="w-[7.5rem] text-[11px] font-mono text-brand-text-secondary/80 truncate">
                   {SCORE_DIMENSION_LABELS[key]}
                 </span>
                 <div className="flex-1 h-1 bg-[#1c1914]/[0.04] rounded-full overflow-hidden border border-brand-border">
@@ -1468,10 +1468,10 @@ const PracticeArena: React.FC = () => {
                     style={{ width: `${Math.min(100, Math.max(0, (value / 50) * 100))}%` }}
                   />
                 </div>
-                <span className="w-6 text-right text-[10px] font-mono text-brand-text-primary">{value}</span>
+                <span className="w-6 text-right text-[11px] font-mono text-brand-text-primary">{value}</span>
               </div>
             ))}
-            <p className="text-[9px] font-mono text-brand-text-secondary/50 pt-1">
+            <p className="text-[11px] font-mono text-brand-text-secondary/50 pt-1">
               Local structure signals only. Not a ruling on the merits.
             </p>
           </div>
@@ -1495,7 +1495,7 @@ const PracticeArena: React.FC = () => {
               </div>
               <div className="space-y-0.5">
                 <p className="text-xs font-semibold text-brand-text-primary">{currentSessionSettings.judgePersonality.name}</p>
-                <p className="text-[10px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.judgePersonality.description}</p>
+                <p className="text-[11px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.judgePersonality.description}</p>
               </div>
             </div>
             <div className="flex items-start space-x-3 pt-3 border-t border-brand-text-primary/15">
@@ -1504,7 +1504,7 @@ const PracticeArena: React.FC = () => {
               </div>
               <div className="space-y-0.5">
                 <p className="text-xs font-semibold text-brand-text-primary">{currentSessionSettings.opposingCounselPersonality.name}</p>
-                <p className="text-[10px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.opposingCounselPersonality.specialty} — {currentSessionSettings.opposingCounselPersonality.description}</p>
+                <p className="text-[11px] text-brand-text-secondary leading-relaxed font-light">{currentSessionSettings.opposingCounselPersonality.specialty} — {currentSessionSettings.opposingCounselPersonality.description}</p>
               </div>
             </div>
           </div>
@@ -1524,7 +1524,7 @@ const PracticeArena: React.FC = () => {
                     ? 'Objection window is open in the transcript. Use Raise Objection below the feed, or wait for the Court.'
                     : 'Objections unlock after Opposing Counsel finishes a submission. Then: choose grounds, state a legal basis, and file.'}
               </p>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-brand-text-secondary/55">
+              <p className="text-[11px] font-mono uppercase tracking-wider text-brand-text-secondary/55">
                 Flow: OC speaks → optional window → object or continue → Court responds
               </p>
             </div>
@@ -1554,13 +1554,13 @@ const PracticeArena: React.FC = () => {
                     }`}
                   >
                     <p className="text-[11px] font-bold tracking-wide uppercase">{g.label}</p>
-                    <p className="text-[9px] text-brand-text-secondary/70 truncate mt-0.5">{g.desc}</p>
+                    <p className="text-[11px] text-brand-text-secondary/70 truncate mt-0.5">{g.desc}</p>
                   </button>
                 ))}
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Basis of Objection</label>
+                <label className="block text-[11px] font-mono text-brand-text-secondary/70 uppercase tracking-wider">Basis of Objection</label>
                 <textarea
                   value={objectionExplanation}
                   onChange={(e) => setObjectionExplanation(e.target.value)}
@@ -1600,7 +1600,7 @@ const PracticeArena: React.FC = () => {
 
   return (
     <div
-      className="flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden relative overscroll-none"
+      className="practice-workspace flex flex-col bg-brand-bg-primary text-brand-text-primary overflow-hidden relative overscroll-none"
       style={{ height: `${vpHeight}px`, maxHeight: `${vpHeight}px` }}
     >
       {/* design.md §9: solid canvas — no BackgroundGeometry wallpaper */}
@@ -1610,7 +1610,7 @@ const PracticeArena: React.FC = () => {
           <div className="flex items-start sm:items-center justify-between gap-3">
             <div className="text-left min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-1 text-[11px] text-brand-text-secondary">
-                <span>{currentSessionSettings.difficulty}</span>
+                <button type="button" onClick={() => navigate(ROUTES.HOME)} className="text-link" aria-label="Back to workspace">← Workspace</button><span className="opacity-40">/</span><span>{currentSessionSettings.difficulty}</span>
                 <span className="opacity-40">·</span>
                 <span>{currentSessionSettings.sessionType}</span>
               </div>
@@ -1673,7 +1673,7 @@ const PracticeArena: React.FC = () => {
                   className={`rounded-xl border px-2.5 py-2 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px] ${action.tone}`}
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-wide">{action.label}</p>
-                  <p className="mt-0.5 text-[9px] font-mono uppercase tracking-[0.14em] text-brand-text-secondary/55">{action.hint}</p>
+                  <p className="mt-0.5 text-[11px] font-mono uppercase tracking-[0.14em] text-brand-text-secondary/55">{action.hint}</p>
                 </button>
               ))}
             </div>
@@ -1695,7 +1695,7 @@ const PracticeArena: React.FC = () => {
                     {showObjectionTimer && (
                       <div className="max-w-[92%] sm:max-w-[85%] ml-[1rem] sm:ml-[5.5rem] mb-4 sm:mb-6 -mt-2 sm:-mt-3 animate-fadeIn text-left">
                         <div className="bg-brand-bg-secondary/70 border border-brand-text-primary/15 rounded-xl p-3.5 sm:p-4 flex flex-col space-y-2 shadow-card">
-                          <div className="flex flex-col gap-1.5 sm:flex-row sm:justify-between sm:items-center text-[10px] font-mono uppercase tracking-wider text-brand-text-primary">
+                          <div className="flex flex-col gap-1.5 sm:flex-row sm:justify-between sm:items-center text-[11px] font-mono uppercase tracking-wider text-brand-text-primary">
                             <span className="font-semibold flex items-center">
                               <svg className="w-3.5 h-3.5 mr-1 text-brand-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                               {isInlineObjectionActive ? 'Objection draft open (timer paused)' : 'Optional objection window'}
@@ -1710,7 +1710,7 @@ const PracticeArena: React.FC = () => {
                               style={{ width: `${(objectionWindowSecondsLeft / OBJECTION_WINDOW_SECONDS) * 100}%` }}
                             ></div>
                           </div>
-                          <div className="flex flex-col gap-1 text-[9px] font-mono text-brand-text-secondary/70 sm:flex-row sm:justify-between sm:items-center">
+                          <div className="flex flex-col gap-1 text-[11px] font-mono text-brand-text-secondary/70 sm:flex-row sm:justify-between sm:items-center">
                             <span>
                               {isInlineObjectionActive
                                 ? 'Finish the basis and file, or cancel to let the Court proceed.'
@@ -1743,7 +1743,7 @@ const PracticeArena: React.FC = () => {
                     )}
                   </div>
                   <div className="flex flex-col flex-grow items-start max-w-[calc(100%-3rem)] pl-1">
-                    <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/70">
+                    <div className="flex items-center space-x-2 mb-1.5 text-[11px] font-mono uppercase tracking-widest text-brand-text-secondary/70">
                       <span className="font-bold text-brand-text-primary">
                         {isTranscribing ? 'Transcribing' : (isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel')}
                       </span>
@@ -1842,7 +1842,7 @@ const PracticeArena: React.FC = () => {
                 <div className="sm:hidden mb-3 rounded-2xl border border-brand-text-primary/15 bg-brand-bg-secondary/55 px-3.5 py-3 shadow-card">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Session controls</p>
+                      <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Session controls</p>
                       <p className="mt-1 text-xs font-semibold text-brand-text-primary">
                         {canObject
                           ? (objectionWindowActive
@@ -1858,7 +1858,7 @@ const PracticeArena: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setVoiceEnabled(v => !v)}
-                          className={`min-h-11 rounded-xl border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-all ${
+                          className={`min-h-11 rounded-xl border px-3 py-2 text-[11px] font-mono uppercase tracking-wider transition-all ${
                             voiceEnabled
                               ? 'bg-white text-brand-bg-primary border-transparent'
                               : 'border-brand-text-primary/15 bg-brand-bg-tertiary/45 text-brand-text-primary hover:border-brand-border-light'
@@ -1872,7 +1872,7 @@ const PracticeArena: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsMobileDrawerOpen(true)}
-                        className="min-h-11 rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[10px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-brand-border-light"
+                        className="min-h-11 rounded-xl border border-brand-text-primary/15 bg-brand-bg-tertiary/45 px-3 py-2 text-[11px] font-mono uppercase tracking-wider text-brand-text-primary transition-all hover:border-brand-border-light"
                         aria-expanded={isMobileDrawerOpen}
                         aria-controls="practice-bench-drawer"
                       >
@@ -1890,13 +1890,13 @@ const PracticeArena: React.FC = () => {
                         isInlineObjectionActiveRef.current = true;
                         setIsInlineObjectionActive(true);
                       }}
-                      className="w-full sm:w-auto min-h-11 px-4 py-2.5 rounded-2xl border border-brand-text-primary/25 bg-brand-bg-secondary/60 hover:bg-brand-text-primary hover:text-brand-bg-primary text-brand-text-primary text-[10px] font-bold font-mono uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-card"
+                      className="w-full sm:w-auto min-h-11 px-4 py-2.5 rounded-2xl border border-brand-text-primary/25 bg-brand-bg-secondary/60 hover:bg-brand-text-primary hover:text-brand-bg-primary text-brand-text-primary text-[11px] font-bold font-mono uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-card"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                       <span>Raise Objection</span>
-                      <span className="bg-brand-bg-tertiary text-brand-text-secondary px-1.5 py-0.5 rounded text-[8px] font-mono hidden sm:inline group-hover:bg-black/10">Press [ O ]</span>
+                      <span className="bg-brand-bg-tertiary text-brand-text-secondary px-1.5 py-0.5 rounded text-[11px] font-mono hidden sm:inline group-hover:bg-black/10">Press [ O ]</span>
                     </button>
                   </div>
                 )}
@@ -1904,7 +1904,7 @@ const PracticeArena: React.FC = () => {
                 {isInlineObjectionActive && (
                   <div className="flex flex-col space-y-2.5 p-3.5 sm:p-4 bg-brand-bg-secondary/70 border border-brand-text-primary/15 rounded-2xl mb-3 text-left animate-fadeIn shadow-card">
                     <div className="flex items-center justify-between gap-3">
-                      <span className={`text-[10px] font-mono font-bold ${catColors.text} uppercase tracking-wider flex items-center gap-1.5`}>
+                      <span className={`text-[11px] font-mono font-bold ${catColors.text} uppercase tracking-wider flex items-center gap-1.5`}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.75c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.75h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
                         Drafting Formal Objection
                       </span>
@@ -1935,7 +1935,7 @@ const PracticeArena: React.FC = () => {
                             }`}
                         >
                           <span className="font-semibold text-[11px] sm:text-xs">{g.label}</span>
-                          <span className="text-[8px] opacity-60 hidden sm:inline">{g.desc}</span>
+                          <span className="text-[11px] opacity-60 hidden sm:inline">{g.desc}</span>
                         </button>
                       ))}
                     </div>
@@ -1985,10 +1985,10 @@ const PracticeArena: React.FC = () => {
 
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center justify-between gap-3 mb-1">
-                        <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">
+                        <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">
                           {isInlineObjectionActive ? 'Objection draft' : 'Live submission'}
                         </p>
-                        <p className="text-[10px] font-mono uppercase tracking-[0.14em] text-brand-text-secondary/50 hidden sm:block">
+                        <p className="text-[11px] font-mono uppercase tracking-[0.14em] text-brand-text-secondary/50 hidden sm:block">
                           Enter to send, Shift+Enter for new line
                         </p>
                       </div>
@@ -2031,7 +2031,7 @@ const PracticeArena: React.FC = () => {
                   </div>
                 </div>
 
-                <p className="text-center mt-3 text-[10px] font-mono text-brand-text-secondary/50 tracking-widest uppercase hidden sm:block select-none">
+                <p className="text-center mt-3 text-[11px] font-mono text-brand-text-secondary/50 tracking-widest uppercase hidden sm:block select-none">
                   Present your arguments clearly and concisely. The Court is listening.
                 </p>
               </div>
@@ -2070,7 +2070,7 @@ const PracticeArena: React.FC = () => {
             <h3 className="text-lg font-bold font-serif text-brand-text-primary flex items-center">
               <CourtIcon className="h-5 w-5 mr-2 text-brand-text-primary" /> Bench Companion
             </h3>
-            <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/55">Case brief, score, and objection controls</p>
+            <p className="mt-1 text-[11px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/55">Case brief, score, and objection controls</p>
           </div>
           <button
             type="button"
@@ -2083,11 +2083,11 @@ const PracticeArena: React.FC = () => {
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-secondary/40 px-3 py-2.5">
-            <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Structure</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Structure</p>
             <p className="mt-1 text-base font-semibold text-brand-text-primary">{scoreBreakdown.total}</p>
           </div>
           <div className="rounded-xl border border-brand-text-primary/15 bg-brand-bg-secondary/40 px-3 py-2.5">
-            <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Phase</p>
+            <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">Phase</p>
             <p className="mt-1 text-base font-semibold uppercase text-brand-text-primary">{phaseLabel(activePhase)}</p>
           </div>
         </div>

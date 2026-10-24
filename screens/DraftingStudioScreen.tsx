@@ -22,14 +22,10 @@ import { Modal } from '../components/Modal';
 import { renderLegalMarkdown } from '../utils/markdown';
 import { RoomBanner, RoomStepper } from '../components/RoomChrome';
 import { PatternPanel, SurfacePattern } from '../components/SurfacePattern';
-import { PhotoTile } from '../components/PhotoTile';
 import { buildDraftMarkdown, downloadMarkdown, draftFilename, draftDocxFilename, exportDocx } from '../services/exportService';
 import { saveGenericState, readGenericState } from '../services/storageService';
 import draftingPen from '../assets/drafting_pen.jpg';
 import trialBinderDesk from '../assets/trial_binder_desk.jpg';
-import counselScales from '../assets/counsel_scales.jpg';
-import judgeGavel from '../assets/judge_gavel.jpg';
-import courtroomLuxury from '../assets/courtroom_luxury.jpg';
 import {
   isMicSupported,
   preferredRecordingMimeType,
@@ -436,13 +432,13 @@ const DraftingStudioScreen: React.FC = () => {
       <div className="space-y-4 text-left font-mono">
         <div className="flex justify-between items-center bg-brand-bg-secondary p-3 border border-brand-text-primary/30">
           <span className="text-xs text-brand-text-primary uppercase font-bold">Comparing current draft to snapshot ({snapshot.timestamp})</span>
-          <span className="text-[10px] text-brand-text-secondary">Line-by-line comparison</span>
+          <span className="text-[11px] text-brand-text-secondary">Line-by-line comparison</span>
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto border border-brand-text-primary/30 text-xs custom-scrollbar">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-brand-bg-secondary text-[10px] uppercase border-b border-brand-text-primary/30 text-brand-text-secondary">
+              <tr className="bg-brand-bg-secondary text-[11px] uppercase border-b border-brand-text-primary/30 text-brand-text-secondary">
                 <th className="p-2 border-r border-brand-text-primary/20 w-12 text-center">Line</th>
                 <th className="p-2 border-r border-brand-text-primary/20 w-1/2 text-left">Snapshot</th>
                 <th className="p-2 border-r border-brand-text-primary/20 w-12 text-center">Line</th>
@@ -468,9 +464,9 @@ const DraftingStudioScreen: React.FC = () => {
 
                 return (
                   <tr key={idx} className={`border-b border-brand-text-primary/10 ${rowBg}`}>
-                    <td className="p-1.5 border-r border-brand-text-primary/20 text-center text-[10px] text-brand-text-secondary/40 select-none">{row.oldNum}</td>
+                    <td className="p-1.5 border-r border-brand-text-primary/20 text-center text-[11px] text-brand-text-secondary/40 select-none">{row.oldNum}</td>
                     <td className={`p-1.5 border-r border-brand-text-primary/20 whitespace-pre-wrap font-sans ${oldTextColor}`}>{row.oldLine}</td>
-                    <td className="p-1.5 border-r border-brand-text-primary/20 text-center text-[10px] text-brand-text-secondary/40 select-none">{row.newNum}</td>
+                    <td className="p-1.5 border-r border-brand-text-primary/20 text-center text-[11px] text-brand-text-secondary/40 select-none">{row.newNum}</td>
                     <td className={`p-1.5 whitespace-pre-wrap font-sans ${newTextColor}`}>{row.newLine}</td>
                   </tr>
                 );
@@ -978,7 +974,7 @@ const DraftingStudioScreen: React.FC = () => {
           <div className="space-y-4 text-xs font-light leading-relaxed">
             <p>Drafting does not begin with writing prose; it begins with mapping the commercial transaction. A contract translates business deal points into a binding, structured document.</p>
             <div className="font-semibold text-brand-text-primary">1.1 Structural Anatomy</div>
-            <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-normal">
+            <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[11px] text-brand-text-secondary leading-normal">
               1. Introductory Provisions (Preamble & Recitals)<br/>
               2. Definitions Glossary<br/>
               3. Core Transactional Clauses (Price/Payment)<br/>
@@ -993,8 +989,8 @@ const DraftingStudioScreen: React.FC = () => {
             <p className="italic text-brand-accent/90">Rule: Avoid "WITNESSETH" and "WHEREAS". Use direct plain English.</p>
             
             <div className="space-y-2">
-              <p className="font-mono text-[9px] uppercase tracking-wider text-brand-accent">Red-Pen Overhaul:</p>
-              <div className="border border-brand-text-primary/30 rounded-xl overflow-hidden text-[10px]">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-brand-accent">Red-Pen Overhaul:</p>
+              <div className="border border-brand-text-primary/30 rounded-xl overflow-hidden text-[11px]">
                 <div className="bg-brand-bg-secondary p-2 border-b border-brand-text-primary/30 font-bold grid grid-cols-2 gap-2">
                   <div>Old Legalese</div>
                   <div>Modern Professional</div>
@@ -1032,8 +1028,8 @@ const DraftingStudioScreen: React.FC = () => {
             </div>
  
             <div className="space-y-2">
-              <p className="font-mono text-[9px] uppercase tracking-wider text-brand-accent">Red-Pen Overhaul:</p>
-              <div className="border border-brand-text-primary/30 rounded-xl overflow-hidden text-[10px]">
+              <p className="font-mono text-[11px] uppercase tracking-wider text-brand-accent">Red-Pen Overhaul:</p>
+              <div className="border border-brand-text-primary/30 rounded-xl overflow-hidden text-[11px]">
                 <div className="bg-brand-bg-secondary p-2 border-b border-brand-text-primary/30 font-bold grid grid-cols-2 gap-2">
                   <div>Misused Verb</div>
                   <div>Correct Verb (Category)</div>
@@ -1062,16 +1058,16 @@ const DraftingStudioScreen: React.FC = () => {
           <div className="space-y-4 text-xs font-light leading-relaxed">
             <p>Mechanical errors and sentence structures are heavily parsed. Modifier ambiguity occurs when relative clauses could apply to one or multiple elements in a list.</p>
             <div className="bg-brand-bg-secondary p-3 rounded-xl border border-brand-text-primary/30 space-y-2">
-              <p className="text-brand-error/90 font-mono text-[10px] leading-normal">Ambiguous Clause:<br/>"The Company shall not hire employees or independent contractors who reside in California."</p>
-              <p className="text-[10px] text-brand-text-secondary">Does "who reside in California" modify employees, or only independent contractors?</p>
-              <p className="text-brand-text-primary/90 font-mono text-[10px] leading-normal">Option A (Both):<br/>"The Company shall not hire any individual residing in California, whether as an employee or as an independent contractor."</p>
+              <p className="text-brand-error/90 font-mono text-[11px] leading-normal">Ambiguous Clause:<br/>"The Company shall not hire employees or independent contractors who reside in California."</p>
+              <p className="text-[11px] text-brand-text-secondary">Does "who reside in California" modify employees, or only independent contractors?</p>
+              <p className="text-brand-text-primary/90 font-mono text-[11px] leading-normal">Option A (Both):<br/>"The Company shall not hire any individual residing in California, whether as an employee or as an independent contractor."</p>
             </div>
             
             <div className="font-semibold text-brand-text-primary">3.2 Tabulation Rules</div>
             <p>Use numbered lists for dense provisions. The introductory phrase must flow grammatically into every tabulated item.</p>
             
             <div className="border border-brand-text-primary/30 rounded-xl p-3 bg-brand-bg-secondary space-y-2">
-              <p className="font-bold text-[10px] uppercase tracking-wider text-brand-accent">Modern Tabulated Clause:</p>
+              <p className="font-bold text-[11px] uppercase tracking-wider text-brand-accent">Modern Tabulated Clause:</p>
               <p className="text-[10.5px] leading-relaxed">
                 The Receiving Party may disclose Confidential Information to its representatives who:<br/>
                 1. need to know the information to evaluate the Transaction;<br/>
@@ -1099,12 +1095,12 @@ const DraftingStudioScreen: React.FC = () => {
                 <span className="font-semibold text-brand-text-primary text-[10.5px]">Template: Indemnification & Cap</span>
                 <button
                   onClick={() => handleCopySnippet(0, `Section 8.1 Indemnification. The Consultant shall indemnify, defend, and hold harmless the Client and its officers against all third-party claims, losses, and reasonable legal fees arising out of the Consultant's gross negligence or willful misconduct in performing the Services.\n\nSection 8.2 Limitation of Liability.\n(a) Waiver. Neither party is liable to the other for any indirect, incidental, or consequential damages arising out of this Agreement, even if advised of the possibility of such damages.\n(b) Cap. Except for breaches of Section 5 (Confidentiality), each party's aggregate liability under this Agreement is capped at the total fees paid by the Client to the Consultant in the 12 months preceding the claim.`)}
-                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[9px] rounded-xl hover:bg-brand-accent/10 transition-colors uppercase font-mono"
+                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[11px] rounded-xl hover:bg-brand-accent/10 transition-colors uppercase font-mono"
                 >
                   {copiedSnippetIndex === 0 ? "Copied!" : "Quick Copy"}
                 </button>
               </div>
-              <pre className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-relaxed overflow-x-auto">
+              <pre className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[11px] text-brand-text-secondary leading-relaxed overflow-x-auto">
 {`Section 8.1 Indemnification. The Consultant shall indemnify, defend, and hold harmless...
 Section 8.2 Limitation of Liability.
 (a) Waiver. Neither party is liable to...
@@ -1117,12 +1113,12 @@ Section 8.2 Limitation of Liability.
                 <span className="font-semibold text-brand-text-primary text-[10.5px]">Template: IP Assignment</span>
                 <button
                   onClick={() => handleCopySnippet(1, `Section 6.1 Work Product Ownership. The Developer hereby assigns to the Client all right, title, and interest in and to the Work Product, including all intellectual property rights. The Developer shall cooperate with the Client and execute any additional documents necessary to perfect the Client's ownership of the Work Product.`)}
-                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[9px] rounded-xl hover:bg-brand-accent/10 transition-colors uppercase font-mono"
+                  className="px-2 py-0.5 border border-brand-accent/30 text-brand-accent text-[11px] rounded-xl hover:bg-brand-accent/10 transition-colors uppercase font-mono"
                 >
                   {copiedSnippetIndex === 1 ? "Copied!" : "Quick Copy"}
                 </button>
               </div>
-              <pre className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[9px] text-brand-text-secondary leading-relaxed overflow-x-auto">
+              <pre className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 font-mono text-[11px] text-brand-text-secondary leading-relaxed overflow-x-auto">
 {`Section 6.1 Work Product Ownership. The Developer hereby assigns to the Client all right, title, and interest...`}
               </pre>
             </div>
@@ -1137,13 +1133,13 @@ Section 8.2 Limitation of Liability.
             <p>Contracts are interpreted using established judicial canons. Write defensively to avoid the common law traps.</p>
             <div className="space-y-2.5">
               <p><strong>Ejusdem Generis ("Of the same kind"):</strong> General terms following a list are limited to similar items.</p>
-              <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
+              <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[11px]">
                 <span className="text-brand-error font-mono">Trap:</span> "Tenant shall not keep dogs, cats, birds, or other animals." (Tiger might be excluded by a court as not a household pet).<br/>
                 <span className="text-brand-success font-mono">Fix:</span> "...or other animals, whether domestic or wild."
               </div>
               
               <p><strong>Expressio Unius ("Exclusion of others"):</strong> Mentioning one implies excluding the other.</p>
-              <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[10px]">
+              <div className="bg-brand-bg-secondary p-2.5 rounded-xl border border-brand-text-primary/30 text-[11px]">
                 <span className="text-brand-error font-mono">Trap:</span> "Seller represents that IP does not infringe US patents." (Implies no representation for foreign patents or trademarks).<br/>
                 <span className="text-brand-success font-mono">Fix:</span> "...any intellectual property right globally."
               </div>
@@ -1197,7 +1193,7 @@ Section 8.2 Limitation of Liability.
         <div className="space-y-2">
           <div className="flex items-center space-x-2 text-brand-accent mb-2">
             <div className="h-px w-4 bg-brand-accent"></div>
-            <span className="text-[10px] font-mono uppercase tracking-widest">Masterclass Modules</span>
+            <span className="text-[11px] font-mono uppercase tracking-widest">Masterclass Modules</span>
           </div>
           
           <div className="space-y-2.5">
@@ -1211,7 +1207,7 @@ Section 8.2 Limitation of Liability.
                   >
                     <div>
                       <p className={`text-[11px] font-bold tracking-wide uppercase font-serif ${isOpen ? 'text-brand-accent' : 'text-brand-text-primary'}`}>{m.title}</p>
-                      <p className="text-[9px] text-brand-text-secondary/70 italic mt-0.5">{m.subtitle}</p>
+                      <p className="text-[11px] text-brand-text-secondary/70 italic mt-0.5">{m.subtitle}</p>
                     </div>
                     <span className="text-brand-accent/70 text-xs font-mono">{isOpen ? "[-]" : "[+]"}</span>
                   </button>
@@ -1233,7 +1229,7 @@ Section 8.2 Limitation of Liability.
   const stepIndex = currentStepIndex < 0 ? 0 : currentStepIndex;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 w-full h-full overflow-hidden animate-fadeIn relative p-3 sm:p-4 md:p-5">
+    <div className="studio-workspace flex flex-col flex-1 min-h-0 w-full h-full overflow-hidden animate-fadeIn relative p-4 sm:p-6">
       <SurfacePattern variant="grid" className="opacity-30" />
 
       <div className="relative z-10 flex flex-col flex-1 min-h-0 w-full gap-3 sm:gap-4">
@@ -1242,7 +1238,7 @@ Section 8.2 Limitation of Liability.
         dense
         eyebrow={`${modeDisplay} · write`}
         title="Drafting studio"
-        subtitle="Draft it. Score it. File it."
+        subtitle="From a clear brief to a considered draft."
         trailing={<RoomStepper steps={steps} currentIndex={stepIndex} />}
         className="flex-shrink-0"
       />
@@ -1255,30 +1251,13 @@ Section 8.2 Limitation of Liability.
                 <div className="max-w-3xl mx-auto space-y-4 py-2 pb-8">
                     {stage === 'task_selection' ? (
                       <>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                          {[
-                            { label: 'Plaints', image: courtroomLuxury },
-                            { label: 'Petitions', image: judgeGavel },
-                            { label: 'Contracts', image: trialBinderDesk },
-                            { label: 'Notices', image: counselScales },
-                          ].map((t) => (
-                            <PhotoTile
-                              key={t.label}
-                              title={t.label}
-                              image={t.image}
-                              compact
-                              badge="Instrument"
-                            />
-                          ))}
-                        </div>
-
                         {studioError && (
                           <div
                             role="alert"
                             className="border border-brand-border bg-brand-bg-secondary p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary mb-1">
+                              <p className="text-[11px] font-mono uppercase tracking-widest text-brand-text-secondary mb-1">
                                 Scenario generation failed
                               </p>
                               <p className="text-[13px] text-brand-text-primary leading-relaxed">{studioError.message}</p>
@@ -1287,7 +1266,7 @@ Section 8.2 Limitation of Liability.
                               <Button
                                 variant="primary"
                                 size="sm"
-                                className="uppercase tracking-wider text-[10px] rounded-xl flex-shrink-0"
+                                className="uppercase tracking-wider text-[11px] rounded-xl flex-shrink-0"
                                 onClick={() => void handleTaskSelectionAndFactGeneration(lastFailedTaskId)}
                                 disabled={isLoading}
                               >
@@ -1307,7 +1286,7 @@ Section 8.2 Limitation of Liability.
                                 </h3>
                               </div>
                               <p className="text-[13px] text-brand-text-secondary">
-                                Select from the docket. Facts generate next; then you draft.
+                                Choose an instrument to generate practice facts and begin drafting.
                               </p>
                             </div>
 
@@ -1325,6 +1304,7 @@ Section 8.2 Limitation of Liability.
                               />
                             ) : (
                               <SelectInput
+                                label="Practice instrument"
                                 options={groupedTaskOptionsForSelect}
                                 onChange={(e) => {
                                   if (e.target.value && !e.target.value.startsWith('__optgroup__')) {
@@ -1369,10 +1349,10 @@ Section 8.2 Limitation of Liability.
                     <div className="p-2 lg:p-3 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between">
                         {isRefPanelOpen ? (
                             <div className="flex items-center space-x-2 ml-1 lg:ml-2">
-                                <span className="text-[10px] lg:text-[11px] font-mono font-bold text-brand-accent tracking-widest uppercase">Reference Bank</span>
+                                <span className="text-[11px] lg:text-[11px] font-mono font-bold text-brand-accent tracking-widest uppercase">Reference Bank</span>
                             </div>
                         ) : (
-                            <span className="text-[9px] font-mono text-brand-text-secondary/60 uppercase tracking-wider lg:hidden">Tap to open references</span>
+                            <span className="text-[11px] font-mono text-brand-text-secondary/60 uppercase tracking-wider lg:hidden">Tap to open references</span>
                         )}
                         <button 
                             onClick={() => setIsRefPanelOpen(!isRefPanelOpen)}
@@ -1393,7 +1373,7 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'facts' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <ClipboardIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'facts' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Facts</span>
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">Facts</span>
                                 </button>
                                 <button 
                                     onClick={() => setActiveRefTab('score')}
@@ -1401,9 +1381,9 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'score' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <ChartBarIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'score' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Score</span>
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">Score</span>
                                     {scoringResult && (
-                                        <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
+                                        <span className={`absolute -top-1 -right-1 text-[11px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
                                             ${scoringResult.verdictTier === 'excellent' ? 'bg-[#1c1914]/[0.08] text-brand-text-primary' :
                                               scoringResult.verdictTier === 'good' ? 'bg-[#1c1914]/[0.06] text-brand-text-primary' :
                                               scoringResult.verdictTier === 'fair' ? 'bg-[#1c1914]/[0.04] text-brand-text-secondary' :
@@ -1419,8 +1399,8 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'compliance' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <CheckCircleIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'compliance' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Rules</span>
-                                    <span className={`absolute -top-1 -right-1 text-[8px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">Rules</span>
+                                    <span className={`absolute -top-1 -right-1 text-[11px] font-bold font-mono w-5 h-5 rounded-xl border border-current flex items-center justify-center
                                         ${complianceMetrics.score === 100 ? 'bg-[#1c1914]/[0.08] text-brand-text-primary' :
                                           complianceMetrics.score >= 60 ? 'bg-[#1c1914]/[0.06] text-brand-text-primary' :
                                           'bg-brand-error/15 text-brand-error'}
@@ -1435,7 +1415,7 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'feedback' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <LightbulbIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'feedback' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Mentor</span>
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">Mentor</span>
                                 </button>
                                 <button 
                                     onClick={() => { if(filingProcedure) setActiveRefTab('procedure'); }}
@@ -1444,7 +1424,7 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'procedure' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <BookOpenIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'procedure' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Procedure</span>
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">Procedure</span>
                                 </button>
                                 <button 
                                     onClick={() => setActiveRefTab('course')}
@@ -1452,7 +1432,7 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'course' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <AcademicCapIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'course' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Syllabus</span>
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">Syllabus</span>
                                 </button>
                                 <button 
                                     onClick={() => setActiveRefTab('history')}
@@ -1460,7 +1440,7 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'history' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <HistoryIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'history' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">History</span>
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">History</span>
                                 </button>
                                 <button
                                     onClick={() => setActiveRefTab('extract')}
@@ -1468,9 +1448,9 @@ Section 8.2 Limitation of Liability.
                                         ${activeRefTab === 'extract' ? 'border-brand-accent bg-brand-bg-secondary text-brand-text-primary' : 'border-transparent text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-bg-secondary/50'}`}
                                 >
                                     <ExtractIcon className={`w-4 h-4 mb-1 ${activeRefTab === 'extract' ? 'text-brand-accent' : ''}`} />
-                                    <span className="text-[9px] font-mono uppercase tracking-tighter">Extract</span>
+                                    <span className="text-[11px] font-mono uppercase tracking-tighter">Extract</span>
                                     {extraction?.escalate && (
-                                        <span className="absolute -top-1 -right-1 text-[8px] font-bold font-mono px-1 h-5 rounded-xl border border-brand-error bg-brand-error/15 text-brand-error flex items-center justify-center">
+                                        <span className="absolute -top-1 -right-1 text-[11px] font-bold font-mono px-1 h-5 rounded-xl border border-brand-error bg-brand-error/15 text-brand-error flex items-center justify-center">
                                             !
                                         </span>
                                     )}
@@ -1483,7 +1463,7 @@ Section 8.2 Limitation of Liability.
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex items-center space-x-2 text-brand-accent mb-2">
                                             <div className="h-px w-4 bg-brand-accent"></div>
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">{currentTask?.type} Case Facts</span>
+                                            <span className="text-[11px] font-mono uppercase tracking-widest">{currentTask?.type} Case Facts</span>
                                         </div>
                                         {generatedFacts ? (
                                             <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-[#1c1914]/[0.08] prose-sm">
@@ -1504,7 +1484,7 @@ Section 8.2 Limitation of Liability.
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex items-center space-x-2 text-brand-accent mb-2">
                                             <div className="h-px w-4 bg-brand-accent"></div>
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">Legal Conformance Score</span>
+                                            <span className="text-[11px] font-mono uppercase tracking-widest">Legal Conformance Score</span>
                                         </div>
                                         {scoringResult ? (
                                             <ScoreCard result={scoringResult} />
@@ -1523,12 +1503,12 @@ Section 8.2 Limitation of Liability.
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex items-center space-x-2 text-brand-accent mb-2">
                                             <div className="h-px w-4 bg-brand-accent"></div>
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">Pleading Rules Guidance</span>
+                                            <span className="text-[11px] font-mono uppercase tracking-widest">Pleading Rules Guidance</span>
                                         </div>
 
                                         {/* Score card summary */}
                                         <div className="border border-brand-text-primary/30 p-4 bg-brand-bg-secondary font-mono flex flex-col items-center justify-center text-center">
-                                            <span className="text-[9px] text-brand-text-secondary uppercase tracking-widest mb-1">Pleadings Compliance</span>
+                                            <span className="text-[11px] text-brand-text-secondary uppercase tracking-widest mb-1">Pleadings Compliance</span>
                                             <span className={`text-4xl font-bold ${
                                                 complianceMetrics.score === 100 ? 'text-brand-text-primary' :
                                                 complianceMetrics.score >= 60 ? 'text-brand-text-primary' :
@@ -1536,7 +1516,7 @@ Section 8.2 Limitation of Liability.
                                             }`}>
                                                 {complianceMetrics.score}%
                                             </span>
-                                            <span className={`text-[10px] uppercase font-bold tracking-widest mt-2 px-2 py-0.5 border ${
+                                            <span className={`text-[11px] uppercase font-bold tracking-widest mt-2 px-2 py-0.5 border ${
                                                 complianceMetrics.score === 100 ? 'border-brand-border-light text-brand-text-primary bg-[#1c1914]/[0.06]' :
                                                 complianceMetrics.score >= 60 ? 'border-brand-border text-brand-text-primary bg-[#1c1914]/[0.04]' :
                                                 'border-brand-error/30 text-brand-error bg-brand-error/10'
@@ -1560,7 +1540,7 @@ Section 8.2 Limitation of Liability.
                                                         <span className={`font-bold tracking-wide ${check.satisfied ? 'text-brand-text-primary' : 'text-brand-text-secondary'}`}>
                                                             {check.satisfied ? '✓' : '✗'} {check.name}
                                                         </span>
-                                                        <span className={`text-[8px] uppercase px-1 py-0.5 border leading-none ${
+                                                        <span className={`text-[11px] uppercase px-1 py-0.5 border leading-none ${
                                                             check.satisfied 
                                                                 ? 'border-brand-border text-brand-text-primary' 
                                                                 : 'border-brand-text-primary/20 text-brand-text-secondary'
@@ -1569,7 +1549,7 @@ Section 8.2 Limitation of Liability.
                                                         </span>
                                                     </div>
                                                     {!check.satisfied && (
-                                                        <p className="text-[10px] text-brand-text-secondary leading-relaxed font-sans pl-3 border-l border-brand-border">
+                                                        <p className="text-[11px] text-brand-text-secondary leading-relaxed font-sans pl-3 border-l border-brand-border">
                                                             {check.tip}
                                                         </p>
                                                     )}
@@ -1594,12 +1574,12 @@ Section 8.2 Limitation of Liability.
                                         />
                                         <div className="flex items-center space-x-2 text-brand-accent mb-2">
                                             <div className="h-px w-4 bg-brand-accent"></div>
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">AI Mentor Guidance</span>
+                                            <span className="text-[11px] font-mono uppercase tracking-widest">AI Mentor Guidance</span>
                                         </div>
                                         {isLoadingAiInteraction && activeRefTab === 'feedback' ? (
                                             <div className="flex flex-col items-center justify-center py-10 space-y-4">
                                                 <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary/70" />
-                                                <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Analysing your draft...</span>
+                                                <span className="text-[11px] font-mono text-brand-text-secondary uppercase">Analysing your draft...</span>
                                             </div>
                                         ) : studioError?.scope === 'review' && !aiFeedback ? (
                                             <EmptyState
@@ -1618,7 +1598,7 @@ Section 8.2 Limitation of Liability.
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                     <button
                                                         onClick={() => void handleSpeak(aiFeedback)}
-                                                        className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
+                                                        className="px-2.5 py-1 text-[11px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
                                                         title="Speak this feedback"
                                                     >
                                                         [ Read Aloud ]
@@ -1640,12 +1620,12 @@ Section 8.2 Limitation of Liability.
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex items-center space-x-2 text-brand-accent mb-2">
                                             <div className="h-px w-4 bg-brand-accent"></div>
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">Filing Protocol</span>
+                                            <span className="text-[11px] font-mono uppercase tracking-widest">Filing Protocol</span>
                                         </div>
                                         {isLoadingAiInteraction && activeRefTab === 'procedure' ? (
                                             <div className="flex flex-col items-center justify-center py-10 space-y-4">
                                                 <LoadingSpinner size="sm" spinnerColor="text-brand-text-primary/70" />
-                                                <span className="text-[10px] font-mono text-brand-text-secondary uppercase">Loading filing workflow...</span>
+                                                <span className="text-[11px] font-mono text-brand-text-secondary uppercase">Loading filing workflow...</span>
                                             </div>
                                         ) : studioError?.scope === 'filing' && !filingProcedure ? (
                                             <EmptyState
@@ -1662,7 +1642,7 @@ Section 8.2 Limitation of Liability.
                                                 <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
                                                     <button
                                                         onClick={() => void handleSpeak(filingProcedure)}
-                                                        className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
+                                                        className="px-2.5 py-1 text-[11px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
                                                         title="Speak this protocol"
                                                     >
                                                         [ Read Aloud ]
@@ -1685,8 +1665,8 @@ Section 8.2 Limitation of Liability.
                                 {activeRefTab === 'history' && (
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex justify-between items-center border-b border-brand-text-primary/30 pb-2">
-                                            <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">Snapshots ({snapshots.length})</span>
-                                            <Button size="sm" variant="primary" onClick={saveSnapshot} className="px-2 py-1 text-[9px] font-mono rounded-xl uppercase tracking-wider">
+                                            <span className="text-[11px] font-mono uppercase tracking-widest text-brand-accent">Snapshots ({snapshots.length})</span>
+                                            <Button size="sm" variant="primary" onClick={saveSnapshot} className="px-2 py-1 text-[11px] font-mono rounded-xl uppercase tracking-wider">
                                                 [ Snapshot ]
                                             </Button>
                                         </div>
@@ -1703,8 +1683,8 @@ Section 8.2 Limitation of Liability.
                                                 {snapshots.map((snap) => (
                                                     <div key={snap.id} className="bg-brand-bg-secondary border border-brand-text-primary/30 p-3 rounded-xl flex flex-col space-y-2 text-left">
                                                         <div className="flex justify-between items-start">
-                                                            <span className="text-[10px] font-mono text-brand-text-primary font-semibold">{snap.timestamp}</span>
-                                                            <span className="text-[9px] font-mono text-brand-text-secondary/60">({snap.text.length} chars)</span>
+                                                            <span className="text-[11px] font-mono text-brand-text-primary font-semibold">{snap.timestamp}</span>
+                                                            <span className="text-[11px] font-mono text-brand-text-secondary/60">({snap.text.length} chars)</span>
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <button
@@ -1713,7 +1693,7 @@ Section 8.2 Limitation of Liability.
                                                                         setUserDraft(snap.text);
                                                                     }
                                                                 }}
-                                                                className="text-[9px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase"
+                                                                className="text-[11px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase"
                                                             >
                                                                 Restore
                                                             </button>
@@ -1722,7 +1702,7 @@ Section 8.2 Limitation of Liability.
                                                                     setSelectedSnapshotForDiff(snap.id);
                                                                     setIsDiffModalOpen(true);
                                                                 }}
-                                                                className="text-[9px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase"
+                                                                className="text-[11px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase"
                                                             >
                                                                 Compare Diff
                                                             </button>
@@ -1733,7 +1713,7 @@ Section 8.2 Limitation of Liability.
                                                                     setSnapshots(updated);
                                                                     if (currentTask) saveGenericState(key, updated);
                                                                 }}
-                                                                className="text-[9px] font-mono text-brand-error hover:text-brand-error transition-colors border border-brand-error/25 px-2 py-1 uppercase ml-auto"
+                                                                className="text-[11px] font-mono text-brand-error hover:text-brand-error transition-colors border border-brand-error/25 px-2 py-1 uppercase ml-auto"
                                                             >
                                                                 Delete
                                                             </button>
@@ -1749,7 +1729,7 @@ Section 8.2 Limitation of Liability.
                                     <div className="animate-fadeIn space-y-4">
                                         <div className="flex items-center space-x-2 text-brand-accent mb-2">
                                             <div className="h-px w-4 bg-brand-accent"></div>
-                                            <span className="text-[10px] font-mono uppercase tracking-widest">Needle Extraction Assist</span>
+                                            <span className="text-[11px] font-mono uppercase tracking-widest">Needle Extraction Assist</span>
                                         </div>
                                         <p className="text-[11px] text-brand-text-secondary font-light leading-relaxed">
                                             Paste the stdout JSON of the offline Needle sidecar
@@ -1762,17 +1742,17 @@ Section 8.2 Limitation of Liability.
                                             onChange={(e) => setSidecarJsonText(e.target.value)}
                                             placeholder={'{"ok": true, "authority": {"case_name": "...", "citation": "...", "proposition": "..."}, "turn_facts": {"cited_any": true, "hedge_count": 0}, "escalate": false}'}
                                             spellCheck={false}
-                                            className="w-full h-28 p-3 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl text-brand-text-primary font-mono text-[10px] leading-relaxed resize-y outline-none custom-scrollbar placeholder-brand-text-secondary/30"
+                                            className="w-full h-28 p-3 bg-brand-bg-secondary border border-brand-text-primary/30 rounded-xl text-brand-text-primary font-mono text-[11px] leading-relaxed resize-y outline-none custom-scrollbar placeholder-brand-text-secondary/30"
                                         />
                                         <div className="flex gap-2">
-                                            <Button size="sm" variant="primary" onClick={loadExtraction} className="px-3 py-1 text-[9px] font-mono rounded-xl uppercase tracking-wider">
+                                            <Button size="sm" variant="primary" onClick={loadExtraction} className="px-3 py-1 text-[11px] font-mono rounded-xl uppercase tracking-wider">
                                                 [ Load ]
                                             </Button>
-                                            <Button size="sm" variant="ghost" onClick={clearExtraction} className="px-3 py-1 text-[9px] font-mono rounded-xl uppercase tracking-wider border border-brand-text-primary/30">
+                                            <Button size="sm" variant="ghost" onClick={clearExtraction} className="px-3 py-1 text-[11px] font-mono rounded-xl uppercase tracking-wider border border-brand-text-primary/30">
                                                 Clear
                                             </Button>
                                             {extraction && (
-                                                <span className={`ml-auto self-center text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 border ${
+                                                <span className={`ml-auto self-center text-[11px] font-mono uppercase tracking-widest px-2 py-0.5 border ${
                                                     extraction.status === 'ready'
                                                         ? 'border-brand-border text-brand-text-primary bg-[#1c1914]/[0.04]'
                                                         : extraction.status === 'escalated'
@@ -1786,10 +1766,10 @@ Section 8.2 Limitation of Liability.
 
                                         {extraction?.escalate && (
                                             <div role="alert" className="border border-brand-error/30 bg-brand-error/10 text-brand-error p-3 rounded-xl text-left">
-                                                <div className="text-[10px] font-mono font-bold uppercase tracking-widest mb-1">
+                                                <div className="text-[11px] font-mono font-bold uppercase tracking-widest mb-1">
                                                     Escalated — verify manually, do not cite
                                                 </div>
-                                                <div className="text-[10px] font-mono opacity-80">
+                                                <div className="text-[11px] font-mono opacity-80">
                                                     {extraction.codes.length > 0 ? `Codes: ${extraction.codes.join(', ')}` : 'Below-confidence extraction.'}
                                                 </div>
                                             </div>
@@ -1798,7 +1778,7 @@ Section 8.2 Limitation of Liability.
                                         {extraction && extraction.errors.length > 0 && (
                                             <ul className="space-y-1 text-left">
                                                 {extraction.errors.map((err, idx) => (
-                                                    <li key={idx} className="text-[10px] font-mono text-brand-text-secondary border-l border-brand-error/40 pl-2">
+                                                    <li key={idx} className="text-[11px] font-mono text-brand-text-secondary border-l border-brand-error/40 pl-2">
                                                         {err}
                                                     </li>
                                                 ))}
@@ -1807,7 +1787,7 @@ Section 8.2 Limitation of Liability.
 
                                         {extraction && extraction.authorities.length > 0 && (
                                             <div className="space-y-3">
-                                                <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">
+                                                <span className="text-[11px] font-mono uppercase tracking-widest text-brand-accent">
                                                     Authorities ({extraction.authorities.length})
                                                 </span>
                                                 {extraction.authorities.map((auth, idx) => (
@@ -1815,22 +1795,22 @@ Section 8.2 Limitation of Liability.
                                                         <div className="flex justify-between items-start gap-2">
                                                             <span className="text-[11px] font-serif font-semibold text-brand-text-primary">{auth.case_name || '(unnamed)'}</span>
                                                             {auth.belowThreshold ? (
-                                                                <span className="text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 border border-brand-error/30 text-brand-error bg-brand-error/10 leading-none flex-shrink-0">
+                                                                <span className="text-[11px] font-mono font-bold uppercase px-1.5 py-0.5 border border-brand-error/30 text-brand-error bg-brand-error/10 leading-none flex-shrink-0">
                                                                     Escalate
                                                                 </span>
                                                             ) : (
-                                                                <span className="text-[8px] font-mono uppercase px-1.5 py-0.5 border border-brand-border text-brand-text-primary leading-none flex-shrink-0">
+                                                                <span className="text-[11px] font-mono uppercase px-1.5 py-0.5 border border-brand-border text-brand-text-primary leading-none flex-shrink-0">
                                                                     conf {auth.confidence !== null ? auth.confidence.toFixed(2) : 'n/a'}
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="text-[10px] font-mono text-brand-text-secondary">{auth.citation || '(no citation)'}</div>
+                                                        <div className="text-[11px] font-mono text-brand-text-secondary">{auth.citation || '(no citation)'}</div>
                                                         <p className="text-[11px] font-light text-brand-text-primary/90 leading-relaxed">{auth.proposition || '(no proposition)'}</p>
                                                         <div>
                                                             <button
                                                                 onClick={() => confirmInsertAuthority(idx)}
                                                                 disabled={!auth.case_name || !auth.citation || !auth.proposition}
-                                                                className="text-[9px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                className="text-[11px] font-mono text-brand-accent hover:text-brand-text-primary transition-colors border border-brand-accent/20 px-2 py-1 uppercase disabled:opacity-40 disabled:cursor-not-allowed"
                                                             >
                                                                 Insert into draft (confirm)
                                                             </button>
@@ -1842,7 +1822,7 @@ Section 8.2 Limitation of Liability.
 
                                         {extraction?.turnFacts && (
                                             <div className="bg-brand-bg-secondary border border-brand-text-primary/30 p-3 rounded-xl text-left">
-                                                <span className="text-[10px] font-mono uppercase tracking-widest text-brand-accent">Turn facts</span>
+                                                <span className="text-[11px] font-mono uppercase tracking-widest text-brand-accent">Turn facts</span>
                                                 <div className="mt-1.5 text-[11px] font-mono text-brand-text-secondary space-y-0.5">
                                                     <div>cited_any: <span className="text-brand-text-primary">{String(extraction.turnFacts.cited_any)}</span></div>
                                                     <div>hedge_count: <span className="text-brand-text-primary">{extraction.turnFacts.hedge_count}</span></div>
@@ -1859,7 +1839,7 @@ Section 8.2 Limitation of Liability.
                                             />
                                         )}
 
-                                        <p className="text-[9px] font-mono uppercase tracking-widest text-brand-text-secondary/60 text-left">
+                                        <p className="text-[11px] font-mono uppercase tracking-widest text-brand-text-secondary/60 text-left">
                                             Extracted text is never auto-inserted as cited — each insert needs your confirm and is marked unverified.
                                         </p>
                                     </div>
@@ -1875,7 +1855,7 @@ Section 8.2 Limitation of Liability.
                     {/* Editor Toolbar */}
                     <div className="flex-shrink-0 p-2.5 lg:p-4 border-b border-brand-text-primary/30 bg-brand-bg-secondary flex items-center justify-between z-10 gap-2">
                         <div className="flex flex-col min-w-0 flex-1">
-                            <span className="text-[8px] lg:text-[9px] font-mono text-brand-text-secondary uppercase tracking-[0.2em] mb-0.5">Editor</span>
+                            <span className="text-[11px] lg:text-[11px] font-mono text-brand-text-secondary uppercase tracking-[0.2em] mb-0.5">Editor</span>
                             <h3 className="text-xs lg:text-sm font-serif font-semibold text-brand-text-primary truncate">{currentTask?.title}</h3>
                         </div>
 
@@ -1894,11 +1874,11 @@ Section 8.2 Limitation of Liability.
                                 onClick={() => setIsFocusMode(!isFocusMode)}
                                 variant="outline"
                                 size="sm"
-                                className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-xl flex-shrink-0"
+                                className="text-[11px] lg:text-[11px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-xl flex-shrink-0"
                             >
                                 {isFocusMode ? 'Exit Focus' : 'Focus Mode'}
                             </Button>
-                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[8px] lg:text-[10px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-xl flex-shrink-0 hidden sm:flex">
+                            <Button onClick={resetTaskStateFull} variant="ghost" size="sm" className="text-[11px] lg:text-[11px] h-7 lg:h-8 px-2 lg:px-3 border border-brand-text-primary/30 hover:border-brand-text-primary text-brand-text-secondary rounded-xl flex-shrink-0 hidden sm:flex">
                                 Reset
                             </Button>
                         </div>
@@ -1919,7 +1899,7 @@ Section 8.2 Limitation of Liability.
                                     <p className="text-xs lg:text-sm text-brand-text-secondary font-light mb-4 lg:mb-6 leading-relaxed">
                                         Review the <span className="text-brand-text-primary font-medium">Facts</span> in the reference panel, then open the editor to draft your <span className="text-brand-text-primary font-medium">{currentTask?.type}</span>.
                                     </p>
-                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="md" className="uppercase tracking-wider text-[10px] lg:text-xs rounded-xl">
+                                    <Button onClick={handleProceedToDrafting} variant="primary" fullWidth size="md" className="uppercase tracking-wider text-[11px] lg:text-xs rounded-xl">
                                         Commence drafting
                                     </Button>
                                 </Card>
@@ -1943,9 +1923,9 @@ Section 8.2 Limitation of Liability.
                             <div className="flex items-center space-x-3">
                                 <div className="flex items-center space-x-1.5">
                                     <div className={`w-1.5 h-1.5 rounded-xl ${userDraft.length > 0 ? 'bg-white' : 'bg-brand-text-secondary/30'}`}></div>
-                                    <span className="text-[9px] lg:text-[10px] font-mono text-brand-text-secondary">{userDraft.length} chars</span>
+                                    <span className="text-[11px] lg:text-[11px] font-mono text-brand-text-secondary">{userDraft.length} chars</span>
                                 </div>
-                                <span className={`text-[9px] font-mono text-brand-text-secondary transition-opacity duration-300 ${showAutoSave ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={`text-[11px] font-mono text-brand-text-secondary transition-opacity duration-300 ${showAutoSave ? 'opacity-100' : 'opacity-0'}`}>
                                     [Saved]
                                 </span>
                             </div>
@@ -1961,7 +1941,7 @@ Section 8.2 Limitation of Liability.
                                     title="View full scoring breakdown"
                                 >
                                     <ChartBarIcon className="w-3 h-3" />
-                                    <span className="text-[9px] font-mono font-bold">{Math.round(scoringResult.totalScore)}</span>
+                                    <span className="text-[11px] font-mono font-bold">{Math.round(scoringResult.totalScore)}</span>
                                 </button>
                             )}
                         </div>
@@ -2014,7 +1994,7 @@ Section 8.2 Limitation of Liability.
                                 variant="ghost"
                                 size="sm"
                                 disabled={!userDraft}
-                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                className="text-[11px] lg:text-[11px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                             >
                                 {isCopied ? 'Copied!' : 'Copy'}
                             </Button>
@@ -2024,7 +2004,7 @@ Section 8.2 Limitation of Liability.
                                 variant="ghost"
                                 size="sm"
                                 disabled={!userDraft.trim() || stage === 'task_details_display'}
-                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                className="text-[11px] lg:text-[11px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                             >
                                 Export
                             </Button>
@@ -2034,7 +2014,7 @@ Section 8.2 Limitation of Liability.
                                 variant="ghost"
                                 size="sm"
                                 disabled={!userDraft.trim() || stage === 'task_details_display'}
-                                className="text-[8px] lg:text-[10px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                className="text-[11px] lg:text-[11px] border border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                             >
                                 Download .docx
                             </Button>
@@ -2045,7 +2025,7 @@ Section 8.2 Limitation of Liability.
                                     variant="outline"
                                     size="sm"
                                     disabled={isLoading}
-                                    className="text-[8px] lg:text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
+                                    className="text-[11px] lg:text-[11px] border-brand-text-primary/30 text-brand-text-secondary hover:text-brand-text-primary rounded-xl uppercase tracking-wider h-8 lg:h-10 px-2 lg:px-4"
                                 >
                                     Filing
                                 </Button>
@@ -2056,7 +2036,7 @@ Section 8.2 Limitation of Liability.
                                 variant="primary"
                                 size="sm"
                                 disabled={isLoading || userDraft.length < 10 || stage === 'task_details_display'}
-                                className="flex-1 min-w-0 rounded-xl transition-all text-[9px] lg:text-xs uppercase tracking-wider h-8 lg:h-10"
+                                className="flex-1 min-w-0 rounded-xl transition-all text-[11px] lg:text-xs uppercase tracking-wider h-8 lg:h-10"
                             >
                                 {isLoadingAiInteraction ? 'Reviewing...' : (aiFeedback ? 'Re-Submit' : 'Submit')}
                             </Button>

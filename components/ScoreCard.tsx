@@ -68,7 +68,7 @@ const ScoreGauge: React.FC<{ score: number; tier: ScoringResult['verdictTier'] }
         <span className="text-2xl font-semibold text-brand-text-primary font-mono tabular-nums leading-none">
           {Math.round(clamped)}
         </span>
-        <span className="mt-1 text-[9px] font-mono text-brand-text-secondary uppercase tracking-[0.18em]">
+        <span className="mt-1 text-[11px] font-mono text-brand-text-secondary uppercase tracking-[0.18em]">
           /100
         </span>
       </div>
@@ -87,8 +87,8 @@ const MetricRow: React.FC<{ metric: MetricBreakdown }> = ({ metric }) => {
           {metric.label}
         </span>
         <div className="flex items-center gap-1.5 flex-shrink-0 font-mono tabular-nums">
-          <span className="text-[10px] text-brand-text-primary">{metric.value}</span>
-          <span className="text-[9px] text-brand-text-secondary/45">/ {metric.target}</span>
+          <span className="text-[11px] text-brand-text-primary">{metric.value}</span>
+          <span className="text-[11px] text-brand-text-secondary/45">/ {metric.target}</span>
         </div>
       </div>
       <div className="w-full h-px bg-[#1c1914]/[0.06] overflow-hidden">
@@ -107,7 +107,7 @@ const SectionLabel: React.FC<{ children: React.ReactNode; strong?: boolean }> = 
 }) => (
   <div className="flex items-center gap-2 mb-1.5">
     <div className={`h-px w-3 ${strong ? 'bg-white/40' : 'bg-[#1c1914]/[0.08]'}`} />
-    <span className="text-[9px] font-mono text-brand-text-secondary uppercase tracking-[0.18em]">
+    <span className="text-[11px] font-mono text-brand-text-secondary uppercase tracking-[0.18em]">
       {children}
     </span>
   </div>
@@ -138,7 +138,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ result, className = '' }) 
         <p className={`text-xs font-medium tracking-tight ${TIER_TEXT[result.verdictTier]}`}>
           {result.verdict}
         </p>
-        <div className="flex items-center justify-center gap-3 text-[10px] font-mono text-brand-text-secondary/70">
+        <div className="flex items-center justify-center gap-3 text-[11px] font-mono text-brand-text-secondary/70">
           <span>{result.wordCount.toLocaleString()} words</span>
           <span className="w-px h-3 bg-[#1c1914]/[0.08]" aria-hidden="true" />
           <span>{result.sentenceCount} sentences</span>
@@ -198,7 +198,7 @@ export const ScoreCard: React.FC<ScoreCardProps> = ({ result, className = '' }) 
               <p className="text-[11px] font-medium text-brand-error">
                 AI-generated patterns detected
               </p>
-              <p className="text-[10px] text-brand-text-secondary mt-0.5 leading-relaxed">
+              <p className="text-[11px] text-brand-text-secondary mt-0.5 leading-relaxed">
                 {result.aiTellCount} phrase{result.aiTellCount > 1 ? 's' : ''} flagged. Penalty: -
                 {result.aiTellCount * 5} points. Revise these to strengthen authenticity.
               </p>

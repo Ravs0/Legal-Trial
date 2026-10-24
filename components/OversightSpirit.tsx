@@ -433,11 +433,11 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
                   <span className="text-brand-text-primary font-serif font-semibold text-[15px]">
                     Koku
                   </span>
-                  <span className="text-[9px] text-brand-text-secondary tracking-widest uppercase border border-brand-border px-1.5 py-0.5 rounded-sm">
+                  <span className="text-[11px] text-brand-text-secondary tracking-widest uppercase border border-brand-border px-1.5 py-0.5 rounded-sm">
                     Optional coach
                   </span>
                 </div>
-                <p className="text-[10px] text-brand-text-secondary truncate mt-0.5">
+                <p className="text-[11px] text-brand-text-secondary truncate mt-0.5">
                   Context: {routeHint}
                 </p>
               </div>
@@ -453,7 +453,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-3 border-b border-brand-border px-4 py-2 text-[10px] text-brand-text-secondary">
+          <div className="flex flex-wrap gap-3 border-b border-brand-border px-4 py-2 text-[11px] text-brand-text-secondary">
             <label className="flex items-center gap-1.5 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -482,7 +482,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
               >
                 {msg.sender === 'koku' && (
                   <div className="w-6 h-6 bg-[#1c1914]/[0.06] border border-brand-border rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                    <span className="text-[10px] font-semibold text-brand-text-primary font-serif">
+                    <span className="text-[11px] font-semibold text-brand-text-primary font-serif">
                       K
                     </span>
                   </div>
@@ -501,7 +501,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
             {isTyping && (
               <div className="flex justify-start">
                 <div className="w-6 h-6 bg-[#1c1914]/[0.06] border border-brand-border rounded-md flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-                  <span className="text-[10px] font-semibold text-brand-text-primary font-serif">
+                  <span className="text-[11px] font-semibold text-brand-text-primary font-serif">
                     K
                   </span>
                 </div>
@@ -565,7 +565,7 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
                 Route tip
               </p>
               <p className="text-sm text-brand-text-primary leading-snug">{toast.text}</p>
-              <p className="text-[10px] text-brand-text-secondary/60 mt-1 tracking-wide uppercase group-hover:text-brand-text-secondary transition-colors">
+              <p className="text-[11px] text-brand-text-secondary/60 mt-1 tracking-wide uppercase group-hover:text-brand-text-secondary transition-colors">
                 Click to chat · auto-dismiss
               </p>
             </div>
@@ -585,17 +585,17 @@ Remember: you are Koku, LexForge practice coach. Stay useful. Keep answers punch
         </div>
       )}
 
-      {!isOpen && (
+      {!isOpen && location.pathname === ROUTES.PRACTICE && (
         <button
           onClick={() => {
             dismissToast();
             setIsOpen(true);
           }}
-          className="hidden sm:flex w-12 h-12 bg-brand-bg-secondary border border-brand-border rounded-lg hover:bg-[#1c1914]/[0.06] hover:border-white/35 transition-colors items-center justify-center relative group"
+          className="hidden sm:flex w-12 h-12 bg-brand-bg-secondary border border-brand-border rounded-lg hover:bg-[#1c1914]/[0.06] hover:border-brand-border-light transition-colors items-center justify-center relative group"
           aria-label="Open optional coach"
         >
           <span className="text-lg font-semibold text-brand-text-primary font-serif">K</span>
-          <div className="absolute right-14 bg-brand-bg-secondary border border-brand-border text-brand-text-primary text-[10px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-md">
+          <div className="absolute right-14 bg-brand-bg-secondary border border-brand-border text-brand-text-primary text-[11px] px-2 py-1 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none rounded-md">
             Optional coach
           </div>
         </button>

@@ -357,7 +357,7 @@ export const DreadlerArenaScreen: React.FC = () => {
           li: ({node, ...props}) => <li className="text-zinc-300" {...props} />,
           h1: ({node, ...props}) => <h1 className="text-xs sm:text-sm font-serif font-bold text-white mt-3 mb-1 border-b border-zinc-800 pb-0.5 uppercase tracking-wide" {...props} />,
           h2: ({node, ...props}) => <h2 className="text-[11px] sm:text-xs font-serif font-bold text-zinc-150 mt-2.5 mb-1" {...props} />,
-          h3: ({node, ...props}) => <h3 className="text-[10px] sm:text-[11px] font-serif font-bold text-zinc-200 mt-2 mb-0.5" {...props} />,
+          h3: ({node, ...props}) => <h3 className="text-[11px] sm:text-[11px] font-serif font-bold text-zinc-200 mt-2 mb-0.5" {...props} />,
           p: ({node, ...props}) => <p className="mb-1.5 last:mb-0 text-zinc-300 leading-relaxed" {...props} />,
           code: ({node, className, children, ...props}) => {
             const match = /language-(\w+)/.exec(className || '');
@@ -991,7 +991,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                         {w.background}
                       </p>
                     </div>
-                    <div className="pt-2 text-[10px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
+                    <div className="pt-2 text-[11px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
                       <span>{w.groundedFacts.length} facts</span>
                       <span className={isSelected ? 'text-red-400 font-bold' : 'group-hover:text-zinc-100'}>
                         {isSelected ? 'Selected' : 'Select'}
@@ -1044,8 +1044,8 @@ export const DreadlerArenaScreen: React.FC = () => {
                       <h3 className={`font-serif text-xl font-bold drop-shadow-lg ${isSelected ? 'text-red-400' : 'text-zinc-100'}`}>
                         {s.name}
                       </h3>
-                      <p className="text-[10px] font-mono text-zinc-300">{s.style}</p>
-                      <div className="pt-2 text-[10px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
+                      <p className="text-[11px] font-mono text-zinc-300">{s.style}</p>
+                      <div className="pt-2 text-[11px] font-mono text-zinc-400 flex items-center justify-between border-t border-white/10">
                         <span>α β γ</span>
                         <span className={isSelected ? 'text-red-400 font-bold' : 'group-hover:text-zinc-100'}>
                           {isSelected ? 'Selected' : 'Select'}
@@ -1084,13 +1084,13 @@ export const DreadlerArenaScreen: React.FC = () => {
         <div className="fixed bottom-20 left-0 right-0 z-50 flex justify-center gap-3 px-4 pointer-events-none">
           <button
             onClick={() => setShowMobileReference(prev => !prev)}
-            className="pointer-events-auto px-3 py-1.5 bg-[#101014]/95 border border-zinc-700 text-[10px] font-mono uppercase tracking-wider text-zinc-200 shadow-lg backdrop-blur-md"
+            className="pointer-events-auto px-3 py-1.5 bg-[#101014]/95 border border-zinc-700 text-[11px] font-mono uppercase tracking-wider text-zinc-200 shadow-lg backdrop-blur-md"
           >
             'Facts'
           </button>
           <button
             onClick={() => setShowMobileCritic(prev => !prev)}
-            className="pointer-events-auto px-3 py-1.5 bg-[#101014]/95 border border-zinc-600 text-[10px] font-mono uppercase tracking-wider text-zinc-300 shadow-lg backdrop-blur-md"
+            className="pointer-events-auto px-3 py-1.5 bg-[#101014]/95 border border-zinc-600 text-[11px] font-mono uppercase tracking-wider text-zinc-300 shadow-lg backdrop-blur-md"
           >
             'Critic'
           </button>
@@ -1186,38 +1186,38 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="border border-zinc-800 p-4 bg-zinc-900/15 flex flex-col items-center justify-center text-center">
                 <div className="my-2 relative w-20 h-20 rounded-full border border-zinc-800 flex items-center justify-center">
                   <div className="absolute inset-0 rounded-full border-t border-t-red-500/30 animate-spin" style={{ animationDuration: '4s' }}></div>
-                  <div className={`w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center font-bold text-[10px] ${lastDirectLie ? 'bg-red-600 text-white border border-red-400 animate-ping' : 'bg-zinc-900 text-zinc-300 border border-zinc-600'}`}>
+                  <div className={`w-6 h-6 rounded-full transition-all duration-300 flex items-center justify-center font-bold text-[11px] ${lastDirectLie ? 'bg-red-600 text-white border border-red-400 animate-ping' : 'bg-zinc-900 text-zinc-300 border border-zinc-600'}`}>
                     {lastDirectLie ? '!' : 'OK'}
                   </div>
                 </div>
                 {lastDirectLie ? (
-                  <div className="w-full mt-2 p-2 bg-red-950/30 border border-red-500/30 text-[10px] font-bold text-red-400 uppercase tracking-wide animate-pulse">⚠️ CONTRADICTION DETECTED</div>
+                  <div className="w-full mt-2 p-2 bg-red-950/30 border border-red-500/30 text-[11px] font-bold text-red-400 uppercase tracking-wide animate-pulse">⚠️ CONTRADICTION DETECTED</div>
                 ) : (
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest">No Contradictions Flagged</div>
+                  <div className="text-[11px] text-zinc-500 uppercase tracking-widest">No Contradictions Flagged</div>
                 )}
               </div>
               <div className="space-y-2">
-                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Critic Evaluation</h4>
+                <h4 className="text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Critic Evaluation</h4>
                 <div className="bg-[#15151b] p-3 border border-zinc-800 min-h-[90px] font-serif text-[12px] leading-relaxed text-zinc-200">
                   {lastCriticLog ? renderMarkdown(lastCriticLog) : <span className="italic text-zinc-500">—</span>}
                 </div>
                 {lastAgentTactic && (
-                  <p className="text-[10px] font-mono text-zinc-400">
+                  <p className="text-[11px] font-mono text-zinc-400">
                     <span className="uppercase tracking-wider text-zinc-500">Examiner's last manoeuvre: </span>
                     <span className="text-red-400 font-bold uppercase">{AGENT_TACTIC_LABELS[lastAgentTactic] || lastAgentTactic}</span>
                   </p>
                 )}
               </div>
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Your fallacies</h4>
-                <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <h4 className="text-[11px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800 pb-1">Your fallacies</h4>
+                <div className="grid grid-cols-3 gap-2 text-[11px]">
                   {TAXONOMY_TACTICS.map((t) => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
                     const isActiveNow = lastTacticFlagged === t.id;
                     return (
                       <div key={t.id} className={`p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                         <div className="truncate">{t.name}</div>
-                        <div className="text-[10px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
+                        <div className="text-[11px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                       </div>
                     );
                   })}
@@ -1244,7 +1244,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 {isMobile ? activeSkin.name : `Examiner: ${activeSkin.name}`}
               </h1>
               <span
-                className={`text-[10px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border ${
+                className={`text-[11px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border ${
                   (stateData?.agent_variant || '').toLowerCase() === 'collapsed'
                     ? 'bg-zinc-900 border-zinc-500 text-zinc-300'
                     : 'bg-zinc-950/80 border-zinc-600 text-zinc-300'
@@ -1253,7 +1253,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 {stateData?.agent_variant || 'ALPHA'}
               </span>
               <span
-                className="text-[10px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border border-red-500/30 bg-red-950/20 text-red-400"
+                className="text-[11px] sm:text-[11px] font-mono px-1.5 sm:px-2 py-0.5 tracking-widest uppercase flex-shrink-0 border border-red-500/30 bg-red-950/20 text-red-400"
                 title="Examiner sophistication — deepens as you demonstrate skill"
               >
                 {TIER_NAMES[tier] || 'ADEPT'}
@@ -1283,7 +1283,7 @@ export const DreadlerArenaScreen: React.FC = () => {
         {/* Meta Stats & Exit */}
         <div className="flex items-center gap-2 sm:gap-3 justify-end">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-mono text-zinc-500 uppercase leading-none">Resets</p>
+            <p className="text-[11px] font-mono text-zinc-500 uppercase leading-none">Resets</p>
             <p className="text-lg font-mono font-bold text-zinc-200 leading-none mt-1 tabular-nums">#{stateData?.spawn_count || 0}</p>
           </div>
           <div className="flex gap-1 sm:gap-2">
@@ -1333,10 +1333,10 @@ export const DreadlerArenaScreen: React.FC = () => {
             <button onClick={() => setReferenceTab('objective')} className={`flex-1 py-2 sm:py-3 text-center transition-all ${referenceTab === 'objective' ? 'bg-zinc-900 text-brand-accent border-b-2 border-b-brand-accent' : 'text-zinc-400 hover:text-zinc-200'}`}>Objective</button>
           </div>
 
-          <div className="flex-grow p-3 sm:p-4 overflow-y-auto custom-scrollbar font-light leading-relaxed text-[10px] sm:text-xs">
+          <div className="flex-grow p-3 sm:p-4 overflow-y-auto custom-scrollbar font-light leading-relaxed text-[11px] sm:text-xs">
             {referenceTab === 'facts' && (
               <div className="space-y-3 sm:space-y-4">
-                <div className="p-2 sm:p-3 bg-red-950/10 border border-red-500/20 text-zinc-400 text-[10px] sm:text-[11px] font-mono leading-relaxed">
+                <div className="p-2 sm:p-3 bg-red-950/10 border border-red-500/20 text-zinc-400 text-[11px] sm:text-[11px] font-mono leading-relaxed">
                   <strong className="text-red-400">Rules.</strong> Consistency with these and your own claims is survival.
                 </div>
                 <div className="space-y-2 sm:space-y-3 font-mono">
@@ -1349,7 +1349,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     else if (checkState === 'questioned') { bgClass = 'border-red-500/40 text-red-400 bg-red-950/5'; bullet = '[?]'; }
                     return (
                       <button type="button" key={index} onClick={() => toggleFactCheck(index)} aria-pressed={checkState !== 'unmarked'} className={`w-full p-2 sm:p-2.5 border text-left transition-all ${bgClass}`}>
-                        <div className="flex items-start gap-2"><span className="font-bold flex-shrink-0">{bullet}</span><span className="leading-tight text-[10px] sm:text-[11px]">{fact}</span></div>
+                        <div className="flex items-start gap-2"><span className="font-bold flex-shrink-0">{bullet}</span><span className="leading-tight text-[11px] sm:text-[11px]">{fact}</span></div>
                       </button>
                     );
                   })}
@@ -1357,13 +1357,13 @@ export const DreadlerArenaScreen: React.FC = () => {
               </div>
             )}
             {referenceTab === 'notebook' && (
-              <div className="space-y-3 sm:space-y-4 font-mono text-[10px] sm:text-[11px]">
+              <div className="space-y-3 sm:space-y-4 font-mono text-[11px] sm:text-[11px]">
                 <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1">Interrogation</h4><p className="font-serif text-[13px] text-zinc-200 leading-relaxed bg-[#15151b] p-2 sm:p-3 border border-white/[0.08]">{activeWorld.background}</p></div>
                 <div><h4 className="text-red-500 font-bold uppercase tracking-wider mb-1 mt-3 sm:mt-4">Examiner</h4><div className="bg-zinc-900 p-2 sm:p-3 border border-zinc-800 space-y-1 sm:space-y-2"><p><strong className="text-zinc-200">Name:</strong> {activeSkin.name}</p><p><strong className="text-zinc-200">Role:</strong> {activeSkin.role}</p><p className="text-zinc-400 leading-relaxed pt-1 border-t border-zinc-800">{activeSkin.description}</p></div></div>
               </div>
             )}
             {referenceTab === 'objective' && (
-              <div className="space-y-3 sm:space-y-4 font-mono text-[10px] sm:text-[11px]">
+              <div className="space-y-3 sm:space-y-4 font-mono text-[11px] sm:text-[11px]">
                 <div className="p-2 sm:p-3 bg-red-950/15 border border-red-500/30 text-zinc-400"><h4 className="text-red-500 font-bold uppercase tracking-widest mb-1.5">Examiner Objective</h4><p className="leading-relaxed text-red-400 font-medium">"{activeWorld.targetConclusion}"</p></div>
                 
               </div>
@@ -1413,10 +1413,10 @@ export const DreadlerArenaScreen: React.FC = () => {
                 
                 {/* BPM and Dominant Emotion badge — honest n/a when not live */}
                 <div className="absolute bottom-1 left-0 right-0 text-center bg-black/70 py-0.5 pointer-events-none">
-                  <p className="text-[10px] font-mono text-red-400 font-bold leading-none">
+                  <p className="text-[11px] font-mono text-red-400 font-bold leading-none">
                     ♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)}
                   </p>
-                  <p className="text-[10px] font-mono text-zinc-400 leading-none uppercase truncate px-1">
+                  <p className="text-[11px] font-mono text-zinc-400 leading-none uppercase truncate px-1">
                     {camera.cameraOn ? bioStatusLabel : dominantEmotion}
                   </p>
                 </div>
@@ -1428,7 +1428,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                 return (
                   <div
                     key={msg.id}
-                    className={`p-2 sm:p-4 font-mono text-[10px] sm:text-[11px] leading-relaxed relative overflow-hidden animate-fadeIn border ${
+                    className={`p-2 sm:p-4 font-mono text-[11px] sm:text-[11px] leading-relaxed relative overflow-hidden animate-fadeIn border ${
                       isCollapse
                         ? 'bg-zinc-950 border-zinc-500 text-zinc-200'
                         : 'bg-zinc-950/80 border-zinc-700 text-zinc-300'
@@ -1451,7 +1451,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                       ? isCollapsedVariant
                         ? 'border-zinc-400 opacity-80'
                         : 'border-zinc-600'
-                      : 'border-zinc-700 bg-zinc-900 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold text-zinc-400'
+                      : 'border-zinc-700 bg-zinc-900 flex items-center justify-center font-mono text-[11px] sm:text-xs font-bold text-zinc-400'
                   }`}>
                     {isCharacter 
                       ? <img src={dreadlerPortrait} alt={activeSkin.name} className={`w-full h-full object-cover object-top ${isCollapsedVariant ? 'grayscale brightness-50' : 'grayscale'}`} />
@@ -1465,7 +1465,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                       </span>
                       {msg.variant && (
                         <span
-                          className={`text-[10px] sm:text-[10px] font-mono px-1 py-0.5 uppercase leading-none border ${
+                          className={`text-[11px] sm:text-[11px] font-mono px-1 py-0.5 uppercase leading-none border ${
                             isCollapsedVariant
                               ? 'bg-zinc-900 text-zinc-200 border-zinc-400'
                               : 'bg-zinc-950 text-zinc-400 border-zinc-700'
@@ -1488,7 +1488,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                           <summary className="font-bold text-red-500/80 hover:text-red-400 uppercase tracking-wider mb-1.5 focus:outline-none">
                             [ Reasoning log ]
                           </summary>
-                          <div className="pl-2 border-l border-zinc-800 whitespace-pre-wrap font-mono text-zinc-400 bg-zinc-950/40 p-2 overflow-x-auto text-[10px] leading-relaxed">
+                          <div className="pl-2 border-l border-zinc-800 whitespace-pre-wrap font-mono text-zinc-400 bg-zinc-950/40 p-2 overflow-x-auto text-[11px] leading-relaxed">
                             {msg.thinkingLog}
                           </div>
                         </details>
@@ -1500,7 +1500,7 @@ export const DreadlerArenaScreen: React.FC = () => {
             })}
             {isTyping && !isStreaming && (
               <div className="flex gap-2 sm:gap-3 max-w-[80%] mr-auto text-left items-center">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-red-500/40 text-red-400 bg-red-950/20 flex items-center justify-center font-mono text-[10px] sm:text-xs font-bold animate-pulse">{activeSkin.avatar}</div>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl border border-red-500/40 text-red-400 bg-red-950/20 flex items-center justify-center font-mono text-[11px] sm:text-xs font-bold animate-pulse">{activeSkin.avatar}</div>
                 <div className="px-3 sm:px-4 py-2 sm:py-3 bg-[#15151b] border border-red-500/20 flex items-center gap-1.5 sm:gap-2">
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -1522,7 +1522,7 @@ export const DreadlerArenaScreen: React.FC = () => {
               disabled={isTyping}
               className="flex-grow bg-[#15151b] border border-zinc-800 px-3 sm:px-4 py-2 sm:py-2.5 text-[16px] sm:text-sm font-mono text-zinc-200 focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/10 disabled:opacity-50"
             />
-            <button type="submit" disabled={!input.trim() || isTyping} className="px-3 sm:px-5 py-2 sm:py-2.5 bg-white hover:bg-zinc-200 text-black font-mono text-[10px] sm:text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 border border-white">
+            <button type="submit" disabled={!input.trim() || isTyping} className="px-3 sm:px-5 py-2 sm:py-2.5 bg-white hover:bg-zinc-200 text-black font-mono text-[11px] sm:text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1 border border-white">
               <span>{isMobile ? '→' : 'Send →'}</span>
             </button>
           </form>
@@ -1531,17 +1531,17 @@ export const DreadlerArenaScreen: React.FC = () => {
         {/* PANEL 3: CRITIC LOG (Hidden on mobile, toggled via drawer) */}
         <div className={`bg-[#111116]/95 border border-white/[0.08] flex flex-col overflow-hidden backdrop-blur-md lg:col-span-1 text-left font-mono ${isMobile ? 'hidden' : ''}`}>
           <div className="border-b border-zinc-800 px-3 sm:px-4 py-2 sm:py-3 bg-zinc-950/60 flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs uppercase tracking-widest text-red-500 font-bold flex items-center gap-1.5">
+            <span className="text-[11px] sm:text-xs uppercase tracking-widest text-red-500 font-bold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>Critic Log
             </span>
             
           </div>
 
-          <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-4 sm:space-y-6 custom-scrollbar text-[10px] sm:text-xs">
+          <div className="flex-grow p-3 sm:p-4 overflow-y-auto space-y-4 sm:space-y-6 custom-scrollbar text-[11px] sm:text-xs">
             {/* BIOMETRICS & RETINAL SENSORS */}
             <div className="space-y-3">
               {/* Algorithm selector — stubs disabled when camera is live */}
-              <div className="flex border border-zinc-800/80 font-mono text-[10px] bg-black/20 p-[1px]">
+              <div className="flex border border-zinc-800/80 font-mono text-[11px] bg-black/20 p-[1px]">
                 {(['pos', 'hsemotion'] as const).map((algo) => {
                   const liveDisabled =
                     camera.cameraOn && algo === 'hsemotion' && !realBio.emotionsLive;
@@ -1595,8 +1595,8 @@ export const DreadlerArenaScreen: React.FC = () => {
                 )}
                 
                 {/* HUD Overlay text */}
-                <div className="absolute top-1 left-2 text-[10px] text-zinc-500 font-mono tracking-widest uppercase">RETINAL BIOMETRICS</div>
-                <div className={`absolute top-1 right-2 text-[10px] font-mono uppercase ${
+                <div className="absolute top-1 left-2 text-[11px] text-zinc-500 font-mono tracking-widest uppercase">RETINAL BIOMETRICS</div>
+                <div className={`absolute top-1 right-2 text-[11px] font-mono uppercase ${
                   bioStatusLabel === 'Live' || bioStatusLabel === 'POS only'
                     ? 'text-emerald-400'
                     : bioStatusLabel === 'Simulated'
@@ -1606,12 +1606,12 @@ export const DreadlerArenaScreen: React.FC = () => {
                   {camera.loading ? '◌ Acquiring' : `● ${bioStatusLabel}`}
                 </div>
                 {camera.error && (
-                  <div className="absolute inset-x-1 top-6 bg-red-950/80 border border-red-500/40 px-1.5 py-1 text-[10px] font-mono text-red-300 leading-tight">
+                  <div className="absolute inset-x-1 top-6 bg-red-950/80 border border-red-500/40 px-1.5 py-1 text-[11px] font-mono text-red-300 leading-tight">
                     ⚠ {camera.error}
                   </div>
                 )}
                 {camera.cameraOn && realBio.unavailableReason && (
-                  <div className="absolute inset-x-1 bottom-7 bg-amber-950/75 border border-amber-500/30 px-1.5 py-1 text-[10px] font-mono text-amber-200/90 leading-tight">
+                  <div className="absolute inset-x-1 bottom-7 bg-amber-950/75 border border-amber-500/30 px-1.5 py-1 text-[11px] font-mono text-amber-200/90 leading-tight">
                     {realBio.unavailableReason}
                   </div>
                 )}
@@ -1621,7 +1621,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   <button 
                     onClick={camera.requestPermission}
                     type="button"
-                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-emerald-950/30 border border-emerald-500/20 hover:border-emerald-500/50 text-[10px] text-emerald-400 font-mono uppercase tracking-wider whitespace-nowrap"
+                    className="absolute bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-emerald-950/30 border border-emerald-500/20 hover:border-emerald-500/50 text-[11px] text-emerald-400 font-mono uppercase tracking-wider whitespace-nowrap"
                   >
                     ▶ Retinal Link
                   </button>
@@ -1630,7 +1630,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   <button 
                     onClick={camera.stop}
                     type="button"
-                    className="absolute bottom-2 right-2 px-2 py-0.5 bg-red-950/30 border border-red-500/20 hover:border-red-500/50 text-[10px] text-red-400 font-mono uppercase"
+                    className="absolute bottom-2 right-2 px-2 py-0.5 bg-red-950/30 border border-red-500/20 hover:border-red-500/50 text-[11px] text-red-400 font-mono uppercase"
                   >
                     ■ Halt
                   </button>
@@ -1643,18 +1643,18 @@ export const DreadlerArenaScreen: React.FC = () => {
               </div>
 
               {/* Digital readout stats */}
-              <div className="grid grid-cols-2 gap-2 border border-zinc-800 p-2.5 bg-zinc-900/10 font-mono text-[10px]">
+              <div className="grid grid-cols-2 gap-2 border border-zinc-800 p-2.5 bg-zinc-900/10 font-mono text-[11px]">
                 <div>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Heart Rate</span>
-                  <span className="font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)} <span className="text-[10px] text-zinc-500 font-normal">BPM</span></span>
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider block">Heart Rate</span>
+                  <span className="font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(0)} <span className="text-[11px] text-zinc-500 font-normal">BPM</span></span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
-                  <span className="font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[10px] text-zinc-500 font-normal">MM</span></span>
+                  <span className="text-[11px] text-zinc-500 uppercase tracking-wider block">Pupil Size</span>
+                  <span className="font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[11px] text-zinc-500 font-normal">MM</span></span>
                 </div>
               </div>
               {!camera.cameraOn && (
-                <p className="text-[10px] text-zinc-600 font-mono uppercase tracking-wider">Drill telemetry · not camera-derived</p>
+                <p className="text-[11px] text-zinc-600 font-mono uppercase tracking-wider">Drill telemetry · not camera-derived</p>
               )}
             </div>
 
@@ -1719,7 +1719,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                         <span className="truncate">{name}</span>
                         {count > 0 && <span className="font-mono flex-shrink-0">×{count}</span>}
                       </div>
-                      <div className="text-[10px] sm:text-[10px] text-zinc-500 mt-0.5 uppercase">
+                      <div className="text-[11px] sm:text-[11px] text-zinc-500 mt-0.5 uppercase">
                         {isLast ? 'Just used' : count > 0 ? `${count} this session` : 'Not yet'}
                       </div>
                     </div>
@@ -1737,7 +1737,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   return (
                     <div key={t.id} className={`p-1.5 sm:p-2 border transition-all relative ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`} title={t.description}>
                       <div className="truncate">{t.name}</div>
-                      <div className="text-[10px] sm:text-[10px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
+                      <div className="text-[11px] sm:text-[11px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                     </div>
                   );
                 })}
@@ -1749,7 +1749,7 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="space-y-1.5 max-h-[120px] sm:max-h-[160px] overflow-y-auto custom-scrollbar pr-1">
                 {stateData?.score_history && stateData.score_history.length > 0 ? (
                   stateData.score_history.slice().reverse().map((evt, idx) => (
-                    <div key={idx} className="p-1.5 sm:p-2 bg-zinc-900/15 border border-zinc-800 text-[10px] sm:text-[11px] flex justify-between items-start gap-1.5 sm:gap-2">
+                    <div key={idx} className="p-1.5 sm:p-2 bg-zinc-900/15 border border-zinc-800 text-[11px] sm:text-[11px] flex justify-between items-start gap-1.5 sm:gap-2">
                       <div className="space-y-0.5 min-w-0">
                         <span className="font-bold text-zinc-200 uppercase">T{evt.turn_count}</span>
                         <p className="text-zinc-400 truncate max-w-[90px] sm:max-w-[130px]">{evt.note || evt.event}</p>
@@ -1838,7 +1838,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                   {camera.loading ? 'Acquiring' : bioStatusLabel}
                 </div>
                 {camera.error && (
-                  <div className="absolute inset-x-2 top-2 bg-red-950/85 border border-red-500/40 px-2 py-1.5 text-[10px] font-mono text-red-300 leading-tight">
+                  <div className="absolute inset-x-2 top-2 bg-red-950/85 border border-red-500/40 px-2 py-1.5 text-[11px] font-mono text-red-300 leading-tight">
                     ⚠ {camera.error}
                   </div>
                 )}
@@ -1874,17 +1874,17 @@ export const DreadlerArenaScreen: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 border border-zinc-800 p-3 bg-zinc-900/10 font-mono">
                 <div>
                   <span className="text-[11px] text-zinc-500 uppercase tracking-widest block">Heart Rate</span>
-                  <span className="text-lg font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(1)} <span className="text-[10px] font-normal text-zinc-500">BPM</span></span>
+                  <span className="text-lg font-bold text-red-400">♥ {camera.cameraOn && realBpmValue === null ? 'n/a' : displayBpm.toFixed(1)} <span className="text-[11px] font-normal text-zinc-500">BPM</span></span>
                 </div>
                 <div>
                   <span className="text-[11px] text-zinc-500 uppercase tracking-widest block">Pupil Size</span>
-                  <span className="text-lg font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[10px] font-normal text-zinc-500">MM</span></span>
+                  <span className="text-lg font-bold text-red-400">👁 {displayPupilMm === null ? 'n/a' : displayPupilMm.toFixed(2)} <span className="text-[11px] font-normal text-zinc-500">MM</span></span>
                 </div>
               </div>
               
               {/* HSEmotion bars */}
               <div className="border border-zinc-800 p-3 bg-zinc-900/10">
-                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">
+                <p className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">
                   HSEmotion Expression Matrix
                   {camera.cameraOn && !emotionsLive ? ' · disabled' : !camera.cameraOn ? ' · simulated' : ''}
                 </p>
@@ -1903,7 +1903,7 @@ export const DreadlerArenaScreen: React.FC = () => {
               
               {/* Your fallacies */}
               <div className="border border-zinc-800 p-3 bg-zinc-900/10">
-                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Your fallacies</p>
+                <p className="text-[11px] font-mono text-zinc-500 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1">Your fallacies</p>
                 <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
                   {TAXONOMY_TACTICS.map((t) => {
                     const isUsed = stateData?.used_tactics.includes(t.id);
@@ -1911,7 +1911,7 @@ export const DreadlerArenaScreen: React.FC = () => {
                     return (
                       <div key={t.id} className={`p-1.5 border ${isActiveNow ? 'border-red-500 bg-red-950/20 text-red-400 font-bold' : isUsed ? 'border-zinc-700 text-zinc-100 bg-zinc-900/40' : 'border-zinc-800 text-zinc-400'}`}>
                         <div className="truncate">{t.name}</div>
-                        <div className="text-[10px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
+                        <div className="text-[11px] text-zinc-500 mt-0.5 uppercase">{isActiveNow ? 'Just exposed' : isUsed ? 'Exposed' : 'Clear'}</div>
                       </div>
                     );
                   })}

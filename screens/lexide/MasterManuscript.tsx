@@ -1,8 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { FileText, Upload, Loader2, CheckCircle2 } from 'lucide-react';
-import { RoomBanner } from '../../components/RoomChrome';
 import { PatternPanel, SurfacePattern } from '../../components/SurfacePattern';
-import { screenMedia } from '../../assets';
 
 interface MasterManuscriptProps {
   fullContent: string;
@@ -95,73 +93,16 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
   return (
     <div className="relative z-10 flex-1 min-h-0 flex flex-col min-w-0 bg-brand-bg-primary overflow-hidden">
       <div className="p-3 sm:p-4 border-b border-brand-border flex-shrink-0 space-y-3">
-        <RoomBanner
-          image={screenMedia.researchIDE.banner}
-          dense
-          eyebrow="Research · LexIDE"
-          title="Master manuscript"
-          subtitle="Paste or upload a paper, split into sections, then open the workspace."
-          trailing={
-            <div className="flex items-center gap-2">
-              <span
-                role="status"
-                className={`text-[11px] tabular-nums border rounded-md px-2 py-1 ${
-                  saveState === 'dirty'
-                    ? 'border-brand-border-light text-brand-text-primary bg-[#1c1914]/[0.08]'
-                    : 'border-brand-border text-brand-text-primary/55'
-                }`}
-              >
-                {saveLabel}
-              </span>
-              <span className="text-[11px] text-brand-text-primary/55 tabular-nums border border-brand-border rounded-md px-2 py-1">
-                {sections.length} sections
-              </span>
-            </div>
-          }
-        />
-
-        {/* Monochrome photo strip: library + trial binder language */}
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { img: screenMedia.researchIDE.stripManuscript, label: 'Manuscript' },
-            { img: screenMedia.researchIDE.stripTrial, label: 'Trial record' },
-          ].map((t) => (
-            <div
-              key={t.label}
-              className="relative overflow-hidden rounded-lg border border-brand-border h-11 sm:h-12"
-            >
-              <img
-                src={t.img}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover grayscale"
-              />
-              <div className="absolute inset-0 bg-black/55" />
-              <div
-                className="absolute inset-0 opacity-20"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.06) 8px, rgba(255,255,255,0.06) 9px)',
-                }}
-              />
-              <span className="relative z-10 flex h-full items-center justify-center text-[11px] uppercase tracking-wide text-brand-text-primary/80">
-                {t.label}
-              </span>
-            </div>
-          ))}
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-serif text-2xl text-brand-text-primary">Your manuscript</h2>
+          <span className="text-xs text-brand-text-secondary" role="status">{saveLabel} · {sections.length} sections</span>
         </div>
-
-        <div className="rounded-lg border border-brand-border bg-brand-bg-secondary px-3 py-2.5 text-[11px] leading-relaxed text-brand-text-secondary">
-          Do not paste or upload confidential, privileged, or client-identifying material. Files stay in this
-          browser until you run an AI feature; AI features send the selected content (or full manuscript for Smart
-          split) to the configured service.
-        </div>
-
         <label className="flex items-start gap-2.5 text-[11px] leading-relaxed text-brand-text-secondary">
           <input
             type="checkbox"
             checked={hasAiConsent}
             onChange={(event) => setHasAiConsent(event.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-brand-border bg-brand-bg-primary accent-white"
+            className="mt-0.5 h-4 w-4 rounded border-brand-border bg-brand-bg-primary accent-brand-text-primary"
           />
           <span>I confirm this material is appropriate to process with the configured AI service.</span>
         </label>
@@ -199,7 +140,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
               className="min-h-10 px-3 py-2 border border-brand-border text-[12px] text-brand-text-primary rounded-lg hover:bg-[#1c1914]/[0.05] flex items-center gap-2"
             >
               Create section
-              <span className="text-[10px] text-brand-text-secondary tabular-nums">
+              <span className="text-[11px] text-brand-text-secondary tabular-nums">
                 {selectionLen} chars
               </span>
             </button>
@@ -235,7 +176,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
                 <ol className="mt-3 space-y-1.5 text-[11px] text-brand-text-secondary/80 list-decimal list-inside">
                   <li>Confirm AI consent if you will use Smart split</li>
                   <li>Paste or upload plain text</li>
-                  <li>Split, then open the workspace from the rail</li>
+                  <li>Open Workspace to edit your sections</li>
                 </ol>
               </PatternPanel>
             </div>
@@ -254,9 +195,9 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
             }}
             placeholder="Paste your legal paper, judgment extract, or research draft here…"
             aria-label="Master manuscript body"
-            className="relative z-10 flex-1 w-full resize-none bg-transparent p-4 sm:p-6 text-[13px] sm:text-[14px] leading-relaxed text-brand-text-primary placeholder:text-brand-text-secondary/40 focus:outline-none custom-scrollbar font-mono"
+            className="relative z-10 flex-1 w-full resize-none bg-transparent p-4 sm:p-6 text-[13px] sm:text-[14px] leading-relaxed text-brand-text-primary placeholder:text-brand-text-secondary/40 focus:outline-none custom-scrollbar font-serif"
           />
-          <div className="relative z-10 border-t border-brand-border bg-brand-bg-secondary/90 px-4 py-1.5 flex items-center justify-between gap-3 text-[10px] uppercase tracking-wider text-brand-text-secondary sm:hidden">
+          <div className="relative z-10 border-t border-brand-border bg-brand-bg-secondary/90 px-4 py-1.5 flex items-center justify-between gap-3 text-[11px] uppercase tracking-wider text-brand-text-secondary sm:hidden">
             <span className="tabular-nums">
               {words} words · {chars} chars
             </span>
@@ -267,7 +208,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
         <aside className="hidden md:flex w-64 border-l border-brand-border flex-col bg-brand-bg-secondary">
           <div className="p-3 border-b border-brand-border flex items-center justify-between gap-2">
             <p className="text-[11px] uppercase tracking-wide text-brand-text-secondary">Sections</p>
-            <span className="text-[10px] text-brand-text-secondary/60 tabular-nums">{sections.length}</span>
+            <span className="text-[11px] text-brand-text-secondary/60 tabular-nums">{sections.length}</span>
           </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
             {sections.length === 0 ? (
@@ -283,7 +224,7 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
                   className="group flex items-start justify-between gap-2 p-2.5 rounded-lg border border-brand-border bg-brand-bg-primary hover:border-brand-border"
                 >
                   <div className="min-w-0">
-                    <span className="text-[10px] text-brand-text-secondary/50 font-mono tabular-nums">
+                    <span className="text-[11px] text-brand-text-secondary/50 font-mono tabular-nums">
                       {String(idx + 1).padStart(2, '0')}
                     </span>
                     <span className="block text-[12px] text-brand-text-primary leading-snug line-clamp-2 mt-0.5">
@@ -302,8 +243,8 @@ export const MasterManuscript: React.FC<MasterManuscriptProps> = ({
             )}
           </div>
           {sections.length > 0 && (
-            <div className="p-3 border-t border-brand-border text-[10px] text-brand-text-secondary/70 leading-relaxed">
-              Open the workspace from the left rail when ready to edit sections side by side.
+            <div className="p-3 border-t border-brand-border text-[11px] text-brand-text-secondary/70 leading-relaxed">
+              Open the Workspace tab to edit sections side by side.
             </div>
           )}
         </aside>

@@ -132,7 +132,7 @@ const BenchCounselScreen: React.FC = () => {
                         }}
                       />
                       <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
-                        <p className="text-[15px] font-medium text-brand-text-primary leading-snug">{judge.name}</p>
+                        <p className="text-[15px] font-medium text-white leading-snug">{judge.name}</p>
                       </div>
                     </div>
                     <div className="p-4">
@@ -206,8 +206,8 @@ const BenchCounselScreen: React.FC = () => {
                         }}
                       />
                       <div className="relative z-10 h-full flex flex-col justify-end p-3.5">
-                        <p className="text-[11px] uppercase tracking-wide text-brand-text-primary/55 mb-0.5">{oc.specialty}</p>
-                        <p className="text-[15px] font-medium text-brand-text-primary leading-snug">{oc.name}</p>
+                        <p className="text-[11px] uppercase tracking-wide text-white/80 mb-0.5">{oc.specialty}</p>
+                        <p className="text-[15px] font-medium text-white leading-snug">{oc.name}</p>
                       </div>
                     </div>
                     <div className="p-4">
