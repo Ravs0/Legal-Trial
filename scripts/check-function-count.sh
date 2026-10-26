@@ -119,7 +119,7 @@ if ! ./node_modules/.bin/esbuild "$TS_SRC" --platform=node --format=esm --outfil
   echo "FAIL: esbuild recompile of $TS_SRC failed."
   exit 1
 fi
-if ! cmp -s "$FRESH_JS" "$COMPILED_JS"; then
+if ! node -e 'const fs=require("fs");const a=fs.readFileSync(process.argv[1]);const b=fs.readFileSync(process.argv[2]);if(!a.equals(b))process.exit(1);' "$FRESH_JS" "$COMPILED_JS"; then
   echo "FAIL: generated gateway drift: $TS_SRC does not match $COMPILED_JS."
   echo "Recompile the gateway (command in the NOTE above) and commit both files."
   exit 1
