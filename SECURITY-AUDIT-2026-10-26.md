@@ -24,7 +24,7 @@ Scope: `Ravs0/Legal-Trial` @ `e42c6e1` (LexForge), serverless API under `api/` p
 ## Verification
 
 - `npm run check` — function budget (12/12), `tsc --noEmit`, all TS/Python tests, production build: **green**.
-- **CI gate fixed:** the gateway freshness check used file mtimes; a clean checkout writes the TS after the compiled JS, so GitHub Actions failed regardless of content. It now recompiles with the pinned esbuild and compares bytes (`cmp`). GitHub Actions on the PR is green.
+- **CI gate fixed:** the gateway freshness check used file mtimes; a clean checkout writes the TS after the compiled JS, so GitHub Actions and Vercel failed regardless of content. It now recompiles with the pinned esbuild and compares bytes with Node (`node -e`), because the Vercel build image has no `cmp`. GitHub Actions and the Vercel preview are both green.
 - `services/apiSecurity.test.ts` — **8/8**:
   - valid/tampered/expired session tokens;
   - raw bearer and `x-user-id` no longer authenticate;
