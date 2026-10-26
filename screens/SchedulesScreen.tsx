@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "../components/Button";
+import { sessionFetch } from "../services/sessionService";
 
 type Kind = "drill" | "due" | "checkin" | "cohort";
 
@@ -42,7 +43,7 @@ const SchedulesScreen: React.FC = () => {
     if (!id) { setError("Enter a user id to load schedules."); return; }
     setLoading(true); setError(null); setNotice(null);
     try {
-      const r = await fetch(`/api/cron/schedules?user_id=${encodeURIComponent(id)}`);
+      const r = await sessionFetch(`/api/cron/schedules?user_id=${encodeURIComponent(id)}`);
       const j = await r.json() as { schedules?: ScheduleItem[]; error?: string };
       if (!r.ok) throw new Error(j.error || "Load failed");
       setItems(j.schedules || []);
@@ -59,7 +60,7 @@ const SchedulesScreen: React.FC = () => {
     if (expr.trim().split(/\s+/).length !== 5) { setError("Cron must have 5 fields."); return; }
     setSaving(true); setError(null); setNotice(null);
     try {
-      const r = await fetch("/api/cron/schedules", {
+      const r = await sessionFetch("/api/cron/schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: id, kind, schedule: { kind: "cron", expr: expr.trim() }, payload: parsePayload(payloadText) }),

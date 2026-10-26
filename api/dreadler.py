@@ -48,6 +48,15 @@ def _allowed_origins() -> set[str]:
     }
 
 
+def _client_ip(headers) -> str:
+    """Rightmost X-Forwarded-For hop (proxy-added); Vercel overwrites it."""
+    forwarded = headers.get("x-forwarded-for", "")
+    parts = [part.strip() for part in forwarded.split(",") if part.strip()]
+    if parts:
+        return parts[-1][:64]
+    return (headers.get("x-real-ip") or "").strip()[:64] or "unknown"
+
+
 def _request_allowed(client_ip: str, limit: int = 30, window_seconds: int = 60) -> bool:
     now = time.monotonic()
     with _rate_lock:
@@ -172,6 +181,8 @@ class handler(BaseHTTPRequestHandler):
     def send_json(self, status: int, payload: dict, *, cors: bool = True):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "no-store")
         if cors:
             self.send_cors_headers(allow_origin=True)
         else:
@@ -210,7 +221,7 @@ class handler(BaseHTTPRequestHandler):
         if not self._origin_allowed():
             self.send_json(403, {"error": "Origin is not allowed."}, cors=False)
             return
-        if not _request_allowed(self.client_address[0]):
+        if not _request_allowed(_client_ip(self.headers)):
             self.send_json(429, {"error": "Too many requests. Please wait a minute and try again."})
             return
         try:

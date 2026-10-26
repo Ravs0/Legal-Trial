@@ -2,8 +2,12 @@
 // Hermes jobs.json names reused: id, name, schedule{kind,expr}, schedule_display,
 // skills, state, created_at, last_run_at, last_status, last_error.
 import crypto from 'node:crypto';
+import { isServiceRequest } from '../session.js';
 
 const EXPR = "30 19 * * *";
+/** Cap calibration input so the query-string sample cannot pin the function. */
+const MAX_CALIBRATION_ROWS = 5_000;
+const MAX_CALIBRATION_QUERY_CHARS = 20_000;
 
 // Curriculum + assignment stores are server TODOs: keep this endpoint
 // fail-soft (empty drills, 200) until api/_lib/curriculum.js and
@@ -29,7 +33,7 @@ function runCalibration(sample, opts = {}) {
   const current = Number(opts.threshold ?? JEV_CONF_THRESHOLD);
   const rows = [];
   let dropped = 0;
-  for (const r of (Array.isArray(sample) ? sample : [])) {
+  for (const r of (Array.isArray(sample) ? sample.slice(0, MAX_CALIBRATION_ROWS) : [])) {
     const c = Number(r && (r.confidence ?? r.conf));
     const o = r && (r.correct ?? r.outcome);
     if (!Number.isFinite(c) || c < 0 || c > 1 || typeof o !== "boolean") { dropped += 1; continue; }
@@ -86,7 +90,11 @@ export { runCalibration, getCalibrationSample, CALIBRATE_EXPR, JEV_CONF_THRESHOL
 export default async function handler(req, res) {
   if (req.method !== "GET")
     return res.status(405).json({ state: "error", last_error: "method_not_allowed" });
-  if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`)
+  // Fail closed: without a secret, anyone could trigger provider-backed work
+  // and read the job payload. Vercel Cron sends Authorization: Bearer <secret>.
+  if (!process.env.CRON_SECRET)
+    return res.status(503).json({ state: "error", last_error: "cron_not_configured" });
+  if (!isServiceRequest(req))
     return res.status(401).json({ state: "error", last_error: "unauthorized" });
   try {
     const created_at = new Date().toISOString();
@@ -94,7 +102,12 @@ export default async function handler(req, res) {
     if (req.query?.mode === "calibrate") {
       let sample = await getCalibrationSample();
       const q = req.query?.sample;
-      if (typeof q === "string" && q) { try { sample = JSON.parse(q); } catch { /* keep store sample */ } }
+      if (typeof q === "string" && q && q.length <= MAX_CALIBRATION_QUERY_CHARS) {
+        try {
+          const parsed = JSON.parse(q);
+          if (Array.isArray(parsed)) sample = parsed.slice(0, MAX_CALIBRATION_ROWS);
+        } catch { /* keep store sample */ }
+      }
       const calibration = runCalibration(sample);
       console.log(JSON.stringify({ calibrate: calibration }));
       const job = {
@@ -131,6 +144,7 @@ export default async function handler(req, res) {
     await saveAssignment(assignment);
     return res.status(200).json(assignment);
   } catch (err) {
-    return res.status(500).json({ state: "error", last_status: "error", last_error: String((err && err.message) || err) });
+    console.error('[cron/drills] failed', err?.message || err);
+    return res.status(500).json({ state: "error", last_status: "error", last_error: "job_failed" });
   }
 };

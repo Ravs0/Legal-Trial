@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { SelectInput } from '../components/SelectInput';
+import { sessionFetch } from '../services/sessionService';
 
 interface KeyEntry {
   provider: string;
@@ -29,7 +30,7 @@ const KeysScreen: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/keys');
+      const res = await sessionFetch('/api/keys');
       if (!res.ok) throw new Error('Could not load keys. Try again.');
       const data = await res.json();
       setKeys(Array.isArray(data.keys) ? data.keys : []);
@@ -54,7 +55,7 @@ const KeysScreen: React.FC = () => {
     setError(null);
     setStatus(null);
     try {
-      const res = await fetch('/api/keys', {
+      const res = await sessionFetch('/api/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ provider, key: keyInput }),
@@ -77,7 +78,7 @@ const KeysScreen: React.FC = () => {
     setStatus(null);
     try {
       const url = `/api/keys?provider=${encodeURIComponent(name)}`;
-      const res = await fetch(url, { method: 'DELETE' });
+      const res = await sessionFetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error('Remove failed. Try again.');
       setStatus(`Removed key for ${name}.`);
       setKeys((prev) => prev.filter((k) => k.provider !== name));

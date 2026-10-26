@@ -67,9 +67,8 @@ fi
 # breaking the remote bundle). Recompile by hand after editing the TS:
 #   ./node_modules/.bin/esbuild services/courtDataGateway.ts --platform=node \
 #     --format=esm --outfile=api/_lib/courtDataGateway.js
-# Drift is enforced by the parity gate below (freshness + export-shape always;
-# semantic recompile when esbuild is present, bounded by `timeout` where
-# available since esbuild has hung under some shells).
+# Drift is enforced by recompiling with the pinned esbuild and comparing bytes.
+# Git checkout does not preserve source/build mtimes or their ordering.
 
 # --- courtDataGateway source/compiled parity (A4) ---
 # Silent drift (TS edited, compiled JS not refreshed) previously caused
@@ -88,19 +87,10 @@ if [ ! -f "$COMPILED_JS" ]; then
   exit 1
 fi
 
-# 1) Freshness: TS newer than the compiled copy means the source was edited
-#    without recompiling.
-if [ "$TS_SRC" -nt "$COMPILED_JS" ]; then
-  echo
-  echo "FAIL: $TS_SRC is newer than $COMPILED_JS."
-  echo "The compiled gateway is stale. Recompile:"
-  echo "  ./node_modules/.bin/esbuild $TS_SRC --platform=node \\"
-  echo "    --format=esm --outfile=$COMPILED_JS"
-  exit 1
-fi
+# Filesystem mtimes are not evidence of source drift: Git checkout can write
+# the source after the generated JS. The byte comparison below is the gate.
 
-# 2) Export-shape: runtime exports declared in the TS must exactly match the
-#    export list of the compiled JS (type-only exports exist on neither side).
+# Export-shape: runtime exports declared in the TS must match compiled JS.
 TS_EXPORTS=$(grep -oE '^export (const|function|class) [A-Za-z0-9_]+' "$TS_SRC" | awk '{print $3}' | sort)
 JS_EXPORTS=$(sed -n '/^export {/,/^};/p' "$COMPILED_JS" | grep -oE '[A-Za-z0-9_]+' | grep -v '^export$' | sort)
 if [ "$TS_EXPORTS" != "$JS_EXPORTS" ]; then
@@ -117,43 +107,24 @@ if [ "$TS_EXPORTS" != "$JS_EXPORTS" ]; then
 fi
 echo "OK: gateway export-shape parity ($(printf '%s\n' "$TS_EXPORTS" | grep -c .) exports)."
 
-# 3) Semantic: recompile the TS to a temp file and compare runtime exports +
-#    fixture outputs against the checked-in JS. Skipped (warn) when esbuild or
-#    node is unavailable so the gate never breaks on minimal environments.
-if [ -x ./node_modules/.bin/esbuild ] && command -v node >/dev/null 2>&1; then
-  FRESH_JS=$(mktemp "${TMPDIR:-/tmp}/gateway-parity-XXXXXX")
-  TMP_FILES+=("$FRESH_JS")
-  if command -v timeout >/dev/null 2>&1; then
-    set +e
-    timeout 120 ./node_modules/.bin/esbuild "$TS_SRC" --platform=node --format=esm --outfile="$FRESH_JS" >/dev/null 2>&1
-    ESBUILD_RC=$?
-    set -e
-  else
-    set +e
-    ./node_modules/.bin/esbuild "$TS_SRC" --platform=node --format=esm --outfile="$FRESH_JS" >/dev/null 2>&1
-    ESBUILD_RC=$?
-    set -e
-  fi
-  if [ "$ESBUILD_RC" -ne 0 ]; then
-    echo
-    echo "FAIL: esbuild recompile of $TS_SRC failed (exit $ESBUILD_RC)."
-    rm -f "$FRESH_JS"
-    exit 1
-  fi
-  export PARITY_FRESH="$FRESH_JS" PARITY_CHECKED="$(pwd)/$COMPILED_JS"
-  PARITY_OUT=$(node --input-type=module -e 'const fresh = await import(process.env.PARITY_FRESH); const checked = await import(process.env.PARITY_CHECKED); const fk = Object.keys(fresh).sort().join(","); const ck = Object.keys(checked).sort().join(","); if (fk !== ck) { console.log("EXPORTS_DIFFER fresh=[" + fk + "] checked=[" + ck + "]"); process.exit(2); } const now = new Date("2026-01-01T00:00:00.000Z"); const fixtures = [{q:"supreme court case status",limit:3},{q:"DLND010123452023",limit:2},{q:"",limit:3}]; for (const f of fixtures) { const a = JSON.stringify(fresh.buildCourtDataResponse(f, now)); const b = JSON.stringify(checked.buildCourtDataResponse(f, now)); if (a !== b) { console.log("FIXTURE_DIFFER q=" + JSON.stringify(f.q)); process.exit(3); } } console.log("SEMANTIC_PARITY_OK exports=" + fk.split(",").length + " fixtures=" + fixtures.length);' 2>&1)
-  PARITY_RC=$?
-  if [ "$PARITY_RC" -ne 0 ]; then
-    echo
-    echo "FAIL: gateway semantic parity between fresh esbuild output and $COMPILED_JS:"
-    printf '%s\n' "$PARITY_OUT" | sed 's/^/  /'
-    echo "Recompile the gateway (command in the NOTE above) and re-run this check."
-    exit 1
-  fi
-  printf '%s\n' "$PARITY_OUT" | sed 's/^/OK: gateway /'
-else
-  echo "WARN: esbuild or node unavailable; skipping gateway semantic parity (export-shape check still enforced)."
+# Compile exactly as the checked-in artifact was generated. A successful build
+# with different bytes is real drift, even in a branch our sample fixtures miss.
+if [ ! -x ./node_modules/.bin/esbuild ]; then
+  echo "FAIL: esbuild is required to verify gateway parity (run npm ci)."
+  exit 1
 fi
+FRESH_JS=$(mktemp "${TMPDIR:-/tmp}/gateway-parity-XXXXXX")
+TMP_FILES+=("$FRESH_JS")
+if ! ./node_modules/.bin/esbuild "$TS_SRC" --platform=node --format=esm --outfile="$FRESH_JS" >/dev/null 2>&1; then
+  echo "FAIL: esbuild recompile of $TS_SRC failed."
+  exit 1
+fi
+if ! node -e 'const fs=require("fs");const a=fs.readFileSync(process.argv[1]);const b=fs.readFileSync(process.argv[2]);if(!a.equals(b))process.exit(1);' "$FRESH_JS" "$COMPILED_JS"; then
+  echo "FAIL: generated gateway drift: $TS_SRC does not match $COMPILED_JS."
+  echo "Recompile the gateway (command in the NOTE above) and commit both files."
+  exit 1
+fi
+echo "OK: gateway generated-byte parity."
 
 # --- JEV/Needle chain guards (A19) ---
 # Pinned-12: new endpoints go BEHIND api/lexforge.js (?fn=), never as new

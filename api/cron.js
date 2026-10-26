@@ -11,12 +11,12 @@ import drills from "./_lib/cron/drills.js";
 import due from "./_lib/cron/due.js";
 import schedules from "./_lib/cron/schedules.js";
 
-const JOBS = { drills, due, schedules };
+const JOBS = Object.freeze({ drills, due, schedules });
 
 export default async function handler(req, res) {
   const seg = req.query?.job;
   const job = Array.isArray(seg) ? seg[0] : seg;
-  const fn = JOBS[job];
+  const fn = typeof job === "string" && Object.hasOwn(JOBS, job) ? JOBS[job] : null;
   if (!fn) return res.status(404).json({ ok: false, error: "unknown cron job" });
   return fn(req, res);
 }

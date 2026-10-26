@@ -16,8 +16,9 @@ import drills from "./_lib/lexforge/drills.js";
 import scores from "./_lib/lexforge/scores.js";
 import { applyCors, allowRequest, enforceBodyLimit, clientError } from "./_lib/security.js";
 import { jevBudget, keyQuota } from "./_lib/guardrails.js";
+import { issueSession } from "./_lib/session.js";
 
-const ENDPOINTS = { drills, scores };
+const ENDPOINTS = Object.freeze({ drills, scores });
 
 async function loadChain() {
   try {
@@ -45,6 +46,27 @@ async function loadJevDecide() {
 export default async function handler(req, res) {
   const seg = req.query?.fn;
   const name = Array.isArray(seg) ? seg[0] : seg;
+
+  // Anonymous session mint. Owner-scoped routes accept only a signed token, so
+  // this is the one place a caller can obtain an owner identity. No body is
+  // required; the body cap is defense in depth.
+  if (name === "session") {
+    if (!applyCors(req, res, "POST, OPTIONS", "Content-Type, Authorization")) {
+      return res.status(403).json(clientError("Origin is not allowed."));
+    }
+    if (req.method === "OPTIONS") return res.status(204).end();
+    if (req.method !== "POST") {
+      res.setHeader("Allow", "POST");
+      return res.status(405).json({ error: "method not allowed" });
+    }
+    if (!allowRequest(req, { limit: 20, windowMs: 60_000, keyPrefix: "session:" })) {
+      return res.status(429).json(clientError("Too many requests. Please wait a minute and try again."));
+    }
+    if (!enforceBodyLimit(req, res, 8 * 1024)) return;
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(201).json({ ...issueSession(), tokenType: "Bearer" });
+  }
+
   if (name === "chain" || name === "jev-decide") {
     if (!applyCors(req, res, "POST, OPTIONS", "Content-Type, Authorization, X-Api-Key, X-LexForge-Key")) {
       return res.status(403).json(clientError("Origin is not allowed."));
@@ -68,7 +90,7 @@ export default async function handler(req, res) {
     if (!fn) return res.status(503).json({ error: "chain-degraded", fn: name });
     return fn(req, res);
   }
-  const fn = ENDPOINTS[name];
+  const fn = typeof name === "string" && Object.hasOwn(ENDPOINTS, name) ? ENDPOINTS[name] : null;
   if (!fn) return res.status(404).json({ error: "unknown endpoint" });
   return fn(req, res);
 }
