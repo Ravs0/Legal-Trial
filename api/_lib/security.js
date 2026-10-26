@@ -49,6 +49,31 @@ export function applyCors(req, res, methods = 'POST, OPTIONS', headers = 'Conten
   return true;
 }
 
+/**
+ * Best-effort client IP for rate limiting.
+ *
+ * Vercel overwrites X-Forwarded-For (and sets X-Real-IP), so the value is
+ * trustworthy there. Behind a generic reverse proxy the rightmost entry is the
+ * one appended by the closest proxy; the leftmost entry is client-controlled
+ * and must not key a limiter (an attacker could rotate it to evade quotas).
+ */
+export function clientIp(req) {
+  const header = (name) => {
+    const raw = req?.headers?.[name];
+    return Array.isArray(raw) ? raw.join(',') : raw;
+  };
+  const last = (value) => {
+    if (typeof value !== 'string') return '';
+    const parts = value.split(',').map((part) => part.trim()).filter(Boolean);
+    return parts.length ? parts[parts.length - 1].slice(0, 64) : '';
+  };
+  return last(header('x-forwarded-for'))
+    || last(header('x-vercel-forwarded-for'))
+    || last(header('x-real-ip'))
+    || String(req?.socket?.remoteAddress ?? 'unknown').slice(0, 64)
+    || 'unknown';
+}
+
 /** Evict expired rate-limit buckets; cap map size to avoid warm-instance leak. */
 function pruneBuckets(now, windowMs) {
   if (buckets.size < MAX_BUCKETS / 2) return;
@@ -69,9 +94,7 @@ function pruneBuckets(now, windowMs) {
  * to one handler does not exhaust another route's budget.
  */
 export function allowRequest(req, { limit, windowMs, keyPrefix = '' }) {
-  const forwarded = req?.headers?.['x-forwarded-for'];
-  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded ?? req?.socket?.remoteAddress ?? 'unknown';
-  const ip = String(raw ?? 'unknown').split(',')[0].trim() || 'unknown';
+  const ip = clientIp(req);
   const prefix = typeof keyPrefix === 'string'
     ? keyPrefix.slice(0, 64).replace(/[^\w:.-]/g, '')
     : '';

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { sessionFetch } from "../services/sessionService";
 
 type Ep = { label: string; method: string; path: string; body: string; idem: boolean };
 
@@ -213,11 +214,19 @@ export default function ApiConsoleScreen(): React.ReactElement {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
       if (ep.idem && idemKey) headers["Idempotency-Key"] = idemKey;
-      const res = await fetch(ep.path, {
-        method: ep.method,
-        headers,
-        body: ep.method === "GET" ? undefined : body || undefined,
-      });
+      const ownerScoped = ep.path === "/api/lexforge/scores" || ep.path === "/api/lexforge/drills";
+      const useSession = !apiKey || ownerScoped;
+      const res = useSession
+        ? await sessionFetch(ep.path, {
+          method: ep.method,
+          headers,
+          body: ep.method === "GET" ? undefined : body || undefined,
+        })
+        : await fetch(ep.path, {
+          method: ep.method,
+          headers,
+          body: ep.method === "GET" ? undefined : body || undefined,
+        });
       const raw = await res.text();
       const ms = Math.round(performance.now() - t0);
       setOut(`${ep.method} ${ep.path}\nStatus ${res.status} in ${ms} ms\n\n${pretty(raw)}`);
@@ -304,14 +313,20 @@ export default function ApiConsoleScreen(): React.ReactElement {
         model: "jev-latest",
         questions,
       };
-      const res = await fetch("/api/lexforge/jev-decide", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = apiKey
+        ? await fetch("/api/lexforge/jev-decide", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(payload),
+        })
+        : await sessionFetch("/api/lexforge/jev-decide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       const raw = await res.text();
       const ms = Math.round(performance.now() - t0);
       setJevResult(parseJevResponse(raw, ms));

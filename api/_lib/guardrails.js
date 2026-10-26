@@ -1,6 +1,8 @@
 // LexForge guardrails — Express-style middleware chain. Pure JS, zero deps.
 // Order: requireKey → keyQuota → corsAllowlist → rateLimit30 → blocklistCheck → flagLead → injectDisclaimer.
 import { allowByKey, allowJev } from "./keyQuota.js";
+import { clientIp } from "./security.js";
+import { timingSafeEqualText } from "./session.js";
 
 export const RATE_LIMIT_MAX = 30;
 export const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -15,8 +17,8 @@ export function requestKey(req) {
   // Only use a key after requireKey has authenticated it. Client supplied
   // key headers are not identities: accepting them here lets callers rotate
   // arbitrary values to evade an IP based limiter on public routes.
-  const raw = req.apiKey || req.ip || req.headers?.["x-forwarded-for"] || req.socket?.remoteAddress || "anon";
-  return String(raw).split(",")[0].trim() || "anon";
+  const raw = req.apiKey || clientIp(req) || "anon";
+  return String(raw).slice(0, 64).trim() || "anon";
 }
 
 export function requireKey(req, res, next) {
@@ -24,7 +26,7 @@ export function requireKey(req, res, next) {
   if (!expected) return res.status(500).json({ error: "server_misconfigured" });
   const auth = String(req.headers?.authorization ?? "").replace(/^Bearer /i, "");
   const got = req.headers?.["x-api-key"] ?? req.headers?.["x-lexforge-key"] ?? auth;
-  if (!got || got !== expected) return res.status(401).json({ error: "unauthorized" });
+  if (!got || !timingSafeEqualText(String(got), expected)) return res.status(401).json({ error: "unauthorized" });
   req.apiKey = String(got);
   return next();
 }
