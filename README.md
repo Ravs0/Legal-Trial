@@ -23,7 +23,7 @@ do. Server-authoritative scoring uses a signed `state_token`.
    The dev server starts on http://localhost:3000.
 
 > **Note:** `npm run dev` runs only the Vite UI. Serverless `/api/*` functions
-> run through Vercel. To exercise AI, voice, caselaw, or Dreadler, use
+> run through Vercel. To exercise AI, caselaw, or Dreadler, use
 > `vercel dev` (with env vars set). The app surfaces a clear message if an
 > endpoint is unavailable.
 
@@ -47,7 +47,6 @@ Set these in the Vercel project **Environment Variables**:
 | `DEEPSEEK_API_KEY` | **Yes** for AI | `/api/chat`, `/api/dreadler` | Chat, judges, counsel, drafting, performance, and Dreadler agent/critic. Aliases: `DEEPSEEK_CHAT_API_KEY` (and reasoner via `DEEPSEEK_REASONER_API_KEY` where used). |
 | `DREADLER_STATE_SECRET` | **Yes** for Dreadler | `/api/dreadler` | Long random secret to HMAC-sign simulation state between turns. Missing → 503. |
 | `ALLOWED_ORIGINS` | **Yes** in production | All API routes | Comma-separated app origins allowed to call the API. Localhost origins are allowed in dev. Alias: `APP_ORIGIN`. |
-| `SARVAM_API_KEY` | Optional | `/api/voice` | STT (mic) and TTS ("Read Aloud"). Without it, voice is disabled. |
 | `INDIANKANOON_API_KEY` | Optional | `/api/caselaw` | Structured SC/HC retrieval with provider court/date filters. Without it, public-web discovery only (unverified leads). |
 
 Optional Dreadler/DeepSeek tuning (usually leave default):
@@ -77,6 +76,8 @@ Budget rules:
 
 - `npm run check` now starts with `scripts/check-function-count.sh`, which fails
   fast at >12 (`FN_LIMIT=<n>` to override for other plans).
+- 10 of the 12 slots are used. Voice (`api/voice.js`) and the unfinished
+  `api/migrate.js` were removed in Oct 2026 to free two.
 - Shared helpers live in `api/_lib/` (leading underscore = not routed, not counted).
 - Sibling routes share one literal dispatcher file, mapped back to their
   public URLs with `vercel.json` rewrites: `api/cron.js` with
@@ -179,5 +180,4 @@ currency, and citation before relying on it.
 - React 19 + TypeScript + Vite
 - Tailwind CSS (compiled at build time)
 - DeepSeek (chat / reasoner) for AI
-- Sarvam AI for voice (STT + TTS)
 - Python serverless Dreadler engine (`dreadler/` + `api/dreadler.py`)

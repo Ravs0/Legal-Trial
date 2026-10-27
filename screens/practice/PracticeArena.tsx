@@ -21,18 +21,6 @@ import {
   saveCompletedSession,
   saveGenericState,
 } from '../../services/storageService';
-import {
-  speak,
-  cancelSpeech,
-  isTTSAvailable,
-  isMicSupported,
-  preferredRecordingMimeType,
-  transcribeAudio,
-  probeVoiceAvailability,
-  humanizeVoiceError,
-  VoiceError,
-  type VoiceCapability,
-} from '../../services/voiceService';
 import { SESSION_DURATIONS_MINUTES } from '../../constants';
 import { ROUTES } from '../../routes';
 import { useTimer } from '../../hooks/useTimer';
@@ -350,17 +338,9 @@ const PracticeArena: React.FC = () => {
   const lastOcMessageRef = useRef('');
   const firstArgumentTrackedRef = useRef(false);
 
-  // Voice recording states for STT
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
   const [hearingNotice, setHearingNotice] = useState<string | null>(null);
   /** When set, the notice offers a one-tap Court retry after a failed auto-judge call. */
   const [pendingJudgeRetry, setPendingJudgeRetry] = useState(false);
-  const [voiceCap, setVoiceCap] = useState<VoiceCapability | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
   const streamTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ocStreamInFlightRef = useRef(false);
@@ -374,49 +354,12 @@ const PracticeArena: React.FC = () => {
     ) => Promise<string>
   >(async () => '');
 
-  // Text-to-speech toggle — the bench speaks its replies aloud.
-  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(() => {
-    try { return localStorage.getItem('lexforge.voiceEnabled') === 'true'; } catch { return false; }
-  });
-  const voiceEnabledRef = useRef(voiceEnabled);
-  useEffect(() => {
-    voiceEnabledRef.current = voiceEnabled;
-    try { localStorage.setItem('lexforge.voiceEnabled', voiceEnabled ? 'true' : 'false'); } catch { /* ignore */ }
-  }, [voiceEnabled]);
-
   // B15 — load chain verdicts once, then refresh on each live verdict push.
   useEffect(() => {
     setChainVerdicts(readChainVerdicts());
     const onVerdict = () => setChainVerdicts(readChainVerdicts());
     window.addEventListener(CHAIN_VERDICT_EVENT, onVerdict);
     return () => window.removeEventListener(CHAIN_VERDICT_EVENT, onVerdict);
-  }, []);
-
-  // Probe Sarvam availability so mic can degrade gracefully without a failed record cycle.
-  useEffect(() => {
-    let cancelled = false;
-    if (!isMicSupported()) {
-      setVoiceCap({
-        configured: false,
-        available: false,
-        features: { stt: false, tts: false, browserTtsFallback: isTTSAvailable() },
-        message: 'This browser does not support microphone recording.',
-      });
-      return;
-    }
-    probeVoiceAvailability()
-      .then((cap) => { if (!cancelled) setVoiceCap(cap); })
-      .catch(() => { /* keep null → optimistic UI */ });
-    return () => {
-      cancelled = true;
-      // Release any orphaned mic stream if the arena unmounts mid-record.
-      try {
-        mediaRecorderRef.current?.state !== 'inactive' && mediaRecorderRef.current?.stop();
-      } catch { /* ignore */ }
-      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-      mediaStreamRef.current = null;
-      cancelSpeech();
-    };
   }, []);
 
   // Refs to avoid stale closures (B3: live transcript, B7: judge double-fire)
@@ -548,117 +491,6 @@ const PracticeArena: React.FC = () => {
     return nextRecord;
   }, [activePhase, remainingSeconds, scoreBreakdown, sessionDurationSeconds]);
 
-  const sttDisabledReason = useMemo(() => {
-    if (!isMicSupported()) return 'Microphone recording is not supported in this browser. Type your argument instead.';
-    if (voiceCap && !voiceCap.available && !voiceCap.probeFailed) {
-      return voiceCap.message
-        || 'Voice transcription is unavailable (SARVAM_API_KEY not configured). You can still type.';
-    }
-    return null;
-  }, [voiceCap]);
-
-  const startRecording = async () => {
-    setAudioError(null);
-    audioChunksRef.current = [];
-
-    if (sttDisabledReason) {
-      setAudioError(sttDisabledReason);
-      return;
-    }
-    if (!isMicSupported()) {
-      setAudioError('Microphone recording is not supported in this browser.');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      const preferredMime = preferredRecordingMimeType();
-      const mediaRecorder = preferredMime
-        ? new MediaRecorder(stream, { mimeType: preferredMime })
-        : new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onerror = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-        setIsRecording(false);
-        setAudioError('Recording failed. Check microphone permissions and try again.');
-      };
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-        const mimeType = (mediaRecorder.mimeType || preferredMime || 'audio/webm').split(';')[0] || 'audio/webm';
-        const chunks = audioChunksRef.current;
-        audioChunksRef.current = [];
-        if (!chunks.length) {
-          setAudioError('No audio captured. Check the microphone and try again.');
-          return;
-        }
-        const audioBlob = new Blob(chunks, { type: mimeType });
-        await handleSTT(audioBlob);
-      };
-
-      // timeslice keeps chunks flowing on browsers that buffer until stop
-      mediaRecorder.start(250);
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Microphone access denied:', err);
-      const name = err instanceof DOMException ? err.name : '';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        setAudioError('Microphone permission denied. Allow mic access in the browser, or type your argument.');
-      } else if (name === 'NotFoundError') {
-        setAudioError('No microphone found. Plug in a mic or type your argument.');
-      } else {
-        setAudioError('Microphone access is required for voice input.');
-      }
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-        mediaStreamRef.current = null;
-      }
-    }
-    setIsRecording(false);
-  };
-
-  const handleSTT = async (blob: Blob) => {
-    setIsTranscribing(true);
-    setAudioError(null);
-    try {
-      const text = await transcribeAudio(blob, {
-        // Server aliases en-US → en-IN; keep intent explicit for international mode.
-        language: practiceMode === 'international' ? 'en-US' : 'en-IN',
-      });
-      setUserInput(prev => (prev ? `${prev} ${text}` : text));
-    } catch (err) {
-      console.error('Transcription error:', err);
-      if (err instanceof VoiceError && err.code === 'MISSING_API_KEY') {
-        setVoiceCap({
-          configured: false,
-          available: false,
-          features: { stt: false, tts: false, browserTtsFallback: isTTSAvailable() },
-          message: err.message,
-        });
-      }
-      setAudioError(humanizeVoiceError(err));
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
-
   const handleSessionEnd = useCallback(async (navigateToAnalysis = true, triggerAnalysis = false) => {
     if (sessionEnded) {
       if (navigateToAnalysis && currentSessionRecordRef.current) {
@@ -673,7 +505,6 @@ const PracticeArena: React.FC = () => {
     setIsInlineObjectionActive(false);
     abortActiveStream();
     pauseTimer();
-    cancelSpeech();
 
     if (currentSessionSettings) {
       trackEvent('session_completed', {
@@ -823,11 +654,6 @@ const PracticeArena: React.FC = () => {
 
     currentSessionRecordRef.current = nextRecord;
     syncSessionRecord(initialMessagesList, DEFAULT_SCORE_BREAKDOWN, 'opening');
-
-    if (voiceEnabledRef.current) {
-      // Enqueue both opening statements so they play in sequence.
-      initialMessagesList.forEach(m => speak(m.text, { queue: true }));
-    }
 
     resetTimer();
     setSessionStarted(false);
@@ -1033,9 +859,6 @@ const PracticeArena: React.FC = () => {
     );
     syncSessionRecord(finalizedMessages, scoreBreakdownRef.current, activePhaseRef.current);
 
-    if (voiceEnabledRef.current && (senderType === 'judge' || senderType === 'opposingCounsel')) {
-      speak(aiResponseText, { rate: 1, pitch: senderType === 'judge' ? 0.9 : 1.05 });
-    }
     return aiResponseText;
   }, [beginStreamWatchdog, clearStreamWatchdog, syncSessionRecord]);
 
@@ -1170,8 +993,6 @@ const PracticeArena: React.FC = () => {
     }
     setPendingJudgeRetry(false);
 
-    if (voiceEnabledRef.current) cancelSpeech();
-
     const userMessageText = userInput.trim();
     const phaseAtStart = activePhaseRef.current;
     const scoreAtStart = scoreBreakdownRef.current;
@@ -1240,7 +1061,6 @@ const PracticeArena: React.FC = () => {
       sessionId: currentSessionRecordRef.current?.id,
     });
     setUserInput('');
-    setAudioError(null);
     setHearingNotice(null);
 
     ocStreamInFlightRef.current = true;
@@ -1631,21 +1451,6 @@ const PracticeArena: React.FC = () => {
             </button>
 
             <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-              {isTTSAvailable() && (
-                <button
-                  type="button"
-                  onClick={() => setVoiceEnabled(v => !v)}
-                  className={`min-h-11 px-3 rounded-md border text-[12px] transition-colors ${
-                    voiceEnabled
-                      ? 'bg-brand-text-primary text-brand-bg-primary border-transparent'
-                      : 'border-brand-border text-brand-text-secondary hover:text-brand-text-primary'
-                  }`}
-                  title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
-                  aria-pressed={voiceEnabled}
-                >
-                  {voiceEnabled ? 'Voice on' : 'Voice off'}
-                </button>
-              )}
               {!sessionEnded && isTimerRunning && (
                 <button
                   type="button"
@@ -1733,10 +1538,10 @@ const PracticeArena: React.FC = () => {
                   <Button onClick={beginSession} size="md" variant="primary" className="mt-4 px-5">Begin session</Button>
                 </div>
               )}
-              {(isAiTyping || isTranscribing) && (
+              {isAiTyping && (
                 <div className="flex items-start mb-6 px-4 py-3 w-full animate-fadeInUp">
                   <div className="flex-shrink-0 h-9 w-9 sm:h-11 sm:w-11 rounded-full bg-brand-bg-secondary border border-brand-text-primary/15 flex items-center justify-center mx-2 sm:mx-3">
-                    {isTranscribing || isAiTyping === 'judge' ? (
+                    {isAiTyping === 'judge' ? (
                       <CourtIcon className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-brand-text-primary/80" />
                     ) : (
                       <BriefcaseIcon className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-brand-text-secondary" />
@@ -1745,18 +1550,16 @@ const PracticeArena: React.FC = () => {
                   <div className="flex flex-col flex-grow items-start max-w-[calc(100%-3rem)] pl-1">
                     <div className="flex items-center space-x-2 mb-1.5 text-[10px] font-mono uppercase tracking-widest text-brand-text-secondary/70">
                       <span className="font-bold text-brand-text-primary">
-                        {isTranscribing ? 'Transcribing' : (isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel')}
+                        {isAiTyping === 'judge' ? 'The Court' : 'Opposing Counsel'}
                       </span>
                       <span className="text-brand-text-secondary/40">·</span>
-                      <span className="text-brand-text-secondary/70">{isTranscribing ? 'Voice' : 'Typing'}</span>
+                      <span className="text-brand-text-secondary/70">Typing</span>
                     </div>
                     <div className="flex items-center space-x-2.5 py-1">
                       <span className="text-xs sm:text-sm font-light text-brand-text-secondary">
-                        {isTranscribing
-                          ? 'Listening and transcribing your voice'
-                          : (isAiTyping === 'judge'
-                            ? 'The Court is considering the record'
-                            : 'Opposing Counsel is preparing a response')}
+                        {isAiTyping === 'judge'
+                          ? 'The Court is considering the record'
+                          : 'Opposing Counsel is preparing a response'}
                       </span>
                       <span className="flex space-x-1 items-center h-2.5">
                         <span className="w-1.5 h-1.5 bg-brand-text-primary/55 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
@@ -1794,19 +1597,6 @@ const PracticeArena: React.FC = () => {
               style={{ paddingBottom: isMobile ? 'max(0.75rem, env(safe-area-inset-bottom, 0px))' : undefined }}
             >
               <div className="max-w-4xl mx-auto">
-                {audioError && (
-                  <div className="p-2.5 mb-3 bg-brand-error/10 border border-brand-error/25 text-brand-error text-[11px] rounded-xl text-left animate-fadeIn flex items-start justify-between gap-3">
-                    <span className="leading-relaxed">{audioError}</span>
-                    <button
-                      type="button"
-                      onClick={() => setAudioError(null)}
-                      className="flex-shrink-0 min-h-11 min-w-11 px-2 text-[11px] font-mono uppercase tracking-wider opacity-70 hover:opacity-100"
-                      aria-label="Dismiss audio error"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                )}
                 {hearingNotice && (
                   <div role="status" className="p-2.5 mb-3 bg-brand-bg-secondary/80 border border-brand-text-primary/20 text-brand-text-primary text-[11px] rounded-xl text-left animate-fadeIn flex items-start justify-between gap-3">
                     <span className="leading-relaxed">{hearingNotice}</span>
@@ -1854,21 +1644,6 @@ const PracticeArena: React.FC = () => {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {isTTSAvailable() && (
-                        <button
-                          type="button"
-                          onClick={() => setVoiceEnabled(v => !v)}
-                          className={`min-h-11 rounded-xl border px-3 py-2 text-[10px] font-mono uppercase tracking-wider transition-all ${
-                            voiceEnabled
-                              ? 'bg-white text-brand-bg-primary border-transparent'
-                              : 'border-brand-text-primary/15 bg-brand-bg-tertiary/45 text-brand-text-primary hover:border-brand-border-light'
-                          }`}
-                          title={voiceEnabled ? 'Mute courtroom voice' : 'Enable courtroom voice'}
-                          aria-pressed={voiceEnabled}
-                        >
-                          {voiceEnabled ? 'Voice On' : 'Voice Off'}
-                        </button>
-                      )}
                       <button
                         type="button"
                         onClick={() => setIsMobileDrawerOpen(true)}
@@ -1944,45 +1719,6 @@ const PracticeArena: React.FC = () => {
 
                 <div className={`max-w-3xl mx-auto rounded-2xl border transition-all px-3 py-2 sm:py-2.5 shadow-card ${isInlineObjectionActive ? 'bg-brand-bg-secondary/75 border-brand-border-light' : 'bg-brand-bg-secondary/50 border-brand-text-primary/20 focus-within:border-brand-border-light'}`}>
                   <div className="flex items-end gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (sttDisabledReason && !isRecording) {
-                          setAudioError(sttDisabledReason);
-                          return;
-                        }
-                        if (isRecording) stopRecording();
-                        else void startRecording();
-                      }}
-                      disabled={!!isAiTyping || sessionEnded || !isTimerRunning || isTranscribing}
-                      aria-disabled={Boolean(sttDisabledReason && !isRecording)}
-                      className={`min-h-11 min-w-11 w-11 h-11 sm:w-11 sm:h-11 flex-shrink-0 rounded-xl flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1c1914]/25 disabled:opacity-40
-                        ${isRecording
-                          ? 'bg-brand-error/15 border border-brand-error/30 text-brand-error animate-pulse'
-                          : sttDisabledReason
-                            ? 'bg-brand-bg-tertiary border border-brand-text-primary/10 text-brand-text-secondary/45'
-                            : 'bg-brand-bg-tertiary border border-brand-text-primary/15 text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-text-primary/10'
-                        }`}
-                      title={
-                        isRecording
-                          ? 'Stop Recording'
-                          : sttDisabledReason || 'Speak to Transcribe'
-                      }
-                      aria-label={
-                        isRecording
-                          ? 'Stop recording'
-                          : sttDisabledReason || 'Speak to transcribe'
-                      }
-                    >
-                      {isRecording ? (
-                        <span className="w-2.5 h-2.5 bg-brand-error rounded-sm animate-ping"></span>
-                      ) : (
-                        <svg className="w-4 h-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/>
-                        </svg>
-                      )}
-                    </button>
-
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center justify-between gap-3 mb-1">
                         <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-brand-text-secondary/60">

@@ -11,17 +11,6 @@ import { saveGenericState, readGenericState, STORAGE_KEYS } from '../services/st
 import { RoomBanner, RoomTabs } from '../components/RoomChrome';
 import { SurfacePattern } from '../components/SurfacePattern';
 import { screenMedia } from '../assets';
-import {
-  speak,
-  cancelSpeech,
-  isTTSAvailable,
-  isMicSupported,
-  preferredRecordingMimeType,
-  transcribeAudio,
-  probeVoiceAvailability,
-  humanizeVoiceError,
-  VoiceError,
-} from '../services/voiceService';
 
 enum ChamberMode {
   ORACLE = 'oracle',
@@ -800,13 +789,7 @@ export const StrategyRoomScreen: React.FC = () => {
   const [oracleTrace, setOracleTrace] = useState<{ stage: string; content: string }[]>([]);
   const [showReasoningLogs, setShowReasoningLogs] = useState<boolean>(false);
 
-  // Audio recording state
-  const [isRecording, setIsRecording] = useState<boolean>(false);
   const [audioError, setAudioError] = useState<string | null>(null);
-  const [sttAvailable, setSttAvailable] = useState<boolean | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
   const activeAbortControllerRef = useRef<AbortController | null>(null);
 
   const handleCancel = () => {
@@ -834,27 +817,8 @@ export const StrategyRoomScreen: React.FC = () => {
   }, [chatHistories, isProcessing, oracleStage]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!isMicSupported()) {
-      setSttAvailable(false);
-    } else {
-      probeVoiceAvailability()
-        .then((cap) => {
-          if (!cancelled) setSttAvailable(cap.probeFailed ? true : cap.available);
-        })
-        .catch(() => { if (!cancelled) setSttAvailable(true); });
-    }
     return () => {
-      cancelled = true;
       activeAbortControllerRef.current?.abort();
-      try {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-          mediaRecorderRef.current.stop();
-        }
-      } catch { /* ignore */ }
-      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-      mediaStreamRef.current = null;
-      cancelSpeech();
     };
   }, []);
 
@@ -871,120 +835,6 @@ export const StrategyRoomScreen: React.FC = () => {
   }, [chatHistories]);
 
   const activeHistory = chatHistories[activeTab] || [];
-
-  const handleSpeak = (text: string) => {
-    if (!isTTSAvailable()) return;
-    let pitch = 1.0;
-    let rate = 1.0;
-    if (selectedPersona.id === 'evidence-advocate') { pitch = 0.8; rate = 0.95; }
-    else if (selectedPersona.id === 'leverage-architect') { pitch = 0.7; rate = 0.85; }
-    else if (selectedPersona.id === 'procedure-counsel') { pitch = 1.1; rate = 1.1; }
-    else if (selectedPersona.id === 'constitutional-analyst') { pitch = 0.9; rate = 0.95; }
-    else if (selectedPersona.id === 'ethics-analyst') { pitch = 1.0; rate = 1.0; }
-
-    // Browser TTS — no Sarvam key required.
-    speak(text.slice(0, 800), { pitch, rate });
-  };
-
-  const startRecording = async () => {
-    setAudioError(null);
-    audioChunksRef.current = [];
-
-    if (!isMicSupported()) {
-      setAudioError('Microphone recording is not supported in this browser. Type instead.');
-      return;
-    }
-    if (sttAvailable === false) {
-      setAudioError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type instead.');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      const preferredMime = preferredRecordingMimeType();
-      const mediaRecorder = preferredMime
-        ? new MediaRecorder(stream, { mimeType: preferredMime })
-        : new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onerror = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-        setIsRecording(false);
-        setAudioError('Recording failed. Check microphone permissions and try again.');
-      };
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-        const mimeType = (mediaRecorder.mimeType || preferredMime || 'audio/webm').split(';')[0] || 'audio/webm';
-        const chunks = audioChunksRef.current;
-        audioChunksRef.current = [];
-        if (!chunks.length) {
-          setAudioError('No audio captured. Check the microphone and try again.');
-          return;
-        }
-        const audioBlob = new Blob(chunks, { type: mimeType });
-        await handleSTT(audioBlob);
-      };
-
-      mediaRecorder.start(250);
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Microphone access denied:', err);
-      const name = err instanceof DOMException ? err.name : '';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        setAudioError('Microphone permission denied. Allow mic access or type instead.');
-      } else if (name === 'NotFoundError') {
-        setAudioError('No microphone found. Type instead.');
-      } else {
-        setAudioError('Microphone access is required for voice input.');
-      }
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-        mediaStreamRef.current = null;
-      }
-    }
-    setIsRecording(false);
-  };
-
-  const handleSTT = async (blob: Blob) => {
-    setIsProcessing(true);
-    setOracleStage('Transcribing audio...');
-    try {
-      const text = (await transcribeAudio(blob, {
-        language: practiceMode === 'indian' ? 'en-IN' : 'en-US',
-      })).trim();
-      if (!text) {
-        throw new VoiceError('No speech detected. Try again or type your consult.', 'EMPTY_TRANSCRIPT');
-      }
-      setInputVal(text);
-      setAudioError(null);
-    } catch (err) {
-      console.error('Transcription error:', err);
-      if (err instanceof VoiceError && (err.code === 'MISSING_API_KEY' || err.status === 503)) {
-        setSttAvailable(false);
-      }
-      setAudioError(humanizeVoiceError(err));
-    } finally {
-      setIsProcessing(false);
-      setOracleStage('');
-    }
-  };
 
   const strategyApiError = (status: number, error?: string): string => {
     if (status === 429) return 'The AI service is busy. Wait a moment, then retry your last consult.';
@@ -1695,14 +1545,6 @@ ctx.verificationBlock = [
                   <div className="flex space-x-1.5 mt-1 pl-1">
                     <button
                       type="button"
-                      onClick={() => handleSpeak(item.text)}
-                      aria-label="Speak message"
-                      className="min-h-9 px-2.5 py-1.5 border border-brand-border rounded-md bg-brand-bg-primary hover:bg-[#3a352c] hover:text-brand-bg-primary text-[10px] font-mono uppercase tracking-wide text-brand-text-primary font-semibold cursor-pointer"
-                    >
-                      Speak
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => {
                         void navigator.clipboard?.writeText(item.text).catch(() => {
                           setAudioError('Could not copy to clipboard.');
@@ -1794,45 +1636,6 @@ ctx.verificationBlock = [
             )}
 
             <form onSubmit={handleSend} className="flex gap-1.5 items-end">
-              <button
-                type="button"
-                onClick={() => {
-                  if (sttAvailable === false && !isRecording) {
-                    setAudioError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type instead.');
-                    return;
-                  }
-                  if (isRecording) stopRecording();
-                  else void startRecording();
-                }}
-                aria-label={
-                  isRecording
-                    ? 'Stop recording'
-                    : sttAvailable === false
-                      ? 'Voice transcription unavailable'
-                      : 'Record voice'
-                }
-                className={`w-11 h-11 flex-shrink-0 rounded-lg border flex items-center justify-center focus:outline-none focus-visible:ring-1 focus-visible:ring-[#1c1914]/40
-                  ${isRecording
-                    ? 'bg-brand-error/20 border-brand-error text-brand-error'
-                    : sttAvailable === false
-                      ? 'bg-brand-bg-primary border-brand-border text-brand-text-secondary/50'
-                      : 'bg-brand-bg-primary border-brand-border text-brand-text-primary hover:bg-[#3a352c] hover:text-brand-bg-primary'
-                  }`}
-                title={
-                  isRecording
-                    ? 'Stop Recording'
-                    : sttAvailable === false
-                      ? 'Voice transcription unavailable (server key not configured)'
-                      : 'Record voice'
-                }
-              >
-                {isRecording ? (
-                  <span className="w-2.5 h-2.5 bg-brand-error rounded-sm" aria-hidden="true"></span>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
-                )}
-              </button>
-
               <div className="relative flex-grow flex items-end bg-brand-bg-primary rounded-lg border border-brand-border focus-within:ring-1 focus-within:ring-[#1c1914]/30 min-w-0">
                 <textarea
                   value={inputVal}
@@ -2069,12 +1872,6 @@ ctx.verificationBlock = [
                 {item.sender === 'assistant' && item.text && (
                   <div className="flex space-x-2 mt-1.5 pl-1">
                     <button
-                      onClick={() => handleSpeak(item.text)}
-                      className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[9px] text-brand-text-primary font-semibold font-mono uppercase tracking-wide cursor-pointer"
-                    >
-                      Speak
-                    </button>
-                    <button
                       onClick={() => navigator.clipboard.writeText(item.text)}
                       className="px-2 py-1 border border-brand-border rounded-lg bg-brand-bg-secondary hover:bg-brand-bg-primary text-[9px] text-brand-text-secondary hover:text-brand-text-primary  font-mono uppercase tracking-wide cursor-pointer"
                     >
@@ -2097,38 +1894,6 @@ ctx.verificationBlock = [
             )}
 
             <form onSubmit={handleSend} className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (sttAvailable === false && !isRecording) {
-                    setAudioError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type instead.');
-                    return;
-                  }
-                  if (isRecording) stopRecording();
-                  else void startRecording();
-                }}
-                className={`w-10 h-10 flex-shrink-0 rounded-xl border flex items-center justify-center focus:outline-none
-                  ${isRecording
-                    ? 'bg-brand-error/25 border-brand-error text-brand-error '
-                    : sttAvailable === false
-                      ? 'bg-brand-bg-primary border-brand-border text-brand-text-secondary/50'
-                      : 'bg-brand-bg-primary border-brand-border text-brand-text-primary font-semibold hover:bg-brand-text-primary text-brand-bg-primary '
-                  }`}
-                title={
-                  isRecording
-                    ? 'Stop Recording'
-                    : sttAvailable === false
-                      ? 'Voice transcription unavailable (server key not configured)'
-                      : 'Speak'
-                }
-              >
-                {isRecording ? (
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
-                )}
-              </button>
-
               <textarea
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}

@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useId, useState } from 'react';
 import { ChatMessage as ChatMessageType, JudgePersonalityId, OpposingCounselPersonalityId } from '../types';
 import { JUDGE_PERSONALITIES, OPPOSING_COUNSEL_PERSONALITIES, INTERNATIONAL_JUDGE_PERSONALITIES, INTERNATIONAL_OPPOSING_COUNSEL_PERSONALITIES } from '../constants';
 import { BriefcaseIcon, CourtIcon, UserIcon } from './icons';
@@ -12,8 +12,6 @@ interface ChatMessageProps {
   categoryId?: string;
 }
 
-const TTS_CHAR_LIMIT = 800;
-
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
   judgePersonalityId,
@@ -23,8 +21,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speakTruncated, setSpeakTruncated] = useState(false);
   const actionsId = useId();
 
   const isUser = message.sender === 'user';
@@ -45,15 +41,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       };
 
   const alignment = isUser ? 'items-end' : 'items-start';
-
-  useEffect(() => {
-    return () => {
-      // Stop speech if this bubble unmounts mid-utterance
-      if (isSpeaking && typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, [isSpeaking]);
 
   const handleCopy = async () => {
     const plain = message.text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/(^|[^A-Za-z0-9])_(.+?)_([^A-Za-z0-9]|$)/g, '$1$2$3');
@@ -149,77 +136,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return 'System';
   };
 
-  const handleSpeak = (text: string) => {
-    try {
-      if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-        setSpeakTruncated(false);
-        return;
-      }
-
-      window.speechSynthesis.cancel();
-      const cleanText = text.replace(/\*\*/g, '').replace(/(^|[^A-Za-z0-9])_([^_]+)_([^A-Za-z0-9]|$)/g, '$1$2$3');
-      const truncated = cleanText.length > TTS_CHAR_LIMIT;
-      setSpeakTruncated(truncated);
-      const utterance = new SpeechSynthesisUtterance(cleanText.slice(0, TTS_CHAR_LIMIT));
-
-      let pitch = 1.0;
-      let rate = 1.0;
-
-      if (isJudge) {
-        if (judgePersonalityId === 'robert_vance') {
-          pitch = 0.85;
-          rate = 0.95;
-        } else if (judgePersonalityId === 'arthur_pendelton') {
-          pitch = 1.05;
-          rate = 1.05;
-        } else if (judgePersonalityId === 'paul_vance') {
-          pitch = 0.9;
-          rate = 0.9;
-        } else if (judgePersonalityId === 'daniel_sterling') {
-          pitch = 1.0;
-          rate = 1.0;
-        } else if (judgePersonalityId === 'john_sterling') {
-          pitch = 0.8;
-          rate = 0.95;
-        }
-      } else if (isOpposingCounsel) {
-        pitch = 1.1;
-        rate = 1.05;
-      }
-
-      utterance.pitch = pitch;
-      utterance.rate = rate;
-
-      const voices = window.speechSynthesis.getVoices();
-      const preferredLang = practiceMode === 'indian' ? 'en-IN' : 'en-US';
-      const voice =
-        voices.find(v => v.lang.includes(preferredLang))
-        || voices.find(v => v.lang.startsWith('en'))
-        || voices[0];
-      if (voice) utterance.voice = voice;
-
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        setSpeakTruncated(false);
-      };
-      utterance.onerror = () => {
-        setIsSpeaking(false);
-        setSpeakTruncated(false);
-      };
-
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utterance);
-    } catch (err) {
-      console.error('Failed native speech synthesis:', err);
-      setIsSpeaking(false);
-      setSpeakTruncated(false);
-    }
-  };
-
   if (isSystem) {
     return (
       <div
@@ -268,18 +184,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           >
             <button
               type="button"
-              onClick={() => handleSpeak(message.text)}
-              className="font-semibold text-brand-text-primary/85 transition-opacity hover:opacity-85 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white/40"
-              aria-label={isSpeaking ? 'Stop speaking this statement' : 'Speak this statement'}
-              title={isSpeaking ? 'Stop' : 'Listen'}
-            >
-              {isSpeaking ? 'Stop' : 'Listen'}
-            </button>
-            <span className="text-brand-text-primary/20" aria-hidden="true">
-              |
-            </span>
-            <button
-              type="button"
               onClick={handleCopy}
               className="font-semibold text-brand-text-secondary transition-colors hover:text-brand-text-primary focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white/40"
               aria-label={copied ? 'Message copied' : 'Copy message to clipboard'}
@@ -288,11 +192,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          {speakTruncated && isSpeaking && (
-            <p className="sr-only" role="status">
-              Speaking first {TTS_CHAR_LIMIT} characters of a longer statement.
-            </p>
-          )}
         </>
       )}
 
@@ -354,11 +253,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 <p className="whitespace-pre-wrap text-xs font-light leading-relaxed selection:bg-[#1c1914]/[0.08] sm:text-sm">
                   {formatText(message.text)}
                 </p>
-                {speakTruncated && isSpeaking && (
-                  <p className="mt-2 font-mono text-[10px] text-brand-text-secondary/70">
-                    Reading first {TTS_CHAR_LIMIT} characters
-                  </p>
-                )}
               </div>
             )}
           </div>
