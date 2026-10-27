@@ -30,16 +30,6 @@ import trialBinderDesk from '../assets/trial_binder_desk.jpg';
 import counselScales from '../assets/counsel_scales.jpg';
 import judgeGavel from '../assets/judge_gavel.jpg';
 import courtroomLuxury from '../assets/courtroom_luxury.jpg';
-import {
-  isMicSupported,
-  preferredRecordingMimeType,
-  transcribeAudio,
-  speakWithBestEffort,
-  probeVoiceAvailability,
-  humanizeVoiceError,
-  VoiceError,
-  isTTSAvailable,
-} from '../services/voiceService';
 
 // Screen-local outline icons (not yet promoted to components/icons)
 const LightbulbIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -541,144 +531,6 @@ const DraftingStudioScreen: React.FC = () => {
       verdict: score === 100 ? 'Compliant' : score >= 60 ? 'Substandard' : 'Deficient',
     };
   }, [userDraft]);
-
-  // Voice Recording state for STT
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [sttAvailable, setSttAvailable] = useState<boolean | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!isMicSupported()) {
-      setSttAvailable(false);
-      return;
-    }
-    probeVoiceAvailability()
-      .then((cap) => {
-        if (!cancelled) setSttAvailable(cap.probeFailed ? true : cap.available);
-      })
-      .catch(() => { if (!cancelled) setSttAvailable(true); });
-    return () => {
-      cancelled = true;
-      try {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-          mediaRecorderRef.current.stop();
-        }
-      } catch { /* ignore */ }
-      mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-      mediaStreamRef.current = null;
-    };
-  }, []);
-
-  const startRecording = async () => {
-    setGlobalError(null);
-    audioChunksRef.current = [];
-
-    if (!isMicSupported()) {
-      setGlobalError('Microphone recording is not supported in this browser. Type your draft instead.');
-      return;
-    }
-    if (sttAvailable === false) {
-      setGlobalError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type your draft instead.');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-      const preferredMime = preferredRecordingMimeType();
-      const mediaRecorder = preferredMime
-        ? new MediaRecorder(stream, { mimeType: preferredMime })
-        : new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onerror = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-        setIsRecording(false);
-        setGlobalError('Recording failed. Check microphone permissions and try again.');
-      };
-
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        mediaStreamRef.current = null;
-        const mimeType = (mediaRecorder.mimeType || preferredMime || 'audio/webm').split(';')[0] || 'audio/webm';
-        const chunks = audioChunksRef.current;
-        audioChunksRef.current = [];
-        if (!chunks.length) {
-          setGlobalError('No audio captured. Check the microphone and try again.');
-          return;
-        }
-        const audioBlob = new Blob(chunks, { type: mimeType });
-        await handleSTT(audioBlob);
-      };
-
-      mediaRecorder.start(250);
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Microphone access denied:', err);
-      const name = err instanceof DOMException ? err.name : '';
-      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        setGlobalError('Microphone permission denied. Allow mic access or type your draft.');
-      } else if (name === 'NotFoundError') {
-        setGlobalError('No microphone found. Type your draft instead.');
-      } else {
-        setGlobalError('Microphone access is required for voice input.');
-      }
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
-        mediaStreamRef.current = null;
-      }
-    }
-    setIsRecording(false);
-  };
-
-  const handleSTT = async (blob: Blob) => {
-    setIsLoadingAiInteraction(true);
-    try {
-      const text = await transcribeAudio(blob, { language: 'en-IN' });
-      setUserDraft(prev => (prev ? `${prev}\n${text}` : text));
-    } catch (err) {
-      console.error('Transcription error:', err);
-      if (err instanceof VoiceError && err.code === 'MISSING_API_KEY') {
-        setSttAvailable(false);
-      }
-      setGlobalError(humanizeVoiceError(err));
-    } finally {
-      setIsLoadingAiInteraction(false);
-    }
-  };
-
-  const handleSpeak = async (text: string) => {
-    try {
-      const mode = await speakWithBestEffort(text, { language: 'en-IN' });
-      if (mode === 'none') {
-        setGlobalError(
-          isTTSAvailable()
-            ? 'Could not play speech.'
-            : 'Speech playback is not supported in this browser.',
-        );
-      }
-    } catch (error) {
-      console.error('Error playing speech:', error);
-      setGlobalError(humanizeVoiceError(error));
-    }
-  };
 
   // renderLegalMarkdown imported from ../utils/markdown
   const isLoading = isFactGenerating || isLoadingAiInteraction;
@@ -1615,15 +1467,6 @@ Section 8.2 Limitation of Liability.
                                                 <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-[#1c1914]/[0.08] prose-sm">
                                                     {renderLegalMarkdown(aiFeedback)}
                                                 </div>
-                                                <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
-                                                    <button
-                                                        onClick={() => void handleSpeak(aiFeedback)}
-                                                        className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
-                                                        title="Speak this feedback"
-                                                    >
-                                                        [ Read Aloud ]
-                                                    </button>
-                                                </div>
                                             </div>
                                         ) : (
                                             <EmptyState
@@ -1659,15 +1502,6 @@ Section 8.2 Limitation of Liability.
                                         ) : filingProcedure ? (
                                             <div className="font-light leading-relaxed text-[13px] text-brand-text-primary/90 selection:bg-[#1c1914]/[0.08] prose-sm">
                                                 {renderLegalMarkdown(filingProcedure)}
-                                                <div className="mt-4 pt-2 border-t border-brand-text-primary/30">
-                                                    <button
-                                                        onClick={() => void handleSpeak(filingProcedure)}
-                                                        className="px-2.5 py-1 text-[10px] border border-brand-text-primary/30 rounded-xl bg-brand-bg-secondary hover:bg-brand-bg-primary text-brand-text-primary transition-all cursor-pointer font-mono uppercase"
-                                                        title="Speak this protocol"
-                                                    >
-                                                        [ Read Aloud ]
-                                                    </button>
-                                                </div>
                                             </div>
                                         ) : (
                                             <EmptyState
@@ -1972,39 +1806,6 @@ Section 8.2 Limitation of Liability.
                         )}
                         {/* Action buttons row */}
                         <div className="flex items-center gap-2 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (sttAvailable === false && !isRecording) {
-                                  setGlobalError('Voice transcription is unavailable (SARVAM_API_KEY not configured). Type your draft instead.');
-                                  return;
-                                }
-                                if (isRecording) stopRecording();
-                                else void startRecording();
-                              }}
-                              disabled={isLoading || stage === 'task_details_display'}
-                              className={`w-8 h-8 lg:w-10 lg:h-10 flex-shrink-0 rounded-xl border flex items-center justify-center transition-all focus:outline-none disabled:opacity-50
-                                ${isRecording
-                                  ? 'bg-brand-error/20 border-brand-error text-brand-error animate-pulse'
-                                  : sttAvailable === false
-                                    ? 'bg-brand-bg-secondary border-brand-text-primary/15 text-brand-text-secondary/50'
-                                    : 'bg-brand-bg-secondary border-brand-text-primary/30 text-brand-text-primary hover:bg-brand-bg-primary'
-                                }`}
-                              title={
-                                isRecording
-                                  ? 'Stop Recording'
-                                  : sttAvailable === false
-                                    ? 'Voice transcription unavailable (server key not configured)'
-                                    : 'Speak using voice transcription'
-                              }
-                            >
-                              {isRecording ? (
-                                <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-                              ) : (
-                                <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
-                              )}
-                            </button>
-
                             <Button 
                                 onClick={() => {
                                     void navigator.clipboard.writeText(userDraft);

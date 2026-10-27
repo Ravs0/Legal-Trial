@@ -164,8 +164,9 @@ else
 fi
 
 # --- JEV/Needle chain guards (A19) ---
-# Pinned-12: new endpoints go BEHIND api/lexforge.js (?fn=), never as new
-#   api/*.js (12/12 Hobby cap is already full; any addition breaks remote).
+# Pinned set: new endpoints go BEHIND api/lexforge.js (?fn=), not as new
+#   api/*.js. 10 of the 12 Hobby slots are used (voice and migrate were
+#   removed Oct 2026); adding a routed file must update this list on purpose.
 # No-TS-in-chain: api/_lib/jev|needle *.js must not import '.ts' (plain-JS
 #   endpoints cannot import TS without breaking the remote bundle, Sep 2026).
 # One-integration: A11 picks exactly one of @typesafe-ai/sdk or direct fetch
@@ -181,10 +182,8 @@ api/cron.js
 api/dreadler.py
 api/keys.js
 api/lexforge.js
-api/migrate.js
 api/orchestrate.js
 api/search.js
-api/voice.js
 api/webhooks/court-alerts.js"
 if [ "$LIST" != "$JEV_EXPECTED" ]; then
   JEV_EXPECTED_FILE=$(mktemp "${TMPDIR:-/tmp}/lexforge-expected-XXXXXX")
@@ -195,13 +194,13 @@ if [ "$LIST" != "$JEV_EXPECTED" ]; then
   JEV_ADDED=$(comm -13 "$JEV_EXPECTED_FILE" "$JEV_LIST_FILE" || true)
   JEV_REMOVED=$(comm -23 "$JEV_EXPECTED_FILE" "$JEV_LIST_FILE" || true)
   echo
-  echo "FAIL: routed api/ file set differs from the pinned 12 (JEV/Needle contract):"
+  echo "FAIL: routed api/ file set differs from the pinned list (JEV/Needle contract):"
   [ -n "$JEV_ADDED" ] && printf '%s\n' "$JEV_ADDED" | sed 's/^/  added: /'
   [ -n "$JEV_REMOVED" ] && printf '%s\n' "$JEV_REMOVED" | sed 's/^/  removed: /'
   echo "New endpoints go BEHIND api/lexforge.js (?fn=), never as new api/*.js."
   exit 1
 fi
-echo "OK: routed api/ file set matches the pinned 12."
+echo "OK: routed api/ file set matches the pinned list."
 
 # 2) No '.ts' imports inside api/_lib/jev/ or api/_lib/needle/ chain code.
 for JEV_DIR in api/_lib/jev api/_lib/needle; do

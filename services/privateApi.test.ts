@@ -50,11 +50,4 @@ function verifyHmac(body: string, sig: string, secret: string): boolean {
   assert(check(99, 100) === 200, "under allowed");
   assert(check(100, 100) === 429, "at-limit 429");
 }
-{ // 6 voice privacy local-only
-  const stt = (localOnly: boolean, moot: boolean, pref: string) =>
-    (localOnly || moot ? "local-whisper" : pref);
-  assert(stt(true, false, "sarvam") === "local-whisper", "local_only forces local");
-  assert(stt(false, true, "sarvam") === "local-whisper", "moot forces local");
-  assert(stt(false, false, "sarvam") === "sarvam", "non-moot respects pref");
-}
-console.log("privateApi passed (6/6)");
+console.log("privateApi passed (5/5)");
