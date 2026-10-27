@@ -89,8 +89,16 @@ if [ ! -f "$COMPILED_JS" ]; then
 fi
 
 # 1) Freshness: TS newer than the compiled copy means the source was edited
-#    without recompiling.
-if [ "$TS_SRC" -nt "$COMPILED_JS" ]; then
+#    without recompiling. A fresh clone/checkout writes both files at about the
+#    same moment in arbitrary order, so mtimes only carry meaning once the TS
+#    has local edits; committed drift is still caught by the semantic check.
+TS_EDITED=1
+if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+  && git ls-files --error-unmatch "$TS_SRC" >/dev/null 2>&1 \
+  && git diff --quiet HEAD -- "$TS_SRC" 2>/dev/null; then
+  TS_EDITED=0
+fi
+if [ "$TS_EDITED" -eq 1 ] && [ "$TS_SRC" -nt "$COMPILED_JS" ]; then
   echo
   echo "FAIL: $TS_SRC is newer than $COMPILED_JS."
   echo "The compiled gateway is stale. Recompile:"
