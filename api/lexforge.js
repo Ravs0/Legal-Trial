@@ -6,6 +6,7 @@
 //   /api/lexforge/scores -> /api/lexforge?fn=scores
 //   /api/lexforge/chain -> /api/lexforge?fn=chain
 //   /api/lexforge/jev-decide -> /api/lexforge?fn=jev-decide
+//   /api/lexforge/agent -> /api/lexforge?fn=agent (Open Instinct bridge, server-to-server)
 // (Dynamic [..slug].js filenames do NOT create routes on no-framework Vercel
 // projects — only literal files do — hence this mapping.)
 // New endpoints ride the existing vercel.json /api/lexforge/:fn rewrite —
@@ -14,10 +15,11 @@
 // stay static: byte-identical behavior.
 import drills from "./_lib/lexforge/drills.js";
 import scores from "./_lib/lexforge/scores.js";
+import agent from "./_lib/lexforge/agent.js";
 import { applyCors, allowRequest, enforceBodyLimit, clientError } from "./_lib/security.js";
 import { jevBudget, keyQuota } from "./_lib/guardrails.js";
 
-const ENDPOINTS = { drills, scores };
+const ENDPOINTS = { drills, scores, agent };
 
 async function loadChain() {
   try {

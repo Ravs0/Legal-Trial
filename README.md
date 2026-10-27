@@ -49,6 +49,7 @@ Set these in the Vercel project **Environment Variables**:
 | `ALLOWED_ORIGINS` | **Yes** in production | All API routes | Comma-separated app origins allowed to call the API. Localhost origins are allowed in dev. Alias: `APP_ORIGIN`. |
 | `SARVAM_API_KEY` | Optional | `/api/voice` | STT (mic) and TTS ("Read Aloud"). Without it, voice is disabled. |
 | `INDIANKANOON_API_KEY` | Optional | `/api/caselaw` | Structured SC/HC retrieval with provider court/date filters. Without it, public-web discovery only (unverified leads). |
+| `LEXFORGE_AGENT_KEY` | Optional | `/api/lexforge/agent` | Signs learner tokens for practice by text through Open Instinct. Without it, the endpoint returns 503. See `integrations/open-instinct/README.md`. |
 
 Optional Dreadler/DeepSeek tuning (usually leave default):
 
